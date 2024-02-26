@@ -1,0 +1,58 @@
+version: "3"
+
+vars:
+  BUILD_ROOT: "{{ .ROOT_DIR }}/build"
+  GO_VERSION: 1.22.0
+  GO_BUILD_ROOT: '{{.BUILD_ROOT}}/go/{{.GO_VERSION}}'
+  MODULES:
+    sh: find . -maxdepth 2 -name go.mod -execdir pwd \;
+  PATH_PREFIX: PATH={{.BUILD_ROOT}}/bin:{{.GO_BUILD_ROOT}}/bin:{{.BUILD_ROOT}}/bin/go:$PATH GOBIN={{ .BUILD_ROOT }}/bin/go GOROOT=
+
+includes:
+  install: taskfiles/install.yaml
+
+tasks:
+  lint:
+    desc: Lint all Go code
+    deps: ['install:golangci-lint']
+    cmds:
+      - for: { var: MODULES }
+        task: lint:dir
+        vars:
+         DIRECTORY: '{{.ITEM}}'
+
+  lint:dir:
+    label: lint:dir {{ .DIRECTORY }}
+    desc: Lint Go code on the provided directory
+    deps: ['install:golangci-lint']
+    vars:
+      DIRECTORY: '{{ .DIRECTORY }}'
+    dir: '{{.DIRECTORY}}'
+    cmds:
+      - '{{ .BUILD_ROOT }}/bin/go/golangci-lint run  --config {{ .ROOT_DIR }}/.golangci.yaml --timeout 10m ./...'
+
+  fmt:
+    desc: Run all formatters
+    cmds:
+      - for: { var: MODULES }
+        task: fmt:dir
+        vars:
+          DIRECTORY: '{{.ITEM}}'
+
+  fmt:dir:
+    label: fmt:dir {{ .DIRECTORY }}
+    desc: Run all of the Go formatters on the provided directory, excluding any generated folders
+    deps:
+      - 'install:go'
+      - 'install:gofumpt'
+      - 'install:goimports'
+      - 'install:gci'
+    vars:
+      DIRECTORY: '{{ .DIRECTORY }}'
+    sources:
+      - '{{ .DIRECTORY }}/**/*.go'
+    cmds:
+      - '{{ .BUILD_ROOT }}/bin/go/goimports -l -w -local "github.com/redpanda-data/common-go" {{.DIRECTORY}}'
+      - '{{ .BUILD_ROOT }}/bin/go/gofumpt -l -w {{.DIRECTORY}}'
+      - '{{ .BUILD_ROOT }}/bin/go/gci write -s default -s standard -s "prefix(github.com/redpanda-data/common-go)" {{.DIRECTORY}}'
+      - if [[ $CI == "true" ]]; then git --no-pager diff --exit-code; fi

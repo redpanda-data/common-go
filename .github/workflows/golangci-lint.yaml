@@ -1,0 +1,45 @@
+name: "Lint"
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '**.go'
+      - '.golangci.yaml'
+  pull_request:
+    paths:
+      - '**.go'
+      - '.golangci.yaml'
+
+permissions:
+  contents: read
+
+jobs:
+  golangci:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: 'stable'
+
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v4
+        with:
+          version: v1.56
+          working-directory: api
+          args: --timeout=10m --config=../.golangci.yaml
+
+      - name: Install Task
+        uses: arduino/setup-task@v2
+        with:
+          version: 3.x
+          # Heavy usage of the action can result in workflow run failures caused by rate limiting.
+          # GitHub provides a more generous allowance for Authenticated API requests.
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: fmt
+        run: task fmt
