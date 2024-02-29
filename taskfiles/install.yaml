@@ -1,0 +1,65 @@
+version: "3"
+
+tasks:
+  go:
+    desc: install golang compiler
+    run: once
+    vars:
+      GOLANG_URL_DEFAULT: https://golang.org/dl/go{{.GO_VERSION}}.{{OS}}-{{ARCH}}.tar.gz
+      GOLANG_URL: '{{default .GOLANG_URL_DEFAULT .GOLANG_URL}}'
+    cmds:
+      - rm -rf {{.GO_BUILD_ROOT}}
+      - mkdir -p '{{.GO_BUILD_ROOT}}'
+      - curl -sSLf --retry 3 --retry-connrefused --retry-delay 2 '{{.GOLANG_URL}}' | tar -xz -C '{{.GO_BUILD_ROOT}}' --strip 1
+    status:
+      - test -f '{{.GO_BUILD_ROOT}}/bin/go'
+      - '[[ $({{.GO_BUILD_ROOT}}/bin/go version) == *"go version go{{ .GO_VERSION }}"* ]]'
+
+  golangci-lint:
+    desc: Installs golangci-lint
+    run: once
+    vars:
+      GO_LINT_VERSION: 1.56.2
+    cmds:
+      - mkdir -p {{ .BUILD_ROOT}}/bin
+      - curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b "{{ .BUILD_ROOT }}"/bin/go v{{ .GO_LINT_VERSION }}
+    status:
+      - '[ -f ''{{ .BUILD_ROOT }}/bin'' ] || command -v {{ .BUILD_ROOT }}/bin/go/golangci-lint >/dev/null 2>&1'
+      - '[[ $({{ .BUILD_ROOT }}/bin/go/golangci-lint --version) == *"version {{ .GO_LINT_VERSION }} built"* ]]'
+
+  goimports:
+    desc: Installs https://pkg.go.dev/golang.org/x/tools/cmd/goimports
+    run: once
+    deps:
+      - go
+    cmds:
+      - '{{.PATH_PREFIX}} go install golang.org/x/tools/cmd/goimports@latest'
+    status:
+      - '[ -f ''{{ .BUILD_ROOT }}/bin/go'' ] || command -v {{ .BUILD_ROOT }}/bin/go/goimports >/dev/null 2>&1'
+
+  gci:
+    desc: Installs https://github.com/daixiang0/gci
+    run: once
+    deps:
+      - go
+    vars:
+      GCI_VERSION: 0.12.3
+    cmds:
+      - '{{.PATH_PREFIX}} go install github.com/daixiang0/gci@v{{.GCI_VERSION}}'
+    status:
+      - '[ -f ''{{ .BUILD_ROOT }}/bin/go'' ] || command -v {{ .BUILD_ROOT }}/bin/go/gci >/dev/null 2>&1'
+      - '[[ $(cat {{ .BUILD_ROOT }}/.gci_version) == {{.GCI_VERSION}} ]]'
+
+  gofumpt:
+    desc: Install gofumpt formatter
+    run: once
+    deps:
+      - go
+    vars:
+      GOFUMPT_VERSION: 0.6.0
+    cmds:
+      - |
+        {{ .PATH_PREFIX }} go install mvdan.cc/gofumpt@v{{ .GOFUMPT_VERSION }}
+    status:
+      - '[ -f ''{{ .BUILD_ROOT }}/bin/go'' ] || command -v {{ .BUILD_ROOT }}/bin/go/gofumpt >/dev/null 2>&1'
+      - '[[ $({{ .BUILD_ROOT }}/bin/go/gofumpt --version) == v{{.GOFUMPT_VERSION}} ]]'
