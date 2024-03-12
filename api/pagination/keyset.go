@@ -33,7 +33,7 @@ func DecodeToken(tokenStr string, validKeys []string) (*commonv1.KeySetPageToken
 	}
 	var token commonv1.KeySetPageToken
 	if err := proto.Unmarshal(decoded, &token); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: %w", ErrInvalidTokenFormat, err)
 	}
 
 	if !slices.Contains(validKeys, token.Key) {
