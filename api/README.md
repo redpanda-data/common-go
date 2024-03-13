@@ -37,3 +37,32 @@ gwMux := runtime.NewServeMux(
     runtime.WithUnescapingMode(runtime.UnescapingModeAllExceptReserved),
 )
 ```
+
+## Package pagination
+
+The package pagination provides functions for handling paginated Redpanda API
+responses on the server-side.
+
+**Serving paginated responses**
+
+```go
+topics := []Topics{} // Some collection which we want to paginate
+
+// Sort the collection by the desired key
+sort.SliceStable(topics, func(i, j int) bool {
+    return topics[i].Name < topics[j].Name
+})
+
+// Chop the slice into pages, continue at the page that is
+// encoded in the provided token.
+page, nextPageToken, err := pagination.SliceToPaginatedWithToken(topics, int(req.Msg.PageSize), req.Msg.GetPageToken(), "name", func(x *v1alpha1.ListTopicsResponse_Topic) string {
+    return x.GetName()
+})
+if err != nil {
+    return nil, apierrors.NewConnectError(
+        connect.CodeInternal,
+        fmt.Errorf("failed to apply pagination: %w", err),
+        apierrors.NewErrorInfo(v1alpha1.Reason_REASON_CONSOLE_ERROR.String()),
+    )
+}
+```
