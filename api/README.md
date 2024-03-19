@@ -38,6 +38,38 @@ gwMux := runtime.NewServeMux(
 )
 ```
 
+## Package interceptor
+
+Package interceptors provides interceptors that may be useful to any API that utilizes
+connectrpc.
+
+**Observer interceptor**
+
+The observer interceptor observes a request throughout it's lifecycle, collects a bunch
+of metadata and stats and calls the provided callback when the server finished processing
+the request. This interceptor defines both an HTTP middleware and a connectrpc
+interceptor, so that it can gather information at both stages of the request lifecycle.
+
+This can be useful for access logs and monitoring.
+
+```go
+observerInterceptor := redpandainterceptor.NewObserver(func(_ context.Context, rm *redpandainterceptor.RequestMetadata) {
+    api.Logger.Info("",
+        zap.String("duration", rm.Duration().String()),
+        zap.String("procedure", rm.Procedure()),
+        zap.String("request_uri", rm.RequestURI()),
+        zap.String("protocol", rm.Protocol()),
+        zap.String("status_code", rm.StatusCode()),
+        zap.Int64("bytes_read", rm.BytesReceived()),
+        zap.Int64("bytes_sent", rm.BytesSent()),
+        zap.String("peer", rm.PeerAddress()))
+})
+
+// You must mount both HTTP middleware and connectrpc interceptors
+r.Use(observerInterceptor.WrapHandler)
+userSvcPath, userSvcHandler := dataplanev1alpha1connect.NewUserServiceHandler(userSvc, connect.WithInterceptors(observerInterceptor))
+```
+
 ## Package pagination
 
 The package pagination provides functions for handling paginated Redpanda API
