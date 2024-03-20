@@ -70,6 +70,30 @@ r.Use(observerInterceptor.WrapHandler)
 userSvcPath, userSvcHandler := dataplanev1alpha1connect.NewUserServiceHandler(userSvc, connect.WithInterceptors(observerInterceptor))
 ```
 
+## Package metrics
+
+The metrics package offers features that streamline the process of instrumenting your API server.
+It works alongside the observerInterceptor that is implemented as part of the interceptor package.
+
+```go
+apiProm, err := metrics.NewPrometheus(
+    metrics.WithRegistry(prometheus.DefaultRegisterer),
+    metrics.WithDynamicLabel("test", func(ctx context.Context, metadata *redpandainterceptor.RequestMetadata) string {
+        return "val"
+    }),
+)
+if err != nil {
+    api.Logger.Fatal("failed to create prometheus adapter", zap.Error(err))
+}
+
+// Mount observer interceptor before
+observerInterceptor := redpandainterceptor.NewObserver(apiProm.ObserverAdapter())
+
+// You must mount both HTTP middleware and connectrpc interceptors
+r.Use(observerInterceptor.WrapHandler)
+userSvcPath, userSvcHandler := dataplanev1alpha1connect.NewUserServiceHandler(userSvc, connect.WithInterceptors(observerInterceptor))
+```
+
 ## Package pagination
 
 The package pagination provides functions for handling paginated Redpanda API
