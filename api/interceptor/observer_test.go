@@ -22,9 +22,17 @@ import (
 
 func TestObserver(t *testing.T) {
 	// Create dummy handler with observer middleware
-	var lastMetadata interceptor.RequestMetadata
+	var unaryMetadata interceptor.RequestMetadata
+	var serverStreamMetadata interceptor.RequestMetadata
 	onRequestEnded := func(_ context.Context, requestMetadata *interceptor.RequestMetadata) {
-		lastMetadata = *requestMetadata
+		switch requestMetadata.Procedure() {
+		case "/connectrpc.eliza.v1.ElizaService/Say":
+			unaryMetadata = *requestMetadata
+		case "/connectrpc.eliza.v1.ElizaService/Introduce":
+			serverStreamMetadata = *requestMetadata
+		default:
+			t.Errorf("received request metadata for an unexpected procedure %q", requestMetadata.Procedure())
+		}
 	}
 	observerMiddleware := interceptor.NewObserver(onRequestEnded)
 
@@ -63,17 +71,46 @@ func TestObserver(t *testing.T) {
 	cl := elizav1connect.NewElizaServiceClient(httpCl, "http://"+lis.Addr().String())
 
 	// Send request
-	ctx, cancel := context.WithTimeout(context.Background(), 6*time.Second)
-	defer cancel()
-	_, err := cl.Say(ctx, connect.NewRequest(&elizav1.SayRequest{Sentence: "hello-test"}))
-	require.NoError(t, err)
 
-	assert.Equal(t, "connect", lastMetadata.Protocol())
-	assert.Equal(t, "ok", lastMetadata.StatusCode())
-	assert.Equal(t, "/connectrpc.eliza.v1.ElizaService/Say", lastMetadata.Procedure())
-	assert.Equal(t, nil, lastMetadata.Err())
-	assert.Equal(t, int64(36), lastMetadata.BytesSent())
-	assert.Equal(t, int64(12), lastMetadata.BytesReceived())
+	t.Run("unary", func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(context.Background(), 6*time.Second)
+		defer cancel()
+		_, err := cl.Say(ctx, connect.NewRequest(&elizav1.SayRequest{Sentence: "hello-test"}))
+		require.NoError(t, err)
+
+		assert.Equal(t, "connect", unaryMetadata.Protocol())
+		assert.Equal(t, "ok", unaryMetadata.StatusCode())
+		assert.Equal(t, "/connectrpc.eliza.v1.ElizaService/Say", unaryMetadata.Procedure())
+		assert.Equal(t, nil, unaryMetadata.Err())
+		assert.Equal(t, int64(36), unaryMetadata.BytesSent())
+		assert.Equal(t, int64(12), unaryMetadata.BytesReceived())
+	})
+
+	t.Run("server stream", func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(context.Background(), 6*time.Second)
+		defer cancel()
+
+		name := "martin"
+		stream, err := cl.Introduce(ctx, connect.NewRequest(&elizav1.IntroduceRequest{Name: name}))
+		require.NoError(t, err)
+
+		for stream.Receive() {
+			_ = stream.Msg()
+		}
+		require.Nil(t, stream.Err())
+		assert.Nil(t, stream.Close())
+
+		// The introduce handler returns the name len(name) times
+		expectedResponses := len(name)
+
+		assert.Equal(t, "connect", serverStreamMetadata.Protocol())
+		assert.Equal(t, "ok", serverStreamMetadata.StatusCode())
+		assert.Equal(t, "/connectrpc.eliza.v1.ElizaService/Introduce", serverStreamMetadata.Procedure())
+		assert.Equal(t, nil, serverStreamMetadata.Err())
+		assert.Equal(t, 1, serverStreamMetadata.MessagesReceived())
+		assert.Equal(t, expectedResponses, serverStreamMetadata.MessagesSent())
+
+	})
 }
 
 type elizaServerHandler struct {
@@ -84,4 +121,20 @@ func (elizaServerHandler) Say(_ context.Context, req *connect.Request[elizav1.Sa
 	return connect.NewResponse(&elizav1.SayResponse{
 		Sentence: req.Msg.Sentence, // Just echo request string
 	}), nil
+}
+
+func (elizaServerHandler) Introduce(_ context.Context, req *connect.Request[elizav1.IntroduceRequest], stream *connect.ServerStream[elizav1.IntroduceResponse]) error {
+	name := req.Msg.Name
+	if name == "" {
+		name = "Anonymous User"
+	}
+
+	// Repeat the name multiple times (exactly len(name) times)
+	repetitions := len(name)
+	for i := 0; i < repetitions; i++ {
+		if err := stream.Send(&elizav1.IntroduceResponse{Sentence: name}); err != nil {
+			return err
+		}
+	}
+	return nil
 }
