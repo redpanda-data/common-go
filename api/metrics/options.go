@@ -35,3 +35,10 @@ func WithDynamicLabel(key string, valueGetter func(context.Context, *interceptor
 		p.dynamicLabelFns[key] = valueGetter
 	}
 }
+
+// WithMetricsNamespace can be used to set the metrics namespace for all exported metrics.
+func WithMetricsNamespace(metricsNamespace string) Option {
+	return func(p *Prometheus) {
+		p.metricsNamespace = metricsNamespace
+	}
+}
