@@ -8,6 +8,8 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
+
+	"github.com/redpanda-data/common-go/api/grpcgateway"
 )
 
 var _ connect.Interceptor = &Observer{}
@@ -227,18 +229,11 @@ func (r *RequestMetadata) HTTPStatusCode() int {
 // If there was no error the status code "ok" will be returned.
 func (r *RequestMetadata) StatusCode() string {
 	if r.procedure == "none" && r.protocol == "http" {
-		switch r.httpStatusCode {
-		case http.StatusOK:
+		connectCode := grpcgateway.HTTPStatusCodeToConnectCode(r.httpStatusCode)
+		if connectCode == 0 {
 			return "ok"
-		case http.StatusNotFound:
-			return connect.CodeNotFound.String()
-		case http.StatusRequestTimeout:
-			return connect.CodeCanceled.String()
-		case http.StatusBadRequest:
-			return connect.CodeInvalidArgument.String()
-		default:
-			return connect.CodeInternal.String()
 		}
+		return connectCode.String()
 	}
 
 	if r.err == nil {
