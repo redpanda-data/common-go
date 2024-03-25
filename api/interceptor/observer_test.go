@@ -109,7 +109,6 @@ func TestObserver(t *testing.T) {
 		assert.Equal(t, nil, serverStreamMetadata.Err())
 		assert.Equal(t, 1, serverStreamMetadata.MessagesReceived())
 		assert.Equal(t, expectedResponses, serverStreamMetadata.MessagesSent())
-
 	})
 }
 

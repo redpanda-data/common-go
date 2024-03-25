@@ -8,6 +8,8 @@ import (
 
 // ConnectCodeToHTTPStatus converts a connect error code into the corresponding
 // HTTP response status.
+//
+//nolint:cyclop // It's easy enough to understand, just a bunch of switch case.
 func ConnectCodeToHTTPStatus(code connect.Code) int {
 	switch code {
 	case 0:
