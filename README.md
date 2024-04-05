@@ -16,3 +16,8 @@ various tasks, including pagination, error construction, and boilerplate code
 for the gRPC/connect API. These utilities are aimed at simplifying development 
 workflows within the Redpanda ecosystem. For detailed documentation, please 
 refer to the [./api](./api) directory.
+
+## Net Module
+
+The `net` module is a small utility module with helper functions for working with
+URL addresses.
