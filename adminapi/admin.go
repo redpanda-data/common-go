@@ -90,8 +90,7 @@ type AdminAPI struct {
 	forCloud            bool
 }
 
-// NewClient returns an AdminAPI client that talks to each of the addresses in
-// the rpk.admin_api section of the config.
+// NewClient returns an AdminAPI client that talks to each of the admin api addresses passed in.
 func NewClient(addrs []string, tls *tls.Config, auth Auth, forCloud bool, opts ...Opt) (*AdminAPI, error) {
 	return newAdminAPI(addrs, auth, tls, forCloud, opts...)
 }
