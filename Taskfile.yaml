@@ -56,3 +56,26 @@ tasks:
       - '{{ .BUILD_ROOT }}/bin/go/gofumpt -l -w {{.DIRECTORY}}'
       - '{{ .BUILD_ROOT }}/bin/go/gci write -s default -s standard -s "prefix(github.com/redpanda-data/common-go)" {{.DIRECTORY}}'
       - if [[ $CI == "true" ]]; then git --no-pager diff --exit-code; fi
+
+  test:
+    desc: Run all tests
+    deps:
+      - 'fmt'
+      - 'lint'
+    cmds:
+      - for: { var: MODULES }
+        task: test:dir
+        vars:
+          DIRECTORY: '{{.ITEM}}'
+  
+  test:dir:
+    label: test:dir {{ .DIRECTORY }}
+    desc: Run Go tests in the provided directory
+    deps:
+      - 'install:go'
+    vars:
+      DIRECTORY: '{{ .DIRECTORY }}'
+    dir: '{{.DIRECTORY}}'
+    cmds:
+      - |
+        {{ .PATH_PREFIX }} go test -v -race {{.CLI_ARGS | default "./..." }}
