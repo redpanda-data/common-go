@@ -4,6 +4,7 @@ go 1.22.0
 
 require (
 	github.com/hashicorp/go-multierror v1.1.1
+	github.com/redpanda-data/common-go/net v0.1.0
 	github.com/sethgrid/pester v1.2.0
 	github.com/spf13/afero v1.11.0
 	github.com/stretchr/testify v1.9.0
