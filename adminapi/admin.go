@@ -26,6 +26,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-multierror"
+	"github.com/redpanda-data/common-go/net"
 	"github.com/sethgrid/pester"
 	"github.com/spf13/afero"
 	"go.uber.org/zap"
@@ -169,7 +170,7 @@ func newAdminAPI(urls []string, auth Auth, tlsConfig *tls.Config, forCloud bool,
 	}
 
 	for i, u := range urls {
-		scheme, host, err := ParseHostMaybeScheme(u)
+		scheme, host, err := net.ParseHostMaybeScheme(u)
 		if err != nil {
 			return nil, err
 		}
