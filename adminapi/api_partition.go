@@ -32,14 +32,16 @@ type NTP struct {
 	PartitionID int    `json:"partition" yaml:"partition"`
 }
 
+// Replicas is a slice of Replica.
 type Replicas []Replica
 
+// String returns string representation of the Replicas.
 func (rs Replicas) String() string {
 	var sb strings.Builder
 	sb.WriteByte('[')
 	for i, r := range rs {
 		if i > 0 {
-			io.WriteString(&sb, ", ")
+			io.WriteString(&sb, ", ") //nolint:gocritic // old rpk code.
 		}
 		fmt.Fprintf(&sb, "%d-%d", r.NodeID, r.Core)
 	}
@@ -58,6 +60,7 @@ type Partition struct {
 	Replicas    []Replica `json:"replicas"`
 }
 
+// Operation represents an operation.
 type Operation struct {
 	Core        int    `json:"core"`
 	RetryNumber int    `json:"retry_number"`
@@ -66,6 +69,7 @@ type Operation struct {
 	Type        string `json:"type"`
 }
 
+// Status is the object status.
 type Status struct {
 	NodeID     int         `json:"node_id"`
 	Operations []Operation `json:"operations"`
@@ -84,6 +88,7 @@ type ReconfigurationsResponse struct {
 	ReconciliationStatuses []Status  `json:"reconciliation_statuses"`
 }
 
+// ClusterPartition represents cluster partition.
 type ClusterPartition struct {
 	Ns          string    `json:"ns" yaml:"ns"`
 	Topic       string    `json:"topic" yaml:"topic"`
@@ -93,6 +98,7 @@ type ClusterPartition struct {
 	Disabled    *bool     `json:"disabled,omitempty" yaml:"disabled,omitempty"` // Disabled may be discarded if not present.
 }
 
+// MajorityLostPartitions represents majority lost partitions.
 type MajorityLostPartitions struct {
 	NTP           NTP       `json:"ntp,omitempty" yaml:"ntp,omitempty"`
 	TopicRevision int       `json:"topic_revision" yaml:"topic_revision"`
@@ -182,7 +188,7 @@ func (a *AdminAPI) MajorityLostPartitions(ctx context.Context, deadNodes []int) 
 
 // ForceRecoverFromNode force recovers partitions from input list of nodes.
 func (a *AdminAPI) ForceRecoverFromNode(ctx context.Context, plan []MajorityLostPartitions, deadNodes []int) error {
-	body := map[string]interface{}{
+	body := map[string]any{
 		"dead_nodes":                  deadNodes,
 		"partitions_to_force_recover": plan,
 	}

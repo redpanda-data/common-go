@@ -14,6 +14,7 @@ import (
 	"net/http"
 )
 
+// RaftRecoveryStatus is the raft recovery status response.
 type RaftRecoveryStatus struct {
 	PartitionsToRecover int `json:"partitions_to_recover"`
 	PartitionsActive    int `json:"partitions_active"`

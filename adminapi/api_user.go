@@ -26,9 +26,12 @@ type newUser struct {
 }
 
 const (
+	// ScramSha256 is the constant for SCRAM-SHA-256.
 	ScramSha256 = "SCRAM-SHA-256"
+	// ScramSha512 is the constant for SCRAM-SHA-512.
 	ScramSha512 = "SCRAM-SHA-512"
-	CloudOIDC   = "CLOUD-OIDC"
+	// CloudOIDC is the constant for CLOUD-OIDC.
+	CloudOIDC = "CLOUD-OIDC"
 )
 
 // CreateUser creates a user with the given username and password using the

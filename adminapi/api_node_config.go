@@ -14,6 +14,7 @@ import (
 	"net/http"
 )
 
+// NodeConfig struct holds node config data.
 type NodeConfig struct {
 	NodeID int `json:"node_id"`
 	// TODO: add the rest of the fields
@@ -21,7 +22,7 @@ type NodeConfig struct {
 
 // RawNodeConfig represents a Redpanda configuration. There are many keys
 // returned, so the raw response is just unmarshalled into an interface.
-type RawNodeConfig map[string]interface{}
+type RawNodeConfig map[string]any
 
 // GetNodeConfig returns a single node configuration.
 // It's expected to be called from an AdminAPI with a single broker URL,

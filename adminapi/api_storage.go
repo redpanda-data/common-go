@@ -18,11 +18,13 @@ import (
 // admin API.
 type DiskStatInfo map[string]any
 
+// DiskCache gets the disk cache.
 func (a *AdminAPI) DiskCache(ctx context.Context) (DiskStatInfo, error) {
 	var response DiskStatInfo
 	return response, a.sendOne(ctx, http.MethodGet, "/v1/debug/storage/disk_stat/cache", nil, &response, false)
 }
 
+// DiskData gets the disk data info.
 func (a *AdminAPI) DiskData(ctx context.Context) (DiskStatInfo, error) {
 	var response DiskStatInfo
 	return response, a.sendOne(ctx, http.MethodGet, "/v1/debug/storage/disk_stat/data", nil, &response, false)

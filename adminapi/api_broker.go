@@ -21,6 +21,7 @@ const (
 	brokerEndpoint  = "/v1/brokers/%d"
 )
 
+// MaintenanceStatus is the maintenance status.
 type MaintenanceStatus struct {
 	Draining     bool  `json:"draining"`
 	Finished     *bool `json:"finished"`
@@ -51,6 +52,7 @@ type Broker struct {
 	Maintenance      *MaintenanceStatus `json:"maintenance_status"`
 }
 
+// DecommissionPartitions holds decommission partitions info.
 type DecommissionPartitions struct {
 	Ns              string               `json:"ns"`
 	Topic           string               `json:"topic"`
@@ -61,11 +63,13 @@ type DecommissionPartitions struct {
 	PartitionSize   int                  `json:"partition_size"`
 }
 
+// DecommissionMovingTo holds moving to info.
 type DecommissionMovingTo struct {
 	NodeID int `json:"node_id"`
 	Core   int `json:"core"`
 }
 
+// DecommissionStatusResponse is the response to DecommissionBrokerStatus.
 type DecommissionStatusResponse struct {
 	Finished           bool                     `json:"finished"`
 	ReplicasLeft       int                      `json:"replicas_left"`
@@ -148,15 +152,15 @@ func (a *AdminAPI) DisableMaintenanceMode(ctx context.Context, nodeID int, useLe
 			nil,
 			nil,
 		)
-	} else {
-		return a.sendAny(
-			ctx,
-			http.MethodDelete,
-			fmt.Sprintf("%s/%d/maintenance", brokersEndpoint, nodeID),
-			nil,
-			nil,
-		)
 	}
+
+	return a.sendAny(
+		ctx,
+		http.MethodDelete,
+		fmt.Sprintf("%s/%d/maintenance", brokersEndpoint, nodeID),
+		nil,
+		nil,
+	)
 }
 
 // MaintenanceStatus returns the maintenance status of a node.
@@ -165,6 +169,7 @@ func (a *AdminAPI) MaintenanceStatus(ctx context.Context) (MaintenanceStatus, er
 	return response, a.sendAny(ctx, http.MethodGet, "/v1/maintenance", nil, nil)
 }
 
+// CancelNodePartitionsMovement cancels node's partition movement.
 func (a *AdminAPI) CancelNodePartitionsMovement(ctx context.Context, node int) ([]PartitionsMovementResult, error) {
 	var response []PartitionsMovementResult
 	return response, a.sendAny(ctx, http.MethodPost, fmt.Sprintf("%s/%d/cancel_partition_moves", brokersEndpoint, node), nil, &response)

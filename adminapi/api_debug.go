@@ -21,8 +21,8 @@ const (
 	debugEndpoint          = "/v1/debug"
 	selfTestEndpoint       = debugEndpoint + "/self_test"
 	cpuProfilerEndpoint    = debugEndpoint + "/cpu_profile"
-	DiskcheckTagIdentifier = "disk"
-	NetcheckTagIdentifier  = "network"
+	DiskcheckTagIdentifier = "disk"    // DiskcheckTagIdentifier is the disk identifier constant
+	NetcheckTagIdentifier  = "network" // NetcheckTagIdentifier network identifier constant
 )
 
 // A SelfTestNodeResult describes the results of a particular self-test run.
@@ -50,6 +50,7 @@ type SelfTestNodeResult struct {
 // SelfTestNodeReport describes the result returned from one member of the cluster.
 // A query for results will return an array of these structs, one from each member.
 type SelfTestNodeReport struct {
+	// NodeID is the node ID.
 	NodeID int `json:"node_id"`
 	// One of { "idle", "running", "unreachable" }
 	//
@@ -64,7 +65,7 @@ type SelfTestNodeReport struct {
 
 // DiskcheckParameters describes what parameters redpanda will use when starting the diskcheck benchmark.
 type DiskcheckParameters struct {
-	/// Descriptive name given to test run
+	// Name is the descriptive name given to test run
 	Name string `json:"name"`
 	// Open the file with O_DSYNC flag option
 	DSync bool `json:"dsync"`
@@ -86,7 +87,7 @@ type DiskcheckParameters struct {
 
 // NetcheckParameters describes what parameters redpanda will use when starting the netcheck benchmark.
 type NetcheckParameters struct {
-	/// Descriptive name given to test run
+	// Name is descriptive name given to test run
 	Name string `json:"name"`
 	// Size of individual request
 	RequestSize uint `json:"request_size"`
@@ -135,6 +136,7 @@ type DebugPartition struct {
 	Replicas []ReplicaState `json:"replicas"`
 }
 
+// StartSelfTest starts the self test.
 func (a *AdminAPI) StartSelfTest(ctx context.Context, nodeIds []int, params []any) (string, error) {
 	var testID string
 	body := SelfTestRequest{
@@ -149,6 +151,7 @@ func (a *AdminAPI) StartSelfTest(ctx context.Context, nodeIds []int, params []an
 	return testID, err
 }
 
+// StopSelfTest stops the self test.
 func (a *AdminAPI) StopSelfTest(ctx context.Context) error {
 	return a.sendToLeader(
 		ctx,
@@ -159,6 +162,7 @@ func (a *AdminAPI) StopSelfTest(ctx context.Context) error {
 	)
 }
 
+// SelfTestStatus gets the self test status.
 func (a *AdminAPI) SelfTestStatus(ctx context.Context) ([]SelfTestNodeReport, error) {
 	var response []SelfTestNodeReport
 	err := a.sendAny(ctx, http.MethodGet, fmt.Sprintf("%s/status", selfTestEndpoint), nil, &response)
@@ -172,6 +176,7 @@ func (a *AdminAPI) PartitionLeaderTable(ctx context.Context) ([]PartitionLeaderT
 	return response, a.sendAny(ctx, http.MethodGet, "/v1/debug/partition_leaders_table", nil, &response)
 }
 
+// IsNodeIsolated gets the is node isolated status.
 func (a *AdminAPI) IsNodeIsolated(ctx context.Context) (bool, error) {
 	var isIsolated bool
 	return isIsolated, a.sendAny(ctx, http.MethodGet, "/v1/debug/is_node_isolated", nil, &isIsolated)

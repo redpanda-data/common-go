@@ -20,7 +20,7 @@ import (
 
 // Config represents a Redpanda configuration. There are many keys returned, so
 // the raw response is just unmarshalled into an interface.
-type Config map[string]interface{}
+type Config map[string]any
 
 // Config returns a single admin endpoint's configuration. This errors if
 // multiple URLs are configured.
@@ -66,10 +66,12 @@ func (a *AdminAPI) SetLogLevel(ctx context.Context, name, level string, expirySe
 	return a.sendOne(ctx, http.MethodPut, path, nil, nil, false)
 }
 
+// ConfigPropertyItems holds the config property items.
 type ConfigPropertyItems struct {
 	Type string `json:"type"` // A swagger scalar type, like 'string', 'integer'
 }
 
+// ConfigPropertyMetadata represents config property metadata.
 type ConfigPropertyMetadata struct {
 	Type         string              `json:"type"`                  // Swagger type like 'string', 'integer', 'array'
 	Description  string              `json:"description"`           // One liner human readable string
@@ -84,12 +86,15 @@ type ConfigPropertyMetadata struct {
 	Aliases      []string            `json:"aliases,omitempty"`     // Aliases for this property
 }
 
+// ConfigSchema is the map for config property metadata.
 type ConfigSchema map[string]ConfigPropertyMetadata
 
+// ConfigSchemaResponse is the response for ClusterConfigSchema.
 type ConfigSchemaResponse struct {
 	Properties ConfigSchema `json:"properties"`
 }
 
+// ClusterConfigSchema gets the cluster's config schema.
 func (a *AdminAPI) ClusterConfigSchema(ctx context.Context) (ConfigSchema, error) {
 	var response ConfigSchemaResponse
 	err := a.sendAny(ctx, http.MethodGet, "/v1/cluster_config/schema", nil, &response)
@@ -100,14 +105,16 @@ func (a *AdminAPI) ClusterConfigSchema(ctx context.Context) (ConfigSchema, error
 	return response.Properties, nil
 }
 
+// ClusterConfigWriteResult represents cluster config patch result.
 type ClusterConfigWriteResult struct {
 	ConfigVersion int `json:"config_version"`
 }
 
+// PatchClusterConfig patches cluster config.
 func (a *AdminAPI) PatchClusterConfig(
-	ctx context.Context, upsert map[string]interface{}, remove []string,
+	ctx context.Context, upsert map[string]any, remove []string,
 ) (ClusterConfigWriteResult, error) {
-	body := map[string]interface{}{
+	body := map[string]any{
 		"upsert": upsert,
 		"remove": remove,
 	}
@@ -121,6 +128,7 @@ func (a *AdminAPI) PatchClusterConfig(
 	return result, nil
 }
 
+// ConfigStatus represents cluster status.
 type ConfigStatus struct {
 	NodeID        int64    `json:"node_id"`
 	Restart       bool     `json:"restart"`
@@ -129,8 +137,10 @@ type ConfigStatus struct {
 	Unknown       []string `json:"unknown"`
 }
 
+// ConfigStatusResponse is the response for ClusterConfigStatus.
 type ConfigStatusResponse []ConfigStatus
 
+// ClusterConfigStatus gets the cluster config status.
 func (a *AdminAPI) ClusterConfigStatus(ctx context.Context, sendToLeader bool) (ConfigStatusResponse, error) {
 	var result ConfigStatusResponse
 	var err error

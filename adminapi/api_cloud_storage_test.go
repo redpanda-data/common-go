@@ -117,7 +117,7 @@ func TestPollAutomatedRecoveryStatus(t *testing.T) {
 		{
 			name: "should return TopicRecoveryStatus when server returns 200",
 			testFn: func(t *testing.T) http.HandlerFunc {
-				return func(w http.ResponseWriter, r *http.Request) {
+				return func(w http.ResponseWriter, _ *http.Request) {
 					w.WriteHeader(http.StatusOK)
 
 					respBodyBytes, err := json.Marshal(pendingResponse)

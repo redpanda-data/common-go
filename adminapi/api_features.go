@@ -18,11 +18,11 @@ import (
 type FeatureState string
 
 const (
-	FeatureStateActive      FeatureState = "active"
-	FeatureStatePreparing   FeatureState = "preparing"
-	FeatureStateAvailable   FeatureState = "available"
-	FeatureStateUnavailable FeatureState = "unavailable"
-	FeatureStateDisabled    FeatureState = "disabled"
+	FeatureStateActive      FeatureState = "active"      // FeatureStateActive is the active state.
+	FeatureStatePreparing   FeatureState = "preparing"   // FeatureStatePreparing is the preparing state.
+	FeatureStateAvailable   FeatureState = "available"   // FeatureStateAvailable is the available state.
+	FeatureStateUnavailable FeatureState = "unavailable" // FeatureStateUnavailable is the unavailable state.
+	FeatureStateDisabled    FeatureState = "disabled"    // FeatureStateDisabled is the disabled state.
 )
 
 // Feature contains information on the state of a feature.
@@ -38,11 +38,13 @@ type FeaturesResponse struct {
 	Features       []Feature `json:"features"`
 }
 
+// License holds license data.
 type License struct {
 	Loaded     bool              `json:"loaded"`
 	Properties LicenseProperties `json:"license"`
 }
 
+// LicenseProperties holds license properties.
 type LicenseProperties struct {
 	Version      int    `json:"format_version"`
 	Organization string `json:"org"`
@@ -62,11 +64,13 @@ func (a *AdminAPI) GetFeatures(ctx context.Context) (FeaturesResponse, error) {
 		&features)
 }
 
+// GetLicenseInfo gets the license info.
 func (a *AdminAPI) GetLicenseInfo(ctx context.Context) (License, error) {
 	var license License
 	return license, a.sendToLeader(ctx, http.MethodGet, "/v1/features/license", nil, &license)
 }
 
-func (a *AdminAPI) SetLicense(ctx context.Context, license interface{}) error {
+// SetLicense sets the license.
+func (a *AdminAPI) SetLicense(ctx context.Context, license any) error {
 	return a.sendToLeader(ctx, http.MethodPut, "/v1/features/license", license, nil)
 }

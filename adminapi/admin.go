@@ -7,7 +7,7 @@
 // the Business Source License, use of this software will be governed
 // by the Apache License, Version 2.0
 
-// package adminapi provides a client to interact with Redpanda's admin server.
+// Package adminapi provides a client to interact with Redpanda's admin server.
 package adminapi
 
 import (
@@ -26,15 +26,16 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-multierror"
-	"github.com/redpanda-data/common-go/net"
 	"github.com/sethgrid/pester"
-	"github.com/spf13/afero"
 	"go.uber.org/zap"
+
+	"github.com/redpanda-data/common-go/net"
 )
 
 // ErrNoAdminAPILeader happen when there's no leader for the Admin API.
 var ErrNoAdminAPILeader = errors.New("no Admin API leader found")
 
+// HTTPResponseError is the error response.
 type HTTPResponseError struct {
 	Method   string
 	URL      string
@@ -46,14 +47,17 @@ type (
 	// Auth affixes auth to an http request.
 	Auth interface{ apply(req *http.Request) }
 	// Opt is an option to configure an admin client.
-	Opt       interface{ apply(*pester.Client) }
+	Opt interface{ apply(*pester.Client) }
+	// BasicAuth options struct.
 	BasicAuth struct {
 		Username string
 		Password string
 	}
+	// BearerToken options struct.
 	BearerToken struct {
 		Token string
 	}
+	// NopAuth options struct.
 	NopAuth struct{}
 )
 
@@ -88,14 +92,14 @@ type AdminAPI struct {
 
 // NewClient returns an AdminAPI client that talks to each of the addresses in
 // the rpk.admin_api section of the config.
-func NewClient(fs afero.Fs, addrs []string, tls *tls.Config, auth Auth, forCloud bool, opts ...Opt) (*AdminAPI, error) {
+func NewClient(addrs []string, tls *tls.Config, auth Auth, forCloud bool, opts ...Opt) (*AdminAPI, error) {
 	return newAdminAPI(addrs, auth, tls, forCloud, opts...)
 }
 
 // NewHostClient returns an AdminAPI that talks to the given host, which is
 // either an int index into the rpk.admin_api section of the config, or a
 // hostname.
-func NewHostClient(fs afero.Fs, addrs []string, tls *tls.Config, auth Auth, forCloud bool, host string) (*AdminAPI, error) {
+func NewHostClient(addrs []string, tls *tls.Config, auth Auth, forCloud bool, host string) (*AdminAPI, error) {
 	if host == "" {
 		return nil, errors.New("invalid empty admin host")
 	}
@@ -113,6 +117,7 @@ func NewHostClient(fs afero.Fs, addrs []string, tls *tls.Config, auth Auth, forC
 	return newAdminAPI(addrs, auth, tls, forCloud)
 }
 
+// NewAdminAPI creates a new Redpanda Admin API client.
 func NewAdminAPI(urls []string, auth Auth, tlsConfig *tls.Config) (*AdminAPI, error) {
 	return newAdminAPI(urls, auth, tlsConfig, false)
 }
@@ -132,7 +137,7 @@ func newAdminAPI(urls []string, auth Auth, tlsConfig *tls.Config, forCloud bool,
 
 	// Backoff is the default redpanda raft election timeout: this enables us
 	// to cleanly retry on 503s due to leadership changes in progress.
-	client.Backoff = func(retry int) time.Duration {
+	client.Backoff = func(_ int) time.Duration {
 		maxJitter := 100
 		delayMs := retryBackoffMs + rng(maxJitter)
 		return time.Duration(delayMs) * time.Millisecond
@@ -209,7 +214,7 @@ func (a *AdminAPI) urlsWithPath(path string) []string {
 // rng is a package-scoped, mutex guarded, seeded *rand.Rand.
 var rng = func() func(int) int {
 	var mu sync.Mutex
-	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
+	rng := rand.New(rand.NewSource(time.Now().UnixNano())) //nolint:gosec // old rpk code.
 	return func(n int) int {
 		mu.Lock()
 		defer mu.Unlock()
@@ -251,9 +256,9 @@ func (a *AdminAPI) GetLeaderID(ctx context.Context) (*int, error) {
 // On errors, this function will keep trying all the nodes we know about until
 // one of them succeeds, or we run out of nodes.  In the latter case, we will return
 // the error from the last node we tried.
-func (a *AdminAPI) sendAny(ctx context.Context, method, path string, body, into interface{}) error {
+func (a *AdminAPI) sendAny(ctx context.Context, method, path string, body, into any) error {
 	// Shuffle the list of URLs
-	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
+	rng := rand.New(rand.NewSource(time.Now().UnixNano())) //nolint:gosec // old rpk code.
 	shuffled := make([]string, len(a.urls))
 	copy(shuffled, a.urls)
 	rng.Shuffle(len(shuffled), func(i, j int) { shuffled[i], shuffled[j] = shuffled[j], shuffled[i] })
@@ -298,9 +303,7 @@ func (a *AdminAPI) sendAny(ctx context.Context, method, path string, body, into 
 
 // sendToLeader sends a single request to the leader of the Admin API for Redpanda >= 21.11.1
 // otherwise, it broadcasts the request.
-func (a *AdminAPI) sendToLeader(
-	ctx context.Context, method, path string, body, into interface{},
-) error {
+func (a *AdminAPI) sendToLeader(ctx context.Context, method, path string, body, into any) error {
 	const (
 		// When there is no leader, we wait long enough for an election to complete
 		noLeaderBackoff = 1500 * time.Millisecond
@@ -320,7 +323,7 @@ func (a *AdminAPI) sendToLeader(
 	for leaderID == nil || leaderURL == "" {
 		var err error
 		leaderID, err = a.GetLeaderID(ctx)
-		if errors.Is(err, ErrNoAdminAPILeader) {
+		if errors.Is(err, ErrNoAdminAPILeader) { //nolint:gocritic // original rpk code
 			// No leader?  We might have contacted a recently-started node
 			// who doesn't know yet, or there might be an election pending,
 			// or there might be no quorum.  In any case, retry in the hopes
@@ -349,7 +352,7 @@ func (a *AdminAPI) sendToLeader(
 			// a long timeout, because it's the sum of the time for nodes
 			// to start an election, followed by the worst cast number of
 			// election rounds
-			retries -= 1
+			retries--
 			if retries == 0 {
 				return err
 			}
@@ -367,7 +370,7 @@ func (a *AdminAPI) sendToLeader(
 func (a *AdminAPI) brokerIDToURL(ctx context.Context, brokerID int) (string, error) {
 	if url, ok := a.getURLFromBrokerID(brokerID); ok {
 		return url, nil
-	} else {
+	} else { //nolint:revive // old rpk code.
 		// Try once to map again broker IDs to URLs
 		a.mapBrokerIDsToURLs(ctx)
 		if url, ok := a.getURLFromBrokerID(brokerID); ok {
@@ -391,7 +394,7 @@ func (a *AdminAPI) getURLFromBrokerID(brokerID int) (string, bool) {
 // as temporarily having no leader for a raft group.  Set it to false if the endpoint
 // should always work while the node is up, e.g. GETs of node-local state.
 func (a *AdminAPI) sendOne(
-	ctx context.Context, method, path string, body, into interface{}, retryable bool,
+	ctx context.Context, method, path string, body, into any, retryable bool,
 ) error {
 	if len(a.urls) != 1 {
 		return fmt.Errorf("unable to issue a single-admin-endpoint request to %d admin endpoints", len(a.urls))
@@ -417,7 +420,7 @@ func (a *AdminAPI) sendOne(
 // Unfortunately these assumptions do not match all environments in which
 // Redpanda is deployed, hence, we need to reintroduce the sendAll method and
 // broadcast on writes to the Admin API.
-func (a *AdminAPI) sendAll(rootCtx context.Context, method, path string, body, into interface{}) error {
+func (a *AdminAPI) sendAll(rootCtx context.Context, method, path string, body, into any) error {
 	var (
 		once   sync.Once
 		resURL string
@@ -487,7 +490,7 @@ func (a *AdminAPI) eachBroker(fn func(aa *AdminAPI) error) error {
 // * If into is a *[]byte, the raw response put directly into `into`.
 // * If into is a *string, the raw response put directly into `into` as a string.
 // * Otherwise, the response is json unmarshalled into `into`.
-func maybeUnmarshalRespInto(method, url string, resp *http.Response, into interface{}) error {
+func maybeUnmarshalRespInto(method, url string, resp *http.Response, into any) error {
 	defer resp.Body.Close()
 	if into == nil {
 		return nil
@@ -514,7 +517,7 @@ func maybeUnmarshalRespInto(method, url string, resp *http.Response, into interf
 // If the body is already an io.Reader, the reader is used directly
 // without marshaling.
 func (a *AdminAPI) sendAndReceive(
-	ctx context.Context, method, url string, body interface{}, retryable bool,
+	ctx context.Context, method, url string, body any, retryable bool,
 ) (*http.Response, error) {
 	var r io.Reader
 	if body != nil {
@@ -575,12 +578,14 @@ func (a *AdminAPI) sendAndReceive(
 	return res, nil
 }
 
+// DecodeGenericErrorBody decodes generic error body.
 func (he HTTPResponseError) DecodeGenericErrorBody() (GenericErrorBody, error) {
 	var resp GenericErrorBody
 	err := json.Unmarshal(he.Body, &resp)
 	return resp, err
 }
 
+// Error returns string representation of the error.
 func (he HTTPResponseError) Error() string {
 	return fmt.Sprintf("request %s %s failed: %s, body: %q\n",
 		he.Method, he.URL, http.StatusText(he.Response.StatusCode), he.Body)

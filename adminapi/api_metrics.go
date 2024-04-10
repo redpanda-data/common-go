@@ -14,11 +14,13 @@ import (
 	"net/http"
 )
 
+// PrometheusMetrics gets the prometheus metrics.
 func (a *AdminAPI) PrometheusMetrics(ctx context.Context) ([]byte, error) {
 	var res []byte
 	return res, a.sendOne(ctx, http.MethodGet, "/metrics", nil, &res, false)
 }
 
+// PublicMetrics gets the public metrics.
 func (a *AdminAPI) PublicMetrics(ctx context.Context) ([]byte, error) {
 	var res []byte
 	return res, a.sendOne(ctx, http.MethodGet, "/public_metrics", nil, &res, false)

@@ -21,6 +21,7 @@ type RecoveryRequestParams struct {
 	RetentionMs    *int `json:"retention_ms,omitempty"`
 }
 
+// RecoveryStartResponse is the response for StartAutomatedRecovery.
 type RecoveryStartResponse struct {
 	Code    int    `json:"code"`
 	Message string `json:"message"`
@@ -74,7 +75,9 @@ type LifecycleMarker struct {
 }
 
 type (
-	CloudStorageManifest  map[string]any
+	// CloudStorageManifest is the cloud storage manifest.
+	CloudStorageManifest map[string]any
+	// CloudStorageAnomalies holds cloud storage anomalies.
 	CloudStorageAnomalies map[string]any
 )
 
@@ -92,6 +95,7 @@ func (a *AdminAPI) PollAutomatedRecoveryStatus(ctx context.Context) (*TopicRecov
 	return &response, a.sendToLeader(ctx, http.MethodGet, "/v1/cloud_storage/automated_recovery", http.NoBody, &response)
 }
 
+// CloudStorageStatus gets the cloud storage status.
 func (a *AdminAPI) CloudStorageStatus(ctx context.Context, topic, partition string) (CloudStorageStatus, error) {
 	var response CloudStorageStatus
 	path := fmt.Sprintf("/v1/cloud_storage/status/%s/%s", topic, partition)
@@ -104,12 +108,14 @@ func (a *AdminAPI) CloudStorageLifecycle(ctx context.Context) (CloudStorageLifec
 	return response, a.sendToLeader(ctx, http.MethodGet, "/v1/cloud_storage/lifecycle", nil, &response)
 }
 
+// CloudStorageManifest gets the cloud storage manifest.
 func (a *AdminAPI) CloudStorageManifest(ctx context.Context, topic string, partition int) (CloudStorageManifest, error) {
 	var response CloudStorageManifest
 	path := fmt.Sprintf("/v1/cloud_storage/manifest/%v/%v", topic, partition)
 	return response, a.sendAny(ctx, http.MethodGet, path, nil, &response)
 }
 
+// CloudStorageAnomalies gets the cloud storage anomalies.
 func (a *AdminAPI) CloudStorageAnomalies(ctx context.Context, namespace, topic string, partition int) (CloudStorageAnomalies, error) {
 	var response CloudStorageAnomalies
 	path := fmt.Sprintf("/v1/cloud_storage/anomalies/%v/%v/%v", namespace, topic, partition)

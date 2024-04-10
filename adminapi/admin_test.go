@@ -46,7 +46,7 @@ func TestAdminAPI(t *testing.T) {
 			name:     "delete user in 1 node cluster",
 			nNodes:   1,
 			leaderID: 0,
-			action:   func(t *testing.T, a *AdminAPI) error { return a.DeleteUser(context.Background(), "Milo") },
+			action:   func(_ *testing.T, a *AdminAPI) error { return a.DeleteUser(context.Background(), "Milo") },
 			leader:   []string{"/v1/security/users/Milo"},
 			none:     []string{"/v1/partitions/redpanda/controller/0", "/v1/node_config"},
 		},
@@ -54,7 +54,7 @@ func TestAdminAPI(t *testing.T) {
 			name:     "delete user in 3 node cluster",
 			nNodes:   3,
 			leaderID: 1,
-			action:   func(t *testing.T, a *AdminAPI) error { return a.DeleteUser(context.Background(), "Lola") },
+			action:   func(_ *testing.T, a *AdminAPI) error { return a.DeleteUser(context.Background(), "Lola") },
 			all:      []string{"/v1/node_config"},
 			any:      []string{"/v1/partitions/redpanda/controller/0"},
 			leader:   []string{"/v1/security/users/Lola"},
@@ -63,7 +63,7 @@ func TestAdminAPI(t *testing.T) {
 			name:     "create user in 3 node cluster",
 			nNodes:   3,
 			leaderID: 1,
-			action: func(t *testing.T, a *AdminAPI) error {
+			action: func(_ *testing.T, a *AdminAPI) error {
 				return a.CreateUser(context.Background(), "Joss", "momorocks", ScramSha256)
 			},
 			all:    []string{"/v1/node_config"},
@@ -75,7 +75,7 @@ func TestAdminAPI(t *testing.T) {
 			nNodes:   3,
 			leaderID: 1,
 			handlers: map[string]http.HandlerFunc{
-				"/v1/security/users": func(rw http.ResponseWriter, r *http.Request) {
+				"/v1/security/users": func(rw http.ResponseWriter, _ *http.Request) {
 					rw.Write([]byte(`["Joss", "lola", "jeff", "tobias"]`))
 				},
 			},
@@ -96,7 +96,7 @@ func TestAdminAPI(t *testing.T) {
 			calls := []testCall{}
 			mutex := sync.Mutex{}
 			tServers := []*httptest.Server{}
-			for i := 0; i < tt.nNodes; i += 1 {
+			for i := 0; i < tt.nNodes; i++ {
 				ts := httptest.NewServer(handlerForNode(t, i, tt, &calls, &mutex))
 				tServers = append(tServers, ts)
 				urls = append(urls, ts.URL)
@@ -145,10 +145,10 @@ func handlerForNode(
 		switch {
 		case strings.HasPrefix(r.URL.Path, "/v1/node_config"):
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(fmt.Sprintf(`{"node_id": %d}`, nodeID)))
+			w.Write([]byte(fmt.Sprintf(`{"node_id": %d}`, nodeID))) //nolint:gocritic // original rpk code
 		case strings.HasPrefix(r.URL.Path, "/v1/partitions/redpanda/controller/0"):
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(fmt.Sprintf(`{"leader_id": %d}`, tt.leaderID)))
+			w.Write([]byte(fmt.Sprintf(`{"leader_id": %d}`, tt.leaderID))) //nolint:gocritic // original rpk code
 		case strings.HasPrefix(r.URL.Path, "/v1/security/users"):
 			if nodeID == tt.leaderID {
 				w.WriteHeader(http.StatusOK)
@@ -162,7 +162,7 @@ func handlerForNode(
 func checkCallToAllNodes(
 	t *testing.T, calls []testCall, path string, nNodes int,
 ) {
-	for i := 0; i < nNodes; i += 1 {
+	for i := 0; i < nNodes; i++ {
 		if len(callsForPathAndNodeID(calls, path, i)) == 0 {
 			require.Fail(t, fmt.Sprintf("path (%s) was expected to be called in all nodes but it wasn't called in node (%d)", path, i))
 			return
@@ -173,7 +173,7 @@ func checkCallToAllNodes(
 func checkCallToAnyNode(
 	t *testing.T, calls []testCall, path string, nNodes int,
 ) {
-	for i := 0; i < nNodes; i += 1 {
+	for i := 0; i < nNodes; i++ {
 		if len(callsForPathAndNodeID(calls, path, i)) > 0 {
 			return
 		}
@@ -190,7 +190,7 @@ func checkCallToLeader(
 }
 
 func checkCallNone(t *testing.T, calls []testCall, path string, nNodes int) {
-	for i := 0; i < nNodes; i += 1 {
+	for i := 0; i < nNodes; i++ {
 		if len(callsForPathAndNodeID(calls, path, i)) > 0 {
 			require.Fail(t, fmt.Sprintf("path (%s) was expected to not be called but it was called in node (%d)", path, i))
 		}

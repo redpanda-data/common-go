@@ -14,7 +14,7 @@ import (
 	"net/http"
 )
 
-// Health overview data structure.
+// ClusterHealthOverview overview data structure.
 type ClusterHealthOverview struct {
 	IsHealthy                 bool     `json:"is_healthy"`
 	UnhealthyReasons          []string `json:"unhealthy_reasons"`
@@ -77,6 +77,7 @@ type PartitionsMovementResult struct {
 	Result    string `json:"result,omitempty"`
 }
 
+// ClusterUUID holds the cluster UUID.
 type ClusterUUID struct {
 	UUID string `json:"cluster_uuid"`
 }
@@ -84,18 +85,21 @@ type ClusterUUID struct {
 // ClusterView represents a cluster view as seen by one node. There are
 // many keys returned, so the raw response is just unmarshalled into an
 // interface.
-type ClusterView map[string]interface{}
+type ClusterView map[string]any
 
+// GetHealthOverview gets the cluster health overview.
 func (a *AdminAPI) GetHealthOverview(ctx context.Context) (ClusterHealthOverview, error) {
 	var response ClusterHealthOverview
 	return response, a.sendAny(ctx, http.MethodGet, "/v1/cluster/health_overview", nil, &response)
 }
 
+// GetPartitionStatus gets the cluster partition status.
 func (a *AdminAPI) GetPartitionStatus(ctx context.Context) (PartitionBalancerStatus, error) {
 	var response PartitionBalancerStatus
 	return response, a.sendAny(ctx, http.MethodGet, "/v1/cluster/partition_balancer/status", nil, &response)
 }
 
+// CancelAllPartitionsMovement cancels all partition movement.
 func (a *AdminAPI) CancelAllPartitionsMovement(ctx context.Context) ([]PartitionsMovementResult, error) {
 	var response []PartitionsMovementResult
 	return response, a.sendAny(ctx, http.MethodPost, "/v1/cluster/cancel_reconfigurations", nil, &response)
