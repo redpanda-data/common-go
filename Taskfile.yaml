@@ -71,6 +71,8 @@ tasks:
   test:dir:
     label: test:dir {{ .DIRECTORY }}
     desc: Run Go tests in the provided directory
+    deps:
+      - 'install:go'
     vars:
       DIRECTORY: '{{ .DIRECTORY }}'
     dir: '{{.DIRECTORY}}'
