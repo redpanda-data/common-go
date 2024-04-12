@@ -1,4 +1,4 @@
-module github.com/redpanda-data/common-go/adminapi
+module github.com/redpanda-data/common-go/rpadmin
 
 go 1.22.0
 
