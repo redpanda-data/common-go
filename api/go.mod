@@ -1,6 +1,6 @@
 module github.com/redpanda-data/common-go/api
 
-go 1.22.0
+go 1.22.2
 
 require (
 	buf.build/gen/go/connectrpc/eliza/connectrpc/go v1.15.0-20230913231627-233fca715f49.1

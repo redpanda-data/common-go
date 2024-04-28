@@ -1,6 +1,6 @@
 module github.com/redpanda-data/common-go/net
 
-go 1.22.0
+go 1.22.2
 
 require github.com/stretchr/testify v1.9.0
 

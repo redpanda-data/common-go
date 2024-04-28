@@ -1,6 +1,6 @@
 module github.com/redpanda-data/common-go/rpadmin
 
-go 1.22.0
+go 1.22.2
 
 require (
 	github.com/hashicorp/go-multierror v1.1.1
