@@ -3,8 +3,10 @@ package interceptor_test
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"net"
 	"net/http"
+	"sync"
 	"testing"
 	"time"
 
@@ -21,13 +23,17 @@ import (
 )
 
 func TestObserver(t *testing.T) {
+	var m sync.RWMutex
+
 	// Create dummy handler with observer middleware
 	var unaryMetadata interceptor.RequestMetadata
 	var serverStreamMetadata interceptor.RequestMetadata
 	onRequestEnded := func(_ context.Context, requestMetadata *interceptor.RequestMetadata) {
 		switch requestMetadata.Procedure() {
 		case "/connectrpc.eliza.v1.ElizaService/Say":
+			m.Lock()
 			unaryMetadata = *requestMetadata
+			m.Unlock()
 		case "/connectrpc.eliza.v1.ElizaService/Introduce":
 			serverStreamMetadata = *requestMetadata
 		default:
@@ -78,12 +84,30 @@ func TestObserver(t *testing.T) {
 		_, err := cl.Say(ctx, connect.NewRequest(&elizav1.SayRequest{Sentence: "hello-test"}))
 		require.NoError(t, err)
 
+		m.RLock()
+		defer m.RUnlock()
+
 		assert.Equal(t, "connect", unaryMetadata.Protocol())
 		assert.Equal(t, "ok", unaryMetadata.StatusCode())
 		assert.Equal(t, "/connectrpc.eliza.v1.ElizaService/Say", unaryMetadata.Procedure())
 		assert.Equal(t, nil, unaryMetadata.Err())
 		assert.Equal(t, int64(36), unaryMetadata.BytesSent())
 		assert.Equal(t, int64(12), unaryMetadata.BytesReceived())
+	})
+
+	t.Run("unary error", func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(context.Background(), 6*time.Second)
+		defer cancel()
+		_, err := cl.Say(ctx, connect.NewRequest(&elizav1.SayRequest{Sentence: "hello-error"}))
+		require.Error(t, err)
+
+		m.RLock()
+		defer m.RUnlock()
+
+		assert.Equal(t, "connect", unaryMetadata.Protocol())
+		assert.Equal(t, "failed_precondition", unaryMetadata.StatusCode())
+		assert.Equal(t, "/connectrpc.eliza.v1.ElizaService/Say", unaryMetadata.Procedure())
+		assert.Equal(t, "failed_precondition: wrong precondition", unaryMetadata.Err().Error())
 	})
 
 	t.Run("server stream", func(t *testing.T) {
@@ -117,6 +141,9 @@ type elizaServerHandler struct {
 }
 
 func (elizaServerHandler) Say(_ context.Context, req *connect.Request[elizav1.SayRequest]) (*connect.Response[elizav1.SayResponse], error) {
+	if req.Msg.Sentence == "hello-error" {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("wrong precondition"))
+	}
 	return connect.NewResponse(&elizav1.SayResponse{
 		Sentence: req.Msg.Sentence, // Just echo request string
 	}), nil
