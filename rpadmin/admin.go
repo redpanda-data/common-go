@@ -600,3 +600,10 @@ func ClientTimeout(t time.Duration) Opt {
 		cl.Timeout = t
 	}}
 }
+
+// MaxRetries sets the client maxRetries, overriding the default of 3.
+func MaxRetries(r int) Opt {
+	return clientOpt{func(cl *pester.Client) {
+		cl.MaxRetries = r
+	}}
+}
