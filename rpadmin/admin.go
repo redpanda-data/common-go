@@ -337,7 +337,7 @@ func (a *AdminAPI) sendToLeader(ctx context.Context, method, path string, body, 
 			return err
 		} else {
 			// Got a leader ID, check if it's resolvable
-			leaderURL, err = a.brokerIDToURL(ctx, *leaderID)
+			leaderURL, err = a.BrokerIDToURL(ctx, *leaderID)
 			if err != nil && len(a.brokerIDToUrls) == 0 {
 				// Could not map any IDs: probably this is an old redpanda
 				// with no node_config endpoint.  Fall back to broadcast.
@@ -366,7 +366,8 @@ func (a *AdminAPI) sendToLeader(ctx context.Context, method, path string, body, 
 	return aLeader.sendOne(ctx, method, path, body, into, true)
 }
 
-func (a *AdminAPI) brokerIDToURL(ctx context.Context, brokerID int) (string, error) {
+// BrokerIDToURL resolves the URL of the broker with the given ID.
+func (a *AdminAPI) BrokerIDToURL(ctx context.Context, brokerID int) (string, error) {
 	if url, ok := a.getURLFromBrokerID(brokerID); ok {
 		return url, nil
 	} else { //nolint:revive // old rpk code.
@@ -598,5 +599,12 @@ func (opt clientOpt) apply(cl *pester.Client) { opt.fn(cl) }
 func ClientTimeout(t time.Duration) Opt {
 	return clientOpt{func(cl *pester.Client) {
 		cl.Timeout = t
+	}}
+}
+
+// MaxRetries sets the client maxRetries, overriding the default of 3.
+func MaxRetries(r int) Opt {
+	return clientOpt{func(cl *pester.Client) {
+		cl.MaxRetries = r
 	}}
 }

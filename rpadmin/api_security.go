@@ -57,13 +57,13 @@ type patchRoleRequest struct {
 
 // RoleMemberResponse is the response of the RoleMembers method.
 type RoleMemberResponse struct {
-	Members []RoleMember `json:"members"`
+	Members []RoleMember `json:"members" yaml:"members"`
 }
 
 // RoleDetailResponse is the response of the Role method.
 type RoleDetailResponse struct {
 	RoleName string       `json:"name" yaml:"name"`
-	Members  []RoleMember `json:"members"`
+	Members  []RoleMember `json:"members" yaml:"members"`
 }
 
 // Roles returns the roles in Redpanda, use 'prefix', 'principal', and
