@@ -194,3 +194,12 @@ func (a *AdminAPI) ForceRecoverFromNode(ctx context.Context, plan []MajorityLost
 	}
 	return a.sendAny(ctx, http.MethodPost, "/v1/partitions/force_recover_from_nodes", body, nil)
 }
+
+// TransferLeadership calls attempts to transfer the leadership of the
+// namespace/topic/partition from the host of the client to the target. Make
+// sure to have a single host client when calling this endpoint. See
+// NewHostClient method.
+func (a *AdminAPI) TransferLeadership(ctx context.Context, ns, topic string, partition int, target string) error {
+	path := fmt.Sprintf("/v1/partitions/%s/%s/%d/transfer_leadership?target=%s", ns, topic, partition, target)
+	return a.sendOne(ctx, http.MethodPost, path, nil, nil, false)
+}
