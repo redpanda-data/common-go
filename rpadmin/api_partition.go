@@ -158,6 +158,19 @@ func (a *AdminAPI) MoveReplicas(ctx context.Context, ns string, topic string, pa
 		nil)
 }
 
+// UpdatePartitionReplicaCore reassigns the core in the given NTP of the given
+// node.
+func (a *AdminAPI) UpdatePartitionReplicaCore(ctx context.Context, ns string, topic string, partition, node, core int) error {
+	body := struct {
+		Core int `json:"core"`
+	}{core}
+	return a.sendToLeader(ctx,
+		http.MethodPost,
+		fmt.Sprintf("/v1/partitions/%s/%s/%d/replicas/%v", ns, topic, partition, node),
+		body,
+		nil)
+}
+
 // ToggleAllTopicPartitions will toggle all partitions in the given topic.
 func (a *AdminAPI) ToggleAllTopicPartitions(ctx context.Context, disabled bool, namespace, topic string) error {
 	disableURL := fmt.Sprintf("%v/%v/%v", partitionsBaseURL, namespace, topic)
