@@ -42,6 +42,24 @@ func (a *AdminAPI) Config(ctx context.Context, includeDefaults bool) (Config, er
 	return unmarshaled, nil
 }
 
+// SingleKeyConfig returns the value for a property (specified by key) from
+// a single admin endpoint's configuration. This errors if multiple URLs are configured.
+//
+// Key is a string that can correspond to either a property's original name, or any of its
+// aliases.
+func (a *AdminAPI) SingleKeyConfig(ctx context.Context, key string) (Config, error) {
+	var rawResp []byte
+	err := a.sendAny(ctx, http.MethodGet, fmt.Sprintf("/v1/cluster_config?key=%s", key), nil, &rawResp)
+	if err != nil {
+		return nil, err
+	}
+	var unmarshaled Config
+	if err := json.Unmarshal(rawResp, &unmarshaled); err != nil {
+		return nil, fmt.Errorf("unable to decode response body: %w", err)
+	}
+	return unmarshaled, nil
+}
+
 // SetLogLevel sets the logger level for the logger `name` to the given level
 // for the single admin host in this client. This function will return an error
 // if the client has multiple URLs configured.
