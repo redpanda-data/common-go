@@ -216,3 +216,8 @@ func (a *AdminAPI) TransferLeadership(ctx context.Context, ns, topic string, par
 	path := fmt.Sprintf("/v1/partitions/%s/%s/%d/transfer_leadership?target=%s", ns, topic, partition, target)
 	return a.sendOne(ctx, http.MethodPost, path, nil, nil, false)
 }
+
+// Trigger on-demand balancer.
+func (a *AdminAPI) TriggerBalancer(ctx context.Context) error {
+	return a.sendToLeader(ctx, http.MethodPost, "/v1/partitions/rebalance", nil, nil)
+}
