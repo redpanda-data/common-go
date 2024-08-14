@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"io"
 	"math/rand"
+	"net"
 	"net/http"
 	"strconv"
 	"strings"
@@ -29,7 +30,7 @@ import (
 	"github.com/sethgrid/pester"
 	"go.uber.org/zap"
 
-	"github.com/redpanda-data/common-go/net"
+	commonnet "github.com/redpanda-data/common-go/net"
 )
 
 // ErrNoAdminAPILeader happen when there's no leader for the Admin API.
@@ -92,7 +93,7 @@ type AdminAPI struct {
 
 // NewClient returns an AdminAPI client that talks to each of the admin api addresses passed in.
 func NewClient(addrs []string, tls *tls.Config, auth Auth, forCloud bool, opts ...Opt) (*AdminAPI, error) {
-	return newAdminAPI(addrs, auth, tls, forCloud, opts...)
+	return newAdminAPI(addrs, auth, tls, nil, forCloud, opts...)
 }
 
 // NewHostClient returns an AdminAPI that talks to the given host, which is
@@ -113,15 +114,23 @@ func NewHostClient(addrs []string, tls *tls.Config, auth Auth, forCloud bool, ho
 		addrs = []string{host} // trust input is hostname (validate below)
 	}
 
-	return newAdminAPI(addrs, auth, tls, forCloud)
+	return newAdminAPI(addrs, auth, tls, nil, forCloud)
+}
+
+// DialContextFunc implements a dialing function that returns a net.Conn
+type DialContextFunc = func(ctx context.Context, network, addr string) (net.Conn, error)
+
+// NewAdminAPIWithDialer creates a new Redpanda Admin API client with a specified dialer function.
+func NewAdminAPIWithDialer(urls []string, auth Auth, tlsConfig *tls.Config, dialer DialContextFunc) (*AdminAPI, error) {
+	return newAdminAPI(urls, auth, tlsConfig, dialer, false)
 }
 
 // NewAdminAPI creates a new Redpanda Admin API client.
 func NewAdminAPI(urls []string, auth Auth, tlsConfig *tls.Config) (*AdminAPI, error) {
-	return newAdminAPI(urls, auth, tlsConfig, false)
+	return newAdminAPI(urls, auth, tlsConfig, nil, false)
 }
 
-func newAdminAPI(urls []string, auth Auth, tlsConfig *tls.Config, forCloud bool, opts ...Opt) (*AdminAPI, error) {
+func newAdminAPI(urls []string, auth Auth, tlsConfig *tls.Config, dialer DialContextFunc, forCloud bool, opts ...Opt) (*AdminAPI, error) {
 	// General purpose backoff, includes 503s and other errors
 	const retryBackoffMs = 1500
 
@@ -168,13 +177,21 @@ func newAdminAPI(urls []string, auth Auth, tlsConfig *tls.Config, forCloud bool,
 		brokerIDToUrls: make(map[int]string),
 		forCloud:       forCloud,
 	}
+
+	transport := &http.Transport{}
+
 	if tlsConfig != nil {
-		a.retryClient.Transport = &http.Transport{TLSClientConfig: tlsConfig}
-		a.oneshotClient.Transport = &http.Transport{TLSClientConfig: tlsConfig}
+		transport.TLSClientConfig = tlsConfig
+	}
+	if dialer != nil {
+		transport.DialContext = dialer
 	}
 
+	a.retryClient.Transport = transport
+	a.oneshotClient.Transport = transport
+
 	for i, u := range urls {
-		scheme, host, err := net.ParseHostMaybeScheme(u)
+		scheme, host, err := commonnet.ParseHostMaybeScheme(u)
 		if err != nil {
 			return nil, err
 		}
@@ -199,7 +216,7 @@ func newAdminAPI(urls []string, auth Auth, tlsConfig *tls.Config, forCloud bool,
 }
 
 func (a *AdminAPI) newAdminForSingleHost(host string) (*AdminAPI, error) {
-	return newAdminAPI([]string{host}, a.auth, a.tlsConfig, a.forCloud)
+	return newAdminAPI([]string{host}, a.auth, a.tlsConfig, nil, a.forCloud)
 }
 
 func (a *AdminAPI) urlsWithPath(path string) []string {
