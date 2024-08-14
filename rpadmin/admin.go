@@ -120,7 +120,7 @@ func NewHostClient(addrs []string, tls *tls.Config, auth Auth, forCloud bool, ho
 // DialContextFunc implements a dialing function that returns a net.Conn
 type DialContextFunc = func(ctx context.Context, network, addr string) (net.Conn, error)
 
-// NewAdminAPI creates a new Redpanda Admin API client.
+// NewAdminAPIWithDialer creates a new Redpanda Admin API client with a specified dialer function.
 func NewAdminAPIWithDialer(urls []string, auth Auth, tlsConfig *tls.Config, dialer DialContextFunc) (*AdminAPI, error) {
 	return newAdminAPI(urls, auth, tlsConfig, dialer, false)
 }
