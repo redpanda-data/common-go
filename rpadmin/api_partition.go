@@ -217,7 +217,7 @@ func (a *AdminAPI) TransferLeadership(ctx context.Context, ns, topic string, par
 	return a.sendOne(ctx, http.MethodPost, path, nil, nil, false)
 }
 
-// Trigger on-demand balancer.
+// TriggerBalancer Trigger on-demand balancer.
 func (a *AdminAPI) TriggerBalancer(ctx context.Context) error {
 	return a.sendToLeader(ctx, http.MethodPost, "/v1/partitions/rebalance", nil, nil)
 }
