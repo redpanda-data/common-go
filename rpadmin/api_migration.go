@@ -21,17 +21,25 @@ const (
 )
 
 // AddMigration adds a migration to the cluster. It accepts one of InboundMigration or OutboundMigration.
-func (a *AdminAPI) AddMigration(ctx context.Context, migration any) (int, error) {
+func (a *AdminAPI) addMigration(ctx context.Context, migration any) (AddMigrationResponse, error) {
 	migrationType := reflect.TypeOf(migration)
 	if migrationType != reflect.TypeOf(InboundMigration{}) && migrationType != reflect.TypeOf(OutboundMigration{}) {
-		return 0, fmt.Errorf("invalid migration type: must be either InboundMigration or OutboundMigration")
+		return AddMigrationResponse{}, fmt.Errorf("invalid migration type: must be either InboundMigration or OutboundMigration")
 	}
 
 	var response AddMigrationResponse
 	if err := a.sendOne(ctx, http.MethodPut, baseMigrationEndpoint, migration, &response, false); err != nil {
-		return -1, err
+		return AddMigrationResponse{}, err
 	}
-	return response.ID, nil
+	return response, nil
+}
+
+func (a *AdminAPI) AddInboundMigration(ctx context.Context, migration InboundMigration) (AddMigrationResponse, error) {
+	return a.addMigration(ctx, migration)
+}
+
+func (a *AdminAPI) AddOutboundMigration(ctx context.Context, migration OutboundMigration) (AddMigrationResponse, error) {
+	return a.addMigration(ctx, migration)
 }
 
 // GetMigration gets a migration by its ID.
@@ -53,16 +61,22 @@ func (a *AdminAPI) DeleteMigration(ctx context.Context, id int) error {
 	return a.sendAny(ctx, http.MethodDelete, fmt.Sprintf("baseMigrationEndpoint%d", id), nil, nil)
 }
 
-// ExecuteMigration executes a specific action on a migration identified by its ID. The action must be one of:
-// prepare, execute, finish, cancel.
-func (a *AdminAPI) ExecuteMigration(ctx context.Context, id int, action string) error {
-	validActions := map[string]bool{
-		"prepare": true,
-		"execute": true,
-		"finish":  true,
-		"cancel":  true,
-	}
-	if !validActions[action] {
+type MigrationAction int
+
+const (
+	PrepareAction MigrationAction = iota
+	ExecuteAction
+	FinishAction
+	CancelAction
+)
+
+func (a MigrationAction) String() string {
+	return [...]string{"prepare", "execute", "finish", "cancel"}[a]
+}
+
+// ExecuteMigration executes a specific action on a migration identified by its ID.
+func (a *AdminAPI) ExecuteMigration(ctx context.Context, id int, action MigrationAction) error {
+	if action < PrepareAction || action > CancelAction {
 		return fmt.Errorf("invalid action: %s. Must be one of: prepare, execute, finish, cancel", action)
 	}
 	return a.sendAny(ctx, http.MethodPost, fmt.Sprintf("%s%d?action=%s", baseMigrationEndpoint, id, action), nil, nil)
