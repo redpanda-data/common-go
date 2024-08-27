@@ -64,19 +64,30 @@ func (a *AdminAPI) DeleteMigration(ctx context.Context, id int) error {
 type MigrationAction int
 
 const (
-	PrepareAction MigrationAction = iota
-	ExecuteAction
-	FinishAction
-	CancelAction
+	PrepareMigrationAction MigrationAction = iota
+	ExecuteMigrationAction
+	FinishMigrationAction
+	CancelMigrationAction
 )
 
 func (a MigrationAction) String() string {
-	return [...]string{"prepare", "execute", "finish", "cancel"}[a]
+	switch a {
+	case PrepareMigrationAction:
+		return "prepare"
+	case ExecuteMigrationAction:
+		return "execute"
+	case FinishMigrationAction:
+		return "finish"
+	case CancelMigrationAction:
+		return "cancel"
+	default:
+		return ""
+	}
 }
 
 // ExecuteMigration executes a specific action on a migration identified by its ID.
 func (a *AdminAPI) ExecuteMigration(ctx context.Context, id int, action MigrationAction) error {
-	if action < PrepareAction || action > CancelAction {
+	if action < PrepareMigrationAction || action > CancelMigrationAction {
 		return fmt.Errorf("invalid action: %s. Must be one of: prepare, execute, finish, cancel", action)
 	}
 	return a.sendAny(ctx, http.MethodPost, fmt.Sprintf("%s%d?action=%s", baseMigrationEndpoint, id, action), nil, nil)

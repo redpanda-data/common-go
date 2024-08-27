@@ -174,7 +174,7 @@ func TestExecuteMigration(t *testing.T) {
 				}
 			},
 			id:     123,
-			action: PrepareAction,
+			action: PrepareMigrationAction,
 		},
 		{
 			name: "should return error for invalid action",
@@ -196,7 +196,7 @@ func TestExecuteMigration(t *testing.T) {
 				}
 			},
 			id:       123,
-			action:   ExecuteAction,
+			action:   ExecuteMigrationAction,
 			expError: true,
 		},
 		{
@@ -209,7 +209,7 @@ func TestExecuteMigration(t *testing.T) {
 				}
 			},
 			id:     123,
-			action: FinishAction,
+			action: FinishMigrationAction,
 		},
 	}
 
