@@ -2,10 +2,10 @@ syntax = "proto3";
 
 package redpanda.common.v1;
 
-option go_package = "github.com/redpanda-data/common-go/proto/gen/go/common/v1;commonv1";
-
 import "google/protobuf/any.proto";
 import "google/rpc/status.proto";
+
+option go_package = "github.com/redpanda-data/common-go/proto/gen/go/common/v1;commonv1";
 
 // AttemptInfo contains information about retryable actions and their specific attempts.
 message AttemptInfo {

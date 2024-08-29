@@ -10,6 +10,7 @@ vars:
 
 includes:
   install: taskfiles/install.yaml
+  proto: taskfiles/proto.yaml
 
 tasks:
   lint:
