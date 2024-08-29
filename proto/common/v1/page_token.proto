@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package redpanda.common.v1;
+
+option go_package = "github.com/redpanda-data/common-go/proto/gen/go/common/v1;commonv1";
+
+// KeySetPageToken encodes a page token that can be used to do KeySet pagination: https://www.cockroachlabs.com/docs/stable/pagination#keyset-pagination
+// The page starts with the record that fulfills the key >= value_greater_equal condition, where all records are sorted by key.
+message KeySetPageToken {
+  string key = 1;
+  string value_greater_equal = 2;
+}
