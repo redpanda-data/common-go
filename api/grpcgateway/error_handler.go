@@ -52,7 +52,7 @@ func HandleHTTPError(ctx context.Context, w http.ResponseWriter, r *http.Request
 		st = apierrors.ConnectErrorToGoogleStatus(connectErr)
 	} else {
 		st = &spb.Status{
-			Code:    int32(connect.CodeOf(err)),
+			Code:    int32(connect.CodeOf(err)), //nolint:gosec // status code conversion
 			Message: err.Error(),
 			Details: nil,
 		}

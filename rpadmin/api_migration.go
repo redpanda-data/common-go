@@ -34,10 +34,12 @@ func (a *AdminAPI) addMigration(ctx context.Context, migration any) (AddMigratio
 	return response, nil
 }
 
+// AddInboundMigration adds an inbound migration to the cluster.
 func (a *AdminAPI) AddInboundMigration(ctx context.Context, migration InboundMigration) (AddMigrationResponse, error) {
 	return a.addMigration(ctx, migration)
 }
 
+// AddOutboundMigration adds an outbound migration to the cluster.
 func (a *AdminAPI) AddOutboundMigration(ctx context.Context, migration OutboundMigration) (AddMigrationResponse, error) {
 	return a.addMigration(ctx, migration)
 }
@@ -61,12 +63,20 @@ func (a *AdminAPI) DeleteMigration(ctx context.Context, id int) error {
 	return a.sendAny(ctx, http.MethodDelete, fmt.Sprintf("baseMigrationEndpoint%d", id), nil, nil)
 }
 
+// MigrationAction enum
 type MigrationAction int
 
 const (
+	// PrepareMigrationAction is the prepare migration action.
 	PrepareMigrationAction MigrationAction = iota
+
+	// ExecuteMigrationAction is the execute migration action.
 	ExecuteMigrationAction
+
+	// FinishMigrationAction is the finish migration action.
 	FinishMigrationAction
+
+	// CancelMigrationAction is the cancel migration action.
 	CancelMigrationAction
 )
 
