@@ -22,7 +22,7 @@ func StatusToNice(s *spb.Status) *commonv1alpha1.ErrorStatus {
 // spb.Status type that can be used to present errors.
 func ConnectErrorToGoogleStatus(connectErr *connect.Error) *spb.Status {
 	st := &spb.Status{
-		Code:    int32(connectErr.Code()),
+		Code:    int32(connectErr.Code()), //nolint:gosec // code conversion
 		Message: connectErr.Message(),
 		Details: nil, // Will be set in the next for loop
 	}
