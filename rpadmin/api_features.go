@@ -11,6 +11,7 @@ package rpadmin
 
 import (
 	"context"
+	"io"
 	"net/http"
 )
 
@@ -70,7 +71,7 @@ func (a *AdminAPI) GetLicenseInfo(ctx context.Context) (License, error) {
 	return license, a.sendToLeader(ctx, http.MethodGet, "/v1/features/license", nil, &license)
 }
 
-// SetLicense sets the license.
-func (a *AdminAPI) SetLicense(ctx context.Context, license any) error {
+// SetLicense sets the base 64 encoding of the license.
+func (a *AdminAPI) SetLicense(ctx context.Context, license io.Reader) error {
 	return a.sendToLeader(ctx, http.MethodPut, "/v1/features/license", license, nil)
 }
