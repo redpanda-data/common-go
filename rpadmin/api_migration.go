@@ -65,67 +65,6 @@ func (a *AdminAPI) DeleteMigration(ctx context.Context, id int) error {
 	return a.sendAny(ctx, http.MethodDelete, fmt.Sprintf("%s%d", baseMigrationEndpoint, id), nil, nil)
 }
 
-// MigrationAction enum
-type MigrationAction int
-
-const (
-	// MigrationActionPrepare is the prepare migration action.
-	MigrationActionPrepare MigrationAction = iota
-
-	// MigrationActionExecute is the execute migration action.
-	MigrationActionExecute
-
-	// MigrationActionFinish is the finish migration action.
-	MigrationActionFinish
-
-	// MigrationActionCancel is the cancel migration action.
-	MigrationActionCancel
-)
-
-func (a MigrationAction) String() string {
-	switch a {
-	case MigrationActionPrepare:
-		return "prepare"
-	case MigrationActionExecute:
-		return "execute"
-	case MigrationActionFinish:
-		return "finish"
-	case MigrationActionCancel:
-		return "cancel"
-	default:
-		return ""
-	}
-}
-
-// MigrationStatus enum
-type MigrationStatus int
-
-const (
-	// MigrationStatusPlanned is the planned migration status.
-	MigrationStatusPlanned MigrationStatus = iota
-	// MigrationStatusPrepared is the prepared migration status.
-	MigrationStatusPrepared
-	// MigrationStatusExecuted is the executed migration status.
-	MigrationStatusExecuted
-	// MigrationStatusFinished is the finished migration status.
-	MigrationStatusFinished
-)
-
-func (s MigrationStatus) String() string {
-	switch s {
-	case MigrationStatusPlanned:
-		return "planned"
-	case MigrationStatusPrepared:
-		return "prepared"
-	case MigrationStatusExecuted:
-		return "executed"
-	case MigrationStatusFinished:
-		return "finished"
-	default:
-		return ""
-	}
-}
-
 // ExecuteMigration executes a specific action on a migration identified by its ID.
 func (a *AdminAPI) ExecuteMigration(ctx context.Context, id int, action MigrationAction) error {
 	if action < MigrationActionPrepare || action > MigrationActionCancel {
@@ -177,4 +116,97 @@ type Topic struct {
 // AddMigrationResponse is the response from adding a migration
 type AddMigrationResponse struct {
 	ID int `json:"id"`
+}
+
+// MigrationAction enum
+type MigrationAction int
+
+const (
+	// MigrationActionPrepare is the prepare migration action.
+	MigrationActionPrepare MigrationAction = iota
+
+	// MigrationActionExecute is the execute migration action.
+	MigrationActionExecute
+
+	// MigrationActionFinish is the finish migration action.
+	MigrationActionFinish
+
+	// MigrationActionCancel is the cancel migration action.
+	MigrationActionCancel
+)
+
+func (a MigrationAction) String() string {
+	switch a {
+	case MigrationActionPrepare:
+		return "prepare"
+	case MigrationActionExecute:
+		return "execute"
+	case MigrationActionFinish:
+		return "finish"
+	case MigrationActionCancel:
+		return "cancel"
+	default:
+		return ""
+	}
+}
+
+// MigrationActionFromString converts a string to a MigrationAction.
+func MigrationActionFromString(s string) (MigrationAction, error) {
+	switch s {
+	case "prepare":
+		return MigrationActionPrepare, nil
+	case "execute":
+		return MigrationActionExecute, nil
+	case "finish":
+		return MigrationActionFinish, nil
+	case "cancel":
+		return MigrationActionCancel, nil
+	default:
+		return MigrationActionPrepare, fmt.Errorf("invalid migration action: %s. Must be one of: prepare, execute, finish, cancel", s)
+	}
+}
+
+// MigrationStatus enum
+type MigrationStatus int
+
+const (
+	// MigrationStatusPlanned is the planned migration status.
+	MigrationStatusPlanned MigrationStatus = iota
+	// MigrationStatusPrepared is the prepared migration status.
+	MigrationStatusPrepared
+	// MigrationStatusExecuted is the executed migration status.
+	MigrationStatusExecuted
+	// MigrationStatusFinished is the finished migration status.
+	MigrationStatusFinished
+)
+
+func (s MigrationStatus) String() string {
+	switch s {
+	case MigrationStatusPlanned:
+		return "planned"
+	case MigrationStatusPrepared:
+		return "prepared"
+	case MigrationStatusExecuted:
+		return "executed"
+	case MigrationStatusFinished:
+		return "finished"
+	default:
+		return ""
+	}
+}
+
+// MigrationStatusFromString converts a string to a MigrationStatus.
+func MigrationStatusFromString(s string) (MigrationStatus, error) {
+	switch s {
+	case "planned":
+		return MigrationStatusPlanned, nil
+	case "prepared":
+		return MigrationStatusPrepared, nil
+	case "executed":
+		return MigrationStatusExecuted, nil
+	case "finished":
+		return MigrationStatusFinished, nil
+	default:
+		return MigrationStatusPlanned, fmt.Errorf("invalid migration status: %s. Must be one of: planned, prepared, executed, finished", s)
+	}
 }
