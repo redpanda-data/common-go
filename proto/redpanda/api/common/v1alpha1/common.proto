@@ -1,0 +1,70 @@
+syntax = "proto3";
+
+package redpanda.api.common.v1alpha1;
+
+import 'google/protobuf/any.proto';
+import 'google/rpc/code.proto';
+
+option go_package = "buf.build/gen/go/redpandadata/common/protocolbuffers/go/redpanda/api/common/v1alpha1;commonv1alpha1";
+
+enum Reason {
+  REASON_UNSPECIFIED = 0;
+
+  // The specified resource could not be found.
+  REASON_RESOURCE_NOT_FOUND = 1;
+
+  // The input provided with the request is invalid.
+  REASON_INVALID_INPUT = 2;
+
+  // Authentication token is missing.
+  REASON_NO_AUTHENTICATION_TOKEN = 3;
+
+  // The authentication token provided has expired.
+  REASON_AUTHENTICATION_TOKEN_EXPIRED = 4;
+
+  // The authentication token provided is invalid.
+  REASON_AUTHENTICATION_TOKEN_INVALID = 5;
+
+  // The user does not have the necessary permissions.
+  REASON_PERMISSION_DENIED = 6;
+
+  // The request cannot be completed due to server error.
+  REASON_SERVER_ERROR = 7;
+
+  // The request rate is too high.
+  REASON_TOO_MANY_REQUESTS = 8;
+
+  // The request timed out.
+  REASON_TIMEOUT = 9;
+
+  // The feature is not configured.
+  REASON_FEATURE_NOT_CONFIGURED = 10;
+
+  // The feature is not supported in the requested environment.
+  REASON_FEATURE_NOT_SUPPORTED = 11;
+}
+
+// Modified variant of google.rpc.Status, that uses enum instead of int32 for
+// code, so it's nicer in REST.
+// The `Status` type defines a logical error model that is suitable for
+// different programming environments, including REST APIs and RPC APIs. It is
+// used by [gRPC](https://github.com/grpc). Each `Status` message contains
+// three pieces of data: error code, error message, and error details.
+//
+// You can find out more about this error model and how to work with it in the
+// [API Design Guide](https://cloud.google.com/apis/design/errors).
+message ErrorStatus {
+  // The status code, which should be an enum value of
+  // [google.rpc.Code][google.rpc.Code].
+  google.rpc.Code code = 1;
+
+  // A developer-facing error message, which should be in English. Any
+  // user-facing error message should be localized and sent in the
+  // [google.rpc.Status.details][google.rpc.Status.details] field, or localized
+  // by the client.
+  string message = 2;
+
+  // A list of messages that carry the error details.  There is a common set of
+  // message types for APIs to use.
+  repeated google.protobuf.Any details = 3;
+}

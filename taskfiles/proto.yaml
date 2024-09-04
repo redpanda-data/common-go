@@ -18,13 +18,13 @@ tasks:
       - |
         {{ .PATH_PREFIX }} buf format -w --exit-code
 
-  mod-update:
+  dep-update:
     deps:
       - install-buf
-    desc: update mod
+    desc: dep update
     cmds:
       - |
-        {{ .PATH_PREFIX }} buf mod update {{.ROOT_DIR}}/proto
+        {{ .PATH_PREFIX }} buf dep update {{.ROOT_DIR}}/proto
 
   push:
     deps:
@@ -57,6 +57,7 @@ tasks:
     cmds:
       - task: lint
       - task: format
+      - rm -rf proto/gen
       - |
         {{ .PATH_PREFIX }} buf generate
       - task: :fmt

@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package redpanda.api.common.v1alpha1;
+
+import "google/protobuf/descriptor.proto";
+
+option go_package = "buf.build/gen/go/redpandadata/common/protocolbuffers/go/redpanda/api/common/v1alpha1;commonv1alpha1";
+
+// Option used by protoc-gen-permissions
+extend google.protobuf.MethodOptions {
+  repeated string required_permission = 15350;
+}

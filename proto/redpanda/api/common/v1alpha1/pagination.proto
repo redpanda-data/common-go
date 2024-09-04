@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package redpanda.api.common.v1alpha1;
+
+option go_package = "buf.build/gen/go/redpandadata/common/protocolbuffers/go/redpanda/api/common/v1alpha1;commonv1alpha1";
+
+// KeySetPageToken represents a pagination token for KeySet pagination.
+// It marks the beginning of a page where records start from the key that
+// satisfies the condition key >= value_greater_equal. Records are sorted
+// alphabetically by key in ascending order.
+message KeySetPageToken {
+  string key = 1;
+  string value_greater_equal = 2;
+}
