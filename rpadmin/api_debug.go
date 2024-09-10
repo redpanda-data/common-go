@@ -223,3 +223,8 @@ func (a *AdminAPI) RawCPUProfile(ctx context.Context, wait time.Duration) ([]byt
 	path := fmt.Sprintf("%v?wait_ms=%v", cpuProfilerEndpoint, strconv.Itoa(int(wait.Milliseconds())))
 	return response, a.sendAny(ctx, http.MethodGet, path, nil, &response)
 }
+
+// RestartService restarts a Redpanda service, either http-proxy or schema-registry.
+func (a *AdminAPI) RestartService(ctx context.Context, service string) error {
+	return a.sendAny(ctx, http.MethodPut, fmt.Sprintf("/v1/debug/restart_service?service=%s", service), nil, nil)
+}
