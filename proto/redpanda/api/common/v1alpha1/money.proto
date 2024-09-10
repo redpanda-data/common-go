@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package redpanda.api.common.v1alpha1;
+
+import "google/api/field_behavior.proto";
+
+option go_package = "buf.build/gen/go/redpandadata/common/protocolbuffers/go/redpanda/api/common/v1alpha1;commonv1alpha1";
+
+message Money {
+  // Amount is a decimal number.
+  // Examples:
+  // 10
+  // 10.15
+  string amount = 1 [
+    (google.api.field_behavior) = OUTPUT_ONLY,
+    (google.api.field_behavior) = REQUIRED
+  ];
+  Currency currency = 2 [
+    (google.api.field_behavior) = OUTPUT_ONLY,
+    (google.api.field_behavior) = REQUIRED
+  ];
+}
+
+enum Currency {
+  CURRENCY_UNSPECIFIED = 0;
+  CURRENCY_CURRENCY_USD_CENTS = 1;
+}

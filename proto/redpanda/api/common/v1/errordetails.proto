@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package redpanda.api.common.v1;
+
+import "google/protobuf/any.proto";
+import "google/rpc/status.proto";
+
+option go_package = "buf.build/gen/go/redpandadata/common/protocolbuffers/go/redpanda/api/common/v1;commonv1";
+
+// AttemptInfo contains information about retryable actions and their specific attempts.
+message AttemptInfo {
+  message Attempt {
+    int32 number = 1;
+    google.rpc.Status status = 2;
+  }
+  repeated Attempt attempts = 1;
+}
+
+// ExternalError is an error that may be returned to external users. Other
+// errors thrown by internal systems are discarded by default, so internal
+// errors with sensitive information are not exposed.
+message ExternalError {
+  string message = 1;
+  repeated google.protobuf.Any details = 2;
+}
