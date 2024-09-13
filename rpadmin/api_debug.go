@@ -297,37 +297,39 @@ type debugBundleStartConfig struct {
 	Config DebugBundleStartConfigParameters `json:"config,omitempty"`
 }
 
-// CreateDebugBundle starts the debug bundle process in the specified broker node.
-// url is the broker admin api url.
+// CreateDebugBundle starts the debug bundle process.
+// This should be called using Host client to issue a request against a specific broker node.
 // jobID is the user specified job UUID.
-func (a *AdminAPI) CreateDebugBundle(ctx context.Context, url string, jobID string, config DebugBundleStartConfigParameters) ([]DebugBundleStartResponse, error) {
+func (a *AdminAPI) CreateDebugBundle(ctx context.Context, jobID string, config DebugBundleStartConfigParameters) ([]DebugBundleStartResponse, error) {
 	body := debugBundleStartConfig{
 		JobID:  jobID,
 		Config: config,
 	}
 	var response []DebugBundleStartResponse
 
-	err := a.sendSpecific(ctx, http.MethodPost, url, bundleEndpoint, body, &response, false)
+	err := a.sendOne(ctx, http.MethodPost, bundleEndpoint, body, &response, false)
 	return response, err
 }
 
 // GetDebugBundleStatus gets the current debug bundle process status on the specified broker node.
-func (a *AdminAPI) GetDebugBundleStatus(ctx context.Context, url string) ([]DebugBundleStatus, error) {
+// This should be called using Host client to issue a request against a specific broker node.
+func (a *AdminAPI) GetDebugBundleStatus(ctx context.Context) ([]DebugBundleStatus, error) {
 	var response []DebugBundleStatus
-	err := a.sendSpecific(ctx, http.MethodGet, url, bundleEndpoint, nil, &response, false)
+	err := a.sendOne(ctx, http.MethodGet, bundleEndpoint, nil, &response, false)
 	return response, err
 }
 
-// DeleteDebugBundle deletes the specific debug bundle on the specified broker node.
-func (a *AdminAPI) DeleteDebugBundle(ctx context.Context, url string, jobID string) error {
-	err := a.sendSpecific(ctx, http.MethodDelete, url, fmt.Sprintf("%s/%s", bundleEndpoint, jobID), nil, nil, false)
+// DeleteDebugBundle deletes the specific debug bundle.
+// This should be called using Host client to issue a request against a specific broker node.
+func (a *AdminAPI) DeleteDebugBundle(ctx context.Context, jobID string) error {
+	err := a.sendOne(ctx, http.MethodDelete, fmt.Sprintf("%s/%s", bundleEndpoint, jobID), nil, nil, false)
 	return err
 }
 
 // GetDebugBundleFile gets the specific debug bundle file on the specified broker node.
 //
 //nolint:revive // TODO
-func (a *AdminAPI) GetDebugBundleFile(ctx context.Context, url string, filename string) error {
+func (a *AdminAPI) GetDebugBundleFile(ctx context.Context, filename string) error {
 	// TODO how is this going to work...?
 	// We're downloading a zip file
 	// Will research best way to accomplish this
@@ -335,6 +337,7 @@ func (a *AdminAPI) GetDebugBundleFile(ctx context.Context, url string, filename 
 }
 
 // DeleteDebugBundleFile deletes the specific debug bundle file on the specified broker node.
-func (a *AdminAPI) DeleteDebugBundleFile(ctx context.Context, url string, filename string) error {
-	return a.sendSpecific(ctx, http.MethodDelete, url, fmt.Sprintf("%s/%s", bundleEndpoint, filename), nil, nil, false)
+// This should be called using Host client to issue a request against a specific broker node.
+func (a *AdminAPI) DeleteDebugBundleFile(ctx context.Context, filename string) error {
+	return a.sendOne(ctx, http.MethodDelete, fmt.Sprintf("%s/%s", bundleEndpoint, filename), nil, nil, false)
 }

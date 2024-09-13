@@ -429,36 +429,6 @@ func (a *AdminAPI) sendOne(
 	return maybeUnmarshalRespInto(method, url, res, into)
 }
 
-// sendSpecific sends a request to specific node with sendAndReceive
-// and unmarshals the body into into, which is expected to be a pointer to a struct.
-//
-// Set `retryable` to true if the API endpoint might have transient errors, such
-// as temporarily having no leader for a raft group.  Set it to false if the endpoint
-// should always work while the node is up, e.g. GETs of node-local state.
-//
-//nolint:unparam // all usage passes false for now, but generic function
-func (a *AdminAPI) sendSpecific(
-	ctx context.Context, method, url string, path string, body, into any, retryable bool,
-) error {
-	found := false
-	for _, u := range a.urls {
-		if strings.EqualFold(u, url) {
-			found = true
-			break
-		}
-	}
-
-	if !found {
-		return fmt.Errorf("unable to issue a single-admin-endpoint request to %s as it is not one of the admin endpoints", url)
-	}
-
-	res, err := a.sendAndReceive(ctx, method, url+path, body, retryable)
-	if err != nil {
-		return err
-	}
-	return maybeUnmarshalRespInto(method, url, res, into)
-}
-
 // sendAll sends a request to all URLs in the admin client. The first successful
 // response will be unmarshalled into `into` if it is non-nil.
 //
