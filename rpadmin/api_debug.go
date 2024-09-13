@@ -11,6 +11,7 @@ package rpadmin
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -21,6 +22,7 @@ const (
 	debugEndpoint       = "/v1/debug"
 	selfTestEndpoint    = debugEndpoint + "/self_test"
 	cpuProfilerEndpoint = debugEndpoint + "/cpu_profile"
+	bundleEndpoint      = debugEndpoint + "/bundle"
 
 	// DiskcheckTagIdentifier is the type identifier for disk self tests.
 	DiskcheckTagIdentifier = "disk"
@@ -28,6 +30,21 @@ const (
 	NetcheckTagIdentifier = "network"
 	// CloudcheckTagIdentifier is the type identifier for cloud self tests.
 	CloudcheckTagIdentifier = "cloud"
+
+	// DebugBundleErrorCodeOk no error.
+	DebugBundleErrorCodeOk = 0
+	// DebugBundleErrorCodeProcessAlreadyRunning debug process is already running.
+	DebugBundleErrorCodeProcessAlreadyRunning = 1
+	// DebugBundleErrorCodeProcessNotRunning debug process not already running.
+	DebugBundleErrorCodeProcessNotRunning = 2
+	// DebugBundleErrorCodeInvalidJobID provided job id is invalid.
+	DebugBundleErrorCodeInvalidJobID = 3
+	// DebugBundleErrorCodeProcessNotStarted process was not started.
+	DebugBundleErrorCodeProcessNotStarted = 4
+	// DebugBundleErrorCodeInsufficientResources there are insufficient resources to start debug bundle process.
+	DebugBundleErrorCodeInsufficientResources = 5
+	// DebugBundleErrorCodeInternalError other internal unknown error.
+	DebugBundleErrorCodeInternalError = 6
 )
 
 // A SelfTestNodeResult describes the results of a particular self-test run.
@@ -157,6 +174,52 @@ type DebugPartition struct {
 	Replicas []ReplicaState `json:"replicas"`
 }
 
+// DebugBundleStartConfigParameters are the configuration parameters to starting a
+// debug bundle process.
+// See rpk debug bundle --help
+type DebugBundleStartConfigParameters struct {
+	// one of DebugBundleSCRAMAuthentication or DebugBundleOIDCAuthentication
+	Authentication               any      `json:"authentication,omitempty"`
+	ControllerLogsSizeLimitBytes int32    `json:"controller_logs_size_limit_bytes,omitempty"`
+	LogsSizeLimitBytes           int32    `json:"logs_size_limit_bytes,omitempty"`
+	CPUProfilerWaitSeconds       int32    `json:"cpu_profiler_wait_seconds,omitempty"`
+	MetricsIntervalSeconds       int32    `json:"metrics_interval_seconds,omitempty"`
+	LogsSince                    int64    `json:"logs_since,omitempty"`
+	LogsUntil                    int64    `json:"logs_until,omitempty"`
+	Partitions                   []string `json:"partition,omitempty"`
+}
+
+// DebugBundleSCRAMAuthentication are the SCRAM authentication parameters.
+type DebugBundleSCRAMAuthentication struct {
+	Mechanism string `json:"mechanism,omitempty"`
+	Username  string `json:"username,omitempty"`
+	Password  string `json:"password,omitempty"`
+}
+
+// DebugBundleOIDCAuthentication are the OIDC authentication parameters.
+type DebugBundleOIDCAuthentication struct {
+	Token string `json:"token,omitempty"`
+}
+
+// DebugBundleStartResponse is the response to debug bundle api.
+type DebugBundleStartResponse struct {
+	JobID string `json:"job_id,omitempty"`
+}
+
+// DebugBundleStatus contains information about
+type DebugBundleStatus struct {
+	JobID string `json:"job_id,omitempty"`
+	// one of RUNNING|SUCCESS|ERROR
+	Status string `json:"status,omitempty"`
+	// When the job was started, in milliseconds since epoch
+	Created  int64 `json:"created,omitempty"`
+	Filename int64 `json:"filename,omitempty"`
+	// Only filled in once the process completes.  Content of stdout from rpk.
+	Stdout []string `json:"stdout,omitempty"`
+	// Only filled in once the process completes.  Content of stderr from rpk.
+	Stderr []string `json:"stderr,omitempty"`
+}
+
 // StartSelfTest starts the self test.
 func (a *AdminAPI) StartSelfTest(ctx context.Context, nodeIds []int, params []any) (string, error) {
 	var testID string
@@ -227,4 +290,51 @@ func (a *AdminAPI) RawCPUProfile(ctx context.Context, wait time.Duration) ([]byt
 // RestartService restarts a Redpanda service, either http-proxy or schema-registry.
 func (a *AdminAPI) RestartService(ctx context.Context, service string) error {
 	return a.sendAny(ctx, http.MethodPut, fmt.Sprintf("/v1/debug/restart_service?service=%s", service), nil, nil)
+}
+
+type debugBundleStartConfig struct {
+	JobID  string                           `json:"job_id,omitempty"`
+	Config DebugBundleStartConfigParameters `json:"config,omitempty"`
+}
+
+// CreateDebugBundle starts the debug bundle process in the specified broker node.
+// url is the broker admin api url.
+// jobID is the user specified job UUID.
+func (a *AdminAPI) CreateDebugBundle(ctx context.Context, url string, jobID string, config DebugBundleStartConfigParameters) ([]DebugBundleStartResponse, error) {
+	body := debugBundleStartConfig{
+		JobID:  jobID,
+		Config: config,
+	}
+	var response []DebugBundleStartResponse
+
+	err := a.sendSpecific(ctx, http.MethodPost, url, bundleEndpoint, body, &response, false)
+	return response, err
+}
+
+// GetDebugBundleStatus gets the current debug bundle process status on the specified broker node.
+func (a *AdminAPI) GetDebugBundleStatus(ctx context.Context, url string) ([]DebugBundleStatus, error) {
+	var response []DebugBundleStatus
+	err := a.sendSpecific(ctx, http.MethodGet, url, bundleEndpoint, nil, &response, false)
+	return response, err
+}
+
+// DeleteDebugBundle deletes the specific debug bundle on the specified broker node.
+func (a *AdminAPI) DeleteDebugBundle(ctx context.Context, url string, jobID string) error {
+	err := a.sendSpecific(ctx, http.MethodDelete, url, fmt.Sprintf("%s/%s", bundleEndpoint, jobID), nil, nil, false)
+	return err
+}
+
+// GetDebugBundleFile gets the specific debug bundle file on the specified broker node.
+//
+//nolint:revive // TODO
+func (a *AdminAPI) GetDebugBundleFile(ctx context.Context, url string, filename string) error {
+	// TODO how is this going to work...?
+	// We're downloading a zip file
+	// Will research best way to accomplish this
+	return errors.New("unimplemented")
+}
+
+// DeleteDebugBundleFile deletes the specific debug bundle file on the specified broker node.
+func (a *AdminAPI) DeleteDebugBundleFile(ctx context.Context, url string, filename string) error {
+	return a.sendSpecific(ctx, http.MethodDelete, url, fmt.Sprintf("%s/%s", bundleEndpoint, filename), nil, nil, false)
 }
