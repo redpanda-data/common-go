@@ -174,31 +174,114 @@ type DebugPartition struct {
 	Replicas []ReplicaState `json:"replicas"`
 }
 
-// DebugBundleStartConfigParameters are the configuration parameters to starting a
+// debugBundleStartConfigParameters are the configuration parameters to starting a
 // debug bundle process.
 // See rpk debug bundle --help
-type DebugBundleStartConfigParameters struct {
+type debugBundleStartConfigParameters struct {
 	// one of DebugBundleSCRAMAuthentication or DebugBundleOIDCAuthentication
 	Authentication               any      `json:"authentication,omitempty"`
 	ControllerLogsSizeLimitBytes int32    `json:"controller_logs_size_limit_bytes,omitempty"`
 	LogsSizeLimitBytes           int32    `json:"logs_size_limit_bytes,omitempty"`
 	CPUProfilerWaitSeconds       int32    `json:"cpu_profiler_wait_seconds,omitempty"`
 	MetricsIntervalSeconds       int32    `json:"metrics_interval_seconds,omitempty"`
-	LogsSince                    int64    `json:"logs_since,omitempty"`
-	LogsUntil                    int64    `json:"logs_until,omitempty"`
+	LogsSince                    string   `json:"logs_since,omitempty"`
+	LogsUntil                    string   `json:"logs_until,omitempty"`
 	Partitions                   []string `json:"partition,omitempty"`
 }
 
 // DebugBundleSCRAMAuthentication are the SCRAM authentication parameters.
-type DebugBundleSCRAMAuthentication struct {
+type debugBundleSCRAMAuthentication struct {
 	Mechanism string `json:"mechanism,omitempty"`
 	Username  string `json:"username,omitempty"`
 	Password  string `json:"password,omitempty"`
 }
 
 // DebugBundleOIDCAuthentication are the OIDC authentication parameters.
-type DebugBundleOIDCAuthentication struct {
+type debugBundleOIDCAuthentication struct {
 	Token string `json:"token,omitempty"`
+}
+
+type debugBundleStartConfig struct {
+	JobID  string                           `json:"job_id,omitempty"`
+	Config debugBundleStartConfigParameters `json:"config,omitempty"`
+}
+
+// DebugBundleOption are options for setting debug bundle parameters.
+type DebugBundleOption interface {
+	apply(*debugBundleStartConfigParameters)
+}
+
+type debugBundleOpt struct {
+	fn func(*debugBundleStartConfigParameters)
+}
+
+func (opt debugBundleOpt) apply(cfg *debugBundleStartConfigParameters) { opt.fn(cfg) }
+
+// WithSCRAMAuthentication sets SCRAM authentication.
+func WithSCRAMAuthentication(username, password, mechanism string) DebugBundleOption {
+	return debugBundleOpt{func(param *debugBundleStartConfigParameters) {
+		param.Authentication = debugBundleSCRAMAuthentication{
+			Username: username, Password: password, Mechanism: mechanism,
+		}
+	}}
+}
+
+// WithOIDCAuthentication sets OIDC authentication.
+func WithOIDCAuthentication(token string) DebugBundleOption {
+	return debugBundleOpt{func(param *debugBundleStartConfigParameters) {
+		param.Authentication = debugBundleOIDCAuthentication{
+			Token: token,
+		}
+	}}
+}
+
+// WithControllerLogsSizeLimitBytes sets the controller-logs-size-limit parameter.
+func WithControllerLogsSizeLimitBytes(v int32) DebugBundleOption {
+	return debugBundleOpt{func(param *debugBundleStartConfigParameters) {
+		param.ControllerLogsSizeLimitBytes = v
+	}}
+}
+
+// WithLogsSizeLimitBytes sets the logs-size-limit parameter.
+func WithLogsSizeLimitBytes(v int32) DebugBundleOption {
+	return debugBundleOpt{func(param *debugBundleStartConfigParameters) {
+		param.LogsSizeLimitBytes = v
+	}}
+}
+
+// WithCPUProfilerWaitSeconds sets the cpu-profiler-wait parameter.
+func WithCPUProfilerWaitSeconds(v int32) DebugBundleOption {
+	return debugBundleOpt{func(param *debugBundleStartConfigParameters) {
+		param.CPUProfilerWaitSeconds = v
+	}}
+}
+
+// WithMetricsIntervalSeconds sets the metrics-interval parameter.
+func WithMetricsIntervalSeconds(v int32) DebugBundleOption {
+	return debugBundleOpt{func(param *debugBundleStartConfigParameters) {
+		param.MetricsIntervalSeconds = v
+	}}
+}
+
+// WithLogsSince sets the logs-since parameter.
+func WithLogsSince(v string) DebugBundleOption {
+	return debugBundleOpt{func(param *debugBundleStartConfigParameters) {
+		param.LogsSince = v
+	}}
+}
+
+// WithLogsUntil sets the logs-until parameter.
+func WithLogsUntil(v string) DebugBundleOption {
+	return debugBundleOpt{func(param *debugBundleStartConfigParameters) {
+		param.LogsUntil = v
+	}}
+}
+
+// WithPartitions sets the partitions parameter.
+func WithPartitions(v []string) DebugBundleOption {
+	return debugBundleOpt{func(param *debugBundleStartConfigParameters) {
+		param.Partitions = v
+	}}
 }
 
 // DebugBundleStartResponse is the response to debug bundle api.
@@ -292,18 +375,17 @@ func (a *AdminAPI) RestartService(ctx context.Context, service string) error {
 	return a.sendAny(ctx, http.MethodPut, fmt.Sprintf("/v1/debug/restart_service?service=%s", service), nil, nil)
 }
 
-type debugBundleStartConfig struct {
-	JobID  string                           `json:"job_id,omitempty"`
-	Config DebugBundleStartConfigParameters `json:"config,omitempty"`
-}
-
 // CreateDebugBundle starts the debug bundle process.
 // This should be called using Host client to issue a request against a specific broker node.
 // jobID is the user specified job UUID.
-func (a *AdminAPI) CreateDebugBundle(ctx context.Context, jobID string, config DebugBundleStartConfigParameters) ([]DebugBundleStartResponse, error) {
+func (a *AdminAPI) CreateDebugBundle(ctx context.Context, jobID string, opts ...DebugBundleOption) ([]DebugBundleStartResponse, error) {
+	config := &debugBundleStartConfigParameters{}
+	for _, o := range opts {
+		o.apply(config)
+	}
 	body := debugBundleStartConfig{
 		JobID:  jobID,
-		Config: config,
+		Config: *config,
 	}
 	var response []DebugBundleStartResponse
 
