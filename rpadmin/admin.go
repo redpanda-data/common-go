@@ -215,6 +215,10 @@ func newAdminAPI(urls []string, auth Auth, tlsConfig *tls.Config, dialer DialCon
 	return a, nil
 }
 
+func (a *AdminAPI) SetAuth(auth Auth) {
+	a.auth = auth
+}
+
 func (a *AdminAPI) newAdminForSingleHost(host string) (*AdminAPI, error) {
 	return newAdminAPI([]string{host}, a.auth, a.tlsConfig, nil, a.forCloud)
 }
