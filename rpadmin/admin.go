@@ -215,6 +215,7 @@ func newAdminAPI(urls []string, auth Auth, tlsConfig *tls.Config, dialer DialCon
 	return a, nil
 }
 
+// SetAuth sets the auth in the client.
 func (a *AdminAPI) SetAuth(auth Auth) {
 	a.auth = auth
 }
