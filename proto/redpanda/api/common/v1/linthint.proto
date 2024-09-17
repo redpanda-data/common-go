@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package redpanda.api.common.v1;
+
+option go_package = "buf.build/gen/go/redpandadata/common/protocolbuffers/go/redpanda/api/common/v1;commonv1";
+
+// LintHint is a generic linting hint.
+message LintHint {
+  // Line number of the lint.
+  int32 line = 1;
+  // Column number of the lint.
+  int32 column = 2;
+  // The hint message.
+  string hint = 3;
+  // Optional lint type or enum.
+  string lint_type = 4;
+}
