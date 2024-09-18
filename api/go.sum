@@ -2,8 +2,8 @@ buf.build/gen/go/connectrpc/eliza/connectrpc/go v1.15.0-20230913231627-233fca715
 buf.build/gen/go/connectrpc/eliza/connectrpc/go v1.15.0-20230913231627-233fca715f49.1/go.mod h1:OZPBPnAuuFcUf5WHYm5pIXkUhIy7Pp6dzV4W2Zbc2/c=
 buf.build/gen/go/connectrpc/eliza/protocolbuffers/go v1.33.0-20230913231627-233fca715f49.1 h1:bHffCjg+jKMaDnUeYjBJXHAlH659fX4N1YExnWl5wFU=
 buf.build/gen/go/connectrpc/eliza/protocolbuffers/go v1.33.0-20230913231627-233fca715f49.1/go.mod h1:v0PWlly2hqVEW2IZSPlvPHELTvdHD5hBsA0+KlCfTQk=
-buf.build/gen/go/redpandadata/common/protocolbuffers/go v1.33.0-20240321121335-26480f50072a.1 h1:8YzYWQuWs1a4Lt/O7aJyrw38bkJ6T63/OGCVvZgG8OQ=
-buf.build/gen/go/redpandadata/common/protocolbuffers/go v1.33.0-20240321121335-26480f50072a.1/go.mod h1:NDWpeU3ohHVIKP3DhrDOtnLrmrjz8il/5SH+1/B6TNM=
+buf.build/gen/go/redpandadata/common/protocolbuffers/go v1.34.2-20240917150400-3f349e63f44a.2 h1:JyGBchZNUPlQ7/qjieeKq/Cy+/i1vc0H+cIniGZNSFg=
+buf.build/gen/go/redpandadata/common/protocolbuffers/go v1.34.2-20240917150400-3f349e63f44a.2/go.mod h1:wThyg02xJx4K/DA5fg0QlKts8XVPyTT86JC8hPfEzno=
 connectrpc.com/connect v1.16.1 h1:rOdrK/RTI/7TVnn3JsVxt3n028MlTRwmK5Q4heSpjis=
 connectrpc.com/connect v1.16.1/go.mod h1:XpZAduBQUySsb4/KO5JffORVkDI4B6/EYPi7N8xpNZw=
 github.com/beorn7/perks v1.0.1 h1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=
@@ -51,8 +51,9 @@ google.golang.org/genproto/googleapis/rpc v0.0.0-20240415180920-8c6c420018be/go.
 google.golang.org/grpc v1.63.2 h1:MUeiw1B2maTVZthpU5xvASfTh3LDbxHd6IJ6QQVU+xM=
 google.golang.org/grpc v1.63.2/go.mod h1:WAX/8DgncnokcFUldAxq7GeB5DXHDbMF+lLvDomNkRA=
 google.golang.org/protobuf v1.26.0-rc.1/go.mod h1:jlhhOSvTdKEhbULTjvd4ARK9grFBp09yW+WbY/TyQbw=
-google.golang.org/protobuf v1.33.0 h1:uNO2rsAINq/JlFpSdYEKIZ0uKD/R9cpdv0T+yoGwGmI=
 google.golang.org/protobuf v1.33.0/go.mod h1:c6P6GXX6sHbq/GpV6MGZEdwhWPcYBgnhAHhKbcUYpos=
+google.golang.org/protobuf v1.34.2 h1:6xV6lTsCfpGD21XK49h7MhtcApnLqkfYgPcdHftf6hg=
+google.golang.org/protobuf v1.34.2/go.mod h1:qYOHts0dSfpeUzUFpOMr/WGzszTmLH+DiWniOlNbLDw=
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
 gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c h1:Hei/4ADfdWqJk1ZMxUNpqntNwaWcugrBjAiHlqqRiVk=
 gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c/go.mod h1:JHkPIbrfpd72SG/EVd6muEfDQjcINNoR0C8j2r3qZ4Q=

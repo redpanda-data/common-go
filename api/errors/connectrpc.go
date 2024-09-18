@@ -1,9 +1,15 @@
 package errors
 
 import (
+	"errors"
+
+	commonv1 "buf.build/gen/go/redpandadata/common/protocolbuffers/go/redpanda/api/common/v1"
 	"connectrpc.com/connect"
 	"google.golang.org/genproto/googleapis/rpc/errdetails"
+	spb "google.golang.org/genproto/googleapis/rpc/status"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/anypb"
 )
 
 // NewConnectError is a helper function to construct a new connect error. This
@@ -77,4 +83,73 @@ func NewHelpLink(description, url string) *errdetails.Help_Link {
 		Description: description,
 		Url:         url,
 	}
+}
+
+// NewExternalErrorDetail can be called to transform an internal error into an
+// external error that is safe to be returned in gRPC/Connect.
+// Error messages are removed.
+func NewExternalErrorDetail(message string, details ...proto.Message) *commonv1.ExternalError {
+	e := commonv1.ExternalError{
+		Message: message,
+	}
+
+	for _, detail := range details {
+		anyDetail, err := anypb.New(detail)
+		if err != nil {
+			// Ignore errors
+			continue
+		}
+		e.Details = append(e.Details, anyDetail)
+	}
+
+	return &e
+}
+
+// NewSafePublicError can be called to transform an internal error into an
+// external error that is safe to be returned in gRPC/Connect.
+// Error messages are removed.
+func NewSafePublicError(internalError *status.Status) *status.Status {
+	ext := status.New(internalError.Code(), "")
+
+	for _, detail := range internalError.Details() {
+		if d, ok := detail.(*commonv1.ExternalError); ok {
+			pb := &spb.Status{
+				Code:    int32(internalError.Code()), //nolint:gosec // code conversion
+				Message: d.Message,
+				Details: d.Details,
+			}
+
+			return status.FromProto(pb)
+		}
+	}
+
+	return ext
+}
+
+// NewSafePublicErrorConnect can be called to transform an internal error into an
+// external error that is safe to be returned in gRPC/Connect.
+// Error messages are removed.
+func NewSafePublicErrorConnect(internalError *connect.Error) *connect.Error {
+	for _, d := range internalError.Details() {
+		detail, err := d.Value()
+		if err != nil {
+			continue
+		}
+
+		if d, ok := detail.(*commonv1.ExternalError); ok {
+			result := connect.NewError(internalError.Code(), errors.New(d.Message))
+
+			for _, detail := range d.Details {
+				connectSDKDetail, err := connect.NewErrorDetail(detail)
+				if err != nil {
+					continue
+				}
+				result.AddDetail(connectSDKDetail)
+			}
+
+			return result
+		}
+	}
+
+	return connect.NewError(internalError.Code(), nil)
 }
