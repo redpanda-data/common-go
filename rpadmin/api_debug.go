@@ -196,11 +196,6 @@ type debugBundleSCRAMAuthentication struct {
 	Password  string `json:"password,omitempty"`
 }
 
-// DebugBundleOIDCAuthentication are the OIDC authentication parameters.
-type debugBundleOIDCAuthentication struct {
-	Token string `json:"token,omitempty"`
-}
-
 type debugBundleStartConfig struct {
 	JobID  string                           `json:"job_id,omitempty"`
 	Config debugBundleStartConfigParameters `json:"config,omitempty"`
@@ -222,15 +217,6 @@ func WithSCRAMAuthentication(username, password, mechanism string) DebugBundleOp
 	return debugBundleOpt{func(param *debugBundleStartConfigParameters) {
 		param.Authentication = debugBundleSCRAMAuthentication{
 			Username: username, Password: password, Mechanism: mechanism,
-		}
-	}}
-}
-
-// WithOIDCAuthentication sets OIDC authentication.
-func WithOIDCAuthentication(token string) DebugBundleOption {
-	return debugBundleOpt{func(param *debugBundleStartConfigParameters) {
-		param.Authentication = debugBundleOIDCAuthentication{
-			Token: token,
 		}
 	}}
 }
