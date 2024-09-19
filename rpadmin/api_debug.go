@@ -407,5 +407,5 @@ func (a *AdminAPI) GetDebugBundleFile(ctx context.Context, filename string) erro
 // DeleteDebugBundleFile deletes the specific debug bundle file on the specified broker node.
 // This should be called using Host client to issue a request against a specific broker node.
 func (a *AdminAPI) DeleteDebugBundleFile(ctx context.Context, filename string) error {
-	return a.sendOne(ctx, http.MethodDelete, fmt.Sprintf("%s/%s", bundleEndpoint, filename), nil, nil, false)
+	return a.sendOne(ctx, http.MethodDelete, fmt.Sprintf("%s/file/%s", bundleEndpoint, filename), nil, nil, false)
 }
