@@ -281,8 +281,8 @@ type DebugBundleStatus struct {
 	// one of RUNNING|SUCCESS|ERROR
 	Status string `json:"status,omitempty"`
 	// When the job was started, in milliseconds since epoch
-	Created  int64 `json:"created,omitempty"`
-	Filename int64 `json:"filename,omitempty"`
+	Created  int64  `json:"created,omitempty"`
+	Filename string `json:"filename,omitempty"`
 	// Only filled in once the process completes.  Content of stdout from rpk.
 	Stdout []string `json:"stdout,omitempty"`
 	// Only filled in once the process completes.  Content of stderr from rpk.
@@ -364,7 +364,7 @@ func (a *AdminAPI) RestartService(ctx context.Context, service string) error {
 // CreateDebugBundle starts the debug bundle process.
 // This should be called using Host client to issue a request against a specific broker node.
 // jobID is the user specified job UUID.
-func (a *AdminAPI) CreateDebugBundle(ctx context.Context, jobID string, opts ...DebugBundleOption) ([]DebugBundleStartResponse, error) {
+func (a *AdminAPI) CreateDebugBundle(ctx context.Context, jobID string, opts ...DebugBundleOption) (DebugBundleStartResponse, error) {
 	config := &debugBundleStartConfigParameters{}
 	for _, o := range opts {
 		o.apply(config)
@@ -373,7 +373,7 @@ func (a *AdminAPI) CreateDebugBundle(ctx context.Context, jobID string, opts ...
 		JobID:  jobID,
 		Config: *config,
 	}
-	var response []DebugBundleStartResponse
+	var response DebugBundleStartResponse
 
 	err := a.sendOne(ctx, http.MethodPost, bundleEndpoint, body, &response, false)
 	return response, err
@@ -381,8 +381,8 @@ func (a *AdminAPI) CreateDebugBundle(ctx context.Context, jobID string, opts ...
 
 // GetDebugBundleStatus gets the current debug bundle process status on the specified broker node.
 // This should be called using Host client to issue a request against a specific broker node.
-func (a *AdminAPI) GetDebugBundleStatus(ctx context.Context) ([]DebugBundleStatus, error) {
-	var response []DebugBundleStatus
+func (a *AdminAPI) GetDebugBundleStatus(ctx context.Context) (DebugBundleStatus, error) {
+	var response DebugBundleStatus
 	err := a.sendOne(ctx, http.MethodGet, bundleEndpoint, nil, &response, false)
 	return response, err
 }
