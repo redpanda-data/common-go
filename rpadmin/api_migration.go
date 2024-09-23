@@ -66,6 +66,7 @@ func (a *AdminAPI) DeleteMigration(ctx context.Context, id int) error {
 }
 
 // ExecuteMigration executes a specific action on a migration identified by its ID.
+// We set all migrations to auto_advance = true so there's generally no reason to call this
 func (a *AdminAPI) ExecuteMigration(ctx context.Context, id int, action MigrationAction) error {
 	if action < MigrationActionPrepare || action > MigrationActionCancel {
 		return fmt.Errorf("invalid action: %s. Must be one of: prepare, execute, finish, cancel", action)
@@ -78,6 +79,7 @@ type OutboundMigration struct {
 	MigrationType  string   `json:"migration_type"`
 	Topics         []Topic  `json:"topics"`
 	ConsumerGroups []string `json:"consumer_groups"`
+	AutoAdvance    bool     `json:"auto_advance"`
 }
 
 // InboundMigration represents an inbound migration configuration
@@ -85,6 +87,7 @@ type InboundMigration struct {
 	MigrationType  string         `json:"migration_type"`
 	Topics         []InboundTopic `json:"topics"`
 	ConsumerGroups []string       `json:"consumer_groups"`
+	AutoAdvance    bool           `json:"auto_advance"`
 }
 
 // InboundTopic represents an inbound migration topic

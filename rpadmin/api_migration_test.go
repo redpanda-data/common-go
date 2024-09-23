@@ -235,6 +235,7 @@ func TestAddInboundMigration(t *testing.T) {
 				MigrationType:  "inbound",
 				Topics:         []InboundTopic{{SourceTopic: Topic{Topic: "test-topic"}}},
 				ConsumerGroups: []string{"test-group"},
+				AutoAdvance:    true,
 			},
 			serverResponse: AddMigrationResponse{ID: 456},
 			serverStatus:   http.StatusOK,
@@ -245,6 +246,7 @@ func TestAddInboundMigration(t *testing.T) {
 			migration: InboundMigration{
 				MigrationType: "inbound",
 				Topics:        []InboundTopic{{SourceTopic: Topic{Topic: "test-topic"}}},
+				AutoAdvance:   true,
 			},
 			serverStatus: http.StatusInternalServerError,
 			expectError:  true,
@@ -298,6 +300,7 @@ func TestAddOutboundMigration(t *testing.T) {
 				MigrationType:  "outbound",
 				Topics:         []Topic{{Topic: "test-topic"}},
 				ConsumerGroups: []string{"test-group"},
+				AutoAdvance:    true,
 			},
 			serverResponse: AddMigrationResponse{ID: 789},
 			serverStatus:   http.StatusOK,
@@ -308,6 +311,7 @@ func TestAddOutboundMigration(t *testing.T) {
 			migration: OutboundMigration{
 				MigrationType: "outbound",
 				Topics:        []Topic{{Topic: "test-topic"}},
+				AutoAdvance:   true,
 			},
 			serverStatus: http.StatusInternalServerError,
 			expectError:  true,
