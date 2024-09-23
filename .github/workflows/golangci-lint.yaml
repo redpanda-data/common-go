@@ -7,10 +7,15 @@ on:
     paths:
       - '**.go'
       - '.golangci.yaml'
+      - './github/workflows/golangci-lint.yaml'
   pull_request:
     paths:
       - '**.go'
       - '.golangci.yaml'
+      - './github/workflows/golangci-lint.yaml'
+
+env:
+  GOLANGCI_LINT_VERSION: v1.61
 
 permissions:
   contents: read
@@ -29,8 +34,15 @@ jobs:
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v6
         with:
-          version: v1.60.2
+          version: ${{ env.GOLANGCI_LINT_VERSION }}
           working-directory: api
+          args: --timeout=10m --config=../.golangci.yaml
+
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: ${{ env.GOLANGCI_LINT_VERSION }}
+          working-directory: rpadmin
           args: --timeout=10m --config=../.golangci.yaml
 
       - name: Install Task
