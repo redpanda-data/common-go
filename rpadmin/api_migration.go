@@ -20,6 +20,47 @@ const (
 	baseMigrationEndpoint = "/v1/migrations/"
 )
 
+// BucketConfiguration represents the configuration for a bucket
+type BucketConfiguration struct {
+	AccessKey           string `json:"access_key,omitempty"`
+	SecretKey           string `json:"secret_key,omitempty"`
+	Region              string `json:"region,omitempty"`
+	Bucket              string `json:"bucket"`
+	CredentialSource    string `json:"credential_source,omitempty"`
+	TopicManifestPrefix string `json:"topic_manifest_prefix,omitempty"`
+}
+
+// OutboundMigration represents an outbound migration configuration
+type OutboundMigration struct {
+	MigrationType  string               `json:"migration_type"`
+	Topics         []NamespacedTopic    `json:"topics,omitempty"`
+	ConsumerGroups []string             `json:"consumer_groups,omitempty"`
+	CopyTo         *BucketConfiguration `json:"copy_to,omitempty"`
+	AutoAdvance    bool                 `json:"auto_advance,omitempty"`
+}
+
+// InboundMigration represents an inbound migration configuration
+type InboundMigration struct {
+	MigrationType  string         `json:"migration_type"`
+	Topics         []InboundTopic `json:"topics,omitempty"`
+	ConsumerGroups []string       `json:"consumer_groups,omitempty"`
+	AutoAdvance    bool           `json:"auto_advance,omitempty"`
+}
+
+// OutboundMigrationState represents the state of an outbound migration
+type OutboundMigrationState struct {
+	ID        int               `json:"id"`
+	State     string            `json:"state"`
+	Migration OutboundMigration `json:"migration"`
+}
+
+// InboundMigrationState represents the state of an inbound migration
+type InboundMigrationState struct {
+	ID        int              `json:"id"`
+	State     string           `json:"state"`
+	Migration InboundMigration `json:"migration"`
+}
+
 // AddMigration adds a migration to the cluster. It accepts one of InboundMigration or OutboundMigration.
 func (a *AdminAPI) addMigration(ctx context.Context, migration any) (AddMigrationResponse, error) {
 	migrationType := reflect.TypeOf(migration)
@@ -74,29 +115,6 @@ func (a *AdminAPI) ExecuteMigration(ctx context.Context, id int, action Migratio
 	return a.sendAny(ctx, http.MethodPost, fmt.Sprintf("%s%d?action=%s", baseMigrationEndpoint, id, action), nil, nil)
 }
 
-// OutboundMigration represents an outbound migration request
-type OutboundMigration struct {
-	MigrationType  string   `json:"migration_type"`
-	Topics         []Topic  `json:"topics"`
-	ConsumerGroups []string `json:"consumer_groups"`
-	AutoAdvance    bool     `json:"auto_advance"`
-}
-
-// InboundMigration represents an inbound migration configuration
-type InboundMigration struct {
-	MigrationType  string         `json:"migration_type"`
-	Topics         []InboundTopic `json:"topics"`
-	ConsumerGroups []string       `json:"consumer_groups"`
-	AutoAdvance    bool           `json:"auto_advance"`
-}
-
-// InboundTopic represents an inbound migration topic
-type InboundTopic struct {
-	SourceTopic Topic  `json:"source_topic"`
-	Alias       *Topic `json:"alias,omitempty"`
-	Location    string `json:"location,omitempty"`
-}
-
 // MigrationState represents the state of a migration
 type MigrationState struct {
 	ID        int       `json:"id"`
@@ -106,14 +124,8 @@ type MigrationState struct {
 
 // Migration represents a migration
 type Migration struct {
-	MigrationType string  `json:"migration_type"`
-	Topics        []Topic `json:"topics"`
-}
-
-// Topic represents a namespaced topic
-type Topic struct {
-	Topic     string `json:"topic"`
-	Namespace string `json:"ns"`
+	MigrationType string            `json:"migration_type"`
+	Topics        []NamespacedTopic `json:"topics"`
 }
 
 // AddMigrationResponse is the response from adding a migration

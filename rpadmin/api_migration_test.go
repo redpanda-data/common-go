@@ -72,7 +72,7 @@ func TestAddMigration(t *testing.T) {
 			},
 			input: OutboundMigration{
 				MigrationType:  "outbound",
-				Topics:         []Topic{{Topic: "test-topic"}},
+				Topics:         []NamespacedTopic{{Topic: "test-topic"}},
 				ConsumerGroups: []string{"test-group"},
 			},
 			expID: AddMigrationResponse{ID: 123},
@@ -97,7 +97,7 @@ func TestAddMigration(t *testing.T) {
 			},
 			input: InboundMigration{
 				MigrationType:  "inbound",
-				Topics:         []InboundTopic{{SourceTopic: Topic{Topic: "test-topic"}}},
+				Topics:         []InboundTopic{{SourceTopic: NamespacedTopic{Topic: "test-topic"}}},
 				ConsumerGroups: []string{"test-group"},
 			},
 			expID: AddMigrationResponse{ID: 123},
@@ -122,7 +122,7 @@ func TestAddMigration(t *testing.T) {
 			},
 			input: OutboundMigration{
 				MigrationType:  "outbound",
-				Topics:         []Topic{{Topic: "test-topic"}},
+				Topics:         []NamespacedTopic{{Topic: "test-topic"}},
 				ConsumerGroups: []string{"test-group"},
 			},
 			expError: true,
@@ -233,7 +233,7 @@ func TestAddInboundMigration(t *testing.T) {
 			name: "successful inbound migration",
 			migration: InboundMigration{
 				MigrationType:  "inbound",
-				Topics:         []InboundTopic{{SourceTopic: Topic{Topic: "test-topic"}}},
+				Topics:         []InboundTopic{{SourceTopic: NamespacedTopic{Topic: "test-topic"}}},
 				ConsumerGroups: []string{"test-group"},
 				AutoAdvance:    true,
 			},
@@ -245,7 +245,7 @@ func TestAddInboundMigration(t *testing.T) {
 			name: "server error",
 			migration: InboundMigration{
 				MigrationType: "inbound",
-				Topics:        []InboundTopic{{SourceTopic: Topic{Topic: "test-topic"}}},
+				Topics:        []InboundTopic{{SourceTopic: NamespacedTopic{Topic: "test-topic"}}},
 				AutoAdvance:   true,
 			},
 			serverStatus: http.StatusInternalServerError,
@@ -298,7 +298,7 @@ func TestAddOutboundMigration(t *testing.T) {
 			name: "successful outbound migration",
 			migration: OutboundMigration{
 				MigrationType:  "outbound",
-				Topics:         []Topic{{Topic: "test-topic"}},
+				Topics:         []NamespacedTopic{{Topic: "test-topic"}},
 				ConsumerGroups: []string{"test-group"},
 				AutoAdvance:    true,
 			},
@@ -310,7 +310,7 @@ func TestAddOutboundMigration(t *testing.T) {
 			name: "server error",
 			migration: OutboundMigration{
 				MigrationType: "outbound",
-				Topics:        []Topic{{Topic: "test-topic"}},
+				Topics:        []NamespacedTopic{{Topic: "test-topic"}},
 				AutoAdvance:   true,
 			},
 			serverStatus: http.StatusInternalServerError,
@@ -367,7 +367,7 @@ func TestGetMigration(t *testing.T) {
 				State: "prepared",
 				Migration: Migration{
 					MigrationType: "inbound",
-					Topics:        []Topic{{Topic: "test-topic", Namespace: "test-ns"}},
+					Topics:        []NamespacedTopic{{Topic: "test-topic", Namespace: string2Pointer("test-ns")}},
 				},
 			},
 			serverStatus: http.StatusOK,
@@ -424,7 +424,7 @@ func TestListMigrations(t *testing.T) {
 					State: "prepared",
 					Migration: Migration{
 						MigrationType: "inbound",
-						Topics:        []Topic{{Topic: "test-topic-1", Namespace: "test-ns"}},
+						Topics:        []NamespacedTopic{{Topic: "test-topic-1", Namespace: string2Pointer("test-ns")}},
 					},
 				},
 				{
@@ -432,7 +432,7 @@ func TestListMigrations(t *testing.T) {
 					State: "executed",
 					Migration: Migration{
 						MigrationType: "outbound",
-						Topics:        []Topic{{Topic: "test-topic-2", Namespace: "test-ns"}},
+						Topics:        []NamespacedTopic{{Topic: "test-topic-2", Namespace: string2Pointer("test-ns")}},
 					},
 				},
 			},
@@ -517,4 +517,11 @@ func TestDeleteMigration(t *testing.T) {
 			}
 		})
 	}
+}
+
+func string2Pointer(s string) *string {
+	if s == "" {
+		return nil
+	}
+	return &s
 }
