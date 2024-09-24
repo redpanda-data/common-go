@@ -12,6 +12,7 @@ package rpadmin
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -71,7 +72,7 @@ func TestAddMigration(t *testing.T) {
 			},
 			input: OutboundMigration{
 				MigrationType:  "outbound",
-				Topics:         []Topic{{Topic: "test-topic"}},
+				Topics:         []NamespacedTopic{{Topic: "test-topic"}},
 				ConsumerGroups: []string{"test-group"},
 			},
 			expID: AddMigrationResponse{ID: 123},
@@ -96,7 +97,7 @@ func TestAddMigration(t *testing.T) {
 			},
 			input: InboundMigration{
 				MigrationType:  "inbound",
-				Topics:         []InboundTopic{{SourceTopic: Topic{Topic: "test-topic"}}},
+				Topics:         []InboundTopic{{SourceTopic: NamespacedTopic{Topic: "test-topic"}}},
 				ConsumerGroups: []string{"test-group"},
 			},
 			expID: AddMigrationResponse{ID: 123},
@@ -121,7 +122,7 @@ func TestAddMigration(t *testing.T) {
 			},
 			input: OutboundMigration{
 				MigrationType:  "outbound",
-				Topics:         []Topic{{Topic: "test-topic"}},
+				Topics:         []NamespacedTopic{{Topic: "test-topic"}},
 				ConsumerGroups: []string{"test-group"},
 			},
 			expError: true,
@@ -174,7 +175,7 @@ func TestExecuteMigration(t *testing.T) {
 				}
 			},
 			id:     123,
-			action: PrepareMigrationAction,
+			action: MigrationActionPrepare,
 		},
 		{
 			name: "should return error for invalid action",
@@ -196,7 +197,7 @@ func TestExecuteMigration(t *testing.T) {
 				}
 			},
 			id:       123,
-			action:   ExecuteMigrationAction,
+			action:   MigrationActionExecute,
 			expError: true,
 		},
 		{
@@ -209,7 +210,7 @@ func TestExecuteMigration(t *testing.T) {
 				}
 			},
 			id:     123,
-			action: FinishMigrationAction,
+			action: MigrationActionFinish,
 		},
 	}
 
@@ -232,8 +233,9 @@ func TestAddInboundMigration(t *testing.T) {
 			name: "successful inbound migration",
 			migration: InboundMigration{
 				MigrationType:  "inbound",
-				Topics:         []InboundTopic{{SourceTopic: Topic{Topic: "test-topic"}}},
+				Topics:         []InboundTopic{{SourceTopic: NamespacedTopic{Topic: "test-topic"}}},
 				ConsumerGroups: []string{"test-group"},
+				AutoAdvance:    true,
 			},
 			serverResponse: AddMigrationResponse{ID: 456},
 			serverStatus:   http.StatusOK,
@@ -243,7 +245,8 @@ func TestAddInboundMigration(t *testing.T) {
 			name: "server error",
 			migration: InboundMigration{
 				MigrationType: "inbound",
-				Topics:        []InboundTopic{{SourceTopic: Topic{Topic: "test-topic"}}},
+				Topics:        []InboundTopic{{SourceTopic: NamespacedTopic{Topic: "test-topic"}}},
+				AutoAdvance:   true,
 			},
 			serverStatus: http.StatusInternalServerError,
 			expectError:  true,
@@ -295,8 +298,9 @@ func TestAddOutboundMigration(t *testing.T) {
 			name: "successful outbound migration",
 			migration: OutboundMigration{
 				MigrationType:  "outbound",
-				Topics:         []Topic{{Topic: "test-topic"}},
+				Topics:         []NamespacedTopic{{Topic: "test-topic"}},
 				ConsumerGroups: []string{"test-group"},
+				AutoAdvance:    true,
 			},
 			serverResponse: AddMigrationResponse{ID: 789},
 			serverStatus:   http.StatusOK,
@@ -306,7 +310,8 @@ func TestAddOutboundMigration(t *testing.T) {
 			name: "server error",
 			migration: OutboundMigration{
 				MigrationType: "outbound",
-				Topics:        []Topic{{Topic: "test-topic"}},
+				Topics:        []NamespacedTopic{{Topic: "test-topic"}},
+				AutoAdvance:   true,
 			},
 			serverStatus: http.StatusInternalServerError,
 			expectError:  true,
@@ -344,4 +349,179 @@ func TestAddOutboundMigration(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestGetMigration(t *testing.T) {
+	tests := []struct {
+		name           string
+		migrationID    int
+		serverResponse MigrationState
+		serverStatus   int
+		expectError    bool
+	}{
+		{
+			name:        "successful get migration",
+			migrationID: 123,
+			serverResponse: MigrationState{
+				ID:    123,
+				State: "prepared",
+				Migration: Migration{
+					MigrationType: "inbound",
+					Topics:        []NamespacedTopic{{Topic: "test-topic", Namespace: string2Pointer("test-ns")}},
+				},
+			},
+			serverStatus: http.StatusOK,
+			expectError:  false,
+		},
+		{
+			name:         "server error",
+			migrationID:  456,
+			serverStatus: http.StatusInternalServerError,
+			expectError:  true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				assert.Equal(t, fmt.Sprintf("/v1/migrations/%d", tt.migrationID), r.URL.Path)
+				assert.Equal(t, http.MethodGet, r.Method)
+
+				w.WriteHeader(tt.serverStatus)
+				if tt.serverStatus == http.StatusOK {
+					json.NewEncoder(w).Encode(tt.serverResponse)
+				}
+			}))
+			defer server.Close()
+
+			client, err := NewAdminAPI([]string{server.URL}, new(NopAuth), nil)
+			assert.NoError(t, err)
+
+			resp, err := client.GetMigration(context.Background(), tt.migrationID)
+
+			if tt.expectError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tt.serverResponse, resp)
+			}
+		})
+	}
+}
+
+func TestListMigrations(t *testing.T) {
+	tests := []struct {
+		name           string
+		serverResponse []MigrationState
+		serverStatus   int
+		expectError    bool
+	}{
+		{
+			name: "successful list migrations",
+			serverResponse: []MigrationState{
+				{
+					ID:    123,
+					State: "prepared",
+					Migration: Migration{
+						MigrationType: "inbound",
+						Topics:        []NamespacedTopic{{Topic: "test-topic-1", Namespace: string2Pointer("test-ns")}},
+					},
+				},
+				{
+					ID:    456,
+					State: "executed",
+					Migration: Migration{
+						MigrationType: "outbound",
+						Topics:        []NamespacedTopic{{Topic: "test-topic-2", Namespace: string2Pointer("test-ns")}},
+					},
+				},
+			},
+			serverStatus: http.StatusOK,
+			expectError:  false,
+		},
+		{
+			name:         "server error",
+			serverStatus: http.StatusInternalServerError,
+			expectError:  true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				assert.Equal(t, "/v1/migrations/", r.URL.Path)
+				assert.Equal(t, http.MethodGet, r.Method)
+
+				w.WriteHeader(tt.serverStatus)
+				if tt.serverStatus == http.StatusOK {
+					json.NewEncoder(w).Encode(tt.serverResponse)
+				}
+			}))
+			defer server.Close()
+
+			client, err := NewAdminAPI([]string{server.URL}, new(NopAuth), nil)
+			assert.NoError(t, err)
+
+			resp, err := client.ListMigrations(context.Background())
+
+			if tt.expectError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tt.serverResponse, resp)
+			}
+		})
+	}
+}
+
+func TestDeleteMigration(t *testing.T) {
+	tests := []struct {
+		name         string
+		migrationID  int
+		serverStatus int
+		expectError  bool
+	}{
+		{
+			name:         "successful delete migration",
+			migrationID:  789,
+			serverStatus: http.StatusOK,
+			expectError:  false,
+		},
+		{
+			name:         "server error",
+			migrationID:  101,
+			serverStatus: http.StatusInternalServerError,
+			expectError:  true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				assert.Equal(t, fmt.Sprintf("/v1/migrations/%d", tt.migrationID), r.URL.Path)
+				assert.Equal(t, http.MethodDelete, r.Method)
+
+				w.WriteHeader(tt.serverStatus)
+			}))
+			defer server.Close()
+
+			client, err := NewAdminAPI([]string{server.URL}, new(NopAuth), nil)
+			assert.NoError(t, err)
+
+			err = client.DeleteMigration(context.Background(), tt.migrationID)
+
+			if tt.expectError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+func string2Pointer(s string) *string {
+	if s == "" {
+		return nil
+	}
+	return &s
 }
