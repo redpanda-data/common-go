@@ -10,9 +10,10 @@
 package rpadmin
 
 import (
+	"bytes"
 	"context"
-	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"strconv"
 	"time"
@@ -394,18 +395,15 @@ func (a *AdminAPI) DeleteDebugBundle(ctx context.Context, jobID string) error {
 	return err
 }
 
-// GetDebugBundleFile gets the specific debug bundle file on the specified broker node.
-//
-//nolint:revive // TODO
-func (a *AdminAPI) GetDebugBundleFile(ctx context.Context, filename string) error {
-	// TODO how is this going to work...?
-	// We're downloading a zip file
-	// Will research best way to accomplish this
-	return errors.New("unimplemented")
-}
-
 // DeleteDebugBundleFile deletes the specific debug bundle file on the specified broker node.
 // This should be called using Host client to issue a request against a specific broker node.
 func (a *AdminAPI) DeleteDebugBundleFile(ctx context.Context, filename string) error {
 	return a.sendOne(ctx, http.MethodDelete, fmt.Sprintf("%s/file/%s", bundleEndpoint, filename), nil, nil, false)
+}
+
+// DownloadDebugBundleFile gets the specific debug bundle file on the specified broker node.
+func (a *AdminAPI) DownloadDebugBundleFile(ctx context.Context, filename string) (io.Reader, error) {
+	b := new(bytes.Buffer)
+	err := a.sendOne(ctx, http.MethodGet, fmt.Sprintf("%s/file/%s", bundleEndpoint, filename), b, nil, false)
+	return b, err
 }
