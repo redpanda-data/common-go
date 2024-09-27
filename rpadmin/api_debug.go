@@ -186,6 +186,9 @@ type debugBundleStartConfigParameters struct {
 	LogsSince                    string   `json:"logs_since,omitempty"`
 	LogsUntil                    string   `json:"logs_until,omitempty"`
 	Partitions                   []string `json:"partition,omitempty"`
+	TLSEnabled                   bool     `json:"tls_enabled,omitempty"`
+	TLSSkipInsecureVerify        bool     `json:"tls_insecure_skip_verify,omitempty"`
+	Namespace                    string   `json:"namespace,omitempty"`
 }
 
 // DebugBundleSCRAMAuthentication are the SCRAM authentication parameters.
@@ -266,6 +269,21 @@ func WithLogsUntil(v string) DebugBundleOption {
 func WithPartitions(v []string) DebugBundleOption {
 	return debugBundleOpt{func(param *debugBundleStartConfigParameters) {
 		param.Partitions = v
+	}}
+}
+
+// WithTLS sets the TLS settings into the config.
+func WithTLS(enabled bool, insecureSkipVerify bool) DebugBundleOption {
+	return debugBundleOpt{func(param *debugBundleStartConfigParameters) {
+		param.TLSEnabled = enabled
+		param.TLSSkipInsecureVerify = insecureSkipVerify
+	}}
+}
+
+// WithNamespace sets the Kubernetes namespace settings into the config.
+func WithNamespace(ns string) DebugBundleOption {
+	return debugBundleOpt{func(param *debugBundleStartConfigParameters) {
+		param.Namespace = ns
 	}}
 }
 
@@ -405,7 +423,6 @@ func (a *AdminAPI) DownloadDebugBundleFile(ctx context.Context, filepath string)
 	if len(a.urls) != 1 {
 		return nil, fmt.Errorf("unable to issue a single-admin-endpoint request to %d admin endpoints", len(a.urls))
 	}
-	// path := fmt.Sprintf("%s/file/%s", bundleEndpoint, filename)
 	url := a.urls[0] + filepath
 	return a.sendAndReceive(ctx, http.MethodGet, url, nil, false)
 }
