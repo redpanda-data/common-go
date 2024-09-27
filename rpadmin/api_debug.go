@@ -401,11 +401,11 @@ func (a *AdminAPI) DeleteDebugBundleFile(ctx context.Context, filename string) e
 }
 
 // DownloadDebugBundleFile gets the specific debug bundle file on the specified broker node.
-func (a *AdminAPI) DownloadDebugBundleFile(ctx context.Context, filename string) (*http.Response, error) {
+func (a *AdminAPI) DownloadDebugBundleFile(ctx context.Context, filepath string) (*http.Response, error) {
 	if len(a.urls) != 1 {
 		return nil, fmt.Errorf("unable to issue a single-admin-endpoint request to %d admin endpoints", len(a.urls))
 	}
-	path := fmt.Sprintf("%s/file/%s", bundleEndpoint, filename)
-	url := a.urls[0] + path
+	// path := fmt.Sprintf("%s/file/%s", bundleEndpoint, filename)
+	url := a.urls[0] + filepath
 	return a.sendAndReceive(ctx, http.MethodGet, url, nil, false)
 }
