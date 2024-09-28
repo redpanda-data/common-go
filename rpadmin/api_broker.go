@@ -17,8 +17,9 @@ import (
 )
 
 const (
-	brokersEndpoint = "/v1/brokers"
-	brokerEndpoint  = "/v1/brokers/%d"
+	brokersEndpoint     = "/v1/brokers"
+	brokerEndpoint      = "/v1/brokers/%d"
+	brokerUuidsEndpoint = "/v1/broker_uuids"
 )
 
 // MaintenanceStatus is the maintenance status.
@@ -44,12 +45,15 @@ const (
 
 // Broker is the information returned from the Redpanda admin broker endpoints.
 type Broker struct {
-	NodeID           int                `json:"node_id"`
-	NumCores         int                `json:"num_cores"`
-	MembershipStatus MembershipStatus   `json:"membership_status"`
-	IsAlive          *bool              `json:"is_alive"`
-	Version          string             `json:"version"`
-	Maintenance      *MaintenanceStatus `json:"maintenance_status"`
+	NodeID             int                `json:"node_id"`
+	NumCores           int                `json:"num_cores"`
+	Rack               string             `json:"rack"`
+	InternalRPCAddress string             `json:"internal_rpc_address"`
+	InternalRPCPort    int                `json:"internal_rpc_port"`
+	MembershipStatus   MembershipStatus   `json:"membership_status"`
+	IsAlive            *bool              `json:"is_alive"`
+	Version            string             `json:"version"`
+	Maintenance        *MaintenanceStatus `json:"maintenance_status"`
 }
 
 // DecommissionPartitions holds decommission partitions info.
@@ -75,6 +79,12 @@ type DecommissionStatusResponse struct {
 	ReplicasLeft       int                      `json:"replicas_left"`
 	AllocationFailures []string                 `json:"allocation_failures"`
 	Partitions         []DecommissionPartitions `json:"partitions"`
+}
+
+// BrokerUuids is information that shows the mapping of node ID to node UUID.
+type BrokerUuids struct {
+	NodeID int    `json:"node_id"`
+	UUID   string `json:"uuid"`
 }
 
 // Brokers queries one of the client's hosts and returns the list of brokers.
@@ -173,4 +183,10 @@ func (a *AdminAPI) MaintenanceStatus(ctx context.Context) (MaintenanceStatus, er
 func (a *AdminAPI) CancelNodePartitionsMovement(ctx context.Context, node int) ([]PartitionsMovementResult, error) {
 	var response []PartitionsMovementResult
 	return response, a.sendAny(ctx, http.MethodPost, fmt.Sprintf("%s/%d/cancel_partition_moves", brokersEndpoint, node), nil, &response)
+}
+
+// GetBrokerUuids retrieves the mapping of node ID to node UUID.
+func (a *AdminAPI) GetBrokerUuids(ctx context.Context) ([]BrokerUuids, error) {
+	var response []BrokerUuids
+	return response, a.sendAny(ctx, http.MethodGet, brokerUuidsEndpoint, nil, &response)
 }
