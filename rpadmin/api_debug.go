@@ -295,11 +295,11 @@ type DebugBundleStartResponse struct {
 // DebugBundleStatus contains information about
 type DebugBundleStatus struct {
 	JobID string `json:"job_id,omitempty"`
-	// one of RUNNING|SUCCESS|ERROR
+	// one of RUNNING|SUCCESS|ERROR|EXPIRED
 	Status string `json:"status,omitempty"`
 	// When the job was started, in milliseconds since epoch
 	Created  int64  `json:"created,omitempty"`
-	Size     int64  `json:"size,omitempty"`
+	Size     int64  `json:"filesize,omitempty"`
 	Filename string `json:"filename,omitempty"`
 	// Only filled in once the process completes.  Content of stdout from rpk.
 	Stdout []string `json:"stdout,omitempty"`
