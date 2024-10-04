@@ -405,9 +405,9 @@ func (a *AdminAPI) GetDebugBundleStatus(ctx context.Context) (DebugBundleStatus,
 	return response, err
 }
 
-// DeleteDebugBundle deletes the specific debug bundle.
+// CancelDebugBundleProcess cancels the specific debug bundle process that's running.
 // This should be called using Host client to issue a request against a specific broker node.
-func (a *AdminAPI) DeleteDebugBundle(ctx context.Context, jobID string) error {
+func (a *AdminAPI) CancelDebugBundleProcess(ctx context.Context, jobID string) error {
 	err := a.sendOne(ctx, http.MethodDelete, fmt.Sprintf("%s/%s", bundleEndpoint, jobID), nil, nil, false)
 	return err
 }
