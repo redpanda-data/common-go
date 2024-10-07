@@ -299,7 +299,7 @@ type DebugBundleStatus struct {
 	Status string `json:"status,omitempty"`
 	// When the job was started, in milliseconds since epoch
 	Created  int64  `json:"created,omitempty"`
-	Size     int64  `json:"filesize,omitempty"`
+	Size     int64  `json:"file_size,omitempty"`
 	Filename string `json:"filename,omitempty"`
 	// Only filled in once the process completes.  Content of stdout from rpk.
 	Stdout []string `json:"stdout,omitempty"`
