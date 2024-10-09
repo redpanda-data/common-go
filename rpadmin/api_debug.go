@@ -178,20 +178,27 @@ type DebugPartition struct {
 // See rpk debug bundle --help
 type debugBundleStartConfigParameters struct {
 	// one of DebugBundleSCRAMAuthentication or DebugBundleOIDCAuthentication
-	Authentication               any      `json:"authentication,omitempty"`
-	ControllerLogsSizeLimitBytes int32    `json:"controller_logs_size_limit_bytes,omitempty"`
-	LogsSizeLimitBytes           int32    `json:"logs_size_limit_bytes,omitempty"`
-	CPUProfilerWaitSeconds       int32    `json:"cpu_profiler_wait_seconds,omitempty"`
-	MetricsIntervalSeconds       int32    `json:"metrics_interval_seconds,omitempty"`
-	LogsSince                    string   `json:"logs_since,omitempty"`
-	LogsUntil                    string   `json:"logs_until,omitempty"`
-	Partitions                   []string `json:"partition,omitempty"`
-	TLSEnabled                   bool     `json:"tls_enabled,omitempty"`
-	TLSSkipInsecureVerify        bool     `json:"tls_insecure_skip_verify,omitempty"`
-	Namespace                    string   `json:"namespace,omitempty"`
+	Authentication               any                        `json:"authentication,omitempty"`
+	ControllerLogsSizeLimitBytes int32                      `json:"controller_logs_size_limit_bytes,omitempty"`
+	LogsSizeLimitBytes           int32                      `json:"logs_size_limit_bytes,omitempty"`
+	CPUProfilerWaitSeconds       int32                      `json:"cpu_profiler_wait_seconds,omitempty"`
+	MetricsIntervalSeconds       int32                      `json:"metrics_interval_seconds,omitempty"`
+	LogsSince                    string                     `json:"logs_since,omitempty"`
+	LogsUntil                    string                     `json:"logs_until,omitempty"`
+	Partitions                   []string                   `json:"partition,omitempty"`
+	TLSEnabled                   bool                       `json:"tls_enabled,omitempty"`
+	TLSSkipInsecureVerify        bool                       `json:"tls_insecure_skip_verify,omitempty"`
+	Namespace                    string                     `json:"namespace,omitempty"`
+	LabelSelector                []DebugBundleLabelSelector `json:"label_selector,omitempty"`
 }
 
-// DebugBundleSCRAMAuthentication are the SCRAM authentication parameters.
+// DebugBundleLabelSelector is the label selector parameters
+type DebugBundleLabelSelector struct {
+	Key   string `json:"key,omitempty"`
+	Value string `json:"value,omitempty"`
+}
+
+// debugBundleSCRAMAuthentication are the SCRAM authentication parameters.
 type debugBundleSCRAMAuthentication struct {
 	Mechanism string `json:"mechanism,omitempty"`
 	Username  string `json:"username,omitempty"`
@@ -284,6 +291,13 @@ func WithTLS(enabled bool, insecureSkipVerify bool) DebugBundleOption {
 func WithNamespace(ns string) DebugBundleOption {
 	return debugBundleOpt{func(param *debugBundleStartConfigParameters) {
 		param.Namespace = ns
+	}}
+}
+
+// WithLabelSelector sets SCRAM authentication.
+func WithLabelSelector(list []DebugBundleLabelSelector) DebugBundleOption {
+	return debugBundleOpt{func(param *debugBundleStartConfigParameters) {
+		param.LabelSelector = list
 	}}
 }
 
