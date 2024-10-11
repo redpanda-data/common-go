@@ -183,6 +183,7 @@ type debugBundleStartConfigParameters struct {
 	LogsSizeLimitBytes           int32                      `json:"logs_size_limit_bytes,omitempty"`
 	CPUProfilerWaitSeconds       int32                      `json:"cpu_profiler_wait_seconds,omitempty"`
 	MetricsIntervalSeconds       int32                      `json:"metrics_interval_seconds,omitempty"`
+	MetricsSamples               int32                      `json:"metrics_samples,omitempty"`
 	LogsSince                    string                     `json:"logs_since,omitempty"`
 	LogsUntil                    string                     `json:"logs_until,omitempty"`
 	Partitions                   []string                   `json:"partition,omitempty"`
@@ -255,6 +256,13 @@ func WithCPUProfilerWaitSeconds(v int32) DebugBundleOption {
 func WithMetricsIntervalSeconds(v int32) DebugBundleOption {
 	return debugBundleOpt{func(param *debugBundleStartConfigParameters) {
 		param.MetricsIntervalSeconds = v
+	}}
+}
+
+// WithMetricsSamples sets the metrics samples parameter.
+func WithMetricsSamples(v int32) DebugBundleOption {
+	return debugBundleOpt{func(param *debugBundleStartConfigParameters) {
+		param.MetricsSamples = v
 	}}
 }
 
