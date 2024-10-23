@@ -21,6 +21,7 @@ const (
 	debugEndpoint       = "/v1/debug"
 	selfTestEndpoint    = debugEndpoint + "/self_test"
 	cpuProfilerEndpoint = debugEndpoint + "/cpu_profile"
+	bundleEndpoint      = debugEndpoint + "/bundle"
 
 	// DiskcheckTagIdentifier is the type identifier for disk self tests.
 	DiskcheckTagIdentifier = "disk"
@@ -28,6 +29,21 @@ const (
 	NetcheckTagIdentifier = "network"
 	// CloudcheckTagIdentifier is the type identifier for cloud self tests.
 	CloudcheckTagIdentifier = "cloud"
+
+	// DebugBundleErrorCodeOk no error.
+	DebugBundleErrorCodeOk = 0
+	// DebugBundleErrorCodeProcessAlreadyRunning debug process is already running.
+	DebugBundleErrorCodeProcessAlreadyRunning = 1
+	// DebugBundleErrorCodeProcessNotRunning debug process not already running.
+	DebugBundleErrorCodeProcessNotRunning = 2
+	// DebugBundleErrorCodeInvalidJobID provided job id is invalid.
+	DebugBundleErrorCodeInvalidJobID = 3
+	// DebugBundleErrorCodeProcessNotStarted process was not started.
+	DebugBundleErrorCodeProcessNotStarted = 4
+	// DebugBundleErrorCodeInsufficientResources there are insufficient resources to start debug bundle process.
+	DebugBundleErrorCodeInsufficientResources = 5
+	// DebugBundleErrorCodeInternalError other internal unknown error.
+	DebugBundleErrorCodeInternalError = 6
 )
 
 // A SelfTestNodeResult describes the results of a particular self-test run.
@@ -157,6 +173,162 @@ type DebugPartition struct {
 	Replicas []ReplicaState `json:"replicas"`
 }
 
+// debugBundleStartConfigParameters are the configuration parameters to starting a
+// debug bundle process.
+// See rpk debug bundle --help
+type debugBundleStartConfigParameters struct {
+	// one of DebugBundleSCRAMAuthentication or DebugBundleOIDCAuthentication
+	Authentication               any                        `json:"authentication,omitempty"`
+	ControllerLogsSizeLimitBytes int32                      `json:"controller_logs_size_limit_bytes,omitempty"`
+	LogsSizeLimitBytes           int32                      `json:"logs_size_limit_bytes,omitempty"`
+	CPUProfilerWaitSeconds       int32                      `json:"cpu_profiler_wait_seconds,omitempty"`
+	MetricsIntervalSeconds       int32                      `json:"metrics_interval_seconds,omitempty"`
+	MetricsSamples               int32                      `json:"metrics_samples,omitempty"`
+	LogsSince                    string                     `json:"logs_since,omitempty"`
+	LogsUntil                    string                     `json:"logs_until,omitempty"`
+	Partitions                   []string                   `json:"partition,omitempty"`
+	TLSEnabled                   bool                       `json:"tls_enabled,omitempty"`
+	TLSSkipInsecureVerify        bool                       `json:"tls_insecure_skip_verify,omitempty"`
+	Namespace                    string                     `json:"namespace,omitempty"`
+	LabelSelector                []DebugBundleLabelSelector `json:"label_selector,omitempty"`
+}
+
+// DebugBundleLabelSelector is the label selector parameters
+type DebugBundleLabelSelector struct {
+	Key   string `json:"key,omitempty"`
+	Value string `json:"value,omitempty"`
+}
+
+// debugBundleSCRAMAuthentication are the SCRAM authentication parameters.
+type debugBundleSCRAMAuthentication struct {
+	Mechanism string `json:"mechanism,omitempty"`
+	Username  string `json:"username,omitempty"`
+	Password  string `json:"password,omitempty"`
+}
+
+type debugBundleStartConfig struct {
+	JobID  string                           `json:"job_id,omitempty"`
+	Config debugBundleStartConfigParameters `json:"config,omitempty"`
+}
+
+// DebugBundleOption are options for setting debug bundle parameters.
+type DebugBundleOption interface {
+	apply(*debugBundleStartConfigParameters)
+}
+
+type debugBundleOpt struct {
+	fn func(*debugBundleStartConfigParameters)
+}
+
+func (opt debugBundleOpt) apply(cfg *debugBundleStartConfigParameters) { opt.fn(cfg) }
+
+// WithSCRAMAuthentication sets SCRAM authentication.
+func WithSCRAMAuthentication(username, password, mechanism string) DebugBundleOption {
+	return debugBundleOpt{func(param *debugBundleStartConfigParameters) {
+		param.Authentication = debugBundleSCRAMAuthentication{
+			Username: username, Password: password, Mechanism: mechanism,
+		}
+	}}
+}
+
+// WithControllerLogsSizeLimitBytes sets the controller-logs-size-limit parameter.
+func WithControllerLogsSizeLimitBytes(v int32) DebugBundleOption {
+	return debugBundleOpt{func(param *debugBundleStartConfigParameters) {
+		param.ControllerLogsSizeLimitBytes = v
+	}}
+}
+
+// WithLogsSizeLimitBytes sets the logs-size-limit parameter.
+func WithLogsSizeLimitBytes(v int32) DebugBundleOption {
+	return debugBundleOpt{func(param *debugBundleStartConfigParameters) {
+		param.LogsSizeLimitBytes = v
+	}}
+}
+
+// WithCPUProfilerWaitSeconds sets the cpu-profiler-wait parameter.
+func WithCPUProfilerWaitSeconds(v int32) DebugBundleOption {
+	return debugBundleOpt{func(param *debugBundleStartConfigParameters) {
+		param.CPUProfilerWaitSeconds = v
+	}}
+}
+
+// WithMetricsIntervalSeconds sets the metrics-interval parameter.
+func WithMetricsIntervalSeconds(v int32) DebugBundleOption {
+	return debugBundleOpt{func(param *debugBundleStartConfigParameters) {
+		param.MetricsIntervalSeconds = v
+	}}
+}
+
+// WithMetricsSamples sets the metrics samples parameter.
+func WithMetricsSamples(v int32) DebugBundleOption {
+	return debugBundleOpt{func(param *debugBundleStartConfigParameters) {
+		param.MetricsSamples = v
+	}}
+}
+
+// WithLogsSince sets the logs-since parameter.
+func WithLogsSince(v string) DebugBundleOption {
+	return debugBundleOpt{func(param *debugBundleStartConfigParameters) {
+		param.LogsSince = v
+	}}
+}
+
+// WithLogsUntil sets the logs-until parameter.
+func WithLogsUntil(v string) DebugBundleOption {
+	return debugBundleOpt{func(param *debugBundleStartConfigParameters) {
+		param.LogsUntil = v
+	}}
+}
+
+// WithPartitions sets the partitions parameter.
+func WithPartitions(v []string) DebugBundleOption {
+	return debugBundleOpt{func(param *debugBundleStartConfigParameters) {
+		param.Partitions = v
+	}}
+}
+
+// WithTLS sets the TLS settings into the config.
+func WithTLS(enabled bool, insecureSkipVerify bool) DebugBundleOption {
+	return debugBundleOpt{func(param *debugBundleStartConfigParameters) {
+		param.TLSEnabled = enabled
+		param.TLSSkipInsecureVerify = insecureSkipVerify
+	}}
+}
+
+// WithNamespace sets the Kubernetes namespace settings into the config.
+func WithNamespace(ns string) DebugBundleOption {
+	return debugBundleOpt{func(param *debugBundleStartConfigParameters) {
+		param.Namespace = ns
+	}}
+}
+
+// WithLabelSelector sets SCRAM authentication.
+func WithLabelSelector(list []DebugBundleLabelSelector) DebugBundleOption {
+	return debugBundleOpt{func(param *debugBundleStartConfigParameters) {
+		param.LabelSelector = list
+	}}
+}
+
+// DebugBundleStartResponse is the response to debug bundle api.
+type DebugBundleStartResponse struct {
+	JobID string `json:"job_id,omitempty"`
+}
+
+// DebugBundleStatus contains information about
+type DebugBundleStatus struct {
+	JobID string `json:"job_id,omitempty"`
+	// one of RUNNING|SUCCESS|ERROR|EXPIRED
+	Status string `json:"status,omitempty"`
+	// When the job was started, in milliseconds since epoch
+	Created  int64  `json:"created,omitempty"`
+	Size     int64  `json:"file_size,omitempty"`
+	Filename string `json:"filename,omitempty"`
+	// Only filled in once the process completes.  Content of stdout from rpk.
+	Stdout []string `json:"stdout,omitempty"`
+	// Only filled in once the process completes.  Content of stderr from rpk.
+	Stderr []string `json:"stderr,omitempty"`
+}
+
 // StartSelfTest starts the self test.
 func (a *AdminAPI) StartSelfTest(ctx context.Context, nodeIds []int, params []any) (string, error) {
 	var testID string
@@ -227,4 +399,52 @@ func (a *AdminAPI) RawCPUProfile(ctx context.Context, wait time.Duration) ([]byt
 // RestartService restarts a Redpanda service, either http-proxy or schema-registry.
 func (a *AdminAPI) RestartService(ctx context.Context, service string) error {
 	return a.sendAny(ctx, http.MethodPut, fmt.Sprintf("/v1/debug/restart_service?service=%s", service), nil, nil)
+}
+
+// CreateDebugBundle starts the debug bundle process.
+// This should be called using Host client to issue a request against a specific broker node.
+// jobID is the user specified job UUID.
+func (a *AdminAPI) CreateDebugBundle(ctx context.Context, jobID string, opts ...DebugBundleOption) (DebugBundleStartResponse, error) {
+	config := &debugBundleStartConfigParameters{}
+	for _, o := range opts {
+		o.apply(config)
+	}
+	body := debugBundleStartConfig{
+		JobID:  jobID,
+		Config: *config,
+	}
+	var response DebugBundleStartResponse
+
+	err := a.sendOne(ctx, http.MethodPost, bundleEndpoint, body, &response, false)
+	return response, err
+}
+
+// GetDebugBundleStatus gets the current debug bundle process status on the specified broker node.
+// This should be called using Host client to issue a request against a specific broker node.
+func (a *AdminAPI) GetDebugBundleStatus(ctx context.Context) (DebugBundleStatus, error) {
+	var response DebugBundleStatus
+	err := a.sendOne(ctx, http.MethodGet, bundleEndpoint, nil, &response, false)
+	return response, err
+}
+
+// CancelDebugBundleProcess cancels the specific debug bundle process that's running.
+// This should be called using Host client to issue a request against a specific broker node.
+func (a *AdminAPI) CancelDebugBundleProcess(ctx context.Context, jobID string) error {
+	err := a.sendOne(ctx, http.MethodDelete, fmt.Sprintf("%s/%s", bundleEndpoint, jobID), nil, nil, false)
+	return err
+}
+
+// DeleteDebugBundleFile deletes the specific debug bundle file on the specified broker node.
+// This should be called using Host client to issue a request against a specific broker node.
+func (a *AdminAPI) DeleteDebugBundleFile(ctx context.Context, filename string) error {
+	return a.sendOne(ctx, http.MethodDelete, fmt.Sprintf("%s/file/%s", bundleEndpoint, filename), nil, nil, false)
+}
+
+// DownloadDebugBundleFile gets the specific debug bundle file on the specified broker node.
+func (a *AdminAPI) DownloadDebugBundleFile(ctx context.Context, filename string) (*http.Response, error) {
+	if len(a.urls) != 1 {
+		return nil, fmt.Errorf("unable to issue a single-admin-endpoint request to %d admin endpoints", len(a.urls))
+	}
+	url := a.urls[0] + fmt.Sprintf("%s/file/%s", bundleEndpoint, filename)
+	return a.sendAndReceive(ctx, http.MethodGet, url, nil, false)
 }
