@@ -50,3 +50,29 @@ func (a *AdminAPI) UnmountTopics(ctx context.Context, config UnmountConfiguratio
 type MigrationInfo struct {
 	ID int `json:"id"`
 }
+
+// MountableTopic represents a topic's location in cloud storage
+type MountableTopic struct {
+	// TopicLocation is the unique topic location in cloud storage with the format:
+	// <topic name>/<cluster_uuid>/<initial_revision>
+	TopicLocation string `json:"topic_location"`
+
+	// Topic is the name of the topic
+	Topic string `json:"topic"`
+
+	// Namespace is the topic namespace. If not present it is assumed that
+	// topic is in the "kafka" namespace
+	Namespace *string `json:"ns,omitempty"`
+}
+
+// ListMountableTopicsResponse represents the response containing a list of mountable topics
+type ListMountableTopicsResponse struct {
+	Topics []MountableTopic `json:"topics"`
+}
+
+// ListMountableTopics retrieves a list of topics that can be mounted from cloud storage
+func (a *AdminAPI) ListMountableTopics(ctx context.Context) (ListMountableTopicsResponse, error) {
+	var response ListMountableTopicsResponse
+	err := a.sendAny(ctx, http.MethodGet, baseMountEndpoint, nil, &response)
+	return response, err
+}
