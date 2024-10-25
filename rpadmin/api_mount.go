@@ -6,8 +6,9 @@ import (
 )
 
 const (
-	baseMountEndpoint   = "/v1/topics/mount"
-	baseUnmountEndpoint = "/v1/topics/unmount"
+	baseMountEndpoint     = "/v1/topics/mount"
+	baseUnmountEndpoint   = "/v1/topics/unmount"
+	baseMountableEndpoint = "/v1/topics/mountable"
 )
 
 // NamespacedTopic represents a topic with an optional namespace
@@ -73,6 +74,6 @@ type ListMountableTopicsResponse struct {
 // ListMountableTopics retrieves a list of topics that can be mounted from cloud storage
 func (a *AdminAPI) ListMountableTopics(ctx context.Context) (ListMountableTopicsResponse, error) {
 	var response ListMountableTopicsResponse
-	err := a.sendAny(ctx, http.MethodGet, baseMountEndpoint, nil, &response)
+	err := a.sendAny(ctx, http.MethodGet, baseMountableEndpoint, nil, &response)
 	return response, err
 }
