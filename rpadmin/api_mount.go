@@ -19,8 +19,8 @@ type NamespacedTopic struct {
 
 // InboundTopic represents a topic to be mounted
 type InboundTopic struct {
-	SourceTopic NamespacedTopic  `json:"source_topic"`
-	Alias       *NamespacedTopic `json:"alias,omitempty"`
+	SourceTopicReference NamespacedTopic  `json:"source_topic_reference"`
+	Alias                *NamespacedTopic `json:"alias,omitempty"`
 }
 
 // MountConfiguration represents the configuration for mounting topics

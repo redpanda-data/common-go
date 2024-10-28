@@ -97,7 +97,7 @@ func TestAddMigration(t *testing.T) {
 			},
 			input: InboundMigration{
 				MigrationType:  "inbound",
-				Topics:         []InboundTopic{{SourceTopic: NamespacedTopic{Topic: "test-topic"}}},
+				Topics:         []InboundTopic{{SourceTopicReference: NamespacedTopic{Topic: "test-topic"}}},
 				ConsumerGroups: []string{"test-group"},
 			},
 			expID: AddMigrationResponse{ID: 123},
@@ -233,7 +233,7 @@ func TestAddInboundMigration(t *testing.T) {
 			name: "successful inbound migration",
 			migration: InboundMigration{
 				MigrationType:  "inbound",
-				Topics:         []InboundTopic{{SourceTopic: NamespacedTopic{Topic: "test-topic"}}},
+				Topics:         []InboundTopic{{SourceTopicReference: NamespacedTopic{Topic: "test-topic"}}},
 				ConsumerGroups: []string{"test-group"},
 				AutoAdvance:    true,
 			},
@@ -245,7 +245,7 @@ func TestAddInboundMigration(t *testing.T) {
 			name: "server error",
 			migration: InboundMigration{
 				MigrationType: "inbound",
-				Topics:        []InboundTopic{{SourceTopic: NamespacedTopic{Topic: "test-topic"}}},
+				Topics:        []InboundTopic{{SourceTopicReference: NamespacedTopic{Topic: "test-topic"}}},
 				AutoAdvance:   true,
 			},
 			serverStatus: http.StatusInternalServerError,
