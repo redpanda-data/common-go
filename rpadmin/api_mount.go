@@ -23,6 +23,12 @@ type InboundTopic struct {
 	Alias                *NamespacedTopic `json:"alias,omitempty"`
 }
 
+// NamespacedOrInboundTopic is a composite struct of NamespacedTopic and InboundTopic.
+type NamespacedOrInboundTopic struct {
+	NamespacedTopic
+	InboundTopic
+}
+
 // MountConfiguration represents the configuration for mounting topics
 type MountConfiguration struct {
 	Topics []InboundTopic `json:"topics"`
