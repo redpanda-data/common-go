@@ -11,6 +11,7 @@ package rpadmin
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"reflect"
@@ -39,6 +40,11 @@ type OutboundMigration struct {
 	AutoAdvance    bool                 `json:"auto_advance,omitempty"`
 }
 
+// GetMigrationType gets the type of a migration
+func (o *OutboundMigration) GetMigrationType() string {
+	return o.MigrationType
+}
+
 // InboundMigration represents an inbound migration configuration
 type InboundMigration struct {
 	MigrationType  string         `json:"migration_type"`
@@ -47,18 +53,9 @@ type InboundMigration struct {
 	AutoAdvance    bool           `json:"auto_advance,omitempty"`
 }
 
-// OutboundMigrationState represents the state of an outbound migration
-type OutboundMigrationState struct {
-	ID        int               `json:"id"`
-	State     string            `json:"state"`
-	Migration OutboundMigration `json:"migration"`
-}
-
-// InboundMigrationState represents the state of an inbound migration
-type InboundMigrationState struct {
-	ID        int              `json:"id"`
-	State     string           `json:"state"`
-	Migration InboundMigration `json:"migration"`
+// GetMigrationType gets the type of a migration
+func (o *InboundMigration) GetMigrationType() string {
+	return o.MigrationType
 }
 
 // AddMigration adds a migration to the cluster. It accepts one of InboundMigration or OutboundMigration.
@@ -87,18 +84,96 @@ func (a *AdminAPI) AddOutboundMigration(ctx context.Context, migration OutboundM
 	return a.addMigration(ctx, migration)
 }
 
-// GetMigration gets a migration by its ID.
-func (a *AdminAPI) GetMigration(ctx context.Context, id int) (MigrationState, error) {
-	var response MigrationState
-	err := a.sendAny(ctx, http.MethodGet, fmt.Sprintf("%s%d", baseMigrationEndpoint, id), nil, &response)
-	return response, err
+// MigrationState represents the state of a migration. The end user is expected to request the type from Migration
+// and then type assert it to either inbound or outbound
+type MigrationState struct {
+	ID        int                 `json:"id"`
+	State     string              `json:"state"`
+	Migration MigrationTypeGetter `json:"migration"`
+}
+
+// MigrationTypeGetter is an interface satisfied by InboundMigration and OutboundMigration
+// It allows the user to quickly tell which is which
+type MigrationTypeGetter interface {
+	GetMigrationType() string
+}
+
+// used for delayed parsing of the migration field so that we can put it in the right container
+type migrationStateRaw struct {
+	ID        int             `json:"id"`
+	State     string          `json:"state"`
+	Migration json.RawMessage `json:"migration"`
+}
+
+// GetMigration parses the json.RawMessage to the appropriate type and then returns it.
+// Rather than doing any tricky stuff we simply unmarshal to outbound, check the MigrationType field
+// and if that's not right we unmarshal to inbound
+func (m migrationStateRaw) GetMigration() (MigrationTypeGetter, error) {
+	var outbound OutboundMigration
+	if err := json.Unmarshal(m.Migration, &outbound); err != nil {
+		return nil, err
+	}
+
+	if outbound.MigrationType == "outbound" {
+		return &outbound, nil
+	}
+
+	var inbound InboundMigration
+	if err := json.Unmarshal(m.Migration, &inbound); err != nil {
+		return nil, err
+	}
+	return &inbound, nil
+}
+
+// GetMigration gets a migration by its ID and returns a MigrationState
+func (a *AdminAPI) GetMigration(ctx context.Context, id int) (*MigrationState, error) {
+	var resp []byte
+	if err := a.sendAny(ctx, http.MethodGet, fmt.Sprintf("%s%d", baseMigrationEndpoint, id), nil, &resp); err != nil {
+		return nil, err
+	}
+
+	var data migrationStateRaw
+	if err := json.Unmarshal(resp, &data); err != nil {
+		return nil, err
+	}
+
+	m, err := data.GetMigration()
+	if err != nil {
+		return nil, err
+	}
+
+	return &MigrationState{
+		ID:        data.ID,
+		State:     data.State,
+		Migration: m,
+	}, nil
 }
 
 // ListMigrations returns a list of all migrations in the cluster.
 func (a *AdminAPI) ListMigrations(ctx context.Context) ([]MigrationState, error) {
-	var response []MigrationState
-	err := a.sendAny(ctx, http.MethodGet, baseMigrationEndpoint, nil, &response)
-	return response, err
+	var resp []byte
+	if err := a.sendAny(ctx, http.MethodGet, baseMigrationEndpoint, nil, &resp); err != nil {
+		return nil, err
+	}
+
+	var data []migrationStateRaw
+	if err := json.Unmarshal(resp, &data); err != nil {
+		return nil, err
+	}
+
+	out := make([]MigrationState, 0, len(data))
+	for _, v := range data {
+		o, err := v.GetMigration()
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, MigrationState{
+			ID:        v.ID,
+			State:     v.State,
+			Migration: o,
+		})
+	}
+	return out, nil
 }
 
 // DeleteMigration deletes a migration by its ID.
@@ -113,19 +188,6 @@ func (a *AdminAPI) ExecuteMigration(ctx context.Context, id int, action Migratio
 		return fmt.Errorf("invalid action: %s. Must be one of: prepare, execute, finish, cancel", action)
 	}
 	return a.sendAny(ctx, http.MethodPost, fmt.Sprintf("%s%d?action=%s", baseMigrationEndpoint, id, action), nil, nil)
-}
-
-// MigrationState represents the state of a migration
-type MigrationState struct {
-	ID        int       `json:"id"`
-	State     string    `json:"state"`
-	Migration Migration `json:"migration"`
-}
-
-// Migration represents a migration
-type Migration struct {
-	MigrationType string            `json:"migration_type"`
-	Topics        []NamespacedTopic `json:"topics"`
 }
 
 // AddMigrationResponse is the response from adding a migration

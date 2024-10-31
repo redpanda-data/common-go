@@ -355,19 +355,42 @@ func TestGetMigration(t *testing.T) {
 	tests := []struct {
 		name           string
 		migrationID    int
-		serverResponse MigrationState
+		serverResponse *MigrationState
 		serverStatus   int
 		expectError    bool
 	}{
 		{
-			name:        "successful get migration",
+			name:        "successful get outbound migration",
 			migrationID: 123,
-			serverResponse: MigrationState{
+			serverResponse: &MigrationState{
 				ID:    123,
 				State: "prepared",
-				Migration: Migration{
+				Migration: &OutboundMigration{
+					MigrationType:  "outbound",
+					Topics:         []NamespacedTopic{{Topic: "test-topic", Namespace: string2Pointer("test-ns1")}},
+					ConsumerGroups: nil,
+					AutoAdvance:    true,
+				},
+			},
+			serverStatus: http.StatusOK,
+			expectError:  false,
+		},
+		{
+			name:        "successful get inbound migration",
+			migrationID: 123,
+			serverResponse: &MigrationState{
+				ID:    123,
+				State: "prepared",
+				Migration: &InboundMigration{
 					MigrationType: "inbound",
-					Topics:        []NamespacedTopic{{Topic: "test-topic", Namespace: string2Pointer("test-ns")}},
+					Topics: []InboundTopic{
+						{
+							SourceTopicReference: NamespacedTopic{Topic: "topic", Namespace: string2Pointer("test-ns1")},
+							Alias:                nil,
+						},
+					},
+					ConsumerGroups: nil,
+					AutoAdvance:    true,
 				},
 			},
 			serverStatus: http.StatusOK,
@@ -422,15 +445,22 @@ func TestListMigrations(t *testing.T) {
 				{
 					ID:    123,
 					State: "prepared",
-					Migration: Migration{
+					Migration: &InboundMigration{
 						MigrationType: "inbound",
-						Topics:        []NamespacedTopic{{Topic: "test-topic-1", Namespace: string2Pointer("test-ns")}},
+						Topics: []InboundTopic{
+							{
+								SourceTopicReference: NamespacedTopic{Topic: "topic", Namespace: string2Pointer("test-ns")},
+								Alias:                nil,
+							},
+						},
+						ConsumerGroups: nil,
+						AutoAdvance:    true,
 					},
 				},
 				{
 					ID:    456,
 					State: "executed",
-					Migration: Migration{
+					Migration: &OutboundMigration{
 						MigrationType: "outbound",
 						Topics:        []NamespacedTopic{{Topic: "test-topic-2", Namespace: string2Pointer("test-ns")}},
 					},
