@@ -124,8 +124,13 @@ type MigrationState struct {
 
 // Migration represents a migration
 type Migration struct {
-	MigrationType string            `json:"migration_type"`
-	Topics        []NamespacedTopic `json:"topics"`
+	// MigrationType is either 'outbound' or 'inbound'.
+	MigrationType string `json:"migration_type"`
+
+	// Topics is a list of migrated topics. It is reported in two different fashions, depending on the MigrationType.
+	// For outbound migrations topics of type NamespacedTopic are reported.
+	// For inbound migrations the topics will only be reported with type InboundTopic.
+	Topics []NamespacedOrInboundTopic `json:"topics"`
 }
 
 // AddMigrationResponse is the response from adding a migration

@@ -367,7 +367,14 @@ func TestGetMigration(t *testing.T) {
 				State: "prepared",
 				Migration: Migration{
 					MigrationType: "inbound",
-					Topics:        []NamespacedTopic{{Topic: "test-topic", Namespace: string2Pointer("test-ns")}},
+					Topics: []NamespacedOrInboundTopic{
+						{
+							InboundTopic: InboundTopic{
+								SourceTopicReference: NamespacedTopic{Topic: "test-topic", Namespace: string2Pointer("test-ns")},
+								Alias:                nil,
+							},
+						},
+					},
 				},
 			},
 			serverStatus: http.StatusOK,
@@ -424,7 +431,14 @@ func TestListMigrations(t *testing.T) {
 					State: "prepared",
 					Migration: Migration{
 						MigrationType: "inbound",
-						Topics:        []NamespacedTopic{{Topic: "test-topic-1", Namespace: string2Pointer("test-ns")}},
+						Topics: []NamespacedOrInboundTopic{
+							{
+								NamespacedTopic: NamespacedTopic{
+									Topic:     "test-topic-1",
+									Namespace: string2Pointer("test-ns"),
+								},
+							},
+						},
 					},
 				},
 				{
@@ -432,7 +446,14 @@ func TestListMigrations(t *testing.T) {
 					State: "executed",
 					Migration: Migration{
 						MigrationType: "outbound",
-						Topics:        []NamespacedTopic{{Topic: "test-topic-2", Namespace: string2Pointer("test-ns")}},
+						Topics: []NamespacedOrInboundTopic{
+							{
+								NamespacedTopic: NamespacedTopic{
+									Topic:     "test-topic-2",
+									Namespace: string2Pointer("test-ns"),
+								},
+							},
+						},
 					},
 				},
 			},
