@@ -22,6 +22,10 @@ refer to the [./api](./api) directory.
 The `net` module is a small utility module with helper functions for working with
 URL addresses.
 
+## Secrets Module
+
+The `secrets` module contains code to access cloud provider secrets.
+
 ## Radpanda Admin Client Module
 
 The `rpadmin` module is Redpanda [Admin API](https://docs.redpanda.com/api/admin-api/) client.
