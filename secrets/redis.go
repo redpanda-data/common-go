@@ -39,7 +39,7 @@ func (r *redisSecretsClient) exists(ctx context.Context, key string) bool {
 	return found
 }
 
-func newRedisSecretsLookup(ctx context.Context, logger *slog.Logger, url *url.URL) (LookupFn, ExistsFn, error) {
+func newRedisSecretsLookup(_ context.Context, logger *slog.Logger, url *url.URL) (LookupFn, ExistsFn, error) {
 	opts, err := redis.ParseURL(url.String())
 	if err != nil {
 		return nil, nil, err
