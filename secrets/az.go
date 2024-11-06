@@ -38,7 +38,6 @@ func newAzSecretsManager(_ context.Context, logger *slog.Logger, url *url.URL) (
 
 func (a *azSecretsManager) getSecretValue(ctx context.Context, key string) (string, bool) {
 	resp, err := a.client.GetSecret(ctx, key, latestVersion, nil)
-
 	if err != nil {
 		if status.Code(err) != codes.NotFound {
 			a.logger.With("error", err, "key", key).Error("Failed to look up secret")

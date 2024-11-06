@@ -35,7 +35,6 @@ func (g *gcpSecretsManager) getSecretValue(ctx context.Context, key string) (str
 	resp, err := g.client.AccessSecretVersion(ctx, &secretmanagerpb.AccessSecretVersionRequest{
 		Name: g.getLatestSecretID(key),
 	})
-
 	if err != nil {
 		if status.Code(err) != codes.NotFound {
 			g.logger.With("error", err, "key", key).Error("Failed to look up secret")
