@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"net/url"
 
 	secretmanager "cloud.google.com/go/secretmanager/apiv1"
 	"cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
@@ -18,7 +17,7 @@ type gcpSecretsManager struct {
 	logger    *slog.Logger
 }
 
-func NewGCPSecretsManager(ctx context.Context, logger *slog.Logger, url *url.URL) (SecretAPI, error) {
+func NewGCPSecretsManager(ctx context.Context, logger *slog.Logger, projectID string) (SecretAPI, error) {
 	client, err := secretmanager.NewClient(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create secretmanager client: %w", err)
@@ -26,7 +25,7 @@ func NewGCPSecretsManager(ctx context.Context, logger *slog.Logger, url *url.URL
 
 	return &gcpSecretsManager{
 		client:    client,
-		projectID: url.Host,
+		projectID: projectID,
 		logger:    logger,
 	}, nil
 }

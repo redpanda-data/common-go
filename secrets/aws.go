@@ -5,8 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"net/url"
-	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
@@ -18,8 +16,8 @@ type awsSecretsManager struct {
 	logger *slog.Logger
 }
 
-func NewAWSSecretsManager(ctx context.Context, logger *slog.Logger, url *url.URL) (SecretAPI, error) {
-	cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(getRegion(url.Host)))
+func NewAWSSecretsManager(ctx context.Context, logger *slog.Logger, region string) (SecretAPI, error) {
+	cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(region))
 	if err != nil {
 		return nil, fmt.Errorf("failed to load AWS config: %w", err)
 	}
@@ -67,11 +65,4 @@ func (a *awsSecretsManager) CheckSecretExists(ctx context.Context, key string) b
 	}
 
 	return false
-}
-
-func getRegion(host string) string {
-	endpoint := strings.TrimPrefix(host, "secretsmanager.")
-	region := strings.TrimSuffix(endpoint, ".amazonaws.com")
-
-	return region
 }

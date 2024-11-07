@@ -16,8 +16,6 @@ package secrets
 
 import (
 	"context"
-	"log/slog"
-	"net/url"
 	"strings"
 
 	"github.com/tidwall/gjson"
@@ -31,7 +29,7 @@ type SecretAPI interface {
 	CheckSecretExists(context.Context, string) bool
 }
 
-type CreateSecretsManagerFn func(ctx context.Context, logger *slog.Logger, url *url.URL) (SecretAPI, error)
+type SecretProviderFn func(secretsManager SecretAPI, prefix string) (SecretAPI, error)
 
 type secretProvider struct {
 	SecretAPI
@@ -65,14 +63,11 @@ func (s *secretProvider) CheckSecretExists(ctx context.Context, key string) bool
 	return s.SecretAPI.CheckSecretExists(ctx, secretName)
 }
 
-func NewSecretProvider(ctx context.Context, logger *slog.Logger, url *url.URL, createSecretsManagerFn CreateSecretsManagerFn) (SecretAPI, error) {
-	secretsManager, err := createSecretsManagerFn(ctx, logger, url)
-	if err != nil {
-		return nil, err
-	}
+// NewSecretProvider handles prefix trim and optional JSON field retrieval
+func NewSecretProvider(secretsManager SecretAPI, prefix string) (SecretAPI, error) {
 	secretProvider := &secretProvider{
 		SecretAPI: secretsManager,
-		prefix:    strings.TrimPrefix(url.Path, "/"),
+		prefix:    prefix,
 	}
 
 	return secretProvider, nil

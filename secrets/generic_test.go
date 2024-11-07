@@ -2,8 +2,6 @@ package secrets
 
 import (
 	"context"
-	"log/slog"
-	"net/url"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -18,7 +16,7 @@ func Test_secretManager_lookup(t *testing.T) {
 	type args struct {
 		secrets map[string]string
 		key     string
-		url     string
+		prefix  string
 	}
 	tests := []struct {
 		name       string
@@ -31,7 +29,7 @@ func Test_secretManager_lookup(t *testing.T) {
 			args: args{
 				secrets: map[string]string{"prefix/SECRET": "secretValue"},
 				key:     "secrets.SECRET",
-				url:     "aws://eu-west-1/prefix/",
+				prefix:  "prefix/",
 			},
 			wantValue:  "secretValue",
 			wantExists: true,
@@ -41,7 +39,7 @@ func Test_secretManager_lookup(t *testing.T) {
 			args: args{
 				secrets: map[string]string{"prefix/SECRET": "secretValue"},
 				key:     "secrets.UNDEFINED",
-				url:     "aws://eu-west-1/prefix/",
+				prefix:  "prefix/",
 			},
 			wantValue:  "",
 			wantExists: false,
@@ -51,7 +49,7 @@ func Test_secretManager_lookup(t *testing.T) {
 			args: args{
 				secrets: map[string]string{"prefix/redpanda1/SECRET": "secretValue"},
 				key:     "secrets.SECRET",
-				url:     "aws://eu-west-1/prefix/redpanda2/",
+				prefix:  "prefix/redpanda2/",
 			},
 			wantValue:  "",
 			wantExists: false,
@@ -61,7 +59,7 @@ func Test_secretManager_lookup(t *testing.T) {
 			args: args{
 				secrets: map[string]string{"prefix/SECRET": "secretValue"},
 				key:     "SECRET",
-				url:     "aws://eu-west-1/prefix/",
+				prefix:  "prefix/",
 			},
 			wantValue:  "",
 			wantExists: false,
@@ -71,7 +69,7 @@ func Test_secretManager_lookup(t *testing.T) {
 			args: args{
 				secrets: map[string]string{"prefix/SECRET": `{"name":"John", "age": 25, "address": {"city": "LA", "street": "Main St"}}`},
 				key:     "secrets.SECRET.name",
-				url:     "aws://eu-west-1/prefix/",
+				prefix:  "prefix/",
 			},
 			wantValue:  "John",
 			wantExists: true,
@@ -81,7 +79,7 @@ func Test_secretManager_lookup(t *testing.T) {
 			args: args{
 				secrets: map[string]string{"prefix/SECRET": `{"name":"John", "age": 25, "address": {"city": "LA", "street": "Main St"}}`},
 				key:     "secrets.SECRET.address.city",
-				url:     "aws://eu-west-1/prefix/",
+				prefix:  "prefix/",
 			},
 			wantValue:  "LA",
 			wantExists: true,
@@ -89,13 +87,9 @@ func Test_secretManager_lookup(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			parsedURL, err := url.Parse(tt.args.url)
-			require.NoError(t, err)
-			secretsApi, err := NewSecretProvider(context.Background(), slog.Default(), parsedURL, func(ctx context.Context, logger *slog.Logger, url *url.URL) (SecretAPI, error) {
-				return &fakeSecretManager{
-					secrets: tt.args.secrets,
-				}, nil
-			})
+			secretsApi, err := NewSecretProvider(&fakeSecretManager{
+				secrets: tt.args.secrets,
+			}, tt.args.prefix)
 			require.NoError(t, err)
 
 			gotExists := secretsApi.CheckSecretExists(context.Background(), tt.args.key)

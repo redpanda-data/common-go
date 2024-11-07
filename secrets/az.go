@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"net/url"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/Azure/azure-sdk-for-go/sdk/keyvault/azsecrets"
@@ -19,13 +18,13 @@ type azSecretsManager struct {
 	logger *slog.Logger
 }
 
-func NewAzSecretsManager(_ context.Context, logger *slog.Logger, url *url.URL) (SecretAPI, error) {
+func NewAzSecretsManager(logger *slog.Logger, vaultURL string) (SecretAPI, error) {
 	cred, err := azidentity.NewDefaultAzureCredential(nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to obtain Azure credentials: %w", err)
 	}
 
-	client, err := azsecrets.NewClient("https://"+url.Host, cred, nil)
+	client, err := azsecrets.NewClient(vaultURL, cred, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create secretmanager client: %w", err)
 	}
