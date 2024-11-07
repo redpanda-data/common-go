@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"net/url"
 
 	secretmanager "cloud.google.com/go/secretmanager/apiv1"
 	"cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
@@ -18,7 +17,7 @@ type gcpSecretsManager struct {
 	logger    *slog.Logger
 }
 
-func newGCPSecretsManager(ctx context.Context, logger *slog.Logger, url *url.URL) (secretAPI, error) {
+func NewGCPSecretsManager(ctx context.Context, logger *slog.Logger, projectID string) (SecretAPI, error) {
 	client, err := secretmanager.NewClient(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create secretmanager client: %w", err)
@@ -26,12 +25,12 @@ func newGCPSecretsManager(ctx context.Context, logger *slog.Logger, url *url.URL
 
 	return &gcpSecretsManager{
 		client:    client,
-		projectID: url.Host,
+		projectID: projectID,
 		logger:    logger,
 	}, nil
 }
 
-func (g *gcpSecretsManager) getSecretValue(ctx context.Context, key string) (string, bool) {
+func (g *gcpSecretsManager) GetSecretValue(ctx context.Context, key string) (string, bool) {
 	resp, err := g.client.AccessSecretVersion(ctx, &secretmanagerpb.AccessSecretVersionRequest{
 		Name: g.getLatestSecretID(key),
 	})
@@ -46,7 +45,7 @@ func (g *gcpSecretsManager) getSecretValue(ctx context.Context, key string) (str
 	return value, true
 }
 
-func (g *gcpSecretsManager) checkSecretExists(ctx context.Context, key string) bool {
+func (g *gcpSecretsManager) CheckSecretExists(ctx context.Context, key string) bool {
 	_, err := g.client.GetSecret(ctx, &secretmanagerpb.GetSecretRequest{
 		Name: g.getSecretID(key),
 	})

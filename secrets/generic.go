@@ -16,8 +16,6 @@ package secrets
 
 import (
 	"context"
-	"log/slog"
-	"net/url"
 	"strings"
 
 	"github.com/tidwall/gjson"
@@ -26,25 +24,25 @@ import (
 // prefix used to reference secrets from external secret managers, to differentiate them from environment variables
 const secretPrefix = "secrets."
 
-type secretAPI interface {
-	getSecretValue(context.Context, string) (string, bool)
-	checkSecretExists(context.Context, string) bool
+type SecretAPI interface {
+	GetSecretValue(context.Context, string) (string, bool)
+	CheckSecretExists(context.Context, string) bool
 }
 
-type createSecretsManagerFn func(ctx context.Context, logger *slog.Logger, url *url.URL) (secretAPI, error)
+type SecretProviderFn func(secretsManager SecretAPI, prefix string) (SecretAPI, error)
 
-type secretManager struct {
-	secretAPI secretAPI
-	prefix    string
+type secretProvider struct {
+	SecretAPI
+	prefix string
 }
 
-func (s *secretManager) lookup(ctx context.Context, key string) (string, bool) {
+func (s *secretProvider) GetSecretValue(ctx context.Context, key string) (string, bool) {
 	secretName, field, ok := s.trimPrefixAndSplit(key)
 	if !ok {
 		return "", false
 	}
 
-	value, found := s.secretAPI.getSecretValue(ctx, secretName)
+	value, found := s.SecretAPI.GetSecretValue(ctx, secretName)
 	if !found {
 		return "", false
 	}
@@ -56,30 +54,27 @@ func (s *secretManager) lookup(ctx context.Context, key string) (string, bool) {
 	return getJSONValue(value, field)
 }
 
-func (s *secretManager) exists(ctx context.Context, key string) bool {
+func (s *secretProvider) CheckSecretExists(ctx context.Context, key string) bool {
 	secretName, _, ok := s.trimPrefixAndSplit(key)
 	if !ok {
 		return false
 	}
 
-	return s.secretAPI.checkSecretExists(ctx, secretName)
+	return s.SecretAPI.CheckSecretExists(ctx, secretName)
 }
 
-func newSecretManager(ctx context.Context, logger *slog.Logger, url *url.URL, createSecretsManagerFn createSecretsManagerFn) (LookupFn, ExistsFn, error) {
-	secretsManager, err := createSecretsManagerFn(ctx, logger, url)
-	if err != nil {
-		return nil, nil, err
-	}
-	secretManager := &secretManager{
-		secretAPI: secretsManager,
-		prefix:    strings.TrimPrefix(url.Path, "/"),
+// NewSecretProvider handles prefix trim and optional JSON field retrieval
+func NewSecretProvider(secretsManager SecretAPI, prefix string) (SecretAPI, error) {
+	secretProvider := &secretProvider{
+		SecretAPI: secretsManager,
+		prefix:    prefix,
 	}
 
-	return secretManager.lookup, secretManager.exists, nil
+	return secretProvider, nil
 }
 
 // trims the secret prefix and returns full secret ID with JSON field reference
-func (s *secretManager) trimPrefixAndSplit(key string) (string, string, bool) {
+func (s *secretProvider) trimPrefixAndSplit(key string) (string, string, bool) {
 	if !strings.HasPrefix(key, secretPrefix) {
 		return "", "", false
 	}

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"net/url"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/Azure/azure-sdk-for-go/sdk/keyvault/azsecrets"
@@ -19,13 +18,13 @@ type azSecretsManager struct {
 	logger *slog.Logger
 }
 
-func newAzSecretsManager(_ context.Context, logger *slog.Logger, url *url.URL) (secretAPI, error) {
+func NewAzSecretsManager(logger *slog.Logger, vaultURL string) (SecretAPI, error) {
 	cred, err := azidentity.NewDefaultAzureCredential(nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to obtain Azure credentials: %w", err)
 	}
 
-	client, err := azsecrets.NewClient("https://"+url.Host, cred, nil)
+	client, err := azsecrets.NewClient(vaultURL, cred, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create secretmanager client: %w", err)
 	}
@@ -36,7 +35,7 @@ func newAzSecretsManager(_ context.Context, logger *slog.Logger, url *url.URL) (
 	}, nil
 }
 
-func (a *azSecretsManager) getSecretValue(ctx context.Context, key string) (string, bool) {
+func (a *azSecretsManager) GetSecretValue(ctx context.Context, key string) (string, bool) {
 	resp, err := a.client.GetSecret(ctx, key, latestVersion, nil)
 	if err != nil {
 		if status.Code(err) != codes.NotFound {
@@ -48,7 +47,7 @@ func (a *azSecretsManager) getSecretValue(ctx context.Context, key string) (stri
 	return *resp.Value, true
 }
 
-func (a *azSecretsManager) checkSecretExists(ctx context.Context, key string) bool {
+func (a *azSecretsManager) CheckSecretExists(ctx context.Context, key string) bool {
 	pager := a.client.NewListSecretVersionsPager(key, nil)
 	if !pager.More() {
 		return false
