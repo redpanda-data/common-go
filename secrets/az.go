@@ -19,7 +19,7 @@ type azSecretsManager struct {
 	logger *slog.Logger
 }
 
-func newAzSecretsManager(_ context.Context, logger *slog.Logger, url *url.URL) (secretAPI, error) {
+func NewAzSecretsManager(_ context.Context, logger *slog.Logger, url *url.URL) (SecretAPI, error) {
 	cred, err := azidentity.NewDefaultAzureCredential(nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to obtain Azure credentials: %w", err)
@@ -36,7 +36,7 @@ func newAzSecretsManager(_ context.Context, logger *slog.Logger, url *url.URL) (
 	}, nil
 }
 
-func (a *azSecretsManager) getSecretValue(ctx context.Context, key string) (string, bool) {
+func (a *azSecretsManager) GetSecretValue(ctx context.Context, key string) (string, bool) {
 	resp, err := a.client.GetSecret(ctx, key, latestVersion, nil)
 	if err != nil {
 		if status.Code(err) != codes.NotFound {
@@ -48,7 +48,7 @@ func (a *azSecretsManager) getSecretValue(ctx context.Context, key string) (stri
 	return *resp.Value, true
 }
 
-func (a *azSecretsManager) checkSecretExists(ctx context.Context, key string) bool {
+func (a *azSecretsManager) CheckSecretExists(ctx context.Context, key string) bool {
 	pager := a.client.NewListSecretVersionsPager(key, nil)
 	if !pager.More() {
 		return false

@@ -18,7 +18,7 @@ type awsSecretsManager struct {
 	logger *slog.Logger
 }
 
-func newAWSSecretsManager(ctx context.Context, logger *slog.Logger, url *url.URL) (secretAPI, error) {
+func NewAWSSecretsManager(ctx context.Context, logger *slog.Logger, url *url.URL) (SecretAPI, error) {
 	cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(getRegion(url.Host)))
 	if err != nil {
 		return nil, fmt.Errorf("failed to load AWS config: %w", err)
@@ -30,7 +30,7 @@ func newAWSSecretsManager(ctx context.Context, logger *slog.Logger, url *url.URL
 	}, nil
 }
 
-func (a *awsSecretsManager) getSecretValue(ctx context.Context, key string) (string, bool) {
+func (a *awsSecretsManager) GetSecretValue(ctx context.Context, key string) (string, bool) {
 	value, err := a.client.GetSecretValue(ctx, &secretsmanager.GetSecretValueInput{
 		SecretId: &key,
 	})
@@ -45,7 +45,7 @@ func (a *awsSecretsManager) getSecretValue(ctx context.Context, key string) (str
 	return *value.SecretString, true
 }
 
-func (a *awsSecretsManager) checkSecretExists(ctx context.Context, key string) bool {
+func (a *awsSecretsManager) CheckSecretExists(ctx context.Context, key string) bool {
 	secrets, err := a.client.ListSecrets(ctx, &secretsmanager.ListSecretsInput{
 		Filters: []types.Filter{
 			{
