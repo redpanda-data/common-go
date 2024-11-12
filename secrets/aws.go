@@ -44,25 +44,8 @@ func (a *awsSecretsManager) GetSecretValue(ctx context.Context, key string) (str
 }
 
 func (a *awsSecretsManager) CheckSecretExists(ctx context.Context, key string) bool {
-	secrets, err := a.client.ListSecrets(ctx, &secretsmanager.ListSecretsInput{
-		Filters: []types.Filter{
-			{
-				// this is a prefix check
-				Key:    types.FilterNameStringTypeName,
-				Values: []string{key},
-			},
-		},
+	_, err := a.client.DescribeSecret(ctx, &secretsmanager.DescribeSecretInput{
+		SecretId: &key,
 	})
-	if err != nil {
-		return false
-	}
-
-	// we need to make sure a secret with this specific key exists
-	for _, secret := range secrets.SecretList {
-		if *secret.Name == key {
-			return true
-		}
-	}
-
-	return false
+	return err == nil
 }
