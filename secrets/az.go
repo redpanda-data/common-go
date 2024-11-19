@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"strings"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/Azure/azure-sdk-for-go/sdk/keyvault/azsecrets"
@@ -36,6 +37,7 @@ func NewAzSecretsManager(logger *slog.Logger, vaultURL string) (SecretAPI, error
 }
 
 func (a *azSecretsManager) GetSecretValue(ctx context.Context, key string) (string, bool) {
+	key = sanitize(key)
 	resp, err := a.client.GetSecret(ctx, key, latestVersion, nil)
 	if err != nil {
 		if status.Code(err) != codes.NotFound {
@@ -48,6 +50,7 @@ func (a *azSecretsManager) GetSecretValue(ctx context.Context, key string) (stri
 }
 
 func (a *azSecretsManager) CheckSecretExists(ctx context.Context, key string) bool {
+	key = sanitize(key)
 	pager := a.client.NewListSecretVersionsPager(key, nil)
 	if !pager.More() {
 		return false
@@ -55,4 +58,9 @@ func (a *azSecretsManager) CheckSecretExists(ctx context.Context, key string) bo
 
 	page, err := pager.NextPage(ctx)
 	return err == nil && len(page.Value) > 0
+}
+
+// sanitize as Azure does not allow the '_' character in secret name
+func sanitize(key string) string {
+	return strings.ReplaceAll(key, "_", "-")
 }
