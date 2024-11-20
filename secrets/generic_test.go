@@ -14,9 +14,10 @@ type fakeSecretManager struct {
 
 func Test_secretManager_lookup(t *testing.T) {
 	type args struct {
-		secrets map[string]string
-		key     string
-		prefix  string
+		secrets    map[string]string
+		key        string
+		prefix     string
+		trimPrefix string
 	}
 	tests := []struct {
 		name       string
@@ -27,9 +28,10 @@ func Test_secretManager_lookup(t *testing.T) {
 		{
 			name: "should lookup existing secret",
 			args: args{
-				secrets: map[string]string{"prefix/SECRET": "secretValue"},
-				key:     "secrets.SECRET",
-				prefix:  "prefix/",
+				secrets:    map[string]string{"prefix/SECRET": "secretValue"},
+				key:        "secrets.SECRET",
+				prefix:     "prefix/",
+				trimPrefix: "secrets.",
 			},
 			wantValue:  "secretValue",
 			wantExists: true,
@@ -37,9 +39,10 @@ func Test_secretManager_lookup(t *testing.T) {
 		{
 			name: "should not lookup non-existing secret",
 			args: args{
-				secrets: map[string]string{"prefix/SECRET": "secretValue"},
-				key:     "secrets.UNDEFINED",
-				prefix:  "prefix/",
+				secrets:    map[string]string{"prefix/SECRET": "secretValue"},
+				key:        "secrets.UNDEFINED",
+				prefix:     "prefix/",
+				trimPrefix: "secrets.",
 			},
 			wantValue:  "",
 			wantExists: false,
@@ -47,9 +50,10 @@ func Test_secretManager_lookup(t *testing.T) {
 		{
 			name: "should not find secret with different prefix",
 			args: args{
-				secrets: map[string]string{"prefix/redpanda1/SECRET": "secretValue"},
-				key:     "secrets.SECRET",
-				prefix:  "prefix/redpanda2/",
+				secrets:    map[string]string{"prefix/redpanda1/SECRET": "secretValue"},
+				key:        "secrets.SECRET",
+				prefix:     "prefix/redpanda2/",
+				trimPrefix: "secrets.",
 			},
 			wantValue:  "",
 			wantExists: false,
@@ -57,9 +61,10 @@ func Test_secretManager_lookup(t *testing.T) {
 		{
 			name: "should require variable name prefix",
 			args: args{
-				secrets: map[string]string{"prefix/SECRET": "secretValue"},
-				key:     "SECRET",
-				prefix:  "prefix/",
+				secrets:    map[string]string{"prefix/SECRET": "secretValue"},
+				key:        "SECRET",
+				prefix:     "prefix/",
+				trimPrefix: "secrets.",
 			},
 			wantValue:  "",
 			wantExists: false,
@@ -67,9 +72,10 @@ func Test_secretManager_lookup(t *testing.T) {
 		{
 			name: "should extract JSON field",
 			args: args{
-				secrets: map[string]string{"prefix/SECRET": `{"name":"John", "age": 25, "address": {"city": "LA", "street": "Main St"}}`},
-				key:     "secrets.SECRET.name",
-				prefix:  "prefix/",
+				secrets:    map[string]string{"prefix/SECRET": `{"name":"John", "age": 25, "address": {"city": "LA", "street": "Main St"}}`},
+				key:        "secrets.SECRET.name",
+				prefix:     "prefix/",
+				trimPrefix: "secrets.",
 			},
 			wantValue:  "John",
 			wantExists: true,
@@ -77,11 +83,23 @@ func Test_secretManager_lookup(t *testing.T) {
 		{
 			name: "should extract nested JSON field",
 			args: args{
-				secrets: map[string]string{"prefix/SECRET": `{"name":"John", "age": 25, "address": {"city": "LA", "street": "Main St"}}`},
-				key:     "secrets.SECRET.address.city",
-				prefix:  "prefix/",
+				secrets:    map[string]string{"prefix/SECRET": `{"name":"John", "age": 25, "address": {"city": "LA", "street": "Main St"}}`},
+				key:        "secrets.SECRET.address.city",
+				prefix:     "prefix/",
+				trimPrefix: "secrets.",
 			},
 			wantValue:  "LA",
+			wantExists: true,
+		},
+		{
+			name: "should support empty trimPrefix",
+			args: args{
+				secrets:    map[string]string{"prefix/SECRET": "secretValue"},
+				key:        "SECRET",
+				prefix:     "prefix/",
+				trimPrefix: "",
+			},
+			wantValue:  "secretValue",
 			wantExists: true,
 		},
 	}
@@ -89,7 +107,7 @@ func Test_secretManager_lookup(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			secretsApi, err := NewSecretProvider(&fakeSecretManager{
 				secrets: tt.args.secrets,
-			}, tt.args.prefix)
+			}, tt.args.prefix, tt.args.trimPrefix)
 			require.NoError(t, err)
 
 			gotExists := secretsApi.CheckSecretExists(context.Background(), tt.args.key)
