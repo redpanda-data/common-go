@@ -21,19 +21,17 @@ import (
 	"github.com/tidwall/gjson"
 )
 
-// prefix used to reference secrets from external secret managers, to differentiate them from environment variables
-const secretPrefix = "secrets."
-
 type SecretAPI interface {
 	GetSecretValue(context.Context, string) (string, bool)
 	CheckSecretExists(context.Context, string) bool
 }
 
-type SecretProviderFn func(secretsManager SecretAPI, prefix string) (SecretAPI, error)
+type SecretProviderFn func(secretsManager SecretAPI, prefix string, trimPrefix string) (SecretAPI, error)
 
 type secretProvider struct {
 	SecretAPI
-	prefix string
+	prefix     string
+	trimPrefix string
 }
 
 func (s *secretProvider) GetSecretValue(ctx context.Context, key string) (string, bool) {
@@ -64,10 +62,11 @@ func (s *secretProvider) CheckSecretExists(ctx context.Context, key string) bool
 }
 
 // NewSecretProvider handles prefix trim and optional JSON field retrieval
-func NewSecretProvider(secretsManager SecretAPI, prefix string) (SecretAPI, error) {
+func NewSecretProvider(secretsManager SecretAPI, prefix string, trimPrefix string) (SecretAPI, error) {
 	secretProvider := &secretProvider{
-		SecretAPI: secretsManager,
-		prefix:    prefix,
+		SecretAPI:  secretsManager,
+		prefix:     prefix,
+		trimPrefix: trimPrefix,
 	}
 
 	return secretProvider, nil
@@ -75,11 +74,11 @@ func NewSecretProvider(secretsManager SecretAPI, prefix string) (SecretAPI, erro
 
 // trims the secret prefix and returns full secret ID with JSON field reference
 func (s *secretProvider) trimPrefixAndSplit(key string) (string, string, bool) {
-	if !strings.HasPrefix(key, secretPrefix) {
+	if !strings.HasPrefix(key, s.trimPrefix) {
 		return "", "", false
 	}
 
-	key = strings.TrimPrefix(key, secretPrefix)
+	key = strings.TrimPrefix(key, s.trimPrefix)
 	if strings.Contains(key, ".") {
 		parts := strings.SplitN(key, ".", 2)
 		return s.prefix + parts[0], parts[1], true
