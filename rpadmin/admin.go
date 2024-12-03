@@ -21,6 +21,8 @@ import (
 	"math/rand"
 	"net"
 	"net/http"
+	"net/url"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -629,4 +631,49 @@ func MaxRetries(r int) Opt {
 	return clientOpt{func(cl *pester.Client) {
 		cl.MaxRetries = r
 	}}
+}
+
+// AdminAddressesFromK8SDNS attempts to deduce admin API URLs
+// based on Kubernetes DNS resolution.
+// We are in Kubernetes.
+// https://github.com/kubernetes/dns/blob/master/docs/specification.md
+// Assume that Admin API URL configured is a Kubernetes Service URL.
+// This Admin API URL is passed in as the function argument.
+// Since it's a Kubernetes service, Kubernetes DNS creates a DNS SRV record
+// for the admin port mapping.
+// We can query the DNS record to get the target host names and ports.
+func AdminAddressesFromK8SDNS(adminAPIURL string) ([]string, error) {
+	adminURL, err := url.Parse(adminAPIURL)
+	if err != nil {
+		return nil, err
+	}
+
+	_, records, err := net.LookupSRV("admin", "tcp", adminURL.Hostname())
+	if err != nil {
+		return nil, err
+	}
+
+	if len(records) == 0 {
+		return nil, nil
+	}
+
+	// targets may be in the form
+	// redpanda-1.redpanda.redpanda.svc.cluster.local.
+	// take advantage of ordinals and order them accordingly
+	sort.Slice(records, func(i, j int) bool {
+		return records[i].Target < records[j].Target
+	})
+
+	urls := make([]string, 0, len(records))
+
+	proto := "http://"
+	if adminURL.Scheme == "https:" {
+		proto = "https://"
+	}
+
+	for _, r := range records {
+		urls = append(urls, proto+r.Target+":"+strconv.Itoa(int(r.Port)))
+	}
+
+	return urls, nil
 }
