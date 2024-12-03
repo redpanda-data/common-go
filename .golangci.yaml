@@ -35,7 +35,6 @@ linters:
     - errname
     - errorlint
     - exhaustive
-    - copyloopvar
     - gci
     - gocheckcompilerdirectives
     - gocognit

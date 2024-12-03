@@ -17,6 +17,7 @@ type gcpSecretsManager struct {
 	logger    *slog.Logger
 }
 
+// NewGCPSecretsManager creates a secret API for GCP.
 func NewGCPSecretsManager(ctx context.Context, logger *slog.Logger, projectID string) (SecretAPI, error) {
 	client, err := secretmanager.NewClient(ctx)
 	if err != nil {

@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package secrets provides common functionality for interacting
+// with different cloud providers' secrets managers.
 package secrets
 
 import (
@@ -21,11 +23,13 @@ import (
 	"github.com/tidwall/gjson"
 )
 
+// SecretAPI is the generic Secret API interface.
 type SecretAPI interface {
 	GetSecretValue(context.Context, string) (string, bool)
 	CheckSecretExists(context.Context, string) bool
 }
 
+// SecretProviderFn is a secret API provider function type.
 type SecretProviderFn func(secretsManager SecretAPI, prefix string, trimPrefix string) (SecretAPI, error)
 
 type secretProvider struct {
@@ -34,6 +38,7 @@ type secretProvider struct {
 	trimPrefix string
 }
 
+// GetSecretValue gets the secret value.
 func (s *secretProvider) GetSecretValue(ctx context.Context, key string) (string, bool) {
 	secretName, field, ok := s.trimPrefixAndSplit(key)
 	if !ok {
@@ -52,6 +57,7 @@ func (s *secretProvider) GetSecretValue(ctx context.Context, key string) (string
 	return getJSONValue(value, field)
 }
 
+// CheckSecretExists checks if the secret exists.
 func (s *secretProvider) CheckSecretExists(ctx context.Context, key string) bool {
 	secretName, _, ok := s.trimPrefixAndSplit(key)
 	if !ok {
@@ -73,6 +79,8 @@ func NewSecretProvider(secretsManager SecretAPI, prefix string, trimPrefix strin
 }
 
 // trims the secret prefix and returns full secret ID with JSON field reference
+//
+//nolint:revive // no named return
 func (s *secretProvider) trimPrefixAndSplit(key string) (string, string, bool) {
 	if !strings.HasPrefix(key, s.trimPrefix) {
 		return "", "", false

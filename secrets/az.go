@@ -19,6 +19,7 @@ type azSecretsManager struct {
 	logger *slog.Logger
 }
 
+// NewAzSecretsManager creates a new Azure secrets manager client.
 func NewAzSecretsManager(logger *slog.Logger, vaultURL string) (SecretAPI, error) {
 	cred, err := azidentity.NewDefaultAzureCredential(nil)
 	if err != nil {
@@ -36,6 +37,7 @@ func NewAzSecretsManager(logger *slog.Logger, vaultURL string) (SecretAPI, error
 	}, nil
 }
 
+// GetSecretValue gets a secret value.
 func (a *azSecretsManager) GetSecretValue(ctx context.Context, key string) (string, bool) {
 	key = sanitize(key)
 	resp, err := a.client.GetSecret(ctx, key, latestVersion, nil)
@@ -49,6 +51,7 @@ func (a *azSecretsManager) GetSecretValue(ctx context.Context, key string) (stri
 	return *resp.Value, true
 }
 
+// CheckSecretExists checks if a secret exists.
 func (a *azSecretsManager) CheckSecretExists(ctx context.Context, key string) bool {
 	key = sanitize(key)
 	pager := a.client.NewListSecretVersionsPager(key, nil)

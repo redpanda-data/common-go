@@ -19,6 +19,7 @@ type awsSecretsManager struct {
 	logger *slog.Logger
 }
 
+// NewAWSSecretsManager creates a secret API for AWS.
 func NewAWSSecretsManager(ctx context.Context, logger *slog.Logger, region string, roleARN string) (SecretAPI, error) {
 	cl, err := createAWSClient(ctx, region, roleARN)
 	if err != nil {
