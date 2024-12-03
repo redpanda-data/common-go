@@ -45,6 +45,20 @@ jobs:
           working-directory: rpadmin
           args: --timeout=10m --config=../.golangci.yaml
 
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: ${{ env.GOLANGCI_LINT_VERSION }}
+          working-directory: secrets
+          args: --timeout=10m --config=../.golangci.yaml
+      
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: ${{ env.GOLANGCI_LINT_VERSION }}
+          working-directory: net
+          args: --timeout=10m --config=../.golangci.yaml
+
       - name: Install Task
         uses: arduino/setup-task@v2
         with:
