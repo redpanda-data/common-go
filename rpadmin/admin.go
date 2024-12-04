@@ -197,10 +197,22 @@ func newAdminAPI(urls []string, auth Auth, tlsConfig *tls.Config, dialer DialCon
 	a.retryClient.Transport = transport
 	a.oneshotClient.Transport = transport
 
+	if err := a.initURLs(urls, tlsConfig, forCloud); err != nil {
+		return nil, err
+	}
+
+	return a, nil
+}
+
+func (a *AdminAPI) initURLs(urls []string, tlsConfig *tls.Config, forCloud bool) error {
+	if len(a.urls) != len(urls) {
+		a.urls = make([]string, len(urls))
+	}
+
 	for i, u := range urls {
 		scheme, host, err := commonnet.ParseHostMaybeScheme(u)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		switch scheme {
 		case "", "http":
@@ -210,7 +222,7 @@ func newAdminAPI(urls []string, auth Auth, tlsConfig *tls.Config, dialer DialCon
 			}
 		case "https":
 		default:
-			return nil, fmt.Errorf("unrecognized scheme %q in host %q", scheme, u)
+			return fmt.Errorf("unrecognized scheme %q in host %q", scheme, u)
 		}
 		full := fmt.Sprintf("%s://%s", scheme, host)
 		if forCloud {
@@ -219,7 +231,7 @@ func newAdminAPI(urls []string, auth Auth, tlsConfig *tls.Config, dialer DialCon
 		a.urls[i] = full
 	}
 
-	return a, nil
+	return nil
 }
 
 // SetAuth sets the auth in the client.
@@ -681,4 +693,19 @@ func AdminAddressesFromK8SDNS(adminAPIURL string) ([]string, error) {
 	}
 
 	return urls, nil
+}
+
+// UpdateAPIUrlsFromKubernetesDNS updates the client's internal URLs to admin addresses from Kubernetes DNS.
+// See AdminAddressesFromK8SDNS.
+func (a *AdminAPI) UpdateAPIUrlsFromKubernetesDNS() error {
+	if len(a.urls) == 0 {
+		return errors.New("at least one url is required for the admin api")
+	}
+
+	urls, err := AdminAddressesFromK8SDNS(a.urls[0])
+	if err != nil {
+		return err
+	}
+
+	return a.initURLs(urls, a.tlsConfig, a.forCloud)
 }
