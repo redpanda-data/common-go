@@ -35,8 +35,13 @@ import (
 	commonnet "github.com/redpanda-data/common-go/net"
 )
 
-// ErrNoAdminAPILeader happen when there's no leader for the Admin API.
+// ErrNoAdminAPILeader happens when there's no leader for the Admin API.
 var ErrNoAdminAPILeader = errors.New("no Admin API leader found")
+
+// ErrNoSRVRecordsFound happens when we try to deduce Admin API URLs
+// from Kubernetes SRV DNS records, but no records were returned by
+// the DNS query.
+var ErrNoSRVRecordsFound = errors.New("not SRV DNS records found")
 
 // HTTPResponseError is the error response.
 type HTTPResponseError struct {
@@ -654,7 +659,7 @@ func AdminAddressesFromK8SDNS(adminAPIURL string) ([]string, error) {
 	}
 
 	if len(records) == 0 {
-		return nil, nil
+		return nil, ErrNoSRVRecordsFound
 	}
 
 	// targets may be in the form
