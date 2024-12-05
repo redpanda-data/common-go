@@ -88,6 +88,7 @@ type GenericErrorBody struct {
 
 // AdminAPI is a client to interact with Redpanda's admin server.
 type AdminAPI struct {
+	urlsMutex           sync.RWMutex
 	urls                []string
 	brokerIDToUrlsMutex sync.Mutex
 	brokerIDToUrls      map[int]string
@@ -210,6 +211,9 @@ const (
 )
 
 func (a *AdminAPI) initURLs(urls []string, tlsConfig *tls.Config, forCloud bool) error {
+	a.urlsMutex.Lock()
+	defer a.urlsMutex.Unlock()
+
 	if len(a.urls) != len(urls) {
 		a.urls = make([]string, len(urls))
 	}
@@ -249,10 +253,14 @@ func (a *AdminAPI) newAdminForSingleHost(host string) (*AdminAPI, error) {
 }
 
 func (a *AdminAPI) urlsWithPath(path string) []string {
+	a.urlsMutex.RLock()
+	defer a.urlsMutex.RUnlock()
+
 	urls := make([]string, len(a.urls))
 	for i := 0; i < len(a.urls); i++ {
 		urls[i] = fmt.Sprintf("%s%s", a.urls[i], path)
 	}
+
 	return urls
 }
 
@@ -273,8 +281,13 @@ func (a *AdminAPI) mapBrokerIDsToURLs(ctx context.Context) {
 		if err != nil {
 			return err
 		}
+
+		a.urlsMutex.RLock()
+		url := aa.urls[0]
+		a.urlsMutex.RUnlock()
+
 		a.brokerIDToUrlsMutex.Lock()
-		a.brokerIDToUrls[nc.NodeID] = aa.urls[0]
+		a.brokerIDToUrls[nc.NodeID] = url
 		a.brokerIDToUrlsMutex.Unlock()
 		return nil
 	})
@@ -304,9 +317,12 @@ func (a *AdminAPI) GetLeaderID(ctx context.Context) (*int, error) {
 func (a *AdminAPI) sendAny(ctx context.Context, method, path string, body, into any) error {
 	// Shuffle the list of URLs
 	rng := rand.New(rand.NewSource(time.Now().UnixNano())) //nolint:gosec // old rpk code.
+
+	a.urlsMutex.RLock()
 	shuffled := make([]string, len(a.urls))
 	copy(shuffled, a.urls)
 	rng.Shuffle(len(shuffled), func(i, j int) { shuffled[i], shuffled[j] = shuffled[j], shuffled[i] })
+	a.urlsMutex.RUnlock()
 
 	// After a 503 or 504, wait a little for an election
 	const unavailableBackoff = 1500 * time.Millisecond
@@ -442,10 +458,12 @@ func (a *AdminAPI) getURLFromBrokerID(brokerID int) (string, bool) {
 func (a *AdminAPI) sendOne(
 	ctx context.Context, method, path string, body, into any, retryable bool,
 ) error {
+	a.urlsMutex.RLock()
 	if len(a.urls) != 1 {
 		return fmt.Errorf("unable to issue a single-admin-endpoint request to %d admin endpoints", len(a.urls))
 	}
 	url := a.urls[0] + path
+	a.urlsMutex.RUnlock()
 	res, err := a.sendAndReceive(ctx, method, url, body, retryable)
 	if err != nil {
 		return err
@@ -518,6 +536,7 @@ func (a *AdminAPI) sendAll(rootCtx context.Context, method, path string, body, i
 // for each of them in a go routine.
 func (a *AdminAPI) eachBroker(fn func(aa *AdminAPI) error) error {
 	var grp multierror.Group
+	a.urlsMutex.RLock()
 	for _, url := range a.urls {
 		aURL := url
 		grp.Go(func() error {
@@ -528,6 +547,8 @@ func (a *AdminAPI) eachBroker(fn func(aa *AdminAPI) error) error {
 			return fn(aa)
 		})
 	}
+	a.urlsMutex.RUnlock()
+
 	return grp.Wait().ErrorOrNil()
 }
 
@@ -703,11 +724,15 @@ func AdminAddressesFromK8SDNS(adminAPIURL string) ([]string, error) {
 // UpdateAPIUrlsFromKubernetesDNS updates the client's internal URLs to admin addresses from Kubernetes DNS.
 // See AdminAddressesFromK8SDNS.
 func (a *AdminAPI) UpdateAPIUrlsFromKubernetesDNS() error {
+	a.urlsMutex.RLock()
 	if len(a.urls) == 0 {
 		return errors.New("at least one url is required for the admin api")
 	}
 
-	urls, err := AdminAddressesFromK8SDNS(a.urls[0])
+	baseURL := a.urls[0]
+	a.urlsMutex.RUnlock()
+
+	urls, err := AdminAddressesFromK8SDNS(baseURL)
 	if err != nil {
 		return err
 	}
