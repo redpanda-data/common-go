@@ -204,6 +204,11 @@ func newAdminAPI(urls []string, auth Auth, tlsConfig *tls.Config, dialer DialCon
 	return a, nil
 }
 
+const (
+	schemeHTTP  = "http"
+	schemeHTTPS = "https"
+)
+
 func (a *AdminAPI) initURLs(urls []string, tlsConfig *tls.Config, forCloud bool) error {
 	if len(a.urls) != len(urls) {
 		a.urls = make([]string, len(urls))
@@ -215,12 +220,12 @@ func (a *AdminAPI) initURLs(urls []string, tlsConfig *tls.Config, forCloud bool)
 			return err
 		}
 		switch scheme {
-		case "", "http":
-			scheme = "http"
+		case "", schemeHTTP:
+			scheme = schemeHTTP
 			if tlsConfig != nil {
-				scheme = "https"
+				scheme = schemeHTTPS
 			}
-		case "https":
+		case schemeHTTPS:
 		default:
 			return fmt.Errorf("unrecognized scheme %q in host %q", scheme, u)
 		}
@@ -684,7 +689,7 @@ func AdminAddressesFromK8SDNS(adminAPIURL string) ([]string, error) {
 	urls := make([]string, 0, len(records))
 
 	proto := "http://"
-	if adminURL.Scheme == "https:" {
+	if adminURL.Scheme == schemeHTTPS {
 		proto = "https://"
 	}
 

@@ -228,45 +228,51 @@ func callsForNodeID(calls []testCall, nodeID int) []testCall {
 }
 
 func TestAdminAddressesFromK8SDNS(t *testing.T) {
-	adminAPIURL := "http://redpanda-api.cluster.local:19644"
+	schemes := []string{"http", "https"}
 
-	adminAPIHostURL, err := url.Parse(adminAPIURL)
-	require.NoError(t, err)
+	for _, scheme := range schemes {
+		t.Run(scheme, func(t *testing.T) {
+			adminAPIURL := scheme + "://" + "redpanda-api.cluster.local:19644"
 
-	srv, err := mockdns.NewServer(map[string]mockdns.Zone{
-		"_admin._tcp." + adminAPIHostURL.Hostname() + ".": {
-			SRV: []net.SRV{
-				{
-					Target: "rp-id123-0.rp-id123.redpanda.svc.cluster.local.",
-					Port:   9644,
-					Weight: 33,
+			adminAPIHostURL, err := url.Parse(adminAPIURL)
+			require.NoError(t, err)
+
+			srv, err := mockdns.NewServer(map[string]mockdns.Zone{
+				"_admin._tcp." + adminAPIHostURL.Hostname() + ".": {
+					SRV: []net.SRV{
+						{
+							Target: "rp-id123-0.rp-id123.redpanda.svc.cluster.local.",
+							Port:   9644,
+							Weight: 33,
+						},
+						{
+							Target: "rp-id123-1.rp-id123.redpanda.svc.cluster.local.",
+							Port:   9644,
+							Weight: 33,
+						},
+						{
+							Target: "rp-id123-2.rp-id123.redpanda.svc.cluster.local.",
+							Port:   9644,
+							Weight: 33,
+						},
+					},
 				},
-				{
-					Target: "rp-id123-1.rp-id123.redpanda.svc.cluster.local.",
-					Port:   9644,
-					Weight: 33,
-				},
-				{
-					Target: "rp-id123-2.rp-id123.redpanda.svc.cluster.local.",
-					Port:   9644,
-					Weight: 33,
-				},
-			},
-		},
-	}, false)
-	require.NoError(t, err)
+			}, false)
+			require.NoError(t, err)
 
-	defer srv.Close()
+			defer srv.Close()
 
-	srv.PatchNet(net.DefaultResolver)
-	defer mockdns.UnpatchNet(net.DefaultResolver)
+			srv.PatchNet(net.DefaultResolver)
+			defer mockdns.UnpatchNet(net.DefaultResolver)
 
-	brokerURLs, err := AdminAddressesFromK8SDNS(adminAPIURL)
-	assert.NoError(t, err)
-	require.Len(t, brokerURLs, 3)
-	assert.Equal(t, "http://rp-id123-0.rp-id123.redpanda.svc.cluster.local.:9644", brokerURLs[0])
-	assert.Equal(t, "http://rp-id123-1.rp-id123.redpanda.svc.cluster.local.:9644", brokerURLs[1])
-	assert.Equal(t, "http://rp-id123-2.rp-id123.redpanda.svc.cluster.local.:9644", brokerURLs[2])
+			brokerURLs, err := AdminAddressesFromK8SDNS(adminAPIURL)
+			assert.NoError(t, err)
+			require.Len(t, brokerURLs, 3)
+			assert.Equal(t, scheme+"://"+"rp-id123-0.rp-id123.redpanda.svc.cluster.local.:9644", brokerURLs[0])
+			assert.Equal(t, scheme+"://"+"rp-id123-1.rp-id123.redpanda.svc.cluster.local.:9644", brokerURLs[1])
+			assert.Equal(t, scheme+"://"+"rp-id123-2.rp-id123.redpanda.svc.cluster.local.:9644", brokerURLs[2])
+		})
+	}
 }
 
 func TestUpdateAPIUrlsFromKubernetesDNS(t *testing.T) {
