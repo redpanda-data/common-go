@@ -21,6 +21,8 @@ import (
 	"math/rand"
 	"net"
 	"net/http"
+	"net/url"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -33,8 +35,13 @@ import (
 	commonnet "github.com/redpanda-data/common-go/net"
 )
 
-// ErrNoAdminAPILeader happen when there's no leader for the Admin API.
+// ErrNoAdminAPILeader happens when there's no leader for the Admin API.
 var ErrNoAdminAPILeader = errors.New("no Admin API leader found")
+
+// ErrNoSRVRecordsFound happens when we try to deduce Admin API URLs
+// from Kubernetes SRV DNS records, but no records were returned by
+// the DNS query.
+var ErrNoSRVRecordsFound = errors.New("not SRV DNS records found")
 
 // HTTPResponseError is the error response.
 type HTTPResponseError struct {
@@ -81,6 +88,7 @@ type GenericErrorBody struct {
 
 // AdminAPI is a client to interact with Redpanda's admin server.
 type AdminAPI struct {
+	urlsMutex           sync.RWMutex
 	urls                []string
 	brokerIDToUrlsMutex sync.Mutex
 	brokerIDToUrls      map[int]string
@@ -190,20 +198,40 @@ func newAdminAPI(urls []string, auth Auth, tlsConfig *tls.Config, dialer DialCon
 	a.retryClient.Transport = transport
 	a.oneshotClient.Transport = transport
 
+	if err := a.initURLs(urls, tlsConfig, forCloud); err != nil {
+		return nil, err
+	}
+
+	return a, nil
+}
+
+const (
+	schemeHTTP  = "http"
+	schemeHTTPS = "https"
+)
+
+func (a *AdminAPI) initURLs(urls []string, tlsConfig *tls.Config, forCloud bool) error {
+	a.urlsMutex.Lock()
+	defer a.urlsMutex.Unlock()
+
+	if len(a.urls) != len(urls) {
+		a.urls = make([]string, len(urls))
+	}
+
 	for i, u := range urls {
 		scheme, host, err := commonnet.ParseHostMaybeScheme(u)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		switch scheme {
-		case "", "http":
-			scheme = "http"
+		case "", schemeHTTP:
+			scheme = schemeHTTP
 			if tlsConfig != nil {
-				scheme = "https"
+				scheme = schemeHTTPS
 			}
-		case "https":
+		case schemeHTTPS:
 		default:
-			return nil, fmt.Errorf("unrecognized scheme %q in host %q", scheme, u)
+			return fmt.Errorf("unrecognized scheme %q in host %q", scheme, u)
 		}
 		full := fmt.Sprintf("%s://%s", scheme, host)
 		if forCloud {
@@ -212,7 +240,7 @@ func newAdminAPI(urls []string, auth Auth, tlsConfig *tls.Config, dialer DialCon
 		a.urls[i] = full
 	}
 
-	return a, nil
+	return nil
 }
 
 // SetAuth sets the auth in the client.
@@ -225,10 +253,14 @@ func (a *AdminAPI) newAdminForSingleHost(host string) (*AdminAPI, error) {
 }
 
 func (a *AdminAPI) urlsWithPath(path string) []string {
+	a.urlsMutex.RLock()
+	defer a.urlsMutex.RUnlock()
+
 	urls := make([]string, len(a.urls))
 	for i := 0; i < len(a.urls); i++ {
 		urls[i] = fmt.Sprintf("%s%s", a.urls[i], path)
 	}
+
 	return urls
 }
 
@@ -249,8 +281,13 @@ func (a *AdminAPI) mapBrokerIDsToURLs(ctx context.Context) {
 		if err != nil {
 			return err
 		}
+
+		a.urlsMutex.RLock()
+		url := aa.urls[0]
+		a.urlsMutex.RUnlock()
+
 		a.brokerIDToUrlsMutex.Lock()
-		a.brokerIDToUrls[nc.NodeID] = aa.urls[0]
+		a.brokerIDToUrls[nc.NodeID] = url
 		a.brokerIDToUrlsMutex.Unlock()
 		return nil
 	})
@@ -280,9 +317,12 @@ func (a *AdminAPI) GetLeaderID(ctx context.Context) (*int, error) {
 func (a *AdminAPI) sendAny(ctx context.Context, method, path string, body, into any) error {
 	// Shuffle the list of URLs
 	rng := rand.New(rand.NewSource(time.Now().UnixNano())) //nolint:gosec // old rpk code.
+
+	a.urlsMutex.RLock()
 	shuffled := make([]string, len(a.urls))
 	copy(shuffled, a.urls)
 	rng.Shuffle(len(shuffled), func(i, j int) { shuffled[i], shuffled[j] = shuffled[j], shuffled[i] })
+	a.urlsMutex.RUnlock()
 
 	// After a 503 or 504, wait a little for an election
 	const unavailableBackoff = 1500 * time.Millisecond
@@ -418,10 +458,12 @@ func (a *AdminAPI) getURLFromBrokerID(brokerID int) (string, bool) {
 func (a *AdminAPI) sendOne(
 	ctx context.Context, method, path string, body, into any, retryable bool,
 ) error {
+	a.urlsMutex.RLock()
 	if len(a.urls) != 1 {
 		return fmt.Errorf("unable to issue a single-admin-endpoint request to %d admin endpoints", len(a.urls))
 	}
 	url := a.urls[0] + path
+	a.urlsMutex.RUnlock()
 	res, err := a.sendAndReceive(ctx, method, url, body, retryable)
 	if err != nil {
 		return err
@@ -494,6 +536,7 @@ func (a *AdminAPI) sendAll(rootCtx context.Context, method, path string, body, i
 // for each of them in a go routine.
 func (a *AdminAPI) eachBroker(fn func(aa *AdminAPI) error) error {
 	var grp multierror.Group
+	a.urlsMutex.RLock()
 	for _, url := range a.urls {
 		aURL := url
 		grp.Go(func() error {
@@ -504,6 +547,8 @@ func (a *AdminAPI) eachBroker(fn func(aa *AdminAPI) error) error {
 			return fn(aa)
 		})
 	}
+	a.urlsMutex.RUnlock()
+
 	return grp.Wait().ErrorOrNil()
 }
 
@@ -629,4 +674,69 @@ func MaxRetries(r int) Opt {
 	return clientOpt{func(cl *pester.Client) {
 		cl.MaxRetries = r
 	}}
+}
+
+// AdminAddressesFromK8SDNS attempts to deduce admin API URLs
+// based on Kubernetes DNS resolution.
+// https://github.com/kubernetes/dns/blob/master/docs/specification.md
+// Assume that Admin API URL configured is a Kubernetes Service URL.
+// This Admin API URL is passed in as the function argument.
+// Since it's a Kubernetes service, Kubernetes DNS creates a DNS SRV record
+// for the admin port mapping.
+// We can query the DNS record to get the target host names and ports.
+// To check if a workload is running inside a kubernetes pod test for
+// KUBERNETES_SERVICE_HOST or KUBERNETES_SERVICE_PORT env vars.
+func AdminAddressesFromK8SDNS(adminAPIURL string) ([]string, error) {
+	adminURL, err := url.Parse(adminAPIURL)
+	if err != nil {
+		return nil, err
+	}
+
+	_, records, err := net.LookupSRV("admin", "tcp", adminURL.Hostname())
+	if err != nil {
+		return nil, err
+	}
+
+	if len(records) == 0 {
+		return nil, ErrNoSRVRecordsFound
+	}
+
+	// targets may be in the form
+	// redpanda-1.redpanda.redpanda.svc.cluster.local.
+	// take advantage of ordinals and order them accordingly
+	sort.Slice(records, func(i, j int) bool {
+		return records[i].Target < records[j].Target
+	})
+
+	urls := make([]string, 0, len(records))
+
+	proto := "http://"
+	if adminURL.Scheme == schemeHTTPS {
+		proto = "https://"
+	}
+
+	for _, r := range records {
+		urls = append(urls, proto+r.Target+":"+strconv.Itoa(int(r.Port)))
+	}
+
+	return urls, nil
+}
+
+// UpdateAPIUrlsFromKubernetesDNS updates the client's internal URLs to admin addresses from Kubernetes DNS.
+// See AdminAddressesFromK8SDNS.
+func (a *AdminAPI) UpdateAPIUrlsFromKubernetesDNS() error {
+	a.urlsMutex.RLock()
+	if len(a.urls) == 0 {
+		return errors.New("at least one url is required for the admin api")
+	}
+
+	baseURL := a.urls[0]
+	a.urlsMutex.RUnlock()
+
+	urls, err := AdminAddressesFromK8SDNS(baseURL)
+	if err != nil {
+		return err
+	}
+
+	return a.initURLs(urls, a.tlsConfig, a.forCloud)
 }
