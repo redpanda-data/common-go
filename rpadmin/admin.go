@@ -678,13 +678,14 @@ func MaxRetries(r int) Opt {
 
 // AdminAddressesFromK8SDNS attempts to deduce admin API URLs
 // based on Kubernetes DNS resolution.
-// We are in Kubernetes.
 // https://github.com/kubernetes/dns/blob/master/docs/specification.md
 // Assume that Admin API URL configured is a Kubernetes Service URL.
 // This Admin API URL is passed in as the function argument.
 // Since it's a Kubernetes service, Kubernetes DNS creates a DNS SRV record
 // for the admin port mapping.
 // We can query the DNS record to get the target host names and ports.
+// To check if a workload is running inside a kubernetes pod test for
+// KUBERNETES_SERVICE_HOST or KUBERNETES_SERVICE_PORT env vars.
 func AdminAddressesFromK8SDNS(adminAPIURL string) ([]string, error) {
 	adminURL, err := url.Parse(adminAPIURL)
 	if err != nil {
