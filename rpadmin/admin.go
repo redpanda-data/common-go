@@ -248,6 +248,22 @@ func (a *AdminAPI) SetAuth(auth Auth) {
 	a.auth = auth
 }
 
+// ForBroker returns a new admin client with the same configuration as the initial
+// client, but that talks to a single broker with the given id.
+func (a *AdminAPI) ForBroker(ctx context.Context, id int) (*AdminAPI, error) {
+	url, err := a.BrokerIDToURL(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	return a.newAdminForSingleHost(url)
+}
+
+// ForHost returns a new admin client with the same configuration as the initial
+// client, but that talks to a single broker at the given url.
+func (a *AdminAPI) ForHost(url string) (*AdminAPI, error) {
+	return a.newAdminForSingleHost(url)
+}
+
 func (a *AdminAPI) newAdminForSingleHost(host string) (*AdminAPI, error) {
 	return newAdminAPI([]string{host}, a.auth, a.tlsConfig, nil, a.forCloud)
 }
