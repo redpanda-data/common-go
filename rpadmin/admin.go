@@ -69,6 +69,10 @@ type (
 	NopAuth struct{}
 )
 
+// responseWrapper functions as a testing mechanism for ensuring
+// that we actually close all of our network connections
+var responseWrapper = func(r *http.Response) *http.Response { return r }
+
 func (a *BasicAuth) apply(req *http.Request) {
 	req.SetBasicAuth(a.Username, a.Password)
 }
@@ -648,6 +652,11 @@ func (a *AdminAPI) sendAndReceive(
 		res, err = a.retryClient.Do(req)
 	} else {
 		res, err = a.oneshotClient.Do(req)
+	}
+
+	if res != nil {
+		// this is mainly used to ensure we're cleaning up all of our responses
+		res = responseWrapper(res)
 	}
 
 	if err != nil {
