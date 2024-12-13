@@ -502,7 +502,6 @@ func (a *AdminAPI) sendOne(
 // broadcast on writes to the Admin API.
 func (a *AdminAPI) sendAll(rootCtx context.Context, method, path string, body, into any) error {
 	var (
-		once   sync.Once
 		resURL string
 		res    *http.Response
 		grp    multierror.Group
@@ -520,7 +519,7 @@ func (a *AdminAPI) sendAll(rootCtx context.Context, method, path string, body, i
 			}
 		}
 
-		successfulResponseIndex int
+		mutex sync.Mutex
 	)
 
 	for i, url := range a.urlsWithPath(path) {
@@ -538,13 +537,17 @@ func (a *AdminAPI) sendAll(rootCtx context.Context, method, path string, body, i
 			// Only one request should be successful, but for
 			// paranoia, we guard keeping the first successful
 			// response.
-			once.Do(func() { resURL, res, successfulResponseIndex = myURL, myRes, except })
+			mutex.Lock()
+			defer mutex.Unlock()
 
-			if except != successfulResponseIndex {
+			if resURL != "" {
 				// close the response body for my response since it won't be read
 				// in the unmarshaling code
 				myRes.Body.Close()
+				return nil
 			}
+
+			resURL, res = myURL, myRes
 
 			return nil
 		})
