@@ -12,18 +12,50 @@ package rpadmin
 import (
 	"context"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 
 	"github.com/foxcpp/go-mockdns"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+// none of these tests in this package should be called in parallel
+// due to needing to check that all responses are closed in this
+// global tracker
+
+var responsesPendingClosure atomic.Int64
+
+type trackedReadCloser struct {
+	io.ReadCloser
+	onClose func()
+}
+
+func (c *trackedReadCloser) Close() error {
+	c.onClose()
+	return c.ReadCloser.Close()
+}
+
+func trackResponses(resp *http.Response) *http.Response {
+	responsesPendingClosure.Add(1)
+
+	resp.Body = &trackedReadCloser{ReadCloser: resp.Body, onClose: func() {
+		responsesPendingClosure.Add(-1)
+	}}
+
+	return resp
+}
+
+func init() {
+	responseWrapper = trackResponses
+}
 
 type testCall struct {
 	brokerID int
@@ -92,6 +124,23 @@ func TestAdminAPI(t *testing.T) {
 			any:  []string{"/v1/security/users"},
 			none: []string{"/v1/partitions/redpanda/controller/0"},
 		},
+		{
+			name:     "request failures ensure response body closure",
+			nNodes:   3,
+			leaderID: 1,
+			handlers: map[string]http.HandlerFunc{
+				"/v1/security/users": func(rw http.ResponseWriter, _ *http.Request) {
+					rw.WriteHeader(http.StatusBadRequest)
+				},
+			},
+			action: func(t *testing.T, a *AdminAPI) error {
+				_, err := a.ListUsers(context.Background())
+				require.Error(t, err)
+				return nil
+			},
+			any:  []string{"/v1/security/users"},
+			none: []string{"/v1/partitions/redpanda/controller/0"},
+		},
 	}
 
 	for _, tt := range tests {
@@ -128,6 +177,8 @@ func TestAdminAPI(t *testing.T) {
 			for _, path := range tt.none {
 				checkCallNone(t, calls, path, tt.nNodes)
 			}
+
+			require.EqualValues(t, 0, responsesPendingClosure.Load(), "Not all requests were closed!")
 		})
 	}
 }

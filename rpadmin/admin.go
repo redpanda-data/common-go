@@ -69,6 +69,10 @@ type (
 	NopAuth struct{}
 )
 
+// responseWrapper functions as a testing mechanism for ensuring
+// that we actually close all of our network connections
+var responseWrapper = func(r *http.Response) *http.Response { return r }
+
 func (a *BasicAuth) apply(req *http.Request) {
 	req.SetBasicAuth(a.Username, a.Password)
 }
@@ -502,7 +506,6 @@ func (a *AdminAPI) sendOne(
 // broadcast on writes to the Admin API.
 func (a *AdminAPI) sendAll(rootCtx context.Context, method, path string, body, into any) error {
 	var (
-		once   sync.Once
 		resURL string
 		res    *http.Response
 		grp    multierror.Group
@@ -519,6 +522,8 @@ func (a *AdminAPI) sendAll(rootCtx context.Context, method, path string, body, i
 				}
 			}
 		}
+
+		mutex sync.Mutex
 	)
 
 	for i, url := range a.urlsWithPath(path) {
@@ -536,7 +541,18 @@ func (a *AdminAPI) sendAll(rootCtx context.Context, method, path string, body, i
 			// Only one request should be successful, but for
 			// paranoia, we guard keeping the first successful
 			// response.
-			once.Do(func() { resURL, res = myURL, myRes })
+			mutex.Lock()
+			defer mutex.Unlock()
+
+			if resURL != "" {
+				// close the response body for my response since it won't be read
+				// in the unmarshaling code
+				myRes.Body.Close()
+				return nil
+			}
+
+			resURL, res = myURL, myRes
+
 			return nil
 		})
 	}
@@ -638,6 +654,11 @@ func (a *AdminAPI) sendAndReceive(
 		res, err = a.oneshotClient.Do(req)
 	}
 
+	if res != nil {
+		// this is mainly used to ensure we're cleaning up all of our responses
+		res = responseWrapper(res)
+	}
+
 	if err != nil {
 		// When the server expects a TLS connection, but the TLS config isn't
 		// set/ passed, The client returns an error like
@@ -650,6 +671,10 @@ func (a *AdminAPI) sendAndReceive(
 	}
 
 	if res.StatusCode/100 != 2 {
+		// we read the body just below, so this response is now
+		// junked and we need to close it.
+		defer res.Body.Close()
+
 		resBody, err := io.ReadAll(res.Body)
 		status := http.StatusText(res.StatusCode)
 		if err != nil {
