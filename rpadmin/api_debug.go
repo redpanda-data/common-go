@@ -441,6 +441,7 @@ func (a *AdminAPI) DeleteDebugBundleFile(ctx context.Context, filename string) e
 }
 
 // DownloadDebugBundleFile gets the specific debug bundle file on the specified broker node.
+// The caller must call close on the response returned as it does not yet have its body read.
 func (a *AdminAPI) DownloadDebugBundleFile(ctx context.Context, filename string) (*http.Response, error) {
 	if len(a.urls) != 1 {
 		return nil, fmt.Errorf("unable to issue a single-admin-endpoint request to %d admin endpoints", len(a.urls))

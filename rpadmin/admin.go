@@ -519,6 +519,8 @@ func (a *AdminAPI) sendAll(rootCtx context.Context, method, path string, body, i
 				}
 			}
 		}
+
+		successfulResponseIndex int
 	)
 
 	for i, url := range a.urlsWithPath(path) {
@@ -536,7 +538,14 @@ func (a *AdminAPI) sendAll(rootCtx context.Context, method, path string, body, i
 			// Only one request should be successful, but for
 			// paranoia, we guard keeping the first successful
 			// response.
-			once.Do(func() { resURL, res = myURL, myRes })
+			once.Do(func() { resURL, res, successfulResponseIndex = myURL, myRes, except })
+
+			if except != successfulResponseIndex {
+				// close the response body for my response since it won't be read
+				// in the unmarshaling code
+				myRes.Body.Close()
+			}
+
 			return nil
 		})
 	}
@@ -650,6 +659,10 @@ func (a *AdminAPI) sendAndReceive(
 	}
 
 	if res.StatusCode/100 != 2 {
+		// we read the body just below, so this response is now
+		// junked and we need to close it.
+		defer res.Body.Close()
+
 		resBody, err := io.ReadAll(res.Body)
 		status := http.StatusText(res.StatusCode)
 		if err != nil {
