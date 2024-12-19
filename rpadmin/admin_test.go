@@ -379,3 +379,73 @@ func TestUpdateAPIUrlsFromKubernetesDNS(t *testing.T) {
 		})
 	}
 }
+
+func TestIdleConnectionClosure(t *testing.T) {
+	clients := 1000
+	numRequests := 10
+
+	urls := []string{}
+	for id := 0; id < 3; id++ {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			switch {
+			case strings.HasPrefix(r.URL.Path, "/v1/node_config"):
+				w.Write([]byte(fmt.Sprintf(`{"node_id": %d}`, id))) //nolint:gocritic // original rpk code
+			case strings.HasPrefix(r.URL.Path, "/v1/partitions/redpanda/controller/0"):
+				w.Write([]byte(`{"leader_id": 0}`)) //nolint:gocritic // original rpk code
+			}
+		}))
+
+		t.Cleanup(server.Close)
+
+		urls = append(urls, server.URL)
+	}
+
+	// tracker to make sure we close all of our connections
+	var mutex sync.RWMutex
+	conns := []*wrappedConnection{}
+
+	for i := 0; i < clients; i++ {
+		// initialize a new client and do some requests
+		adminClient, err := NewAdminAPIWithDialer(urls, new(NopAuth), nil, func(ctx context.Context, network, addr string) (net.Conn, error) {
+			conn, err := (&net.Dialer{}).DialContext(ctx, network, addr)
+			if err != nil {
+				return nil, err
+			}
+			mutex.Lock()
+			defer mutex.Unlock()
+
+			wrapped := &wrappedConnection{Conn: conn}
+			conns = append(conns, wrapped)
+			return wrapped, nil
+		})
+		require.NoError(t, err)
+
+		for i := 0; i < numRequests; i++ {
+			_, err = adminClient.GetLeaderID(context.Background())
+			require.NoError(t, err)
+		}
+
+		adminClient.Close()
+	}
+
+	mutex.RLock()
+	defer mutex.RUnlock()
+
+	closed := 0
+	for _, conn := range conns {
+		if conn.closed {
+			closed++
+		}
+	}
+	require.Equal(t, closed, len(conns), "Not all connections were closed")
+}
+
+type wrappedConnection struct {
+	net.Conn
+	closed bool
+}
+
+func (w *wrappedConnection) Close() error {
+	w.closed = true
+	return w.Conn.Close()
+}

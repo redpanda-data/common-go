@@ -96,6 +96,7 @@ type AdminAPI struct {
 	urls                []string
 	brokerIDToUrlsMutex sync.Mutex
 	brokerIDToUrls      map[int]string
+	transport           *http.Transport
 	retryClient         *pester.Client
 	oneshotClient       *http.Client
 	auth                Auth
@@ -180,17 +181,18 @@ func newAdminAPI(urls []string, auth Auth, tlsConfig *tls.Config, dialer DialCon
 	for _, opt := range opts {
 		opt.apply(client)
 	}
+	transport := defaultTransport()
+
 	a := &AdminAPI{
 		urls:           make([]string, len(urls)),
 		retryClient:    client,
 		oneshotClient:  &http.Client{Timeout: 10 * time.Second},
 		auth:           auth,
+		transport:      transport,
 		tlsConfig:      tlsConfig,
 		brokerIDToUrls: make(map[int]string),
 		forCloud:       forCloud,
 	}
-
-	transport := &http.Transport{}
 
 	if tlsConfig != nil {
 		transport.TLSClientConfig = tlsConfig
@@ -780,4 +782,27 @@ func (a *AdminAPI) UpdateAPIUrlsFromKubernetesDNS() error {
 	}
 
 	return a.initURLs(urls, a.tlsConfig, a.forCloud)
+}
+
+// Close closes all idle connections of the underlying transport
+// this should be called when an admin client is no longer in-use
+// in order to not leak connections from the underlying transport
+// pool.
+func (a *AdminAPI) Close() {
+	a.transport.CloseIdleConnections()
+}
+
+func defaultTransport() *http.Transport {
+	return &http.Transport{
+		Proxy: http.ProxyFromEnvironment,
+		DialContext: (&net.Dialer{
+			Timeout:   30 * time.Second,
+			KeepAlive: 30 * time.Second,
+		}).DialContext,
+		ForceAttemptHTTP2:     true,
+		MaxIdleConns:          100,
+		IdleConnTimeout:       90 * time.Second,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
+	}
 }
