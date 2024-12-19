@@ -425,7 +425,7 @@ func TestIdleConnectionClosure(t *testing.T) {
 			require.NoError(t, err)
 		}
 
-		// adminClient.Close()
+		adminClient.Close()
 	}
 
 	mutex.RLock()
