@@ -391,7 +391,7 @@ func TestIdleConnectionClosure(t *testing.T) {
 			case strings.HasPrefix(r.URL.Path, "/v1/node_config"):
 				w.Write([]byte(fmt.Sprintf(`{"node_id": %d}`, id))) //nolint:gocritic // original rpk code
 			case strings.HasPrefix(r.URL.Path, "/v1/partitions/redpanda/controller/0"):
-				w.Write([]byte(`{"leader_id": 0}`)) //nolint:gocritic // original rpk code
+				w.Write([]byte(`{"leader_id": 0}`))
 			}
 		}))
 
@@ -425,7 +425,7 @@ func TestIdleConnectionClosure(t *testing.T) {
 			require.NoError(t, err)
 		}
 
-		adminClient.Close()
+		// adminClient.Close()
 	}
 
 	mutex.RLock()
