@@ -60,6 +60,13 @@ type Partition struct {
 	Replicas    []Replica `json:"replicas"`
 }
 
+// LocalPartitionSummary is the information returned from the Redpanda admin local partition summary endpoint.
+type LocalPartitionSummary struct {
+	Count           int `json:"count"`
+	Leaderless      int `json:"leaderless"`
+	UnderReplicated int `json:"under_replicated"`
+}
+
 // Operation represents an operation.
 type Operation struct {
 	Core        int    `json:"core"`
@@ -104,6 +111,13 @@ type MajorityLostPartitions struct {
 	TopicRevision int       `json:"topic_revision" yaml:"topic_revision"`
 	Replicas      []Replica `json:"replicas,omitempty" yaml:"replicas,omitempty"`
 	DeadNodes     []int     `json:"dead_nodes,omitempty" yaml:"dead_nodes,omitempty"`
+}
+
+// GetLocalPartitionsSummary returns summary partition information for a broker. To be used deterministically,
+// the admin client must be configured to use only a single broker.
+func (a *AdminAPI) GetLocalPartitionsSummary(ctx context.Context) (LocalPartitionSummary, error) {
+	var lps LocalPartitionSummary
+	return lps, a.sendOne(ctx, http.MethodGet, "/v1/partitions/local_summary", nil, &lps, false)
 }
 
 // GetPartition returns detailed partition information.

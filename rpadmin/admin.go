@@ -96,6 +96,7 @@ type AdminAPI struct {
 	urls                []string
 	brokerIDToUrlsMutex sync.Mutex
 	brokerIDToUrls      map[int]string
+	dialer              DialContextFunc
 	transport           *http.Transport
 	retryClient         *pester.Client
 	oneshotClient       *http.Client
@@ -192,6 +193,7 @@ func newAdminAPI(urls []string, auth Auth, tlsConfig *tls.Config, dialer DialCon
 		tlsConfig:      tlsConfig,
 		brokerIDToUrls: make(map[int]string),
 		forCloud:       forCloud,
+		dialer:         dialer,
 	}
 
 	if tlsConfig != nil {
@@ -271,7 +273,7 @@ func (a *AdminAPI) ForHost(url string) (*AdminAPI, error) {
 }
 
 func (a *AdminAPI) newAdminForSingleHost(host string) (*AdminAPI, error) {
-	return newAdminAPI([]string{host}, a.auth, a.tlsConfig, nil, a.forCloud)
+	return newAdminAPI([]string{host}, a.auth, a.tlsConfig, a.dialer, a.forCloud)
 }
 
 func (a *AdminAPI) urlsWithPath(path string) []string {
