@@ -380,6 +380,41 @@ func TestUpdateAPIUrlsFromKubernetesDNS(t *testing.T) {
 	}
 }
 
+func TestDialerPassing(t *testing.T) {
+	urls := []string{}
+	for id := 0; id < 3; id++ {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			switch {
+			case strings.HasPrefix(r.URL.Path, "/v1/node_config"):
+				w.Write([]byte(fmt.Sprintf(`{"node_id": %d}`, id))) //nolint:gocritic // original rpk code
+			case strings.HasPrefix(r.URL.Path, "/v1/partitions/redpanda/controller/0"):
+				w.Write([]byte(`{"leader_id": 0}`))
+			}
+		}))
+
+		t.Cleanup(server.Close)
+		urls = append(urls, server.URL)
+	}
+
+	var dialed atomic.Int64
+	adminClient, err := NewAdminAPIWithDialer(urls, new(NopAuth), nil, func(ctx context.Context, network, addr string) (net.Conn, error) {
+		dialed.Add(1)
+		return (&net.Dialer{}).DialContext(ctx, network, addr)
+	})
+	require.NoError(t, err)
+
+	err = adminClient.eachBroker(func(client *AdminAPI) error {
+		_, err := client.GetNodeConfig(context.Background())
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+	require.NoError(t, err)
+
+	require.Equal(t, int64(3), dialed.Load())
+}
+
 func TestIdleConnectionClosure(t *testing.T) {
 	clients := 1000
 	numRequests := 10
