@@ -82,6 +82,11 @@ type ClusterUUID struct {
 	UUID string `json:"cluster_uuid"`
 }
 
+// MetricsUUID holds the UUID reported by the Metrics telemetry system.
+type MetricsUUID struct {
+	UUID string `json:"uuid"`
+}
+
 // ClusterView represents a cluster view as seen by one node. There are
 // many keys returned, so the raw response is just unmarshalled into an
 // interface.
@@ -116,4 +121,11 @@ func (a *AdminAPI) ClusterView(ctx context.Context) (ClusterView, error) {
 func (a *AdminAPI) ClusterUUID(ctx context.Context) (ClusterUUID, error) {
 	var response ClusterUUID
 	return response, a.sendToLeader(ctx, http.MethodGet, "/v1/cluster/uuid", nil, &response)
+}
+
+// MetricsUUID returns the UUID reported by the metrics telemetry system.
+// This may also be the cluster ID unless that is specified by the user.
+func (a *AdminAPI) MetricsUUID(ctx context.Context) (MetricsUUID, error) {
+	var response MetricsUUID
+	return response, a.sendToLeader(ctx, http.MethodGet, "/v1/cluster/metrics_uuid", nil, &response)
 }
