@@ -10,6 +10,7 @@
 package rpadmin
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -36,7 +37,9 @@ func (a *AdminAPI) Config(ctx context.Context, includeDefaults bool) (Config, er
 		return nil, err
 	}
 	var unmarshaled Config
-	if err := json.Unmarshal(rawResp, &unmarshaled); err != nil {
+	decoder := json.NewDecoder(bytes.NewReader(rawResp))
+	decoder.UseNumber()
+	if err := decoder.Decode(&unmarshaled); err != nil {
 		return nil, fmt.Errorf("unable to decode response body: %w", err)
 	}
 	return unmarshaled, nil
@@ -54,7 +57,9 @@ func (a *AdminAPI) SingleKeyConfig(ctx context.Context, key string) (Config, err
 		return nil, err
 	}
 	var unmarshaled Config
-	if err := json.Unmarshal(rawResp, &unmarshaled); err != nil {
+	decoder := json.NewDecoder(bytes.NewReader(rawResp))
+	decoder.UseNumber()
+	if err := decoder.Decode(&unmarshaled); err != nil {
 		return nil, fmt.Errorf("unable to decode response body: %w", err)
 	}
 	return unmarshaled, nil
