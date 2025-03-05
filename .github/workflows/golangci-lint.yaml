@@ -15,7 +15,7 @@ on:
       - './github/workflows/golangci-lint.yaml'
 
 env:
-  GOLANGCI_LINT_VERSION: v1.61
+  GOLANGCI_LINT_VERSION: v1.64
 
 permissions:
   contents: read
