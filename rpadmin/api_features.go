@@ -111,7 +111,7 @@ func (a *AdminAPI) GetEnterpriseFeatures(ctx context.Context) (EnterpriseFeature
 // GetLicenseInfo gets the license info.
 func (a *AdminAPI) GetLicenseInfo(ctx context.Context) (License, error) {
 	var license License
-	return license, a.sendToLeader(ctx, http.MethodGet, "/v1/features/license", nil, &license)
+	return license, a.sendAny(ctx, http.MethodGet, "/v1/features/license", nil, &license)
 }
 
 // SetLicense sets the base 64 encoding of the license.
