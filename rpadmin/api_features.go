@@ -19,11 +19,16 @@ import (
 type FeatureState string
 
 const (
-	FeatureStateActive      FeatureState = "active"      // FeatureStateActive is the active state.
-	FeatureStatePreparing   FeatureState = "preparing"   // FeatureStatePreparing is the preparing state.
-	FeatureStateAvailable   FeatureState = "available"   // FeatureStateAvailable is the available state.
-	FeatureStateUnavailable FeatureState = "unavailable" // FeatureStateUnavailable is the unavailable state.
-	FeatureStateDisabled    FeatureState = "disabled"    // FeatureStateDisabled is the disabled state.
+	// FeatureStateActive is the active state.
+	FeatureStateActive FeatureState = "active"
+	// FeatureStatePreparing is the preparing state.
+	FeatureStatePreparing FeatureState = "preparing"
+	// FeatureStateAvailable is the available state.
+	FeatureStateAvailable FeatureState = "available"
+	// FeatureStateUnavailable is the unavailable state.
+	FeatureStateUnavailable FeatureState = "unavailable"
+	// FeatureStateDisabled is the disabled state.
+	FeatureStateDisabled FeatureState = "disabled"
 )
 
 // Feature contains information on the state of a feature.
