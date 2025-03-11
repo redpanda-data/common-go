@@ -11,6 +11,7 @@ package rpadmin
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"reflect"
@@ -65,7 +66,7 @@ type InboundMigrationState struct {
 func (a *AdminAPI) addMigration(ctx context.Context, migration any) (AddMigrationResponse, error) {
 	migrationType := reflect.TypeOf(migration)
 	if migrationType != reflect.TypeOf(InboundMigration{}) && migrationType != reflect.TypeOf(OutboundMigration{}) {
-		return AddMigrationResponse{}, fmt.Errorf("invalid migration type: must be either InboundMigration or OutboundMigration")
+		return AddMigrationResponse{}, errors.New("invalid migration type: must be either InboundMigration or OutboundMigration")
 	}
 
 	var response AddMigrationResponse
