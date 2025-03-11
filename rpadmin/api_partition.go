@@ -105,6 +105,12 @@ type ClusterPartition struct {
 	Disabled    *bool     `json:"disabled,omitempty" yaml:"disabled,omitempty"` // Disabled may be discarded if not present.
 }
 
+// BrokerDistribution represents the number of partitions assigned to a broker.
+type BrokerDistribution struct {
+	NodeID int `json:"node_id" yaml:"node_id"`
+	Count  int `json:"count" yaml:"count"`
+}
+
 // MajorityLostPartitions represents majority lost partitions.
 type MajorityLostPartitions struct {
 	NTP           NTP       `json:"ntp,omitempty" yaml:"ntp,omitempty"`
