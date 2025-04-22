@@ -1,0 +1,19 @@
+version: v2
+managed:
+  enabled: true
+  override:
+    - file_option: go_package_prefix
+      value: buf.build/gen/go/redpandadata/dataplane/protocolbuffers/go
+      module: buf.build/redpandadata/dataplane
+    - file_option: go_package_prefix
+      value: buf.build/gen/go/redpandadata/cloud/protocolbuffers/go
+      module: buf.build/redpandadata/cloud
+plugins:
+  - local:
+      - go
+      - run
+      - github.com/redpanda-data/protoc-gen-go-mcp/cmd/protoc-gen-go-mcp@5cd8fd4d1b7b53f38d4d09a464d053c7976f66c9
+    out: proto/gen/go
+    opt: paths=source_relative
+inputs:
+  - directory: proto
