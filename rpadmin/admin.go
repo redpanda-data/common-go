@@ -103,6 +103,7 @@ type AdminAPI struct {
 	auth                Auth
 	tlsConfig           *tls.Config
 	forCloud            bool
+	opts                []Opt
 }
 
 // NewClient returns an AdminAPI client that talks to each of the admin api addresses passed in.
@@ -135,8 +136,8 @@ func NewHostClient(addrs []string, tls *tls.Config, auth Auth, forCloud bool, ho
 type DialContextFunc = func(ctx context.Context, network, addr string) (net.Conn, error)
 
 // NewAdminAPIWithDialer creates a new Redpanda Admin API client with a specified dialer function.
-func NewAdminAPIWithDialer(urls []string, auth Auth, tlsConfig *tls.Config, dialer DialContextFunc) (*AdminAPI, error) {
-	return newAdminAPI(urls, auth, tlsConfig, dialer, false)
+func NewAdminAPIWithDialer(urls []string, auth Auth, tlsConfig *tls.Config, dialer DialContextFunc, opts ...Opt) (*AdminAPI, error) {
+	return newAdminAPI(urls, auth, tlsConfig, dialer, false, opts...)
 }
 
 // NewAdminAPI creates a new Redpanda Admin API client.
@@ -187,13 +188,14 @@ func newAdminAPI(urls []string, auth Auth, tlsConfig *tls.Config, dialer DialCon
 	a := &AdminAPI{
 		urls:           make([]string, len(urls)),
 		retryClient:    client,
-		oneshotClient:  &http.Client{Timeout: 10 * time.Second},
+		oneshotClient:  &http.Client{Timeout: client.Timeout},
 		auth:           auth,
 		transport:      transport,
 		tlsConfig:      tlsConfig,
 		brokerIDToUrls: make(map[int]string),
 		forCloud:       forCloud,
 		dialer:         dialer,
+		opts:           opts,
 	}
 
 	if tlsConfig != nil {
@@ -273,7 +275,7 @@ func (a *AdminAPI) ForHost(url string) (*AdminAPI, error) {
 }
 
 func (a *AdminAPI) newAdminForSingleHost(host string) (*AdminAPI, error) {
-	return newAdminAPI([]string{host}, a.auth, a.tlsConfig, a.dialer, a.forCloud)
+	return newAdminAPI([]string{host}, a.auth, a.tlsConfig, a.dialer, a.forCloud, a.opts...)
 }
 
 func (a *AdminAPI) urlsWithPath(path string) []string {
