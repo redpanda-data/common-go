@@ -73,12 +73,21 @@ type DecommissionMovingTo struct {
 	Core   int `json:"core"`
 }
 
+// ReallocationFailedPartition holds reallocation failed partition detail.
+type ReallocationFailedPartition struct {
+	NS        string `json:"ns"`
+	Topic     string `json:"topic"`
+	Partition int    `json:"partition"`
+	Error     string `json:"error"`
+}
+
 // DecommissionStatusResponse is the response to DecommissionBrokerStatus.
 type DecommissionStatusResponse struct {
-	Finished           bool                     `json:"finished"`
-	ReplicasLeft       int                      `json:"replicas_left"`
-	AllocationFailures []string                 `json:"allocation_failures"`
-	Partitions         []DecommissionPartitions `json:"partitions"`
+	Finished                   bool                          `json:"finished"`
+	ReplicasLeft               int                           `json:"replicas_left"`
+	AllocationFailures         []string                      `json:"allocation_failures"`
+	Partitions                 []DecommissionPartitions      `json:"partitions"`
+	ReallocationFailureDetails []ReallocationFailedPartition `json:"reallocation_failure_details,omitempty"`
 }
 
 // BrokerUuids is information that shows the mapping of node ID to node UUID.
