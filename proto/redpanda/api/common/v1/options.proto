@@ -8,5 +8,5 @@ option go_package = "buf.build/gen/go/redpandadata/common/protocolbuffers/go/red
 
 // Option used by protoc-gen-permissions
 extend google.protobuf.MethodOptions {
-  repeated string required_permission = 15350;
+  repeated string required_permission = 15351;
 }
