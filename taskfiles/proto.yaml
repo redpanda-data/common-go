@@ -33,12 +33,12 @@ tasks:
     dir: "{{.ROOT_DIR}}/proto"
     cmds:
       - |
-        {{ .PATH_PREFIX }} buf push
+        {{ .PATH_PREFIX }} buf push --git-metadata
   
   install-buf:
     desc: install buf
     vars:
-      BUF_VERSION: 1.39.0
+      BUF_VERSION: 1.55.1
       BUF_URL: https://github.com/bufbuild/buf/releases/download/v{{.BUF_VERSION}}/buf-$(uname -s)-$(uname -m)
     cmds:
       - mkdir -p {{.BUILD_ROOT}}/bin
