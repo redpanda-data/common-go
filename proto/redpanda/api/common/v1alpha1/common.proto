@@ -1,5 +1,6 @@
 syntax = "proto3";
 
+// Deprecated: Use redpanda.api.common.v1 instead.
 package redpanda.api.common.v1alpha1;
 
 import 'google/protobuf/any.proto';
