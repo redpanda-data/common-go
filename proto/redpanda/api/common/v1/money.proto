@@ -1,11 +1,10 @@
 syntax = "proto3";
 
-// Deprecated: Use redpanda.api.common.v1 instead.
-package redpanda.api.common.v1alpha1;
+package redpanda.api.common.v1;
 
 import "google/api/field_behavior.proto";
 
-option go_package = "buf.build/gen/go/redpandadata/common/protocolbuffers/go/redpanda/api/common/v1alpha1;commonv1alpha1";
+option go_package = "buf.build/gen/go/redpandadata/common/protocolbuffers/go/redpanda/api/common/v1;commonv1";
 
 message Money {
   // Amount is a decimal number.
