@@ -1,0 +1,4 @@
+github.com/twmb/franz-go/pkg/sr v1.4.0 h1:5XLiFsxAEbCgwjuBPlvVGQagHuKUS3Zyq/2abxxQS9w=
+github.com/twmb/franz-go/pkg/sr v1.4.0/go.mod h1:O4o4mUMNfmyEt2HcuM+qZdc6KrcStvjgxWR6Cfvmukw=
+github.com/twmb/franz-go/pkg/sr v1.4.1-0.20250620172413-c17130ef7765 h1:+l/P3ExNaY1T5Tft/+zK5r7hiEilgHWS5Cjjh2iZ4ME=
+github.com/twmb/franz-go/pkg/sr v1.4.1-0.20250620172413-c17130ef7765/go.mod h1:O4o4mUMNfmyEt2HcuM+qZdc6KrcStvjgxWR6Cfvmukw=
