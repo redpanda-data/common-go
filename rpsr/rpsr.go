@@ -1,0 +1,200 @@
+// Package rpsr provides a client to interact with the Redpanda Schema Registry.
+package rpsr
+
+import (
+	"context"
+	"errors"
+	"net/http"
+	"net/url"
+	"sync"
+
+	"github.com/twmb/franz-go/pkg/sr"
+	"golang.org/x/sync/errgroup"
+)
+
+// ResourceType defines the type of resource an ACL applies to.
+type ResourceType string
+
+// PatternType defines how the resource name is matched.
+type PatternType string
+
+// Operation defines the action allowed or denied by an ACL.
+type Operation string
+
+// Permission defines whether an ACL allows or denies an operation.
+type Permission string
+
+const (
+	// ResourceTypeRegistry represents a registry resource.
+	ResourceTypeRegistry ResourceType = "REGISTRY"
+	// ResourceTypeSubject represents a subject (schema) resource.
+	ResourceTypeSubject ResourceType = "SUBJECT"
+
+	// PatternTypeLiteral matches a resource name exactly.
+	PatternTypeLiteral PatternType = "LITERAL"
+	// PatternTypePrefix matches resource names by prefix.
+	PatternTypePrefix PatternType = "PREFIXED"
+
+	// OperationAll represents ALL operations.
+	OperationAll Operation = "ALL"
+	// OperationRead is the READ operation.
+	OperationRead Operation = "READ"
+	// OperationWrite is the WRITE operation.
+	OperationWrite Operation = "WRITE"
+	// OperationRemove is the REMOVE operation.
+	OperationRemove Operation = "REMOVE"
+	// OperationDescribe is the DESCRIBE operation.
+	OperationDescribe Operation = "DESCRIBE"
+	// OperationDescribeConfig is the DESCRIBE_CONFIG operation.
+	OperationDescribeConfig Operation = "DESCRIBE_CONFIGS"
+	// OperationAlter is the ALTER operation.
+	OperationAlter Operation = "ALTER"
+	// OperationAlterConfig is the ALTER_CONFIG operation.
+	OperationAlterConfig Operation = "ALTER_CONFIGS"
+
+	// PermissionAllow permits the operation.
+	PermissionAllow Permission = "ALLOW"
+	// PermissionDeny denies the operation.
+	PermissionDeny Permission = "DENY"
+)
+
+// ACL represents an individual access control rule.
+type ACL struct {
+	Principal    string       `json:"principal"`
+	Resource     string       `json:"resource"`
+	ResourceType ResourceType `json:"resource_type"`
+	PatternType  PatternType  `json:"pattern_type"` // LITERAL or PREFIXED
+	Host         string       `json:"host"`
+	Operation    Operation    `json:"operation"`  // READ, WRITE, etc.
+	Permission   Permission   `json:"permission"` // ALLOW or DENY
+}
+
+// ToQuery converts the filter into a URL query string.
+func (f *ACL) ToQuery() string {
+	v := url.Values{}
+	if f.Principal != "" {
+		v.Set("principal", f.Principal)
+	}
+	if f.Resource != "" {
+		v.Set("resource", f.Resource)
+	}
+	if f.ResourceType != "" {
+		v.Set("resource_type", string(f.ResourceType))
+	}
+	if f.PatternType != "" {
+		v.Set("pattern_type", string(f.PatternType))
+	}
+	if f.Host != "" {
+		v.Set("host", f.Host)
+	}
+	if f.Operation != "" {
+		v.Set("operation", string(f.Operation))
+	}
+	if f.Permission != "" {
+		v.Set("permission", string(f.Permission))
+	}
+	if len(v) == 0 {
+		return ""
+	}
+	return "?" + v.Encode()
+}
+
+// ACLClient defines methods to manage Redpanda's Schema Registry ACLs.
+type ACLClient interface {
+	CreateACLs(ctx context.Context, acls []ACL) error
+	DeleteACLs(ctx context.Context, acls []ACL) error
+	ListACLs(ctx context.Context, filter *ACL) ([]ACL, error)
+	ListACLsBatch(ctx context.Context, filter *ACL) ([]ACL, error)
+}
+
+// Client is a Redpanda Schema Registry client that embeds the franz-go schema
+// registry client. It expects all the configurations to be set up in the
+// franz-go sr.Client.
+type Client struct {
+	*sr.Client
+}
+
+// NewClient creates a new ACL-aware Schema Registry client. srCL must not be
+// nil.
+func NewClient(srCl *sr.Client) (*Client, error) {
+	if srCl == nil {
+		return nil, errors.New("schema registry client cannot be nil")
+	}
+	return &Client{Client: srCl}, nil
+}
+
+// CreateACLs creates new ACL entries.
+func (c *Client) CreateACLs(ctx context.Context, acls []ACL) error {
+	return c.Do(ctx, http.MethodPost, "/security/acls", acls, nil)
+}
+
+// DeleteACLs deletes existing ACL entries.
+func (c *Client) DeleteACLs(ctx context.Context, acls []ACL) error {
+	return c.Do(ctx, http.MethodDelete, "/security/acls", acls, nil)
+}
+
+// ListACLs retrieves all ACL entries that match the provided filter. Empty
+// fields will be ignored, meaning they will match any value.
+func (c *Client) ListACLs(ctx context.Context, filter *ACL) ([]ACL, error) {
+	var result []ACL
+	var f string
+	if filter != nil {
+		f = filter.ToQuery()
+	}
+	return result, c.Do(ctx, http.MethodGet, "/security/acls"+f, nil, &result)
+}
+
+// ListACLsBatch retrieves all ACL entries that match any of the provided
+// filters. It performs concurrent requests for each filter and combines the
+// results, trimming repeated ACLs.
+func (c *Client) ListACLsBatch(ctx context.Context, filters []ACL) ([]ACL, error) {
+	var (
+		allACLs []ACL
+		mu      sync.Mutex
+	)
+	g, egCtx := errgroup.WithContext(ctx)
+	for _, f := range filters {
+		g.Go(func() error {
+			acls, err := c.ListACLs(egCtx, &f)
+			if err != nil {
+				return err
+			}
+			mu.Lock()
+			allACLs = append(allACLs, acls...)
+			mu.Unlock()
+			return nil
+		})
+	}
+
+	if err := g.Wait(); err != nil {
+		return nil, err
+	}
+	allACLs = trimRepeatedACLs(allACLs)
+	return allACLs, nil
+}
+
+func trimRepeatedACLs(acls []ACL) []ACL {
+	seen := make(map[string]struct{})
+	var uniqueACLs []ACL
+	for _, acl := range acls {
+		key := aclKey(acl)
+		if _, exists := seen[key]; !exists {
+			seen[key] = struct{}{}
+			uniqueACLs = append(uniqueACLs, acl)
+		}
+	}
+	return uniqueACLs
+}
+
+// aclKey generates a string key for an ACL based on its fields. ACLs don't have
+// an ID, so we use this to differentiate between them.
+func aclKey(acl ACL) string {
+	sep := "\x00"
+	return acl.Principal + sep +
+		acl.Resource + sep +
+		string(acl.ResourceType) + sep +
+		string(acl.PatternType) + sep +
+		acl.Host + sep +
+		string(acl.Operation) + sep +
+		string(acl.Permission)
+}
