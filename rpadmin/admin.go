@@ -124,7 +124,7 @@ func NewHostClient(addrs []string, tls *tls.Config, auth Auth, forCloud bool, ho
 		if i < 0 || i >= len(addrs) {
 			return nil, fmt.Errorf("admin host %d is out of allowed range [0, %d)", i, len(addrs))
 		}
-		addrs = []string{addrs[0]}
+		addrs = []string{addrs[i]}
 	} else {
 		addrs = []string{host} // trust input is hostname (validate below)
 	}
