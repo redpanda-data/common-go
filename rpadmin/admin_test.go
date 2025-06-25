@@ -484,3 +484,13 @@ func (w *wrappedConnection) Close() error {
 	w.closed = true
 	return w.Conn.Close()
 }
+
+func TestNewHostClientIndex(t *testing.T) {
+	addrs := []string{"http://host0:9644", "http://host1:9644"}
+
+	cl, err := NewHostClient(addrs, nil, new(NopAuth), false, "1")
+	require.NoError(t, err)
+
+	require.Equal(t, 1, len(cl.urls))
+	assert.Equal(t, "http://host1:9644", cl.urls[0])
+}
