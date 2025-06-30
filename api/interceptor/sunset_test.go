@@ -62,11 +62,13 @@ func TestSunset(t *testing.T) {
 		Handler: handler,
 	}
 	lis := bufconn.Listen(1024 * 1024)
+	ready := make(chan struct{})
 	go func() {
+		close(ready) // Signal that the server is ready
 		err := httpServer.Serve(lis)
 		require.NoError(t, err)
 	}()
-	time.Sleep(time.Second)
+	<-ready // Wait for the server to signal readiness
 
 	// Create client
 	httpCl := &http.Client{
