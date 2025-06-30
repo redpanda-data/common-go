@@ -111,29 +111,3 @@ func TestObserver(t *testing.T) {
 		assert.Equal(t, expectedResponses, serverStreamMetadata.MessagesSent())
 	})
 }
-
-type elizaServerHandler struct {
-	elizav1connect.UnimplementedElizaServiceHandler
-}
-
-func (elizaServerHandler) Say(_ context.Context, req *connect.Request[elizav1.SayRequest]) (*connect.Response[elizav1.SayResponse], error) {
-	return connect.NewResponse(&elizav1.SayResponse{
-		Sentence: req.Msg.Sentence, // Just echo request string
-	}), nil
-}
-
-func (elizaServerHandler) Introduce(_ context.Context, req *connect.Request[elizav1.IntroduceRequest], stream *connect.ServerStream[elizav1.IntroduceResponse]) error {
-	name := req.Msg.Name
-	if name == "" {
-		name = "Anonymous User"
-	}
-
-	// Repeat the name multiple times (exactly len(name) times)
-	repetitions := len(name)
-	for i := 0; i < repetitions; i++ {
-		if err := stream.Send(&elizav1.IntroduceResponse{Sentence: name}); err != nil {
-			return err
-		}
-	}
-	return nil
-}
