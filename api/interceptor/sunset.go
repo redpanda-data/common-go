@@ -2,6 +2,7 @@ package interceptor
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -81,8 +82,28 @@ func formatRFC7231Date(t time.Time) string {
 // WrapUnary adds Sunset headers to unary responses
 func (s *Sunset) WrapUnary(next connect.UnaryFunc) connect.UnaryFunc {
 	return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
+		// isClient checks if the request is a client-side request and should not have Sunset headers
+		if req.Spec().IsClient {
+			return next(ctx, req)
+		}
 		resp, err := next(ctx, req)
+		if err != nil {
+			if connectErr := new(connect.Error); errors.As(err, &connectErr) {
+				// Modify the Connect error as needed
+				// For example, add or modify metadata
+				connectErr.Meta().Set(SunsetHeaderName, s.sunsetDate)
+				if s.deprecation != "" {
+					connectErr.Meta().Set(DeprecationHeaderName, s.deprecation)
+				}
+				if s.linkValue != "" {
+					connectErr.Meta().Add(LinkHeaderName, s.linkValue)
+				}
+				return nil, connectErr
+			}
+			return nil, err
+		}
 
+		// this is an unlikely escape, but we handle it gracefully
 		if resp != nil {
 			// Add headers to indicate sunset
 			resp.Header().Set(SunsetHeaderName, s.sunsetDate)
@@ -95,7 +116,6 @@ func (s *Sunset) WrapUnary(next connect.UnaryFunc) connect.UnaryFunc {
 				resp.Header().Add(LinkHeaderName, s.linkValue)
 			}
 		}
-
 		return resp, err
 	}
 }

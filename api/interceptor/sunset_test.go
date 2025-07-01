@@ -37,6 +37,26 @@ func TestNewSunsetInterceptor(t *testing.T) {
 	assert.Equal(t, "<https://example.com/api/deprecation>; rel=\"sunset\"", interceptor.LinkValue())
 }
 
+// TestNilResponse ensures that the interceptor doesn't panic if the response is nil.
+func TestNilResponse(t *testing.T) {
+	sunsetDate := time.Date(2025, 12, 31, 23, 59, 59, 0, time.UTC)
+	interceptor := interceptor.NewSunset(sunsetDate)
+
+	// Create a handler that returns a nil response
+	handler := func(_ context.Context, _ connect.AnyRequest) (connect.AnyResponse, error) {
+		return nil, nil
+	}
+
+	// Wrap the handler with the interceptor
+	wrappedHandler := interceptor.WrapUnary(handler)
+
+	// Call the wrapped handler
+	_, err := wrappedHandler(context.Background(), connect.NewRequest(&elizav1.SayRequest{}))
+
+	// Assert that no error occurred
+	assert.NoError(t, err)
+}
+
 func TestSunset(t *testing.T) {
 	// Setup test date
 	sunsetDate := time.Date(2025, 12, 31, 23, 59, 59, 0, time.UTC)
@@ -107,6 +127,32 @@ func TestSunset(t *testing.T) {
 		}
 		require.Nil(t, stream.Err())
 		assert.Nil(t, stream.Close())
+
+		assert.Equal(t, "Wed, 31 Dec 2025 23:59:59 UTC", stream.ResponseHeader().Get(interceptor.SunsetHeaderName))
+		assert.Equal(t, "@1704067200", stream.ResponseHeader().Get(interceptor.DeprecationHeaderName))
+		assert.Equal(t, "<https://example.com/api/deprecation>; rel=\"sunset\"", stream.ResponseHeader().Get(interceptor.LinkHeaderName))
+	})
+
+	t.Run("unary error", func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(context.Background(), 6*time.Second)
+		defer cancel()
+		_, err := cl.Say(ctx, connect.NewRequest(&elizav1.SayRequest{Sentence: "error"}))
+		require.Error(t, err)
+		assert.Equal(t, connect.CodeInternal, connect.CodeOf(err))
+	})
+
+	t.Run("server stream error", func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(context.Background(), 6*time.Second)
+		defer cancel()
+
+		stream, err := cl.Introduce(ctx, connect.NewRequest(&elizav1.IntroduceRequest{Name: "error"}))
+		require.NoError(t, err)
+
+		for stream.Receive() {
+			_ = stream.Msg()
+		}
+		require.Error(t, stream.Err())
+		assert.Equal(t, connect.CodeInternal, connect.CodeOf(stream.Err()))
 
 		assert.Equal(t, "Wed, 31 Dec 2025 23:59:59 UTC", stream.ResponseHeader().Get(interceptor.SunsetHeaderName))
 		assert.Equal(t, "@1704067200", stream.ResponseHeader().Get(interceptor.DeprecationHeaderName))
