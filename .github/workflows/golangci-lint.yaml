@@ -7,12 +7,12 @@ on:
     paths:
       - '**.go'
       - '.golangci.yaml'
-      - './.github/workflows/golangci-lint.yaml'
+      - '.github/workflows/golangci-lint.yaml'
   pull_request:
     paths:
       - '**.go'
       - '.golangci.yaml'
-      - './.github/workflows/golangci-lint.yaml'
+      - '.github/workflows/golangci-lint.yaml'
 
 env:
   GOLANGCI_LINT_VERSION: v1.64
@@ -22,8 +22,11 @@ permissions:
 
 jobs:
   golangci:
-    name: lint
+    name: lint (${{ matrix.dir }})
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        dir: [api, rpadmin, secrets, net, rpsr]
     steps:
       - uses: actions/checkout@v4
 
@@ -35,30 +38,17 @@ jobs:
         uses: golangci/golangci-lint-action@v6
         with:
           version: ${{ env.GOLANGCI_LINT_VERSION }}
-          working-directory: api
+          working-directory: ${{ matrix.dir }}
           args: --timeout=10m --config=../.golangci.yaml
 
-      - name: golangci-lint
-        uses: golangci/golangci-lint-action@v6
+  fmt:
+    name: Format Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
         with:
-          version: ${{ env.GOLANGCI_LINT_VERSION }}
-          working-directory: rpadmin
-          args: --timeout=10m --config=../.golangci.yaml
-
-      - name: golangci-lint
-        uses: golangci/golangci-lint-action@v6
-        with:
-          version: ${{ env.GOLANGCI_LINT_VERSION }}
-          working-directory: secrets
-          args: --timeout=10m --config=../.golangci.yaml
-      
-      - name: golangci-lint
-        uses: golangci/golangci-lint-action@v6
-        with:
-          version: ${{ env.GOLANGCI_LINT_VERSION }}
-          working-directory: net
-          args: --timeout=10m --config=../.golangci.yaml
-
+          go-version: 'stable'
       - name: Install Task
         uses: arduino/setup-task@v2
         with:
@@ -66,6 +56,5 @@ jobs:
           # Heavy usage of the action can result in workflow run failures caused by rate limiting.
           # GitHub provides a more generous allowance for Authenticated API requests.
           repo-token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: fmt
+      - name: Run fmt
         run: task fmt
