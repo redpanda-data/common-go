@@ -1,0 +1,28 @@
+name: "Test"
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '**.go'
+      - '.github/workflows/test.yaml'
+  pull_request:
+    paths:
+      - '**.go'
+      - '.github/workflows/test.yaml'
+jobs:
+  gotests:
+    name: go-tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        dir: [api, rpadmin, secrets, net, rpsr]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: 'stable'
+      - name: Run tests (${{ matrix.dir }})
+        run: go test ./...
+        working-directory: ${{ matrix.dir }}
