@@ -41,8 +41,8 @@ const (
 	OperationRead Operation = "READ"
 	// OperationWrite is the WRITE operation.
 	OperationWrite Operation = "WRITE"
-	// OperationRemove is the REMOVE operation.
-	OperationRemove Operation = "REMOVE"
+	// OperationDelete is the DELETE operation.
+	OperationDelete Operation = "DELETE"
 	// OperationDescribe is the DESCRIBE operation.
 	OperationDescribe Operation = "DESCRIBE"
 	// OperationDescribeConfig is the DESCRIBE_CONFIG operation.
