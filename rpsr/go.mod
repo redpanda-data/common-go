@@ -4,7 +4,7 @@ go 1.24.3
 
 require (
 	github.com/stretchr/testify v1.10.0
-	github.com/twmb/franz-go/pkg/sr v1.4.1-0.20250620172413-c17130ef7765
+	github.com/twmb/franz-go/pkg/sr v1.4.1-0.20250711145744-a849b8be17b7
 	golang.org/x/sync v0.15.0
 )
 

@@ -4,8 +4,10 @@ package rpsr
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/url"
+	"strings"
 	"sync"
 
 	"github.com/twmb/franz-go/pkg/sr"
@@ -25,6 +27,8 @@ type Operation string
 type Permission string
 
 const (
+	// ResourceTypeAny matches any resource type, either literal or prefixed.
+	ResourceTypeAny ResourceType = "ANY"
 	// ResourceTypeRegistry represents a registry resource.
 	ResourceTypeRegistry ResourceType = "REGISTRY"
 	// ResourceTypeSubject represents a subject (schema) resource.
@@ -34,9 +38,13 @@ const (
 	PatternTypeLiteral PatternType = "LITERAL"
 	// PatternTypePrefix matches resource names by prefix.
 	PatternTypePrefix PatternType = "PREFIXED"
+	// PatternTypeAny matches any resource name, either literal or prefixed.
+	PatternTypeAny PatternType = "ANY"
 
 	// OperationAll represents ALL operations.
 	OperationAll Operation = "ALL"
+	// OperationAny matches any operation, used for filtering (listing and deleting).
+	OperationAny Operation = "ANY"
 	// OperationRead is the READ operation.
 	OperationRead Operation = "READ"
 	// OperationWrite is the WRITE operation.
@@ -52,11 +60,18 @@ const (
 	// OperationAlterConfig is the ALTER_CONFIG operation.
 	OperationAlterConfig Operation = "ALTER_CONFIGS"
 
+	// PermissionAny matches any permission, either ALLOW or DENY.
+	PermissionAny Permission = "ANY"
 	// PermissionAllow permits the operation.
 	PermissionAllow Permission = "ALLOW"
 	// PermissionDeny denies the operation.
 	PermissionDeny Permission = "DENY"
 )
+
+// ErrNotFound is returned when no ACLs match the provided filter.
+//
+//nolint:stylecheck // this comes from Redpanda.
+var ErrNotFound = errors.New("Not found")
 
 // ACL represents an individual access control rule.
 type ACL struct {
@@ -69,8 +84,9 @@ type ACL struct {
 	Permission   Permission   `json:"permission"` // ALLOW or DENY
 }
 
-// ToQuery converts the filter into a URL query string.
-func (f *ACL) ToQuery() string {
+// AddQueryToContext converts the filter into a URL query params and adds it to
+// the context using sr.WithParams.
+func (f *ACL) AddQueryToContext(ctx context.Context) context.Context {
 	v := url.Values{}
 	if f.Principal != "" {
 		v.Set("principal", f.Principal)
@@ -94,9 +110,9 @@ func (f *ACL) ToQuery() string {
 		v.Set("permission", string(f.Permission))
 	}
 	if len(v) == 0 {
-		return ""
+		return ctx
 	}
-	return "?" + v.Encode()
+	return sr.WithParams(ctx, sr.RawParams(v))
 }
 
 // ACLClient defines methods to manage Redpanda's Schema Registry ACLs.
@@ -104,7 +120,7 @@ type ACLClient interface {
 	CreateACLs(ctx context.Context, acls []ACL) error
 	DeleteACLs(ctx context.Context, acls []ACL) error
 	ListACLs(ctx context.Context, filter *ACL) ([]ACL, error)
-	ListACLsBatch(ctx context.Context, filter *ACL) ([]ACL, error)
+	ListACLsBatch(ctx context.Context, filter []ACL) ([]ACL, error)
 }
 
 // Client is a Redpanda Schema Registry client that embeds the franz-go schema
@@ -113,6 +129,9 @@ type ACLClient interface {
 type Client struct {
 	*sr.Client
 }
+
+// Ensure that Client implements the ACLClient interface.
+var _ ACLClient = (*Client)(nil)
 
 // NewClient creates a new ACL-aware Schema Registry client. srCL must not be
 // nil.
@@ -137,11 +156,7 @@ func (c *Client) DeleteACLs(ctx context.Context, acls []ACL) error {
 // fields will be ignored, meaning they will match any value.
 func (c *Client) ListACLs(ctx context.Context, filter *ACL) ([]ACL, error) {
 	var result []ACL
-	var f string
-	if filter != nil {
-		f = filter.ToQuery()
-	}
-	return result, c.Do(ctx, http.MethodGet, "/security/acls"+f, nil, &result)
+	return result, c.Do(filter.AddQueryToContext(ctx), http.MethodGet, "/security/acls", nil, &result)
 }
 
 // ListACLsBatch retrieves all ACL entries that match any of the provided
@@ -157,6 +172,10 @@ func (c *Client) ListACLsBatch(ctx context.Context, filters []ACL) ([]ACL, error
 		g.Go(func() error {
 			acls, err := c.ListACLs(egCtx, &f)
 			if err != nil {
+				if errors.Is(err, ErrNotFound) {
+					// No ACLs found means no matches. Continue.
+					return nil
+				}
 				return err
 			}
 			mu.Lock()
@@ -171,6 +190,46 @@ func (c *Client) ListACLsBatch(ctx context.Context, filters []ACL) ([]ACL, error
 	}
 	allACLs = trimRepeatedACLs(allACLs)
 	return allACLs, nil
+}
+
+// ParseOperation takes a string representation of an operation and returns the
+// corresponding Operation constant.
+func ParseOperation(op string) (Operation, error) {
+	switch strnorm(op) {
+	case "all":
+		return OperationAll, nil
+	case "read":
+		return OperationRead, nil
+	case "write":
+		return OperationWrite, nil
+	case "delete":
+		return OperationDelete, nil
+	case "describe":
+		return OperationDescribe, nil
+	case "describe_configs":
+		return OperationDescribeConfig, nil
+	case "alter":
+		return OperationAlter, nil
+	case "alter_configs":
+		return OperationAlterConfig, nil
+	default:
+		return "", fmt.Errorf("unable to parse, unknown operation: %s", op)
+	}
+}
+
+// ParsePatternType takes a string representation of a pattern type and
+// returns the corresponding PatternType constant.
+func ParsePatternType(pt string) (PatternType, error) {
+	switch strnorm(pt) {
+	case "literal":
+		return PatternTypeLiteral, nil
+	case "prefixed":
+		return PatternTypePrefix, nil
+	case "any":
+		return PatternTypeAny, nil
+	default:
+		return "", fmt.Errorf("unable to parse, unknown pattern type: %s", pt)
+	}
 }
 
 func trimRepeatedACLs(acls []ACL) []ACL {
@@ -197,4 +256,16 @@ func aclKey(acl ACL) string {
 		acl.Host + sep +
 		string(acl.Operation) + sep +
 		string(acl.Permission)
+}
+
+// strnorm normalizes a string by removing ".", "_", and "-" characters, trimming
+// whitespace, and converting it to lowercase. This is the normalization that
+// franz-go uses for parsing ACLs property strings.
+func strnorm(s string) string {
+	s = strings.ReplaceAll(s, ".", "")
+	s = strings.ReplaceAll(s, "_", "")
+	s = strings.ReplaceAll(s, "-", "")
+	s = strings.TrimSpace(s)
+	s = strings.ToLower(s)
+	return s
 }
