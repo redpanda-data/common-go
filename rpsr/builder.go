@@ -6,16 +6,24 @@ import (
 	"strings"
 )
 
+// The code for the builder is largely borrowed from
+// github.com/twmb/franz-go/pkg/kadm/acl.go, BSD 3-clause licensed
+
 // ACLBuilder helps construct sets of ACL rules for Redpanda's Schema Registry.
 type ACLBuilder struct {
-	allowPrincipal []string
-	denyPrincipal  []string
+	allowPrincipal    []string
+	denyPrincipal     []string
+	anyAllowPrincipal bool
+	anyDenyPrincipal  bool
 
-	allowHost []string
-	denyHost  []string
+	allowHost    []string
+	denyHost     []string
+	anyAllowHost bool
+	anyDenyHost  bool
 
 	allRegistry bool
 	subjects    []string
+	anyResource bool
 
 	operations []Operation
 	pattern    PatternType
@@ -58,7 +66,7 @@ func (b *ACLBuilder) AllowPrincipals(principals ...string) *ACLBuilder {
 func (b *ACLBuilder) AllowPrincipalsOrAny(principals ...string) *ACLBuilder {
 	b.allowPrincipal = principals
 	if len(principals) == 0 {
-		b.allowPrincipal = []string{"*"}
+		b.anyAllowPrincipal = true
 	}
 	return b
 }
@@ -69,11 +77,12 @@ func (b *ACLBuilder) DenyPrincipals(principals ...string) *ACLBuilder {
 	return b
 }
 
-// DenyPrincipalsOrAny sets denied principals or defaults to "*" if empty.
+// DenyPrincipalsOrAny sets denied principals or defaults to ANY principals if
+// empty. Useful when filtering ACLs.
 func (b *ACLBuilder) DenyPrincipalsOrAny(principals ...string) *ACLBuilder {
 	b.denyPrincipal = principals
 	if len(principals) == 0 {
-		b.denyPrincipal = []string{"*"}
+		b.anyDenyPrincipal = true
 	}
 	return b
 }
@@ -84,11 +93,21 @@ func (b *ACLBuilder) AllowHosts(hosts ...string) *ACLBuilder {
 	return b
 }
 
-// AllowHostsOrAny sets allowed hosts or defaults to "*" if empty.
-func (b *ACLBuilder) AllowHostsOrAny(hosts ...string) *ACLBuilder {
+// AllowHostsOrAll sets allowed hosts or defaults to "*" if empty.
+func (b *ACLBuilder) AllowHostsOrAll(hosts ...string) *ACLBuilder {
 	b.allowHost = hosts
 	if len(hosts) == 0 {
 		b.allowHost = []string{"*"}
+	}
+	return b
+}
+
+// AllowHostsOrAny sets allowed hosts or defaults to ANY host if empty. Useful
+// when filtering ACLSs.
+func (b *ACLBuilder) AllowHostsOrAny(hosts ...string) *ACLBuilder {
+	b.allowHost = hosts
+	if len(hosts) == 0 {
+		b.anyAllowHost = true
 	}
 	return b
 }
@@ -99,8 +118,18 @@ func (b *ACLBuilder) DenyHosts(hosts ...string) *ACLBuilder {
 	return b
 }
 
-// DenyHostsOrAny sets denied hosts or defaults to "*" if empty.
+// DenyHostsOrAny sets denied hosts or defaults to ANY host if empty. Useful
+// when filtering ACLs.
 func (b *ACLBuilder) DenyHostsOrAny(hosts ...string) *ACLBuilder {
+	b.denyHost = hosts
+	if len(hosts) == 0 {
+		b.anyDenyHost = true
+	}
+	return b
+}
+
+// DenyHostsOrAll sets denied hosts or defaults to "*" host if empty.
+func (b *ACLBuilder) DenyHostsOrAll(hosts ...string) *ACLBuilder {
 	b.denyHost = hosts
 	if len(hosts) == 0 {
 		b.denyHost = []string{"*"}
@@ -108,10 +137,16 @@ func (b *ACLBuilder) DenyHostsOrAny(hosts ...string) *ACLBuilder {
 	return b
 }
 
-// Registry indicates that ACLs should be created for the registry itself.
-// Registry ACLs do not include a resource name.
+// Registry indicates that ACLs should be created for the schema registry.
 func (b *ACLBuilder) Registry() *ACLBuilder {
 	b.allRegistry = true
+	return b
+}
+
+// MaybeRegistry indicates that ACLs should be created for the registry itself.
+// Registry ACLs do not include a resource name.
+func (b *ACLBuilder) MaybeRegistry(r bool) *ACLBuilder {
+	b.allRegistry = r
 	return b
 }
 
@@ -121,26 +156,17 @@ func (b *ACLBuilder) Subjects(subjects ...string) *ACLBuilder {
 	return b
 }
 
-// SubjectsOrAny sets subjects or defaults to "*" if none are provided.
-func (b *ACLBuilder) SubjectsOrAny(subjects ...string) *ACLBuilder {
-	b.subjects = subjects
-	if len(subjects) == 0 {
-		b.subjects = []string{"*"}
-	}
-	return b
-}
-
 // Operations sets the operations the ACLs should allow or deny.
 func (b *ACLBuilder) Operations(operations ...Operation) *ACLBuilder {
 	b.operations = operations
 	return b
 }
 
-// OperationsOrAll sets the operations or defaults to ALL if none are specified.
-func (b *ACLBuilder) OperationsOrAll(operations ...Operation) *ACLBuilder {
+// OperationsOrAny sets the operations or defaults to ANY if none are specified.
+func (b *ACLBuilder) OperationsOrAny(operations ...Operation) *ACLBuilder {
 	b.operations = operations
 	if len(operations) == 0 {
-		b.operations = []Operation{OperationAll}
+		b.operations = []Operation{OperationAny}
 	}
 	return b
 }
@@ -151,18 +177,56 @@ func (b *ACLBuilder) Pattern(pattern PatternType) *ACLBuilder {
 	return b
 }
 
-// PatternOrLiteral sets the pattern type or defaults to LITERAL if not
-// specified.
-func (b *ACLBuilder) PatternOrLiteral(pattern PatternType) *ACLBuilder {
+// PatternOrAny sets the pattern type or defaults to ANY if not specified.
+func (b *ACLBuilder) PatternOrAny(pattern PatternType) *ACLBuilder {
 	b.pattern = pattern
 	if pattern == "" {
-		b.pattern = PatternTypeLiteral
+		b.pattern = PatternTypeAny
 	}
 	return b
 }
 
-// Validate ensures the builder is properly configured before building ACLs.
-func (b *ACLBuilder) Validate() error {
+// AnyResources opts for selecting any resources, used for filtering ACLs.
+func (b *ACLBuilder) AnyResources() *ACLBuilder {
+	b.anyResource = true
+	return b
+}
+
+// HasHosts checks if the builder has any hosts set for allow or deny rules.
+func (b *ACLBuilder) HasHosts() bool {
+	return len(b.allowHost) > 0 || len(b.denyHost) > 0
+}
+
+// HasPrincipals checks if the builder has any principals set for allow or
+// deny rules.
+func (b *ACLBuilder) HasPrincipals() bool {
+	return len(b.allowPrincipal) > 0 || len(b.denyPrincipal) > 0
+}
+
+// HasAllowedPrincipals checks if the builder has any allowed principals set.
+func (b *ACLBuilder) HasAllowedPrincipals() bool {
+	return len(b.allowPrincipal) > 0
+}
+
+// HasDeniedPrincipals checks if the builder has any denied principals set.
+func (b *ACLBuilder) HasDeniedPrincipals() bool {
+	return len(b.denyPrincipal) > 0
+}
+
+// HasResources checks if the builder has any subjects or is configured to
+// create ACLs for the whole schema registry.
+func (b *ACLBuilder) HasResources() bool {
+	return len(b.subjects) > 0 || b.allRegistry
+}
+
+// copy creates a shallow copy of the ACLBuilder.
+func (b *ACLBuilder) copy() *ACLBuilder {
+	c := *b
+	return &c
+}
+
+// ValidateCreate ensures the builder is properly configured before building ACLs.
+func (b *ACLBuilder) ValidateCreate() error {
 	if len(b.operations) == 0 {
 		return errors.New("invalid empty operations: at least one operation is required to create an ACL")
 	}
@@ -189,28 +253,34 @@ func (b *ACLBuilder) Validate() error {
 	return nil
 }
 
-// ValidateAndBuild validates the builder's configuration and constructs ACLs.
-func (b *ACLBuilder) ValidateAndBuild() ([]ACL, error) {
-	err := b.Validate()
+// ValidateAndBuildCreate validates the builder's configuration and constructs ACLs.
+func (b *ACLBuilder) ValidateAndBuildCreate() ([]ACL, error) {
+	err := b.ValidateCreate()
 	if err != nil {
 		return nil, err
 	}
-	return b.Build(), nil
+	return b.BuildCreate(), nil
 }
 
-// Build constructs a unique list of ACL entries based on the builder's
-// configuration.
+// BuildCreate constructs a unique list of ACL entries based on the builder's
+// configuration. This builds ACLs on a more strict manner, suited for
+// creating ACLs. For filter-based ACLs, use BuildFilter() instead.
 //
 // This method assumes the configuration has already been validated using
 // Validate() to prevent empty ACLs from being built. It performs a
 // combinatorial expansion of principals, hosts, operations, and resource types
 // into individual ACL entries, eliminating duplicates.
-func (b *ACLBuilder) Build() []ACL {
+func (b *ACLBuilder) BuildCreate() []ACL {
 	var acls []ACL
 	seen := make(map[string]struct{})
-
 	add := func(principal string, host string, permission Permission, resourceType ResourceType, resource string) {
 		for _, op := range b.operations {
+			pattern := b.pattern
+			// PatternTypeAny is not currently accepted, but is the equivalent
+			// of an empty pattern in the context of SR ACLs.
+			if b.pattern == PatternTypeAny {
+				pattern = ""
+			}
 			acl := ACL{
 				Principal:    principal,
 				Resource:     resource,
@@ -218,9 +288,7 @@ func (b *ACLBuilder) Build() []ACL {
 				Host:         host,
 				Operation:    op,
 				Permission:   permission,
-			}
-			if resourceType != ResourceTypeRegistry {
-				acl.PatternType = b.pattern
+				PatternType:  pattern,
 			}
 			key := aclKey(acl)
 			if _, ok := seen[key]; !ok {
@@ -257,4 +325,154 @@ func (b *ACLBuilder) Build() []ACL {
 	}
 
 	return acls
+}
+
+// BuildFilter constructs a list of ACL entries based on the builder's
+// configuration for use in filtering existing ACLs. Unlike Build(), this
+// method supports "any" wildcards for principals, hosts, operations,
+// permissions, and resources.
+//
+// This method is tolerant of incomplete or broad configurations and performs a
+// combinatorial expansion of the fields into individual ACL entries,
+// including empty fields to match any value. It eliminates duplicate entries
+// based on a computed key.
+//
+// Use BuildFilter() when querying or filtering existing ACLs, not for creating
+// new ACL entries.
+func (b *ACLBuilder) BuildFilter() []ACL {
+	var acls []ACL
+	seen := make(map[string]struct{})
+
+	// If all allow and deny principals and hosts are set to “any”, treat them
+	// as a single wildcard group by resetting fields and disabling expansion.
+	var anyAnyPrincipal, anyAnyHost bool
+	b, anyAnyPrincipal, anyAnyHost = normalizeBuilder(b)
+
+	operations := b.operations
+	if len(operations) == 0 {
+		operations = []Operation{OperationAny}
+	}
+
+	var registry []string
+	if b.allRegistry {
+		registry = []string{""} // Registry ACLs don't have a resource name.
+	}
+	for _, resource := range []struct {
+		t     ResourceType
+		names []string
+	}{
+		{ResourceTypeRegistry, registry},
+		{ResourceTypeSubject, b.subjects},
+	} {
+		resType := resource.t
+		resNames := resource.names
+		if b.anyResource {
+			resType = ""
+			resNames = []string{""}
+		}
+		for _, name := range resNames {
+			for _, op := range operations {
+				for _, perm := range []struct {
+					principals   []string
+					anyPrincipal bool
+					hosts        []string
+					anyHost      bool
+					permType     Permission
+				}{
+					{
+						b.allowPrincipal,
+						b.anyAllowPrincipal,
+						b.allowHost,
+						b.anyAllowHost,
+						PermissionAllow,
+					},
+					{
+						b.denyPrincipal,
+						b.anyDenyPrincipal,
+						b.denyHost,
+						b.anyDenyHost,
+						PermissionDeny,
+					},
+					{
+						nil,
+						anyAnyPrincipal,
+						nil,
+						anyAnyHost,
+						PermissionAny,
+					},
+				} {
+					if perm.anyPrincipal {
+						perm.principals = []string{""}
+					}
+					if perm.anyHost {
+						perm.hosts = []string{""}
+					}
+					expandPrincipalsHosts(&acls, seen, perm.principals, perm.hosts, perm.permType, resType, name, op, b.pattern)
+				}
+			}
+		}
+	}
+	return acls
+}
+
+// expandPrincipalsHosts expands the given principals and hosts into the passed
+// ACLs slice, ensuring that each combination of ACL fields is unique.
+//
+// It uses the 'seen' map to track seen combinations to avoid duplicates.
+func expandPrincipalsHosts(acls *[]ACL, seen map[string]struct{}, principals, hosts []string, perm Permission, resType ResourceType, name string, op Operation, pattern PatternType) {
+	// Note, Redpanda currently does not support ACLs fields with ANY, instead
+	// we can treat them as empty values to achieve the same effect.
+	// This whole function logic is based on that assumption.
+
+	// PatternTypeAny, OperationAny, and PermissionAny are not currently
+	// accepted, but are the equivalent of an empty value in the context
+	// of SR ACLs.
+	if pattern == PatternTypeAny {
+		pattern = ""
+	}
+	if op == OperationAny {
+		op = ""
+	}
+	if perm == PermissionAny {
+		perm = ""
+	}
+	for _, principal := range principals {
+		for _, host := range hosts {
+			acl := ACL{
+				Principal:    principal,
+				Resource:     name,
+				ResourceType: resType,
+				Host:         host,
+				Operation:    op,
+				Permission:   perm,
+				PatternType:  pattern,
+			}
+			key := aclKey(acl)
+			if _, ok := seen[key]; !ok {
+				seen[key] = struct{}{}
+				*acls = append(*acls, acl)
+			}
+		}
+	}
+}
+
+// normalizeBuilder normalizes the ACLBuilder by checking if all
+// allow/deny principals and hosts are set to "any". If so, it resets the
+// allow/deny fields to nil and sets the anyAllow/anyDeny flags to false.
+func normalizeBuilder(b *ACLBuilder) (br *ACLBuilder, anyAnyPrincipal bool, anyAnyHost bool) {
+	if b.anyAllowPrincipal && b.anyDenyPrincipal && b.anyAllowHost && b.anyDenyHost {
+		anyAnyPrincipal = true
+		anyAnyHost = true
+
+		b = b.copy()
+		b.allowPrincipal = nil
+		b.allowHost = nil
+		b.denyPrincipal = nil
+		b.denyHost = nil
+		b.anyAllowPrincipal = false
+		b.anyAllowHost = false
+		b.anyDenyPrincipal = false
+		b.anyDenyHost = false
+	}
+	return b, anyAnyPrincipal, anyAnyHost
 }
