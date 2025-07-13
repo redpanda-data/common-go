@@ -3,9 +3,11 @@ package secrets
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
+	"strings"
 
 	secretmanager "cloud.google.com/go/secretmanager/apiv1"
 	"cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
@@ -48,7 +50,7 @@ func NewGCPSecretsManager(ctx context.Context, logger *slog.Logger, projectID st
 
 func createFederationClient(ctx context.Context, logger *slog.Logger, audience string) (*secretmanager.Client, error) {
 	// Service account token path
-	tokenPath := "/var/run/secrets/kubernetes.io/serviceaccount/token"
+	tokenPath := "/var/run/secrets/kubernetes.io/serviceaccount/token" // #nosec G101 -- ignoring: Potential hardcoded credentials (gosec)
 
 	// Validate token file exists and is not empty
 	tokenBytes, err := os.ReadFile(tokenPath)
@@ -56,17 +58,17 @@ func createFederationClient(ctx context.Context, logger *slog.Logger, audience s
 		return nil, fmt.Errorf("failed to read service account token: %w", err)
 	}
 	if len(tokenBytes) == 0 {
-		return nil, fmt.Errorf("service account token file is empty")
+		return nil, errors.New("service account token file is empty")
 	}
 
 	// Create credential config for federation
-	credConfig := map[string]interface{}{
+	credConfig := map[string]any{
 		"type":               "external_account",
 		"audience":           audience,
 		"subject_token_type": "urn:ietf:params:oauth:token-type:jwt",
-		"credential_source": map[string]interface{}{
+		"credential_source": map[string]any{
 			"file": tokenPath,
-			"format": map[string]interface{}{
+			"format": map[string]any{
 				"type": "text",
 			},
 		},
