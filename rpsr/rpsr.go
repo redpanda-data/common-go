@@ -156,7 +156,10 @@ func (c *Client) DeleteACLs(ctx context.Context, acls []ACL) error {
 // fields will be ignored, meaning they will match any value.
 func (c *Client) ListACLs(ctx context.Context, filter *ACL) ([]ACL, error) {
 	var result []ACL
-	return result, c.Do(filter.AddQueryToContext(ctx), http.MethodGet, "/security/acls", nil, &result)
+	if filter != nil {
+		ctx = filter.AddQueryToContext(ctx)
+	}
+	return result, c.Do(ctx, http.MethodGet, "/security/acls", nil, &result)
 }
 
 // ListACLsBatch retrieves all ACL entries that match any of the provided
