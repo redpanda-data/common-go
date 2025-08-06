@@ -4,15 +4,16 @@
 // 	protoc        (unknown)
 // source: redpanda/api/common/v1alpha1/options.proto
 
+// Deprecated: Use redpanda.api.common.v1 instead.
+
 package commonv1alpha1
 
 import (
-	reflect "reflect"
-	unsafe "unsafe"
-
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	descriptorpb "google.golang.org/protobuf/types/descriptorpb"
+	reflect "reflect"
+	unsafe "unsafe"
 )
 
 const (

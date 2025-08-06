@@ -7,14 +7,14 @@
 package commonv1
 
 import (
-	reflect "reflect"
-	sync "sync"
-	unsafe "unsafe"
-
+	code "google.golang.org/genproto/googleapis/rpc/code"
 	status "google.golang.org/genproto/googleapis/rpc/status"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	anypb "google.golang.org/protobuf/types/known/anypb"
+	reflect "reflect"
+	sync "sync"
+	unsafe "unsafe"
 )
 
 const (
@@ -23,6 +23,93 @@ const (
 	// Verify that runtime/protoimpl is sufficiently up-to-date.
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
+
+type Reason int32
+
+const (
+	Reason_REASON_UNSPECIFIED Reason = 0
+	// The specified resource could not be found.
+	Reason_REASON_RESOURCE_NOT_FOUND Reason = 1
+	// The input provided with the request is invalid.
+	Reason_REASON_INVALID_INPUT Reason = 2
+	// Authentication token is missing.
+	Reason_REASON_NO_AUTHENTICATION_TOKEN Reason = 3
+	// The authentication token provided has expired.
+	Reason_REASON_AUTHENTICATION_TOKEN_EXPIRED Reason = 4
+	// The authentication token provided is invalid.
+	Reason_REASON_AUTHENTICATION_TOKEN_INVALID Reason = 5
+	// The user does not have the necessary permissions.
+	Reason_REASON_PERMISSION_DENIED Reason = 6
+	// The request cannot be completed due to server error.
+	Reason_REASON_SERVER_ERROR Reason = 7
+	// The request rate is too high.
+	Reason_REASON_TOO_MANY_REQUESTS Reason = 8
+	// The request timed out.
+	Reason_REASON_TIMEOUT Reason = 9
+	// The feature is not configured.
+	Reason_REASON_FEATURE_NOT_CONFIGURED Reason = 10
+	// The feature is not supported in the requested environment.
+	Reason_REASON_FEATURE_NOT_SUPPORTED Reason = 11
+)
+
+// Enum value maps for Reason.
+var (
+	Reason_name = map[int32]string{
+		0:  "REASON_UNSPECIFIED",
+		1:  "REASON_RESOURCE_NOT_FOUND",
+		2:  "REASON_INVALID_INPUT",
+		3:  "REASON_NO_AUTHENTICATION_TOKEN",
+		4:  "REASON_AUTHENTICATION_TOKEN_EXPIRED",
+		5:  "REASON_AUTHENTICATION_TOKEN_INVALID",
+		6:  "REASON_PERMISSION_DENIED",
+		7:  "REASON_SERVER_ERROR",
+		8:  "REASON_TOO_MANY_REQUESTS",
+		9:  "REASON_TIMEOUT",
+		10: "REASON_FEATURE_NOT_CONFIGURED",
+		11: "REASON_FEATURE_NOT_SUPPORTED",
+	}
+	Reason_value = map[string]int32{
+		"REASON_UNSPECIFIED":                  0,
+		"REASON_RESOURCE_NOT_FOUND":           1,
+		"REASON_INVALID_INPUT":                2,
+		"REASON_NO_AUTHENTICATION_TOKEN":      3,
+		"REASON_AUTHENTICATION_TOKEN_EXPIRED": 4,
+		"REASON_AUTHENTICATION_TOKEN_INVALID": 5,
+		"REASON_PERMISSION_DENIED":            6,
+		"REASON_SERVER_ERROR":                 7,
+		"REASON_TOO_MANY_REQUESTS":            8,
+		"REASON_TIMEOUT":                      9,
+		"REASON_FEATURE_NOT_CONFIGURED":       10,
+		"REASON_FEATURE_NOT_SUPPORTED":        11,
+	}
+)
+
+func (x Reason) Enum() *Reason {
+	p := new(Reason)
+	*p = x
+	return p
+}
+
+func (x Reason) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (Reason) Descriptor() protoreflect.EnumDescriptor {
+	return file_redpanda_api_common_v1_errordetails_proto_enumTypes[0].Descriptor()
+}
+
+func (Reason) Type() protoreflect.EnumType {
+	return &file_redpanda_api_common_v1_errordetails_proto_enumTypes[0]
+}
+
+func (x Reason) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use Reason.Descriptor instead.
+func (Reason) EnumDescriptor() ([]byte, []int) {
+	return file_redpanda_api_common_v1_errordetails_proto_rawDescGZIP(), []int{0}
+}
 
 // AttemptInfo contains information about retryable actions and their specific attempts.
 type AttemptInfo struct {
@@ -124,6 +211,83 @@ func (x *ExternalError) GetDetails() []*anypb.Any {
 	return nil
 }
 
+// Modified variant of google.rpc.Status, that uses enum instead of int32 for
+// code, so it's nicer in REST.
+// The `Status` type defines a logical error model that is suitable for
+// different programming environments, including REST APIs and RPC APIs. It is
+// used by [gRPC](https://github.com/grpc). Each `Status` message contains
+// three pieces of data: error code, error message, and error details.
+//
+// You can find out more about this error model and how to work with it in the
+// [API Design Guide](https://cloud.google.com/apis/design/errors).
+type ErrorStatus struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The status code, which should be an enum value of
+	// [google.rpc.Code][google.rpc.Code].
+	Code code.Code `protobuf:"varint,1,opt,name=code,proto3,enum=google.rpc.Code" json:"code,omitempty"`
+	// A developer-facing error message, which should be in English. Any
+	// user-facing error message should be localized and sent in the
+	// [google.rpc.Status.details][google.rpc.Status.details] field, or localized
+	// by the client.
+	Message string `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
+	// A list of messages that carry the error details.  There is a common set of
+	// message types for APIs to use.
+	Details       []*anypb.Any `protobuf:"bytes,3,rep,name=details,proto3" json:"details,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ErrorStatus) Reset() {
+	*x = ErrorStatus{}
+	mi := &file_redpanda_api_common_v1_errordetails_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ErrorStatus) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ErrorStatus) ProtoMessage() {}
+
+func (x *ErrorStatus) ProtoReflect() protoreflect.Message {
+	mi := &file_redpanda_api_common_v1_errordetails_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ErrorStatus.ProtoReflect.Descriptor instead.
+func (*ErrorStatus) Descriptor() ([]byte, []int) {
+	return file_redpanda_api_common_v1_errordetails_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *ErrorStatus) GetCode() code.Code {
+	if x != nil {
+		return x.Code
+	}
+	return code.Code(0)
+}
+
+func (x *ErrorStatus) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
+func (x *ErrorStatus) GetDetails() []*anypb.Any {
+	if x != nil {
+		return x.Details
+	}
+	return nil
+}
+
 type AttemptInfo_Attempt struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Number        int32                  `protobuf:"varint,1,opt,name=number,proto3" json:"number,omitempty"`
@@ -134,7 +298,7 @@ type AttemptInfo_Attempt struct {
 
 func (x *AttemptInfo_Attempt) Reset() {
 	*x = AttemptInfo_Attempt{}
-	mi := &file_redpanda_api_common_v1_errordetails_proto_msgTypes[2]
+	mi := &file_redpanda_api_common_v1_errordetails_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -146,7 +310,7 @@ func (x *AttemptInfo_Attempt) String() string {
 func (*AttemptInfo_Attempt) ProtoMessage() {}
 
 func (x *AttemptInfo_Attempt) ProtoReflect() protoreflect.Message {
-	mi := &file_redpanda_api_common_v1_errordetails_proto_msgTypes[2]
+	mi := &file_redpanda_api_common_v1_errordetails_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -180,7 +344,7 @@ var File_redpanda_api_common_v1_errordetails_proto protoreflect.FileDescriptor
 
 const file_redpanda_api_common_v1_errordetails_proto_rawDesc = "" +
 	"\n" +
-	")redpanda/api/common/v1/errordetails.proto\x12\x16redpanda.api.common.v1\x1a\x19google/protobuf/any.proto\x1a\x17google/rpc/status.proto\"\xa5\x01\n" +
+	")redpanda/api/common/v1/errordetails.proto\x12\x16redpanda.api.common.v1\x1a\x19google/protobuf/any.proto\x1a\x15google/rpc/code.proto\x1a\x17google/rpc/status.proto\"\xa5\x01\n" +
 	"\vAttemptInfo\x12G\n" +
 	"\battempts\x18\x01 \x03(\v2+.redpanda.api.common.v1.AttemptInfo.AttemptR\battempts\x1aM\n" +
 	"\aAttempt\x12\x16\n" +
@@ -188,7 +352,25 @@ const file_redpanda_api_common_v1_errordetails_proto_rawDesc = "" +
 	"\x06status\x18\x02 \x01(\v2\x12.google.rpc.StatusR\x06status\"Y\n" +
 	"\rExternalError\x12\x18\n" +
 	"\amessage\x18\x01 \x01(\tR\amessage\x12.\n" +
-	"\adetails\x18\x02 \x03(\v2\x14.google.protobuf.AnyR\adetailsB\x83\x02\n" +
+	"\adetails\x18\x02 \x03(\v2\x14.google.protobuf.AnyR\adetails\"}\n" +
+	"\vErrorStatus\x12$\n" +
+	"\x04code\x18\x01 \x01(\x0e2\x10.google.rpc.CodeR\x04code\x12\x18\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage\x12.\n" +
+	"\adetails\x18\x03 \x03(\v2\x14.google.protobuf.AnyR\adetails*\xfd\x02\n" +
+	"\x06Reason\x12\x16\n" +
+	"\x12REASON_UNSPECIFIED\x10\x00\x12\x1d\n" +
+	"\x19REASON_RESOURCE_NOT_FOUND\x10\x01\x12\x18\n" +
+	"\x14REASON_INVALID_INPUT\x10\x02\x12\"\n" +
+	"\x1eREASON_NO_AUTHENTICATION_TOKEN\x10\x03\x12'\n" +
+	"#REASON_AUTHENTICATION_TOKEN_EXPIRED\x10\x04\x12'\n" +
+	"#REASON_AUTHENTICATION_TOKEN_INVALID\x10\x05\x12\x1c\n" +
+	"\x18REASON_PERMISSION_DENIED\x10\x06\x12\x17\n" +
+	"\x13REASON_SERVER_ERROR\x10\a\x12\x1c\n" +
+	"\x18REASON_TOO_MANY_REQUESTS\x10\b\x12\x12\n" +
+	"\x0eREASON_TIMEOUT\x10\t\x12!\n" +
+	"\x1dREASON_FEATURE_NOT_CONFIGURED\x10\n" +
+	"\x12 \n" +
+	"\x1cREASON_FEATURE_NOT_SUPPORTED\x10\vB\x83\x02\n" +
 	"\x1acom.redpanda.api.common.v1B\x11ErrordetailsProtoP\x01ZWbuf.build/gen/go/redpandadata/common/protocolbuffers/go/redpanda/api/common/v1;commonv1\xa2\x02\x03RAC\xaa\x02\x16Redpanda.Api.Common.V1\xca\x02\x16Redpanda\\Api\\Common\\V1\xe2\x02\"Redpanda\\Api\\Common\\V1\\GPBMetadata\xea\x02\x19Redpanda::Api::Common::V1b\x06proto3"
 
 var (
@@ -203,23 +385,29 @@ func file_redpanda_api_common_v1_errordetails_proto_rawDescGZIP() []byte {
 	return file_redpanda_api_common_v1_errordetails_proto_rawDescData
 }
 
-var file_redpanda_api_common_v1_errordetails_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_redpanda_api_common_v1_errordetails_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_redpanda_api_common_v1_errordetails_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_redpanda_api_common_v1_errordetails_proto_goTypes = []any{
-	(*AttemptInfo)(nil),         // 0: redpanda.api.common.v1.AttemptInfo
-	(*ExternalError)(nil),       // 1: redpanda.api.common.v1.ExternalError
-	(*AttemptInfo_Attempt)(nil), // 2: redpanda.api.common.v1.AttemptInfo.Attempt
-	(*anypb.Any)(nil),           // 3: google.protobuf.Any
-	(*status.Status)(nil),       // 4: google.rpc.Status
+	(Reason)(0),                 // 0: redpanda.api.common.v1.Reason
+	(*AttemptInfo)(nil),         // 1: redpanda.api.common.v1.AttemptInfo
+	(*ExternalError)(nil),       // 2: redpanda.api.common.v1.ExternalError
+	(*ErrorStatus)(nil),         // 3: redpanda.api.common.v1.ErrorStatus
+	(*AttemptInfo_Attempt)(nil), // 4: redpanda.api.common.v1.AttemptInfo.Attempt
+	(*anypb.Any)(nil),           // 5: google.protobuf.Any
+	(code.Code)(0),              // 6: google.rpc.Code
+	(*status.Status)(nil),       // 7: google.rpc.Status
 }
 var file_redpanda_api_common_v1_errordetails_proto_depIdxs = []int32{
-	2, // 0: redpanda.api.common.v1.AttemptInfo.attempts:type_name -> redpanda.api.common.v1.AttemptInfo.Attempt
-	3, // 1: redpanda.api.common.v1.ExternalError.details:type_name -> google.protobuf.Any
-	4, // 2: redpanda.api.common.v1.AttemptInfo.Attempt.status:type_name -> google.rpc.Status
-	3, // [3:3] is the sub-list for method output_type
-	3, // [3:3] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	4, // 0: redpanda.api.common.v1.AttemptInfo.attempts:type_name -> redpanda.api.common.v1.AttemptInfo.Attempt
+	5, // 1: redpanda.api.common.v1.ExternalError.details:type_name -> google.protobuf.Any
+	6, // 2: redpanda.api.common.v1.ErrorStatus.code:type_name -> google.rpc.Code
+	5, // 3: redpanda.api.common.v1.ErrorStatus.details:type_name -> google.protobuf.Any
+	7, // 4: redpanda.api.common.v1.AttemptInfo.Attempt.status:type_name -> google.rpc.Status
+	5, // [5:5] is the sub-list for method output_type
+	5, // [5:5] is the sub-list for method input_type
+	5, // [5:5] is the sub-list for extension type_name
+	5, // [5:5] is the sub-list for extension extendee
+	0, // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_redpanda_api_common_v1_errordetails_proto_init() }
@@ -232,13 +420,14 @@ func file_redpanda_api_common_v1_errordetails_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_redpanda_api_common_v1_errordetails_proto_rawDesc), len(file_redpanda_api_common_v1_errordetails_proto_rawDesc)),
-			NumEnums:      0,
-			NumMessages:   3,
+			NumEnums:      1,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
 		GoTypes:           file_redpanda_api_common_v1_errordetails_proto_goTypes,
 		DependencyIndexes: file_redpanda_api_common_v1_errordetails_proto_depIdxs,
+		EnumInfos:         file_redpanda_api_common_v1_errordetails_proto_enumTypes,
 		MessageInfos:      file_redpanda_api_common_v1_errordetails_proto_msgTypes,
 	}.Build()
 	File_redpanda_api_common_v1_errordetails_proto = out.File

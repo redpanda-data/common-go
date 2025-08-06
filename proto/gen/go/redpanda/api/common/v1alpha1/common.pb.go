@@ -4,17 +4,18 @@
 // 	protoc        (unknown)
 // source: redpanda/api/common/v1alpha1/common.proto
 
+// Deprecated: Use redpanda.api.common.v1 instead.
+
 package commonv1alpha1
 
 import (
-	reflect "reflect"
-	sync "sync"
-	unsafe "unsafe"
-
 	code "google.golang.org/genproto/googleapis/rpc/code"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	anypb "google.golang.org/protobuf/types/known/anypb"
+	reflect "reflect"
+	sync "sync"
+	unsafe "unsafe"
 )
 
 const (

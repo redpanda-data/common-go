@@ -4,22 +4,31 @@
 package controlplanev1mcp
 
 import (
-	"context"
-	"encoding/json"
-
 	v1 "buf.build/gen/go/redpandadata/cloud/protocolbuffers/go/redpanda/api/controlplane/v1"
-	"connectrpc.com/connect"
+)
+
+import (
+	"context"
 	"github.com/mark3labs/mcp-go/mcp"
 	mcpserver "github.com/mark3labs/mcp-go/server"
+	"encoding/json"
 	"google.golang.org/protobuf/encoding/protojson"
+	"connectrpc.com/connect"
+	grpc "google.golang.org/grpc"
+	"github.com/redpanda-data/protoc-gen-go-mcp/pkg/runtime"
 )
 
 var (
-	ResourceGroupService_CreateResourceGroupTool = mcp.Tool{Name: "1hz42g__controlplane_v1_ResourceGroupService_CreateResourceGroup", Description: "CreateResourceGroup creates the resource_group\n", InputSchema: mcp.ToolInputSchema{Type: "", Properties: map[string]interface{}(nil), Required: []string(nil)}, RawInputSchema: json.RawMessage{0x7b, 0x22, 0x70, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x74, 0x69, 0x65, 0x73, 0x22, 0x3a, 0x7b, 0x22, 0x72, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x5f, 0x67, 0x72, 0x6f, 0x75, 0x70, 0x22, 0x3a, 0x7b, 0x22, 0x70, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x74, 0x69, 0x65, 0x73, 0x22, 0x3a, 0x7b, 0x22, 0x6e, 0x61, 0x6d, 0x65, 0x22, 0x3a, 0x7b, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x22, 0x7d, 0x7d, 0x2c, 0x22, 0x72, 0x65, 0x71, 0x75, 0x69, 0x72, 0x65, 0x64, 0x22, 0x3a, 0x5b, 0x22, 0x6e, 0x61, 0x6d, 0x65, 0x22, 0x5d, 0x2c, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x6f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x22, 0x7d, 0x7d, 0x2c, 0x22, 0x72, 0x65, 0x71, 0x75, 0x69, 0x72, 0x65, 0x64, 0x22, 0x3a, 0x5b, 0x5d, 0x2c, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x6f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x22, 0x7d}}
-	ResourceGroupService_DeleteResourceGroupTool = mcp.Tool{Name: "acnfu3__controlplane_v1_ResourceGroupService_DeleteResourceGroup", Description: "DeleteResourceGroup deletes a resource_group.\n", InputSchema: mcp.ToolInputSchema{Type: "", Properties: map[string]interface{}(nil), Required: []string(nil)}, RawInputSchema: json.RawMessage{0x7b, 0x22, 0x70, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x74, 0x69, 0x65, 0x73, 0x22, 0x3a, 0x7b, 0x22, 0x69, 0x64, 0x22, 0x3a, 0x7b, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x22, 0x7d, 0x7d, 0x2c, 0x22, 0x72, 0x65, 0x71, 0x75, 0x69, 0x72, 0x65, 0x64, 0x22, 0x3a, 0x5b, 0x5d, 0x2c, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x6f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x22, 0x7d}}
-	ResourceGroupService_GetResourceGroupTool    = mcp.Tool{Name: "becvio_api_controlplane_v1_ResourceGroupService_GetResourceGroup", Description: "GetResourceGroup retrieves the resource_group's information\n", InputSchema: mcp.ToolInputSchema{Type: "", Properties: map[string]interface{}(nil), Required: []string(nil)}, RawInputSchema: json.RawMessage{0x7b, 0x22, 0x70, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x74, 0x69, 0x65, 0x73, 0x22, 0x3a, 0x7b, 0x22, 0x69, 0x64, 0x22, 0x3a, 0x7b, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x22, 0x7d, 0x2c, 0x22, 0x72, 0x65, 0x61, 0x64, 0x5f, 0x6d, 0x61, 0x73, 0x6b, 0x22, 0x3a, 0x7b, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x22, 0x7d, 0x7d, 0x2c, 0x22, 0x72, 0x65, 0x71, 0x75, 0x69, 0x72, 0x65, 0x64, 0x22, 0x3a, 0x5b, 0x5d, 0x2c, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x6f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x22, 0x7d}}
-	ResourceGroupService_ListResourceGroupsTool  = mcp.Tool{Name: "vi2yzg_i_controlplane_v1_ResourceGroupService_ListResourceGroups", Description: "ListResourceGroups list resource_groups.\n", InputSchema: mcp.ToolInputSchema{Type: "", Properties: map[string]interface{}(nil), Required: []string(nil)}, RawInputSchema: json.RawMessage{0x7b, 0x22, 0x70, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x74, 0x69, 0x65, 0x73, 0x22, 0x3a, 0x7b, 0x22, 0x66, 0x69, 0x6c, 0x74, 0x65, 0x72, 0x22, 0x3a, 0x7b, 0x22, 0x70, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x74, 0x69, 0x65, 0x73, 0x22, 0x3a, 0x7b, 0x22, 0x6e, 0x61, 0x6d, 0x65, 0x5f, 0x63, 0x6f, 0x6e, 0x74, 0x61, 0x69, 0x6e, 0x73, 0x22, 0x3a, 0x7b, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x22, 0x7d, 0x7d, 0x2c, 0x22, 0x72, 0x65, 0x71, 0x75, 0x69, 0x72, 0x65, 0x64, 0x22, 0x3a, 0x5b, 0x5d, 0x2c, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x6f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x22, 0x7d, 0x2c, 0x22, 0x70, 0x61, 0x67, 0x65, 0x5f, 0x73, 0x69, 0x7a, 0x65, 0x22, 0x3a, 0x7b, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x69, 0x6e, 0x74, 0x65, 0x67, 0x65, 0x72, 0x22, 0x7d, 0x2c, 0x22, 0x70, 0x61, 0x67, 0x65, 0x5f, 0x74, 0x6f, 0x6b, 0x65, 0x6e, 0x22, 0x3a, 0x7b, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x22, 0x7d, 0x2c, 0x22, 0x72, 0x65, 0x61, 0x64, 0x5f, 0x6d, 0x61, 0x73, 0x6b, 0x22, 0x3a, 0x7b, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x22, 0x7d, 0x7d, 0x2c, 0x22, 0x72, 0x65, 0x71, 0x75, 0x69, 0x72, 0x65, 0x64, 0x22, 0x3a, 0x5b, 0x5d, 0x2c, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x6f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x22, 0x7d}}
-	ResourceGroupService_UpdateResourceGroupTool = mcp.Tool{Name: "t1h0yh__controlplane_v1_ResourceGroupService_UpdateResourceGroup", Description: "UpdateResourceGroup updates the resource_group.\n", InputSchema: mcp.ToolInputSchema{Type: "", Properties: map[string]interface{}(nil), Required: []string(nil)}, RawInputSchema: json.RawMessage{0x7b, 0x22, 0x70, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x74, 0x69, 0x65, 0x73, 0x22, 0x3a, 0x7b, 0x22, 0x72, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x5f, 0x67, 0x72, 0x6f, 0x75, 0x70, 0x22, 0x3a, 0x7b, 0x22, 0x70, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x74, 0x69, 0x65, 0x73, 0x22, 0x3a, 0x7b, 0x22, 0x69, 0x64, 0x22, 0x3a, 0x7b, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x22, 0x7d, 0x2c, 0x22, 0x6e, 0x61, 0x6d, 0x65, 0x22, 0x3a, 0x7b, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x22, 0x7d, 0x7d, 0x2c, 0x22, 0x72, 0x65, 0x71, 0x75, 0x69, 0x72, 0x65, 0x64, 0x22, 0x3a, 0x5b, 0x22, 0x69, 0x64, 0x22, 0x2c, 0x22, 0x6e, 0x61, 0x6d, 0x65, 0x22, 0x5d, 0x2c, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x6f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x22, 0x7d, 0x7d, 0x2c, 0x22, 0x72, 0x65, 0x71, 0x75, 0x69, 0x72, 0x65, 0x64, 0x22, 0x3a, 0x5b, 0x5d, 0x2c, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x6f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x22, 0x7d}}
+	ResourceGroupService_CreateResourceGroupTool       = mcp.Tool{Name: "1hz42g__controlplane_v1_ResourceGroupService_CreateResourceGroup", Description: "CreateResourceGroup creates the resource_group\n", InputSchema: mcp.ToolInputSchema{Type: "", Properties: map[string]interface{}(nil), Required: []string(nil)}, RawInputSchema: json.RawMessage{0x7b, 0x22, 0x70, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x74, 0x69, 0x65, 0x73, 0x22, 0x3a, 0x7b, 0x22, 0x72, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x5f, 0x67, 0x72, 0x6f, 0x75, 0x70, 0x22, 0x3a, 0x7b, 0x22, 0x70, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x74, 0x69, 0x65, 0x73, 0x22, 0x3a, 0x7b, 0x22, 0x6e, 0x61, 0x6d, 0x65, 0x22, 0x3a, 0x7b, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x22, 0x7d, 0x7d, 0x2c, 0x22, 0x72, 0x65, 0x71, 0x75, 0x69, 0x72, 0x65, 0x64, 0x22, 0x3a, 0x5b, 0x22, 0x6e, 0x61, 0x6d, 0x65, 0x22, 0x5d, 0x2c, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x6f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x22, 0x7d, 0x7d, 0x2c, 0x22, 0x72, 0x65, 0x71, 0x75, 0x69, 0x72, 0x65, 0x64, 0x22, 0x3a, 0x5b, 0x5d, 0x2c, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x6f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x22, 0x7d}}
+	ResourceGroupService_DeleteResourceGroupTool       = mcp.Tool{Name: "acnfu3__controlplane_v1_ResourceGroupService_DeleteResourceGroup", Description: "DeleteResourceGroup deletes a resource_group.\n", InputSchema: mcp.ToolInputSchema{Type: "", Properties: map[string]interface{}(nil), Required: []string(nil)}, RawInputSchema: json.RawMessage{0x7b, 0x22, 0x70, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x74, 0x69, 0x65, 0x73, 0x22, 0x3a, 0x7b, 0x22, 0x69, 0x64, 0x22, 0x3a, 0x7b, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x22, 0x7d, 0x7d, 0x2c, 0x22, 0x72, 0x65, 0x71, 0x75, 0x69, 0x72, 0x65, 0x64, 0x22, 0x3a, 0x5b, 0x5d, 0x2c, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x6f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x22, 0x7d}}
+	ResourceGroupService_GetResourceGroupTool          = mcp.Tool{Name: "becvio_api_controlplane_v1_ResourceGroupService_GetResourceGroup", Description: "GetResourceGroup retrieves the resource_group's information\n", InputSchema: mcp.ToolInputSchema{Type: "", Properties: map[string]interface{}(nil), Required: []string(nil)}, RawInputSchema: json.RawMessage{0x7b, 0x22, 0x70, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x74, 0x69, 0x65, 0x73, 0x22, 0x3a, 0x7b, 0x22, 0x69, 0x64, 0x22, 0x3a, 0x7b, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x22, 0x7d, 0x2c, 0x22, 0x72, 0x65, 0x61, 0x64, 0x5f, 0x6d, 0x61, 0x73, 0x6b, 0x22, 0x3a, 0x7b, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x22, 0x7d, 0x7d, 0x2c, 0x22, 0x72, 0x65, 0x71, 0x75, 0x69, 0x72, 0x65, 0x64, 0x22, 0x3a, 0x5b, 0x5d, 0x2c, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x6f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x22, 0x7d}}
+	ResourceGroupService_ListResourceGroupsTool        = mcp.Tool{Name: "vi2yzg_i_controlplane_v1_ResourceGroupService_ListResourceGroups", Description: "ListResourceGroups list resource_groups.\n", InputSchema: mcp.ToolInputSchema{Type: "", Properties: map[string]interface{}(nil), Required: []string(nil)}, RawInputSchema: json.RawMessage{0x7b, 0x22, 0x70, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x74, 0x69, 0x65, 0x73, 0x22, 0x3a, 0x7b, 0x22, 0x66, 0x69, 0x6c, 0x74, 0x65, 0x72, 0x22, 0x3a, 0x7b, 0x22, 0x70, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x74, 0x69, 0x65, 0x73, 0x22, 0x3a, 0x7b, 0x22, 0x6e, 0x61, 0x6d, 0x65, 0x5f, 0x63, 0x6f, 0x6e, 0x74, 0x61, 0x69, 0x6e, 0x73, 0x22, 0x3a, 0x7b, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x22, 0x7d, 0x7d, 0x2c, 0x22, 0x72, 0x65, 0x71, 0x75, 0x69, 0x72, 0x65, 0x64, 0x22, 0x3a, 0x5b, 0x5d, 0x2c, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x6f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x22, 0x7d, 0x2c, 0x22, 0x70, 0x61, 0x67, 0x65, 0x5f, 0x73, 0x69, 0x7a, 0x65, 0x22, 0x3a, 0x7b, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x69, 0x6e, 0x74, 0x65, 0x67, 0x65, 0x72, 0x22, 0x7d, 0x2c, 0x22, 0x70, 0x61, 0x67, 0x65, 0x5f, 0x74, 0x6f, 0x6b, 0x65, 0x6e, 0x22, 0x3a, 0x7b, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x22, 0x7d, 0x2c, 0x22, 0x72, 0x65, 0x61, 0x64, 0x5f, 0x6d, 0x61, 0x73, 0x6b, 0x22, 0x3a, 0x7b, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x22, 0x7d, 0x7d, 0x2c, 0x22, 0x72, 0x65, 0x71, 0x75, 0x69, 0x72, 0x65, 0x64, 0x22, 0x3a, 0x5b, 0x5d, 0x2c, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x6f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x22, 0x7d}}
+	ResourceGroupService_UpdateResourceGroupTool       = mcp.Tool{Name: "t1h0yh__controlplane_v1_ResourceGroupService_UpdateResourceGroup", Description: "UpdateResourceGroup updates the resource_group.\n", InputSchema: mcp.ToolInputSchema{Type: "", Properties: map[string]interface{}(nil), Required: []string(nil)}, RawInputSchema: json.RawMessage{0x7b, 0x22, 0x70, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x74, 0x69, 0x65, 0x73, 0x22, 0x3a, 0x7b, 0x22, 0x72, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x5f, 0x67, 0x72, 0x6f, 0x75, 0x70, 0x22, 0x3a, 0x7b, 0x22, 0x70, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x74, 0x69, 0x65, 0x73, 0x22, 0x3a, 0x7b, 0x22, 0x69, 0x64, 0x22, 0x3a, 0x7b, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x22, 0x7d, 0x2c, 0x22, 0x6e, 0x61, 0x6d, 0x65, 0x22, 0x3a, 0x7b, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x22, 0x7d, 0x7d, 0x2c, 0x22, 0x72, 0x65, 0x71, 0x75, 0x69, 0x72, 0x65, 0x64, 0x22, 0x3a, 0x5b, 0x22, 0x69, 0x64, 0x22, 0x2c, 0x22, 0x6e, 0x61, 0x6d, 0x65, 0x22, 0x5d, 0x2c, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x6f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x22, 0x7d, 0x7d, 0x2c, 0x22, 0x72, 0x65, 0x71, 0x75, 0x69, 0x72, 0x65, 0x64, 0x22, 0x3a, 0x5b, 0x5d, 0x2c, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x6f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x22, 0x7d}}
+	ResourceGroupService_CreateResourceGroupToolOpenAI = mcp.Tool{Name: "1hz42g__controlplane_v1_ResourceGroupService_CreateResourceGroup", Description: "CreateResourceGroup creates the resource_group\n", InputSchema: mcp.ToolInputSchema{Type: "", Properties: map[string]interface{}(nil), Required: []string(nil)}, RawInputSchema: json.RawMessage{0x7b, 0x22, 0x61, 0x64, 0x64, 0x69, 0x74, 0x69, 0x6f, 0x6e, 0x61, 0x6c, 0x50, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x74, 0x69, 0x65, 0x73, 0x22, 0x3a, 0x66, 0x61, 0x6c, 0x73, 0x65, 0x2c, 0x22, 0x70, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x74, 0x69, 0x65, 0x73, 0x22, 0x3a, 0x7b, 0x22, 0x72, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x5f, 0x67, 0x72, 0x6f, 0x75, 0x70, 0x22, 0x3a, 0x7b, 0x22, 0x61, 0x64, 0x64, 0x69, 0x74, 0x69, 0x6f, 0x6e, 0x61, 0x6c, 0x50, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x74, 0x69, 0x65, 0x73, 0x22, 0x3a, 0x66, 0x61, 0x6c, 0x73, 0x65, 0x2c, 0x22, 0x70, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x74, 0x69, 0x65, 0x73, 0x22, 0x3a, 0x7b, 0x22, 0x6e, 0x61, 0x6d, 0x65, 0x22, 0x3a, 0x7b, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x22, 0x7d, 0x7d, 0x2c, 0x22, 0x72, 0x65, 0x71, 0x75, 0x69, 0x72, 0x65, 0x64, 0x22, 0x3a, 0x5b, 0x22, 0x6e, 0x61, 0x6d, 0x65, 0x22, 0x5d, 0x2c, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x5b, 0x22, 0x6f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x22, 0x2c, 0x22, 0x6e, 0x75, 0x6c, 0x6c, 0x22, 0x5d, 0x7d, 0x7d, 0x2c, 0x22, 0x72, 0x65, 0x71, 0x75, 0x69, 0x72, 0x65, 0x64, 0x22, 0x3a, 0x5b, 0x22, 0x72, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x5f, 0x67, 0x72, 0x6f, 0x75, 0x70, 0x22, 0x5d, 0x2c, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x6f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x22, 0x7d}}
+	ResourceGroupService_DeleteResourceGroupToolOpenAI = mcp.Tool{Name: "acnfu3__controlplane_v1_ResourceGroupService_DeleteResourceGroup", Description: "DeleteResourceGroup deletes a resource_group.\n", InputSchema: mcp.ToolInputSchema{Type: "", Properties: map[string]interface{}(nil), Required: []string(nil)}, RawInputSchema: json.RawMessage{0x7b, 0x22, 0x61, 0x64, 0x64, 0x69, 0x74, 0x69, 0x6f, 0x6e, 0x61, 0x6c, 0x50, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x74, 0x69, 0x65, 0x73, 0x22, 0x3a, 0x66, 0x61, 0x6c, 0x73, 0x65, 0x2c, 0x22, 0x70, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x74, 0x69, 0x65, 0x73, 0x22, 0x3a, 0x7b, 0x22, 0x69, 0x64, 0x22, 0x3a, 0x7b, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x22, 0x7d, 0x7d, 0x2c, 0x22, 0x72, 0x65, 0x71, 0x75, 0x69, 0x72, 0x65, 0x64, 0x22, 0x3a, 0x5b, 0x22, 0x69, 0x64, 0x22, 0x5d, 0x2c, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x6f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x22, 0x7d}}
+	ResourceGroupService_GetResourceGroupToolOpenAI    = mcp.Tool{Name: "becvio_api_controlplane_v1_ResourceGroupService_GetResourceGroup", Description: "GetResourceGroup retrieves the resource_group's information\n", InputSchema: mcp.ToolInputSchema{Type: "", Properties: map[string]interface{}(nil), Required: []string(nil)}, RawInputSchema: json.RawMessage{0x7b, 0x22, 0x61, 0x64, 0x64, 0x69, 0x74, 0x69, 0x6f, 0x6e, 0x61, 0x6c, 0x50, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x74, 0x69, 0x65, 0x73, 0x22, 0x3a, 0x66, 0x61, 0x6c, 0x73, 0x65, 0x2c, 0x22, 0x70, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x74, 0x69, 0x65, 0x73, 0x22, 0x3a, 0x7b, 0x22, 0x69, 0x64, 0x22, 0x3a, 0x7b, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x22, 0x7d, 0x2c, 0x22, 0x72, 0x65, 0x61, 0x64, 0x5f, 0x6d, 0x61, 0x73, 0x6b, 0x22, 0x3a, 0x7b, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x5b, 0x22, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x22, 0x2c, 0x22, 0x6e, 0x75, 0x6c, 0x6c, 0x22, 0x5d, 0x7d, 0x7d, 0x2c, 0x22, 0x72, 0x65, 0x71, 0x75, 0x69, 0x72, 0x65, 0x64, 0x22, 0x3a, 0x5b, 0x22, 0x69, 0x64, 0x22, 0x2c, 0x22, 0x72, 0x65, 0x61, 0x64, 0x5f, 0x6d, 0x61, 0x73, 0x6b, 0x22, 0x5d, 0x2c, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x6f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x22, 0x7d}}
+	ResourceGroupService_ListResourceGroupsToolOpenAI  = mcp.Tool{Name: "vi2yzg_i_controlplane_v1_ResourceGroupService_ListResourceGroups", Description: "ListResourceGroups list resource_groups.\n", InputSchema: mcp.ToolInputSchema{Type: "", Properties: map[string]interface{}(nil), Required: []string(nil)}, RawInputSchema: json.RawMessage{0x7b, 0x22, 0x61, 0x64, 0x64, 0x69, 0x74, 0x69, 0x6f, 0x6e, 0x61, 0x6c, 0x50, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x74, 0x69, 0x65, 0x73, 0x22, 0x3a, 0x66, 0x61, 0x6c, 0x73, 0x65, 0x2c, 0x22, 0x70, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x74, 0x69, 0x65, 0x73, 0x22, 0x3a, 0x7b, 0x22, 0x66, 0x69, 0x6c, 0x74, 0x65, 0x72, 0x22, 0x3a, 0x7b, 0x22, 0x61, 0x64, 0x64, 0x69, 0x74, 0x69, 0x6f, 0x6e, 0x61, 0x6c, 0x50, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x74, 0x69, 0x65, 0x73, 0x22, 0x3a, 0x66, 0x61, 0x6c, 0x73, 0x65, 0x2c, 0x22, 0x70, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x74, 0x69, 0x65, 0x73, 0x22, 0x3a, 0x7b, 0x22, 0x6e, 0x61, 0x6d, 0x65, 0x5f, 0x63, 0x6f, 0x6e, 0x74, 0x61, 0x69, 0x6e, 0x73, 0x22, 0x3a, 0x7b, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x22, 0x7d, 0x7d, 0x2c, 0x22, 0x72, 0x65, 0x71, 0x75, 0x69, 0x72, 0x65, 0x64, 0x22, 0x3a, 0x5b, 0x22, 0x6e, 0x61, 0x6d, 0x65, 0x5f, 0x63, 0x6f, 0x6e, 0x74, 0x61, 0x69, 0x6e, 0x73, 0x22, 0x5d, 0x2c, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x5b, 0x22, 0x6f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x22, 0x2c, 0x22, 0x6e, 0x75, 0x6c, 0x6c, 0x22, 0x5d, 0x7d, 0x2c, 0x22, 0x70, 0x61, 0x67, 0x65, 0x5f, 0x73, 0x69, 0x7a, 0x65, 0x22, 0x3a, 0x7b, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x69, 0x6e, 0x74, 0x65, 0x67, 0x65, 0x72, 0x22, 0x7d, 0x2c, 0x22, 0x70, 0x61, 0x67, 0x65, 0x5f, 0x74, 0x6f, 0x6b, 0x65, 0x6e, 0x22, 0x3a, 0x7b, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x22, 0x7d, 0x2c, 0x22, 0x72, 0x65, 0x61, 0x64, 0x5f, 0x6d, 0x61, 0x73, 0x6b, 0x22, 0x3a, 0x7b, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x5b, 0x22, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x22, 0x2c, 0x22, 0x6e, 0x75, 0x6c, 0x6c, 0x22, 0x5d, 0x7d, 0x7d, 0x2c, 0x22, 0x72, 0x65, 0x71, 0x75, 0x69, 0x72, 0x65, 0x64, 0x22, 0x3a, 0x5b, 0x22, 0x66, 0x69, 0x6c, 0x74, 0x65, 0x72, 0x22, 0x2c, 0x22, 0x70, 0x61, 0x67, 0x65, 0x5f, 0x73, 0x69, 0x7a, 0x65, 0x22, 0x2c, 0x22, 0x70, 0x61, 0x67, 0x65, 0x5f, 0x74, 0x6f, 0x6b, 0x65, 0x6e, 0x22, 0x2c, 0x22, 0x72, 0x65, 0x61, 0x64, 0x5f, 0x6d, 0x61, 0x73, 0x6b, 0x22, 0x5d, 0x2c, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x6f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x22, 0x7d}}
+	ResourceGroupService_UpdateResourceGroupToolOpenAI = mcp.Tool{Name: "t1h0yh__controlplane_v1_ResourceGroupService_UpdateResourceGroup", Description: "UpdateResourceGroup updates the resource_group.\n", InputSchema: mcp.ToolInputSchema{Type: "", Properties: map[string]interface{}(nil), Required: []string(nil)}, RawInputSchema: json.RawMessage{0x7b, 0x22, 0x61, 0x64, 0x64, 0x69, 0x74, 0x69, 0x6f, 0x6e, 0x61, 0x6c, 0x50, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x74, 0x69, 0x65, 0x73, 0x22, 0x3a, 0x66, 0x61, 0x6c, 0x73, 0x65, 0x2c, 0x22, 0x70, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x74, 0x69, 0x65, 0x73, 0x22, 0x3a, 0x7b, 0x22, 0x72, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x5f, 0x67, 0x72, 0x6f, 0x75, 0x70, 0x22, 0x3a, 0x7b, 0x22, 0x61, 0x64, 0x64, 0x69, 0x74, 0x69, 0x6f, 0x6e, 0x61, 0x6c, 0x50, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x74, 0x69, 0x65, 0x73, 0x22, 0x3a, 0x66, 0x61, 0x6c, 0x73, 0x65, 0x2c, 0x22, 0x70, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x74, 0x69, 0x65, 0x73, 0x22, 0x3a, 0x7b, 0x22, 0x69, 0x64, 0x22, 0x3a, 0x7b, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x22, 0x7d, 0x2c, 0x22, 0x6e, 0x61, 0x6d, 0x65, 0x22, 0x3a, 0x7b, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x22, 0x7d, 0x7d, 0x2c, 0x22, 0x72, 0x65, 0x71, 0x75, 0x69, 0x72, 0x65, 0x64, 0x22, 0x3a, 0x5b, 0x22, 0x69, 0x64, 0x22, 0x2c, 0x22, 0x6e, 0x61, 0x6d, 0x65, 0x22, 0x5d, 0x2c, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x5b, 0x22, 0x6f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x22, 0x2c, 0x22, 0x6e, 0x75, 0x6c, 0x6c, 0x22, 0x5d, 0x7d, 0x7d, 0x2c, 0x22, 0x72, 0x65, 0x71, 0x75, 0x69, 0x72, 0x65, 0x64, 0x22, 0x3a, 0x5b, 0x22, 0x72, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x5f, 0x67, 0x72, 0x6f, 0x75, 0x70, 0x22, 0x5d, 0x2c, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x6f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x22, 0x7d}}
 )
 
 // ResourceGroupServiceServer is compatible with the grpc-go server interface.
@@ -31,117 +40,441 @@ type ResourceGroupServiceServer interface {
 	UpdateResourceGroup(ctx context.Context, req *v1.UpdateResourceGroupRequest) (*v1.UpdateResourceGroupResponse, error)
 }
 
-func RegisterResourceGroupServiceHandler(s *mcpserver.MCPServer, srv ResourceGroupServiceServer) {
-	s.AddTool(ResourceGroupService_CreateResourceGroupTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		marshaled, err := json.Marshal(request.Params.Arguments)
+// RegisterResourceGroupServiceHandler registers standard MCP handlers for ResourceGroupService
+func RegisterResourceGroupServiceHandler(s *mcpserver.MCPServer, srv ResourceGroupServiceServer, opts ...runtime.Option) {
+	config := runtime.NewConfig()
+	for _, opt := range opts {
+		opt(config)
+	}
+	CreateResourceGroupTool := ResourceGroupService_CreateResourceGroupTool
+	// Add extra properties to schema if configured
+	if len(config.ExtraProperties) > 0 {
+		CreateResourceGroupTool = runtime.AddExtraPropertiesToTool(CreateResourceGroupTool, config.ExtraProperties)
+	}
+
+	s.AddTool(CreateResourceGroupTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		var req v1.CreateResourceGroupRequest
+
+		message := request.Params.Arguments
+
+		// Extract extra properties if configured
+		for _, prop := range config.ExtraProperties {
+			if propVal, ok := message[prop.Name]; ok {
+				ctx = context.WithValue(ctx, prop.ContextKey, propVal)
+			}
+		}
+
+		marshaled, err := json.Marshal(message)
 		if err != nil {
 			return nil, err
 		}
 
-		var req v1.CreateResourceGroupRequest
 		if err := (protojson.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(marshaled, &req); err != nil {
 			return nil, err
 		}
 
 		resp, err := srv.CreateResourceGroup(ctx, &req)
 		if err != nil {
-			return nil, err
+			return runtime.HandleError(err)
 		}
 
 		marshaled, err = (protojson.MarshalOptions{UseProtoNames: true, EmitDefaultValues: true}).Marshal(resp)
 		if err != nil {
 			return nil, err
 		}
+
 		return mcp.NewToolResultText(string(marshaled)), nil
 	})
-	s.AddTool(ResourceGroupService_DeleteResourceGroupTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		marshaled, err := json.Marshal(request.Params.Arguments)
+	DeleteResourceGroupTool := ResourceGroupService_DeleteResourceGroupTool
+	// Add extra properties to schema if configured
+	if len(config.ExtraProperties) > 0 {
+		DeleteResourceGroupTool = runtime.AddExtraPropertiesToTool(DeleteResourceGroupTool, config.ExtraProperties)
+	}
+
+	s.AddTool(DeleteResourceGroupTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		var req v1.DeleteResourceGroupRequest
+
+		message := request.Params.Arguments
+
+		// Extract extra properties if configured
+		for _, prop := range config.ExtraProperties {
+			if propVal, ok := message[prop.Name]; ok {
+				ctx = context.WithValue(ctx, prop.ContextKey, propVal)
+			}
+		}
+
+		marshaled, err := json.Marshal(message)
 		if err != nil {
 			return nil, err
 		}
 
-		var req v1.DeleteResourceGroupRequest
 		if err := (protojson.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(marshaled, &req); err != nil {
 			return nil, err
 		}
 
 		resp, err := srv.DeleteResourceGroup(ctx, &req)
 		if err != nil {
-			return nil, err
+			return runtime.HandleError(err)
 		}
 
 		marshaled, err = (protojson.MarshalOptions{UseProtoNames: true, EmitDefaultValues: true}).Marshal(resp)
 		if err != nil {
 			return nil, err
 		}
+
 		return mcp.NewToolResultText(string(marshaled)), nil
 	})
-	s.AddTool(ResourceGroupService_GetResourceGroupTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		marshaled, err := json.Marshal(request.Params.Arguments)
+	GetResourceGroupTool := ResourceGroupService_GetResourceGroupTool
+	// Add extra properties to schema if configured
+	if len(config.ExtraProperties) > 0 {
+		GetResourceGroupTool = runtime.AddExtraPropertiesToTool(GetResourceGroupTool, config.ExtraProperties)
+	}
+
+	s.AddTool(GetResourceGroupTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		var req v1.GetResourceGroupRequest
+
+		message := request.Params.Arguments
+
+		// Extract extra properties if configured
+		for _, prop := range config.ExtraProperties {
+			if propVal, ok := message[prop.Name]; ok {
+				ctx = context.WithValue(ctx, prop.ContextKey, propVal)
+			}
+		}
+
+		marshaled, err := json.Marshal(message)
 		if err != nil {
 			return nil, err
 		}
 
-		var req v1.GetResourceGroupRequest
 		if err := (protojson.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(marshaled, &req); err != nil {
 			return nil, err
 		}
 
 		resp, err := srv.GetResourceGroup(ctx, &req)
 		if err != nil {
-			return nil, err
+			return runtime.HandleError(err)
 		}
 
 		marshaled, err = (protojson.MarshalOptions{UseProtoNames: true, EmitDefaultValues: true}).Marshal(resp)
 		if err != nil {
 			return nil, err
 		}
+
 		return mcp.NewToolResultText(string(marshaled)), nil
 	})
-	s.AddTool(ResourceGroupService_ListResourceGroupsTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		marshaled, err := json.Marshal(request.Params.Arguments)
+	ListResourceGroupsTool := ResourceGroupService_ListResourceGroupsTool
+	// Add extra properties to schema if configured
+	if len(config.ExtraProperties) > 0 {
+		ListResourceGroupsTool = runtime.AddExtraPropertiesToTool(ListResourceGroupsTool, config.ExtraProperties)
+	}
+
+	s.AddTool(ListResourceGroupsTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		var req v1.ListResourceGroupsRequest
+
+		message := request.Params.Arguments
+
+		// Extract extra properties if configured
+		for _, prop := range config.ExtraProperties {
+			if propVal, ok := message[prop.Name]; ok {
+				ctx = context.WithValue(ctx, prop.ContextKey, propVal)
+			}
+		}
+
+		marshaled, err := json.Marshal(message)
 		if err != nil {
 			return nil, err
 		}
 
-		var req v1.ListResourceGroupsRequest
 		if err := (protojson.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(marshaled, &req); err != nil {
 			return nil, err
 		}
 
 		resp, err := srv.ListResourceGroups(ctx, &req)
 		if err != nil {
-			return nil, err
+			return runtime.HandleError(err)
 		}
 
 		marshaled, err = (protojson.MarshalOptions{UseProtoNames: true, EmitDefaultValues: true}).Marshal(resp)
 		if err != nil {
 			return nil, err
 		}
+
 		return mcp.NewToolResultText(string(marshaled)), nil
 	})
-	s.AddTool(ResourceGroupService_UpdateResourceGroupTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		marshaled, err := json.Marshal(request.Params.Arguments)
+	UpdateResourceGroupTool := ResourceGroupService_UpdateResourceGroupTool
+	// Add extra properties to schema if configured
+	if len(config.ExtraProperties) > 0 {
+		UpdateResourceGroupTool = runtime.AddExtraPropertiesToTool(UpdateResourceGroupTool, config.ExtraProperties)
+	}
+
+	s.AddTool(UpdateResourceGroupTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		var req v1.UpdateResourceGroupRequest
+
+		message := request.Params.Arguments
+
+		// Extract extra properties if configured
+		for _, prop := range config.ExtraProperties {
+			if propVal, ok := message[prop.Name]; ok {
+				ctx = context.WithValue(ctx, prop.ContextKey, propVal)
+			}
+		}
+
+		marshaled, err := json.Marshal(message)
 		if err != nil {
 			return nil, err
 		}
 
-		var req v1.UpdateResourceGroupRequest
 		if err := (protojson.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(marshaled, &req); err != nil {
 			return nil, err
 		}
 
 		resp, err := srv.UpdateResourceGroup(ctx, &req)
 		if err != nil {
-			return nil, err
+			return runtime.HandleError(err)
 		}
 
 		marshaled, err = (protojson.MarshalOptions{UseProtoNames: true, EmitDefaultValues: true}).Marshal(resp)
 		if err != nil {
 			return nil, err
 		}
+
 		return mcp.NewToolResultText(string(marshaled)), nil
 	})
+}
+
+// RegisterResourceGroupServiceHandlerOpenAI registers OpenAI-compatible MCP handlers for ResourceGroupService
+func RegisterResourceGroupServiceHandlerOpenAI(s *mcpserver.MCPServer, srv ResourceGroupServiceServer, opts ...runtime.Option) {
+	config := runtime.NewConfig()
+	for _, opt := range opts {
+		opt(config)
+	}
+	CreateResourceGroupToolOpenAI := ResourceGroupService_CreateResourceGroupToolOpenAI
+	// Add extra properties to schema if configured
+	if len(config.ExtraProperties) > 0 {
+		CreateResourceGroupToolOpenAI = runtime.AddExtraPropertiesToTool(CreateResourceGroupToolOpenAI, config.ExtraProperties)
+	}
+
+	s.AddTool(CreateResourceGroupToolOpenAI, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		var req v1.CreateResourceGroupRequest
+
+		message := request.Params.Arguments
+
+		// Extract extra properties if configured
+		for _, prop := range config.ExtraProperties {
+			if propVal, ok := message[prop.Name]; ok {
+				ctx = context.WithValue(ctx, prop.ContextKey, propVal)
+			}
+		}
+
+		runtime.FixOpenAI(req.ProtoReflect().Descriptor(), message)
+
+		marshaled, err := json.Marshal(message)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := (protojson.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(marshaled, &req); err != nil {
+			return nil, err
+		}
+
+		resp, err := srv.CreateResourceGroup(ctx, &req)
+		if err != nil {
+			return runtime.HandleError(err)
+		}
+
+		marshaled, err = (protojson.MarshalOptions{UseProtoNames: true, EmitDefaultValues: true}).Marshal(resp)
+		if err != nil {
+			return nil, err
+		}
+
+		return mcp.NewToolResultText(string(marshaled)), nil
+	})
+	DeleteResourceGroupToolOpenAI := ResourceGroupService_DeleteResourceGroupToolOpenAI
+	// Add extra properties to schema if configured
+	if len(config.ExtraProperties) > 0 {
+		DeleteResourceGroupToolOpenAI = runtime.AddExtraPropertiesToTool(DeleteResourceGroupToolOpenAI, config.ExtraProperties)
+	}
+
+	s.AddTool(DeleteResourceGroupToolOpenAI, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		var req v1.DeleteResourceGroupRequest
+
+		message := request.Params.Arguments
+
+		// Extract extra properties if configured
+		for _, prop := range config.ExtraProperties {
+			if propVal, ok := message[prop.Name]; ok {
+				ctx = context.WithValue(ctx, prop.ContextKey, propVal)
+			}
+		}
+
+		runtime.FixOpenAI(req.ProtoReflect().Descriptor(), message)
+
+		marshaled, err := json.Marshal(message)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := (protojson.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(marshaled, &req); err != nil {
+			return nil, err
+		}
+
+		resp, err := srv.DeleteResourceGroup(ctx, &req)
+		if err != nil {
+			return runtime.HandleError(err)
+		}
+
+		marshaled, err = (protojson.MarshalOptions{UseProtoNames: true, EmitDefaultValues: true}).Marshal(resp)
+		if err != nil {
+			return nil, err
+		}
+
+		return mcp.NewToolResultText(string(marshaled)), nil
+	})
+	GetResourceGroupToolOpenAI := ResourceGroupService_GetResourceGroupToolOpenAI
+	// Add extra properties to schema if configured
+	if len(config.ExtraProperties) > 0 {
+		GetResourceGroupToolOpenAI = runtime.AddExtraPropertiesToTool(GetResourceGroupToolOpenAI, config.ExtraProperties)
+	}
+
+	s.AddTool(GetResourceGroupToolOpenAI, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		var req v1.GetResourceGroupRequest
+
+		message := request.Params.Arguments
+
+		// Extract extra properties if configured
+		for _, prop := range config.ExtraProperties {
+			if propVal, ok := message[prop.Name]; ok {
+				ctx = context.WithValue(ctx, prop.ContextKey, propVal)
+			}
+		}
+
+		runtime.FixOpenAI(req.ProtoReflect().Descriptor(), message)
+
+		marshaled, err := json.Marshal(message)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := (protojson.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(marshaled, &req); err != nil {
+			return nil, err
+		}
+
+		resp, err := srv.GetResourceGroup(ctx, &req)
+		if err != nil {
+			return runtime.HandleError(err)
+		}
+
+		marshaled, err = (protojson.MarshalOptions{UseProtoNames: true, EmitDefaultValues: true}).Marshal(resp)
+		if err != nil {
+			return nil, err
+		}
+
+		return mcp.NewToolResultText(string(marshaled)), nil
+	})
+	ListResourceGroupsToolOpenAI := ResourceGroupService_ListResourceGroupsToolOpenAI
+	// Add extra properties to schema if configured
+	if len(config.ExtraProperties) > 0 {
+		ListResourceGroupsToolOpenAI = runtime.AddExtraPropertiesToTool(ListResourceGroupsToolOpenAI, config.ExtraProperties)
+	}
+
+	s.AddTool(ListResourceGroupsToolOpenAI, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		var req v1.ListResourceGroupsRequest
+
+		message := request.Params.Arguments
+
+		// Extract extra properties if configured
+		for _, prop := range config.ExtraProperties {
+			if propVal, ok := message[prop.Name]; ok {
+				ctx = context.WithValue(ctx, prop.ContextKey, propVal)
+			}
+		}
+
+		runtime.FixOpenAI(req.ProtoReflect().Descriptor(), message)
+
+		marshaled, err := json.Marshal(message)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := (protojson.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(marshaled, &req); err != nil {
+			return nil, err
+		}
+
+		resp, err := srv.ListResourceGroups(ctx, &req)
+		if err != nil {
+			return runtime.HandleError(err)
+		}
+
+		marshaled, err = (protojson.MarshalOptions{UseProtoNames: true, EmitDefaultValues: true}).Marshal(resp)
+		if err != nil {
+			return nil, err
+		}
+
+		return mcp.NewToolResultText(string(marshaled)), nil
+	})
+	UpdateResourceGroupToolOpenAI := ResourceGroupService_UpdateResourceGroupToolOpenAI
+	// Add extra properties to schema if configured
+	if len(config.ExtraProperties) > 0 {
+		UpdateResourceGroupToolOpenAI = runtime.AddExtraPropertiesToTool(UpdateResourceGroupToolOpenAI, config.ExtraProperties)
+	}
+
+	s.AddTool(UpdateResourceGroupToolOpenAI, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		var req v1.UpdateResourceGroupRequest
+
+		message := request.Params.Arguments
+
+		// Extract extra properties if configured
+		for _, prop := range config.ExtraProperties {
+			if propVal, ok := message[prop.Name]; ok {
+				ctx = context.WithValue(ctx, prop.ContextKey, propVal)
+			}
+		}
+
+		runtime.FixOpenAI(req.ProtoReflect().Descriptor(), message)
+
+		marshaled, err := json.Marshal(message)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := (protojson.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(marshaled, &req); err != nil {
+			return nil, err
+		}
+
+		resp, err := srv.UpdateResourceGroup(ctx, &req)
+		if err != nil {
+			return runtime.HandleError(err)
+		}
+
+		marshaled, err = (protojson.MarshalOptions{UseProtoNames: true, EmitDefaultValues: true}).Marshal(resp)
+		if err != nil {
+			return nil, err
+		}
+
+		return mcp.NewToolResultText(string(marshaled)), nil
+	})
+}
+
+// RegisterResourceGroupServiceHandlerWithProvider registers handlers for the specified LLM provider
+func RegisterResourceGroupServiceHandlerWithProvider(s *mcpserver.MCPServer, srv ResourceGroupServiceServer, provider runtime.LLMProvider, opts ...runtime.Option) {
+	switch provider {
+	case runtime.LLMProviderOpenAI:
+		RegisterResourceGroupServiceHandlerOpenAI(s, srv, opts...)
+	case runtime.LLMProviderStandard:
+		fallthrough
+	default:
+		RegisterResourceGroupServiceHandler(s, srv, opts...)
+	}
+}
+
+// ResourceGroupServiceClient is compatible with the grpc-go client interface.
+type ResourceGroupServiceClient interface {
+	CreateResourceGroup(ctx context.Context, req *v1.CreateResourceGroupRequest, opts ...grpc.CallOption) (*v1.CreateResourceGroupResponse, error)
+	DeleteResourceGroup(ctx context.Context, req *v1.DeleteResourceGroupRequest, opts ...grpc.CallOption) (*v1.DeleteResourceGroupResponse, error)
+	GetResourceGroup(ctx context.Context, req *v1.GetResourceGroupRequest, opts ...grpc.CallOption) (*v1.GetResourceGroupResponse, error)
+	ListResourceGroups(ctx context.Context, req *v1.ListResourceGroupsRequest, opts ...grpc.CallOption) (*v1.ListResourceGroupsResponse, error)
+	UpdateResourceGroup(ctx context.Context, req *v1.UpdateResourceGroupRequest, opts ...grpc.CallOption) (*v1.UpdateResourceGroupResponse, error)
 }
 
 // ConnectResourceGroupServiceClient is compatible with the connectrpc-go client interface.
@@ -153,22 +486,42 @@ type ConnectResourceGroupServiceClient interface {
 	UpdateResourceGroup(ctx context.Context, req *connect.Request[v1.UpdateResourceGroupRequest]) (*connect.Response[v1.UpdateResourceGroupResponse], error)
 }
 
-// Register connectrpc handler, to forward MCP calls to it.
-func ForwardToConnectResourceGroupServiceClient(s *mcpserver.MCPServer, client ConnectResourceGroupServiceClient) {
-	s.AddTool(ResourceGroupService_CreateResourceGroupTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		marshaled, err := json.Marshal(request.Params.Arguments)
+// ForwardToConnectResourceGroupServiceClient registers a connectrpc client, to forward MCP calls to it.
+func ForwardToConnectResourceGroupServiceClient(s *mcpserver.MCPServer, client ConnectResourceGroupServiceClient, opts ...runtime.Option) {
+	config := runtime.NewConfig()
+	for _, opt := range opts {
+		opt(config)
+	}
+	CreateResourceGroupTool := ResourceGroupService_CreateResourceGroupTool
+	// Add extra properties to schema if configured
+	if len(config.ExtraProperties) > 0 {
+		CreateResourceGroupTool = runtime.AddExtraPropertiesToTool(CreateResourceGroupTool, config.ExtraProperties)
+	}
+
+	s.AddTool(CreateResourceGroupTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		var req v1.CreateResourceGroupRequest
+
+		message := request.Params.Arguments
+
+		// Extract extra properties if configured
+		for _, prop := range config.ExtraProperties {
+			if propVal, ok := message[prop.Name]; ok {
+				ctx = context.WithValue(ctx, prop.ContextKey, propVal)
+			}
+		}
+
+		marshaled, err := json.Marshal(message)
 		if err != nil {
 			return nil, err
 		}
 
-		var req v1.CreateResourceGroupRequest
 		if err := (protojson.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(marshaled, &req); err != nil {
 			return nil, err
 		}
 
 		resp, err := client.CreateResourceGroup(ctx, connect.NewRequest(&req))
 		if err != nil {
-			return nil, err
+			return runtime.HandleError(err)
 		}
 
 		marshaled, err = (protojson.MarshalOptions{UseProtoNames: true, EmitDefaultValues: true}).Marshal(resp.Msg)
@@ -177,20 +530,36 @@ func ForwardToConnectResourceGroupServiceClient(s *mcpserver.MCPServer, client C
 		}
 		return mcp.NewToolResultText(string(marshaled)), nil
 	})
-	s.AddTool(ResourceGroupService_DeleteResourceGroupTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		marshaled, err := json.Marshal(request.Params.Arguments)
+	DeleteResourceGroupTool := ResourceGroupService_DeleteResourceGroupTool
+	// Add extra properties to schema if configured
+	if len(config.ExtraProperties) > 0 {
+		DeleteResourceGroupTool = runtime.AddExtraPropertiesToTool(DeleteResourceGroupTool, config.ExtraProperties)
+	}
+
+	s.AddTool(DeleteResourceGroupTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		var req v1.DeleteResourceGroupRequest
+
+		message := request.Params.Arguments
+
+		// Extract extra properties if configured
+		for _, prop := range config.ExtraProperties {
+			if propVal, ok := message[prop.Name]; ok {
+				ctx = context.WithValue(ctx, prop.ContextKey, propVal)
+			}
+		}
+
+		marshaled, err := json.Marshal(message)
 		if err != nil {
 			return nil, err
 		}
 
-		var req v1.DeleteResourceGroupRequest
 		if err := (protojson.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(marshaled, &req); err != nil {
 			return nil, err
 		}
 
 		resp, err := client.DeleteResourceGroup(ctx, connect.NewRequest(&req))
 		if err != nil {
-			return nil, err
+			return runtime.HandleError(err)
 		}
 
 		marshaled, err = (protojson.MarshalOptions{UseProtoNames: true, EmitDefaultValues: true}).Marshal(resp.Msg)
@@ -199,20 +568,36 @@ func ForwardToConnectResourceGroupServiceClient(s *mcpserver.MCPServer, client C
 		}
 		return mcp.NewToolResultText(string(marshaled)), nil
 	})
-	s.AddTool(ResourceGroupService_GetResourceGroupTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		marshaled, err := json.Marshal(request.Params.Arguments)
+	GetResourceGroupTool := ResourceGroupService_GetResourceGroupTool
+	// Add extra properties to schema if configured
+	if len(config.ExtraProperties) > 0 {
+		GetResourceGroupTool = runtime.AddExtraPropertiesToTool(GetResourceGroupTool, config.ExtraProperties)
+	}
+
+	s.AddTool(GetResourceGroupTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		var req v1.GetResourceGroupRequest
+
+		message := request.Params.Arguments
+
+		// Extract extra properties if configured
+		for _, prop := range config.ExtraProperties {
+			if propVal, ok := message[prop.Name]; ok {
+				ctx = context.WithValue(ctx, prop.ContextKey, propVal)
+			}
+		}
+
+		marshaled, err := json.Marshal(message)
 		if err != nil {
 			return nil, err
 		}
 
-		var req v1.GetResourceGroupRequest
 		if err := (protojson.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(marshaled, &req); err != nil {
 			return nil, err
 		}
 
 		resp, err := client.GetResourceGroup(ctx, connect.NewRequest(&req))
 		if err != nil {
-			return nil, err
+			return runtime.HandleError(err)
 		}
 
 		marshaled, err = (protojson.MarshalOptions{UseProtoNames: true, EmitDefaultValues: true}).Marshal(resp.Msg)
@@ -221,20 +606,36 @@ func ForwardToConnectResourceGroupServiceClient(s *mcpserver.MCPServer, client C
 		}
 		return mcp.NewToolResultText(string(marshaled)), nil
 	})
-	s.AddTool(ResourceGroupService_ListResourceGroupsTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		marshaled, err := json.Marshal(request.Params.Arguments)
+	ListResourceGroupsTool := ResourceGroupService_ListResourceGroupsTool
+	// Add extra properties to schema if configured
+	if len(config.ExtraProperties) > 0 {
+		ListResourceGroupsTool = runtime.AddExtraPropertiesToTool(ListResourceGroupsTool, config.ExtraProperties)
+	}
+
+	s.AddTool(ListResourceGroupsTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		var req v1.ListResourceGroupsRequest
+
+		message := request.Params.Arguments
+
+		// Extract extra properties if configured
+		for _, prop := range config.ExtraProperties {
+			if propVal, ok := message[prop.Name]; ok {
+				ctx = context.WithValue(ctx, prop.ContextKey, propVal)
+			}
+		}
+
+		marshaled, err := json.Marshal(message)
 		if err != nil {
 			return nil, err
 		}
 
-		var req v1.ListResourceGroupsRequest
 		if err := (protojson.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(marshaled, &req); err != nil {
 			return nil, err
 		}
 
 		resp, err := client.ListResourceGroups(ctx, connect.NewRequest(&req))
 		if err != nil {
-			return nil, err
+			return runtime.HandleError(err)
 		}
 
 		marshaled, err = (protojson.MarshalOptions{UseProtoNames: true, EmitDefaultValues: true}).Marshal(resp.Msg)
@@ -243,23 +644,237 @@ func ForwardToConnectResourceGroupServiceClient(s *mcpserver.MCPServer, client C
 		}
 		return mcp.NewToolResultText(string(marshaled)), nil
 	})
-	s.AddTool(ResourceGroupService_UpdateResourceGroupTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		marshaled, err := json.Marshal(request.Params.Arguments)
+	UpdateResourceGroupTool := ResourceGroupService_UpdateResourceGroupTool
+	// Add extra properties to schema if configured
+	if len(config.ExtraProperties) > 0 {
+		UpdateResourceGroupTool = runtime.AddExtraPropertiesToTool(UpdateResourceGroupTool, config.ExtraProperties)
+	}
+
+	s.AddTool(UpdateResourceGroupTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		var req v1.UpdateResourceGroupRequest
+
+		message := request.Params.Arguments
+
+		// Extract extra properties if configured
+		for _, prop := range config.ExtraProperties {
+			if propVal, ok := message[prop.Name]; ok {
+				ctx = context.WithValue(ctx, prop.ContextKey, propVal)
+			}
+		}
+
+		marshaled, err := json.Marshal(message)
 		if err != nil {
 			return nil, err
 		}
 
-		var req v1.UpdateResourceGroupRequest
 		if err := (protojson.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(marshaled, &req); err != nil {
 			return nil, err
 		}
 
 		resp, err := client.UpdateResourceGroup(ctx, connect.NewRequest(&req))
 		if err != nil {
-			return nil, err
+			return runtime.HandleError(err)
 		}
 
 		marshaled, err = (protojson.MarshalOptions{UseProtoNames: true, EmitDefaultValues: true}).Marshal(resp.Msg)
+		if err != nil {
+			return nil, err
+		}
+		return mcp.NewToolResultText(string(marshaled)), nil
+	})
+}
+
+// ForwardToResourceGroupServiceClient registers a gRPC client, to forward MCP calls to it.
+func ForwardToResourceGroupServiceClient(s *mcpserver.MCPServer, client ResourceGroupServiceClient, opts ...runtime.Option) {
+	config := runtime.NewConfig()
+	for _, opt := range opts {
+		opt(config)
+	}
+	CreateResourceGroupTool := ResourceGroupService_CreateResourceGroupTool
+	// Add extra properties to schema if configured
+	if len(config.ExtraProperties) > 0 {
+		CreateResourceGroupTool = runtime.AddExtraPropertiesToTool(CreateResourceGroupTool, config.ExtraProperties)
+	}
+
+	s.AddTool(CreateResourceGroupTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		var req v1.CreateResourceGroupRequest
+
+		message := request.Params.Arguments
+
+		// Extract extra properties if configured
+		for _, prop := range config.ExtraProperties {
+			if propVal, ok := message[prop.Name]; ok {
+				ctx = context.WithValue(ctx, prop.ContextKey, propVal)
+			}
+		}
+
+		marshaled, err := json.Marshal(message)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := (protojson.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(marshaled, &req); err != nil {
+			return nil, err
+		}
+
+		resp, err := client.CreateResourceGroup(ctx, &req)
+		if err != nil {
+			return runtime.HandleError(err)
+		}
+
+		marshaled, err = (protojson.MarshalOptions{UseProtoNames: true, EmitDefaultValues: true}).Marshal(resp)
+		if err != nil {
+			return nil, err
+		}
+		return mcp.NewToolResultText(string(marshaled)), nil
+	})
+	DeleteResourceGroupTool := ResourceGroupService_DeleteResourceGroupTool
+	// Add extra properties to schema if configured
+	if len(config.ExtraProperties) > 0 {
+		DeleteResourceGroupTool = runtime.AddExtraPropertiesToTool(DeleteResourceGroupTool, config.ExtraProperties)
+	}
+
+	s.AddTool(DeleteResourceGroupTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		var req v1.DeleteResourceGroupRequest
+
+		message := request.Params.Arguments
+
+		// Extract extra properties if configured
+		for _, prop := range config.ExtraProperties {
+			if propVal, ok := message[prop.Name]; ok {
+				ctx = context.WithValue(ctx, prop.ContextKey, propVal)
+			}
+		}
+
+		marshaled, err := json.Marshal(message)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := (protojson.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(marshaled, &req); err != nil {
+			return nil, err
+		}
+
+		resp, err := client.DeleteResourceGroup(ctx, &req)
+		if err != nil {
+			return runtime.HandleError(err)
+		}
+
+		marshaled, err = (protojson.MarshalOptions{UseProtoNames: true, EmitDefaultValues: true}).Marshal(resp)
+		if err != nil {
+			return nil, err
+		}
+		return mcp.NewToolResultText(string(marshaled)), nil
+	})
+	GetResourceGroupTool := ResourceGroupService_GetResourceGroupTool
+	// Add extra properties to schema if configured
+	if len(config.ExtraProperties) > 0 {
+		GetResourceGroupTool = runtime.AddExtraPropertiesToTool(GetResourceGroupTool, config.ExtraProperties)
+	}
+
+	s.AddTool(GetResourceGroupTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		var req v1.GetResourceGroupRequest
+
+		message := request.Params.Arguments
+
+		// Extract extra properties if configured
+		for _, prop := range config.ExtraProperties {
+			if propVal, ok := message[prop.Name]; ok {
+				ctx = context.WithValue(ctx, prop.ContextKey, propVal)
+			}
+		}
+
+		marshaled, err := json.Marshal(message)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := (protojson.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(marshaled, &req); err != nil {
+			return nil, err
+		}
+
+		resp, err := client.GetResourceGroup(ctx, &req)
+		if err != nil {
+			return runtime.HandleError(err)
+		}
+
+		marshaled, err = (protojson.MarshalOptions{UseProtoNames: true, EmitDefaultValues: true}).Marshal(resp)
+		if err != nil {
+			return nil, err
+		}
+		return mcp.NewToolResultText(string(marshaled)), nil
+	})
+	ListResourceGroupsTool := ResourceGroupService_ListResourceGroupsTool
+	// Add extra properties to schema if configured
+	if len(config.ExtraProperties) > 0 {
+		ListResourceGroupsTool = runtime.AddExtraPropertiesToTool(ListResourceGroupsTool, config.ExtraProperties)
+	}
+
+	s.AddTool(ListResourceGroupsTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		var req v1.ListResourceGroupsRequest
+
+		message := request.Params.Arguments
+
+		// Extract extra properties if configured
+		for _, prop := range config.ExtraProperties {
+			if propVal, ok := message[prop.Name]; ok {
+				ctx = context.WithValue(ctx, prop.ContextKey, propVal)
+			}
+		}
+
+		marshaled, err := json.Marshal(message)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := (protojson.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(marshaled, &req); err != nil {
+			return nil, err
+		}
+
+		resp, err := client.ListResourceGroups(ctx, &req)
+		if err != nil {
+			return runtime.HandleError(err)
+		}
+
+		marshaled, err = (protojson.MarshalOptions{UseProtoNames: true, EmitDefaultValues: true}).Marshal(resp)
+		if err != nil {
+			return nil, err
+		}
+		return mcp.NewToolResultText(string(marshaled)), nil
+	})
+	UpdateResourceGroupTool := ResourceGroupService_UpdateResourceGroupTool
+	// Add extra properties to schema if configured
+	if len(config.ExtraProperties) > 0 {
+		UpdateResourceGroupTool = runtime.AddExtraPropertiesToTool(UpdateResourceGroupTool, config.ExtraProperties)
+	}
+
+	s.AddTool(UpdateResourceGroupTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		var req v1.UpdateResourceGroupRequest
+
+		message := request.Params.Arguments
+
+		// Extract extra properties if configured
+		for _, prop := range config.ExtraProperties {
+			if propVal, ok := message[prop.Name]; ok {
+				ctx = context.WithValue(ctx, prop.ContextKey, propVal)
+			}
+		}
+
+		marshaled, err := json.Marshal(message)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := (protojson.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(marshaled, &req); err != nil {
+			return nil, err
+		}
+
+		resp, err := client.UpdateResourceGroup(ctx, &req)
+		if err != nil {
+			return runtime.HandleError(err)
+		}
+
+		marshaled, err = (protojson.MarshalOptions{UseProtoNames: true, EmitDefaultValues: true}).Marshal(resp)
 		if err != nil {
 			return nil, err
 		}

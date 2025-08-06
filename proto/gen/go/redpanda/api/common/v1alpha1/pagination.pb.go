@@ -4,15 +4,16 @@
 // 	protoc        (unknown)
 // source: redpanda/api/common/v1alpha1/pagination.proto
 
+// Deprecated: Use redpanda.api.common.v1 instead.
+
 package commonv1alpha1
 
 import (
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
-
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
 
 const (
