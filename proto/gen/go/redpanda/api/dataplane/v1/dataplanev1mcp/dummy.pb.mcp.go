@@ -11,12 +11,15 @@ import (
 	"connectrpc.com/connect"
 	"github.com/mark3labs/mcp-go/mcp"
 	mcpserver "github.com/mark3labs/mcp-go/server"
+	"github.com/redpanda-data/protoc-gen-go-mcp/pkg/runtime"
+	grpc "google.golang.org/grpc"
 	"google.golang.org/protobuf/encoding/protojson"
 	emptypb "google.golang.org/protobuf/types/known/emptypb"
 )
 
 var (
-	DummyService_DummyMethodTool = mcp.Tool{Name: "redpanda_api_dataplane_v1_DummyService_DummyMethod", Description: "", InputSchema: mcp.ToolInputSchema{Type: "", Properties: map[string]interface{}(nil), Required: []string(nil)}, RawInputSchema: json.RawMessage{0x7b, 0x22, 0x70, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x74, 0x69, 0x65, 0x73, 0x22, 0x3a, 0x7b, 0x7d, 0x2c, 0x22, 0x72, 0x65, 0x71, 0x75, 0x69, 0x72, 0x65, 0x64, 0x22, 0x3a, 0x5b, 0x5d, 0x2c, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x6f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x22, 0x7d}}
+	DummyService_DummyMethodTool       = mcp.Tool{Name: "redpanda_api_dataplane_v1_DummyService_DummyMethod", Description: "", InputSchema: mcp.ToolInputSchema{Type: "", Properties: map[string]interface{}(nil), Required: []string(nil)}, RawInputSchema: json.RawMessage{0x7b, 0x22, 0x70, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x74, 0x69, 0x65, 0x73, 0x22, 0x3a, 0x7b, 0x7d, 0x2c, 0x22, 0x72, 0x65, 0x71, 0x75, 0x69, 0x72, 0x65, 0x64, 0x22, 0x3a, 0x5b, 0x5d, 0x2c, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x6f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x22, 0x7d}}
+	DummyService_DummyMethodToolOpenAI = mcp.Tool{Name: "redpanda_api_dataplane_v1_DummyService_DummyMethod", Description: "", InputSchema: mcp.ToolInputSchema{Type: "", Properties: map[string]interface{}(nil), Required: []string(nil)}, RawInputSchema: json.RawMessage{0x7b, 0x22, 0x61, 0x64, 0x64, 0x69, 0x74, 0x69, 0x6f, 0x6e, 0x61, 0x6c, 0x50, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x74, 0x69, 0x65, 0x73, 0x22, 0x3a, 0x66, 0x61, 0x6c, 0x73, 0x65, 0x2c, 0x22, 0x70, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x74, 0x69, 0x65, 0x73, 0x22, 0x3a, 0x7b, 0x7d, 0x2c, 0x22, 0x72, 0x65, 0x71, 0x75, 0x69, 0x72, 0x65, 0x64, 0x22, 0x3a, 0x5b, 0x5d, 0x2c, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x6f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x22, 0x7d}}
 )
 
 // DummyServiceServer is compatible with the grpc-go server interface.
@@ -24,29 +27,117 @@ type DummyServiceServer interface {
 	DummyMethod(ctx context.Context, req *emptypb.Empty) (*v1.DummyMethodResponse, error)
 }
 
-func RegisterDummyServiceHandler(s *mcpserver.MCPServer, srv DummyServiceServer) {
-	s.AddTool(DummyService_DummyMethodTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		marshaled, err := json.Marshal(request.Params.Arguments)
+// RegisterDummyServiceHandler registers standard MCP handlers for DummyService
+func RegisterDummyServiceHandler(s *mcpserver.MCPServer, srv DummyServiceServer, opts ...runtime.Option) {
+	config := runtime.NewConfig()
+	for _, opt := range opts {
+		opt(config)
+	}
+	DummyMethodTool := DummyService_DummyMethodTool
+	// Add extra properties to schema if configured
+	if len(config.ExtraProperties) > 0 {
+		DummyMethodTool = runtime.AddExtraPropertiesToTool(DummyMethodTool, config.ExtraProperties)
+	}
+
+	s.AddTool(DummyMethodTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		var req emptypb.Empty
+
+		message := request.Params.Arguments
+
+		// Extract extra properties if configured
+		for _, prop := range config.ExtraProperties {
+			if propVal, ok := message[prop.Name]; ok {
+				ctx = context.WithValue(ctx, prop.ContextKey, propVal)
+			}
+		}
+
+		marshaled, err := json.Marshal(message)
 		if err != nil {
 			return nil, err
 		}
 
-		var req emptypb.Empty
 		if err := (protojson.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(marshaled, &req); err != nil {
 			return nil, err
 		}
 
 		resp, err := srv.DummyMethod(ctx, &req)
 		if err != nil {
-			return nil, err
+			return runtime.HandleError(err)
 		}
 
 		marshaled, err = (protojson.MarshalOptions{UseProtoNames: true, EmitDefaultValues: true}).Marshal(resp)
 		if err != nil {
 			return nil, err
 		}
+
 		return mcp.NewToolResultText(string(marshaled)), nil
 	})
+}
+
+// RegisterDummyServiceHandlerOpenAI registers OpenAI-compatible MCP handlers for DummyService
+func RegisterDummyServiceHandlerOpenAI(s *mcpserver.MCPServer, srv DummyServiceServer, opts ...runtime.Option) {
+	config := runtime.NewConfig()
+	for _, opt := range opts {
+		opt(config)
+	}
+	DummyMethodToolOpenAI := DummyService_DummyMethodToolOpenAI
+	// Add extra properties to schema if configured
+	if len(config.ExtraProperties) > 0 {
+		DummyMethodToolOpenAI = runtime.AddExtraPropertiesToTool(DummyMethodToolOpenAI, config.ExtraProperties)
+	}
+
+	s.AddTool(DummyMethodToolOpenAI, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		var req emptypb.Empty
+
+		message := request.Params.Arguments
+
+		// Extract extra properties if configured
+		for _, prop := range config.ExtraProperties {
+			if propVal, ok := message[prop.Name]; ok {
+				ctx = context.WithValue(ctx, prop.ContextKey, propVal)
+			}
+		}
+
+		runtime.FixOpenAI(req.ProtoReflect().Descriptor(), message)
+
+		marshaled, err := json.Marshal(message)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := (protojson.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(marshaled, &req); err != nil {
+			return nil, err
+		}
+
+		resp, err := srv.DummyMethod(ctx, &req)
+		if err != nil {
+			return runtime.HandleError(err)
+		}
+
+		marshaled, err = (protojson.MarshalOptions{UseProtoNames: true, EmitDefaultValues: true}).Marshal(resp)
+		if err != nil {
+			return nil, err
+		}
+
+		return mcp.NewToolResultText(string(marshaled)), nil
+	})
+}
+
+// RegisterDummyServiceHandlerWithProvider registers handlers for the specified LLM provider
+func RegisterDummyServiceHandlerWithProvider(s *mcpserver.MCPServer, srv DummyServiceServer, provider runtime.LLMProvider, opts ...runtime.Option) {
+	switch provider {
+	case runtime.LLMProviderOpenAI:
+		RegisterDummyServiceHandlerOpenAI(s, srv, opts...)
+	case runtime.LLMProviderStandard:
+		fallthrough
+	default:
+		RegisterDummyServiceHandler(s, srv, opts...)
+	}
+}
+
+// DummyServiceClient is compatible with the grpc-go client interface.
+type DummyServiceClient interface {
+	DummyMethod(ctx context.Context, req *emptypb.Empty, opts ...grpc.CallOption) (*v1.DummyMethodResponse, error)
 }
 
 // ConnectDummyServiceClient is compatible with the connectrpc-go client interface.
@@ -54,25 +145,91 @@ type ConnectDummyServiceClient interface {
 	DummyMethod(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[v1.DummyMethodResponse], error)
 }
 
-// Register connectrpc handler, to forward MCP calls to it.
-func ForwardToConnectDummyServiceClient(s *mcpserver.MCPServer, client ConnectDummyServiceClient) {
-	s.AddTool(DummyService_DummyMethodTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		marshaled, err := json.Marshal(request.Params.Arguments)
+// ForwardToConnectDummyServiceClient registers a connectrpc client, to forward MCP calls to it.
+func ForwardToConnectDummyServiceClient(s *mcpserver.MCPServer, client ConnectDummyServiceClient, opts ...runtime.Option) {
+	config := runtime.NewConfig()
+	for _, opt := range opts {
+		opt(config)
+	}
+	DummyMethodTool := DummyService_DummyMethodTool
+	// Add extra properties to schema if configured
+	if len(config.ExtraProperties) > 0 {
+		DummyMethodTool = runtime.AddExtraPropertiesToTool(DummyMethodTool, config.ExtraProperties)
+	}
+
+	s.AddTool(DummyMethodTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		var req emptypb.Empty
+
+		message := request.Params.Arguments
+
+		// Extract extra properties if configured
+		for _, prop := range config.ExtraProperties {
+			if propVal, ok := message[prop.Name]; ok {
+				ctx = context.WithValue(ctx, prop.ContextKey, propVal)
+			}
+		}
+
+		marshaled, err := json.Marshal(message)
 		if err != nil {
 			return nil, err
 		}
 
-		var req emptypb.Empty
 		if err := (protojson.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(marshaled, &req); err != nil {
 			return nil, err
 		}
 
 		resp, err := client.DummyMethod(ctx, connect.NewRequest(&req))
 		if err != nil {
-			return nil, err
+			return runtime.HandleError(err)
 		}
 
 		marshaled, err = (protojson.MarshalOptions{UseProtoNames: true, EmitDefaultValues: true}).Marshal(resp.Msg)
+		if err != nil {
+			return nil, err
+		}
+		return mcp.NewToolResultText(string(marshaled)), nil
+	})
+}
+
+// ForwardToDummyServiceClient registers a gRPC client, to forward MCP calls to it.
+func ForwardToDummyServiceClient(s *mcpserver.MCPServer, client DummyServiceClient, opts ...runtime.Option) {
+	config := runtime.NewConfig()
+	for _, opt := range opts {
+		opt(config)
+	}
+	DummyMethodTool := DummyService_DummyMethodTool
+	// Add extra properties to schema if configured
+	if len(config.ExtraProperties) > 0 {
+		DummyMethodTool = runtime.AddExtraPropertiesToTool(DummyMethodTool, config.ExtraProperties)
+	}
+
+	s.AddTool(DummyMethodTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		var req emptypb.Empty
+
+		message := request.Params.Arguments
+
+		// Extract extra properties if configured
+		for _, prop := range config.ExtraProperties {
+			if propVal, ok := message[prop.Name]; ok {
+				ctx = context.WithValue(ctx, prop.ContextKey, propVal)
+			}
+		}
+
+		marshaled, err := json.Marshal(message)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := (protojson.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(marshaled, &req); err != nil {
+			return nil, err
+		}
+
+		resp, err := client.DummyMethod(ctx, &req)
+		if err != nil {
+			return runtime.HandleError(err)
+		}
+
+		marshaled, err = (protojson.MarshalOptions{UseProtoNames: true, EmitDefaultValues: true}).Marshal(resp)
 		if err != nil {
 			return nil, err
 		}

@@ -11,17 +11,26 @@ import (
 	"connectrpc.com/connect"
 	"github.com/mark3labs/mcp-go/mcp"
 	mcpserver "github.com/mark3labs/mcp-go/server"
+	"github.com/redpanda-data/protoc-gen-go-mcp/pkg/runtime"
+	grpc "google.golang.org/grpc"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
 var (
-	CloudStorageService_DeleteMountTaskTool     = mcp.Tool{Name: "redpanda_api_dataplane_v1_CloudStorageService_DeleteMountTask", Description: "", InputSchema: mcp.ToolInputSchema{Type: "", Properties: map[string]interface{}(nil), Required: []string(nil)}, RawInputSchema: json.RawMessage{0x7b, 0x22, 0x70, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x74, 0x69, 0x65, 0x73, 0x22, 0x3a, 0x7b, 0x22, 0x69, 0x64, 0x22, 0x3a, 0x7b, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x69, 0x6e, 0x74, 0x65, 0x67, 0x65, 0x72, 0x22, 0x7d, 0x7d, 0x2c, 0x22, 0x72, 0x65, 0x71, 0x75, 0x69, 0x72, 0x65, 0x64, 0x22, 0x3a, 0x5b, 0x22, 0x69, 0x64, 0x22, 0x5d, 0x2c, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x6f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x22, 0x7d}}
-	CloudStorageService_GetMountTaskTool        = mcp.Tool{Name: "redpanda_api_dataplane_v1_CloudStorageService_GetMountTask", Description: "", InputSchema: mcp.ToolInputSchema{Type: "", Properties: map[string]interface{}(nil), Required: []string(nil)}, RawInputSchema: json.RawMessage{0x7b, 0x22, 0x70, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x74, 0x69, 0x65, 0x73, 0x22, 0x3a, 0x7b, 0x22, 0x69, 0x64, 0x22, 0x3a, 0x7b, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x69, 0x6e, 0x74, 0x65, 0x67, 0x65, 0x72, 0x22, 0x7d, 0x7d, 0x2c, 0x22, 0x72, 0x65, 0x71, 0x75, 0x69, 0x72, 0x65, 0x64, 0x22, 0x3a, 0x5b, 0x22, 0x69, 0x64, 0x22, 0x5d, 0x2c, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x6f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x22, 0x7d}}
-	CloudStorageService_ListMountTasksTool      = mcp.Tool{Name: "redpanda_api_dataplane_v1_CloudStorageService_ListMountTasks", Description: "", InputSchema: mcp.ToolInputSchema{Type: "", Properties: map[string]interface{}(nil), Required: []string(nil)}, RawInputSchema: json.RawMessage{0x7b, 0x22, 0x70, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x74, 0x69, 0x65, 0x73, 0x22, 0x3a, 0x7b, 0x7d, 0x2c, 0x22, 0x72, 0x65, 0x71, 0x75, 0x69, 0x72, 0x65, 0x64, 0x22, 0x3a, 0x5b, 0x5d, 0x2c, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x6f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x22, 0x7d}}
-	CloudStorageService_ListMountableTopicsTool = mcp.Tool{Name: "fcoabt__api_dataplane_v1_CloudStorageService_ListMountableTopics", Description: "", InputSchema: mcp.ToolInputSchema{Type: "", Properties: map[string]interface{}(nil), Required: []string(nil)}, RawInputSchema: json.RawMessage{0x7b, 0x22, 0x70, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x74, 0x69, 0x65, 0x73, 0x22, 0x3a, 0x7b, 0x7d, 0x2c, 0x22, 0x72, 0x65, 0x71, 0x75, 0x69, 0x72, 0x65, 0x64, 0x22, 0x3a, 0x5b, 0x5d, 0x2c, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x6f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x22, 0x7d}}
-	CloudStorageService_MountTopicsTool         = mcp.Tool{Name: "redpanda_api_dataplane_v1_CloudStorageService_MountTopics", Description: "", InputSchema: mcp.ToolInputSchema{Type: "", Properties: map[string]interface{}(nil), Required: []string(nil)}, RawInputSchema: json.RawMessage{0x7b, 0x22, 0x70, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x74, 0x69, 0x65, 0x73, 0x22, 0x3a, 0x7b, 0x22, 0x74, 0x6f, 0x70, 0x69, 0x63, 0x73, 0x22, 0x3a, 0x7b, 0x22, 0x70, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x74, 0x69, 0x65, 0x73, 0x22, 0x3a, 0x7b, 0x22, 0x61, 0x6c, 0x69, 0x61, 0x73, 0x22, 0x3a, 0x7b, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x22, 0x7d, 0x2c, 0x22, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x5f, 0x74, 0x6f, 0x70, 0x69, 0x63, 0x5f, 0x72, 0x65, 0x66, 0x65, 0x72, 0x65, 0x6e, 0x63, 0x65, 0x22, 0x3a, 0x7b, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x22, 0x7d, 0x7d, 0x2c, 0x22, 0x72, 0x65, 0x71, 0x75, 0x69, 0x72, 0x65, 0x64, 0x22, 0x3a, 0x5b, 0x22, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x5f, 0x74, 0x6f, 0x70, 0x69, 0x63, 0x5f, 0x72, 0x65, 0x66, 0x65, 0x72, 0x65, 0x6e, 0x63, 0x65, 0x22, 0x5d, 0x2c, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x6f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x22, 0x7d, 0x7d, 0x2c, 0x22, 0x72, 0x65, 0x71, 0x75, 0x69, 0x72, 0x65, 0x64, 0x22, 0x3a, 0x5b, 0x22, 0x74, 0x6f, 0x70, 0x69, 0x63, 0x73, 0x22, 0x5d, 0x2c, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x6f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x22, 0x7d}}
-	CloudStorageService_UnmountTopicsTool       = mcp.Tool{Name: "redpanda_api_dataplane_v1_CloudStorageService_UnmountTopics", Description: "", InputSchema: mcp.ToolInputSchema{Type: "", Properties: map[string]interface{}(nil), Required: []string(nil)}, RawInputSchema: json.RawMessage{0x7b, 0x22, 0x70, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x74, 0x69, 0x65, 0x73, 0x22, 0x3a, 0x7b, 0x22, 0x74, 0x6f, 0x70, 0x69, 0x63, 0x73, 0x22, 0x3a, 0x7b, 0x22, 0x69, 0x74, 0x65, 0x6d, 0x73, 0x22, 0x3a, 0x7b, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x22, 0x7d, 0x2c, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x61, 0x72, 0x72, 0x61, 0x79, 0x22, 0x7d, 0x7d, 0x2c, 0x22, 0x72, 0x65, 0x71, 0x75, 0x69, 0x72, 0x65, 0x64, 0x22, 0x3a, 0x5b, 0x22, 0x74, 0x6f, 0x70, 0x69, 0x63, 0x73, 0x22, 0x5d, 0x2c, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x6f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x22, 0x7d}}
-	CloudStorageService_UpdateMountTaskTool     = mcp.Tool{Name: "redpanda_api_dataplane_v1_CloudStorageService_UpdateMountTask", Description: "", InputSchema: mcp.ToolInputSchema{Type: "", Properties: map[string]interface{}(nil), Required: []string(nil)}, RawInputSchema: json.RawMessage{0x7b, 0x22, 0x70, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x74, 0x69, 0x65, 0x73, 0x22, 0x3a, 0x7b, 0x22, 0x61, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x22, 0x3a, 0x7b, 0x22, 0x65, 0x6e, 0x75, 0x6d, 0x22, 0x3a, 0x5b, 0x22, 0x41, 0x43, 0x54, 0x49, 0x4f, 0x4e, 0x5f, 0x55, 0x4e, 0x53, 0x50, 0x45, 0x43, 0x49, 0x46, 0x49, 0x45, 0x44, 0x22, 0x2c, 0x22, 0x41, 0x43, 0x54, 0x49, 0x4f, 0x4e, 0x5f, 0x50, 0x52, 0x45, 0x50, 0x41, 0x52, 0x45, 0x22, 0x2c, 0x22, 0x41, 0x43, 0x54, 0x49, 0x4f, 0x4e, 0x5f, 0x45, 0x58, 0x45, 0x43, 0x55, 0x54, 0x45, 0x22, 0x2c, 0x22, 0x41, 0x43, 0x54, 0x49, 0x4f, 0x4e, 0x5f, 0x46, 0x49, 0x4e, 0x49, 0x53, 0x48, 0x22, 0x2c, 0x22, 0x41, 0x43, 0x54, 0x49, 0x4f, 0x4e, 0x5f, 0x43, 0x41, 0x4e, 0x43, 0x45, 0x4c, 0x22, 0x5d, 0x2c, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x22, 0x7d, 0x2c, 0x22, 0x69, 0x64, 0x22, 0x3a, 0x7b, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x69, 0x6e, 0x74, 0x65, 0x67, 0x65, 0x72, 0x22, 0x7d, 0x7d, 0x2c, 0x22, 0x72, 0x65, 0x71, 0x75, 0x69, 0x72, 0x65, 0x64, 0x22, 0x3a, 0x5b, 0x22, 0x69, 0x64, 0x22, 0x2c, 0x22, 0x61, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x22, 0x5d, 0x2c, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x6f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x22, 0x7d}}
+	CloudStorageService_DeleteMountTaskTool           = mcp.Tool{Name: "redpanda_api_dataplane_v1_CloudStorageService_DeleteMountTask", Description: "", InputSchema: mcp.ToolInputSchema{Type: "", Properties: map[string]interface{}(nil), Required: []string(nil)}, RawInputSchema: json.RawMessage{0x7b, 0x22, 0x70, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x74, 0x69, 0x65, 0x73, 0x22, 0x3a, 0x7b, 0x22, 0x69, 0x64, 0x22, 0x3a, 0x7b, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x69, 0x6e, 0x74, 0x65, 0x67, 0x65, 0x72, 0x22, 0x7d, 0x7d, 0x2c, 0x22, 0x72, 0x65, 0x71, 0x75, 0x69, 0x72, 0x65, 0x64, 0x22, 0x3a, 0x5b, 0x22, 0x69, 0x64, 0x22, 0x5d, 0x2c, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x6f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x22, 0x7d}}
+	CloudStorageService_GetMountTaskTool              = mcp.Tool{Name: "redpanda_api_dataplane_v1_CloudStorageService_GetMountTask", Description: "", InputSchema: mcp.ToolInputSchema{Type: "", Properties: map[string]interface{}(nil), Required: []string(nil)}, RawInputSchema: json.RawMessage{0x7b, 0x22, 0x70, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x74, 0x69, 0x65, 0x73, 0x22, 0x3a, 0x7b, 0x22, 0x69, 0x64, 0x22, 0x3a, 0x7b, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x69, 0x6e, 0x74, 0x65, 0x67, 0x65, 0x72, 0x22, 0x7d, 0x7d, 0x2c, 0x22, 0x72, 0x65, 0x71, 0x75, 0x69, 0x72, 0x65, 0x64, 0x22, 0x3a, 0x5b, 0x22, 0x69, 0x64, 0x22, 0x5d, 0x2c, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x6f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x22, 0x7d}}
+	CloudStorageService_ListMountTasksTool            = mcp.Tool{Name: "redpanda_api_dataplane_v1_CloudStorageService_ListMountTasks", Description: "", InputSchema: mcp.ToolInputSchema{Type: "", Properties: map[string]interface{}(nil), Required: []string(nil)}, RawInputSchema: json.RawMessage{0x7b, 0x22, 0x70, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x74, 0x69, 0x65, 0x73, 0x22, 0x3a, 0x7b, 0x7d, 0x2c, 0x22, 0x72, 0x65, 0x71, 0x75, 0x69, 0x72, 0x65, 0x64, 0x22, 0x3a, 0x5b, 0x5d, 0x2c, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x6f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x22, 0x7d}}
+	CloudStorageService_ListMountableTopicsTool       = mcp.Tool{Name: "fcoabt__api_dataplane_v1_CloudStorageService_ListMountableTopics", Description: "", InputSchema: mcp.ToolInputSchema{Type: "", Properties: map[string]interface{}(nil), Required: []string(nil)}, RawInputSchema: json.RawMessage{0x7b, 0x22, 0x70, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x74, 0x69, 0x65, 0x73, 0x22, 0x3a, 0x7b, 0x7d, 0x2c, 0x22, 0x72, 0x65, 0x71, 0x75, 0x69, 0x72, 0x65, 0x64, 0x22, 0x3a, 0x5b, 0x5d, 0x2c, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x6f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x22, 0x7d}}
+	CloudStorageService_MountTopicsTool               = mcp.Tool{Name: "redpanda_api_dataplane_v1_CloudStorageService_MountTopics", Description: "", InputSchema: mcp.ToolInputSchema{Type: "", Properties: map[string]interface{}(nil), Required: []string(nil)}, RawInputSchema: json.RawMessage{0x7b, 0x22, 0x70, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x74, 0x69, 0x65, 0x73, 0x22, 0x3a, 0x7b, 0x22, 0x74, 0x6f, 0x70, 0x69, 0x63, 0x73, 0x22, 0x3a, 0x7b, 0x22, 0x69, 0x74, 0x65, 0x6d, 0x73, 0x22, 0x3a, 0x7b, 0x22, 0x70, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x74, 0x69, 0x65, 0x73, 0x22, 0x3a, 0x7b, 0x22, 0x61, 0x6c, 0x69, 0x61, 0x73, 0x22, 0x3a, 0x7b, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x22, 0x7d, 0x2c, 0x22, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x5f, 0x74, 0x6f, 0x70, 0x69, 0x63, 0x5f, 0x72, 0x65, 0x66, 0x65, 0x72, 0x65, 0x6e, 0x63, 0x65, 0x22, 0x3a, 0x7b, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x22, 0x7d, 0x7d, 0x2c, 0x22, 0x72, 0x65, 0x71, 0x75, 0x69, 0x72, 0x65, 0x64, 0x22, 0x3a, 0x5b, 0x22, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x5f, 0x74, 0x6f, 0x70, 0x69, 0x63, 0x5f, 0x72, 0x65, 0x66, 0x65, 0x72, 0x65, 0x6e, 0x63, 0x65, 0x22, 0x5d, 0x2c, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x6f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x22, 0x7d, 0x2c, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x61, 0x72, 0x72, 0x61, 0x79, 0x22, 0x7d, 0x7d, 0x2c, 0x22, 0x72, 0x65, 0x71, 0x75, 0x69, 0x72, 0x65, 0x64, 0x22, 0x3a, 0x5b, 0x22, 0x74, 0x6f, 0x70, 0x69, 0x63, 0x73, 0x22, 0x5d, 0x2c, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x6f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x22, 0x7d}}
+	CloudStorageService_UnmountTopicsTool             = mcp.Tool{Name: "redpanda_api_dataplane_v1_CloudStorageService_UnmountTopics", Description: "", InputSchema: mcp.ToolInputSchema{Type: "", Properties: map[string]interface{}(nil), Required: []string(nil)}, RawInputSchema: json.RawMessage{0x7b, 0x22, 0x70, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x74, 0x69, 0x65, 0x73, 0x22, 0x3a, 0x7b, 0x22, 0x74, 0x6f, 0x70, 0x69, 0x63, 0x73, 0x22, 0x3a, 0x7b, 0x22, 0x69, 0x74, 0x65, 0x6d, 0x73, 0x22, 0x3a, 0x7b, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x22, 0x7d, 0x2c, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x61, 0x72, 0x72, 0x61, 0x79, 0x22, 0x7d, 0x7d, 0x2c, 0x22, 0x72, 0x65, 0x71, 0x75, 0x69, 0x72, 0x65, 0x64, 0x22, 0x3a, 0x5b, 0x22, 0x74, 0x6f, 0x70, 0x69, 0x63, 0x73, 0x22, 0x5d, 0x2c, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x6f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x22, 0x7d}}
+	CloudStorageService_UpdateMountTaskTool           = mcp.Tool{Name: "redpanda_api_dataplane_v1_CloudStorageService_UpdateMountTask", Description: "", InputSchema: mcp.ToolInputSchema{Type: "", Properties: map[string]interface{}(nil), Required: []string(nil)}, RawInputSchema: json.RawMessage{0x7b, 0x22, 0x70, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x74, 0x69, 0x65, 0x73, 0x22, 0x3a, 0x7b, 0x22, 0x61, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x22, 0x3a, 0x7b, 0x22, 0x65, 0x6e, 0x75, 0x6d, 0x22, 0x3a, 0x5b, 0x22, 0x41, 0x43, 0x54, 0x49, 0x4f, 0x4e, 0x5f, 0x55, 0x4e, 0x53, 0x50, 0x45, 0x43, 0x49, 0x46, 0x49, 0x45, 0x44, 0x22, 0x2c, 0x22, 0x41, 0x43, 0x54, 0x49, 0x4f, 0x4e, 0x5f, 0x50, 0x52, 0x45, 0x50, 0x41, 0x52, 0x45, 0x22, 0x2c, 0x22, 0x41, 0x43, 0x54, 0x49, 0x4f, 0x4e, 0x5f, 0x45, 0x58, 0x45, 0x43, 0x55, 0x54, 0x45, 0x22, 0x2c, 0x22, 0x41, 0x43, 0x54, 0x49, 0x4f, 0x4e, 0x5f, 0x46, 0x49, 0x4e, 0x49, 0x53, 0x48, 0x22, 0x2c, 0x22, 0x41, 0x43, 0x54, 0x49, 0x4f, 0x4e, 0x5f, 0x43, 0x41, 0x4e, 0x43, 0x45, 0x4c, 0x22, 0x5d, 0x2c, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x22, 0x7d, 0x2c, 0x22, 0x69, 0x64, 0x22, 0x3a, 0x7b, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x69, 0x6e, 0x74, 0x65, 0x67, 0x65, 0x72, 0x22, 0x7d, 0x7d, 0x2c, 0x22, 0x72, 0x65, 0x71, 0x75, 0x69, 0x72, 0x65, 0x64, 0x22, 0x3a, 0x5b, 0x22, 0x69, 0x64, 0x22, 0x2c, 0x22, 0x61, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x22, 0x5d, 0x2c, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x6f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x22, 0x7d}}
+	CloudStorageService_DeleteMountTaskToolOpenAI     = mcp.Tool{Name: "redpanda_api_dataplane_v1_CloudStorageService_DeleteMountTask", Description: "", InputSchema: mcp.ToolInputSchema{Type: "", Properties: map[string]interface{}(nil), Required: []string(nil)}, RawInputSchema: json.RawMessage{0x7b, 0x22, 0x61, 0x64, 0x64, 0x69, 0x74, 0x69, 0x6f, 0x6e, 0x61, 0x6c, 0x50, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x74, 0x69, 0x65, 0x73, 0x22, 0x3a, 0x66, 0x61, 0x6c, 0x73, 0x65, 0x2c, 0x22, 0x70, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x74, 0x69, 0x65, 0x73, 0x22, 0x3a, 0x7b, 0x22, 0x69, 0x64, 0x22, 0x3a, 0x7b, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x69, 0x6e, 0x74, 0x65, 0x67, 0x65, 0x72, 0x22, 0x7d, 0x7d, 0x2c, 0x22, 0x72, 0x65, 0x71, 0x75, 0x69, 0x72, 0x65, 0x64, 0x22, 0x3a, 0x5b, 0x22, 0x69, 0x64, 0x22, 0x5d, 0x2c, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x6f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x22, 0x7d}}
+	CloudStorageService_GetMountTaskToolOpenAI        = mcp.Tool{Name: "redpanda_api_dataplane_v1_CloudStorageService_GetMountTask", Description: "", InputSchema: mcp.ToolInputSchema{Type: "", Properties: map[string]interface{}(nil), Required: []string(nil)}, RawInputSchema: json.RawMessage{0x7b, 0x22, 0x61, 0x64, 0x64, 0x69, 0x74, 0x69, 0x6f, 0x6e, 0x61, 0x6c, 0x50, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x74, 0x69, 0x65, 0x73, 0x22, 0x3a, 0x66, 0x61, 0x6c, 0x73, 0x65, 0x2c, 0x22, 0x70, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x74, 0x69, 0x65, 0x73, 0x22, 0x3a, 0x7b, 0x22, 0x69, 0x64, 0x22, 0x3a, 0x7b, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x69, 0x6e, 0x74, 0x65, 0x67, 0x65, 0x72, 0x22, 0x7d, 0x7d, 0x2c, 0x22, 0x72, 0x65, 0x71, 0x75, 0x69, 0x72, 0x65, 0x64, 0x22, 0x3a, 0x5b, 0x22, 0x69, 0x64, 0x22, 0x5d, 0x2c, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x6f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x22, 0x7d}}
+	CloudStorageService_ListMountTasksToolOpenAI      = mcp.Tool{Name: "redpanda_api_dataplane_v1_CloudStorageService_ListMountTasks", Description: "", InputSchema: mcp.ToolInputSchema{Type: "", Properties: map[string]interface{}(nil), Required: []string(nil)}, RawInputSchema: json.RawMessage{0x7b, 0x22, 0x61, 0x64, 0x64, 0x69, 0x74, 0x69, 0x6f, 0x6e, 0x61, 0x6c, 0x50, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x74, 0x69, 0x65, 0x73, 0x22, 0x3a, 0x66, 0x61, 0x6c, 0x73, 0x65, 0x2c, 0x22, 0x70, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x74, 0x69, 0x65, 0x73, 0x22, 0x3a, 0x7b, 0x7d, 0x2c, 0x22, 0x72, 0x65, 0x71, 0x75, 0x69, 0x72, 0x65, 0x64, 0x22, 0x3a, 0x5b, 0x5d, 0x2c, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x6f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x22, 0x7d}}
+	CloudStorageService_ListMountableTopicsToolOpenAI = mcp.Tool{Name: "fcoabt__api_dataplane_v1_CloudStorageService_ListMountableTopics", Description: "", InputSchema: mcp.ToolInputSchema{Type: "", Properties: map[string]interface{}(nil), Required: []string(nil)}, RawInputSchema: json.RawMessage{0x7b, 0x22, 0x61, 0x64, 0x64, 0x69, 0x74, 0x69, 0x6f, 0x6e, 0x61, 0x6c, 0x50, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x74, 0x69, 0x65, 0x73, 0x22, 0x3a, 0x66, 0x61, 0x6c, 0x73, 0x65, 0x2c, 0x22, 0x70, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x74, 0x69, 0x65, 0x73, 0x22, 0x3a, 0x7b, 0x7d, 0x2c, 0x22, 0x72, 0x65, 0x71, 0x75, 0x69, 0x72, 0x65, 0x64, 0x22, 0x3a, 0x5b, 0x5d, 0x2c, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x6f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x22, 0x7d}}
+	CloudStorageService_MountTopicsToolOpenAI         = mcp.Tool{Name: "redpanda_api_dataplane_v1_CloudStorageService_MountTopics", Description: "", InputSchema: mcp.ToolInputSchema{Type: "", Properties: map[string]interface{}(nil), Required: []string(nil)}, RawInputSchema: json.RawMessage{0x7b, 0x22, 0x61, 0x64, 0x64, 0x69, 0x74, 0x69, 0x6f, 0x6e, 0x61, 0x6c, 0x50, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x74, 0x69, 0x65, 0x73, 0x22, 0x3a, 0x66, 0x61, 0x6c, 0x73, 0x65, 0x2c, 0x22, 0x70, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x74, 0x69, 0x65, 0x73, 0x22, 0x3a, 0x7b, 0x22, 0x74, 0x6f, 0x70, 0x69, 0x63, 0x73, 0x22, 0x3a, 0x7b, 0x22, 0x69, 0x74, 0x65, 0x6d, 0x73, 0x22, 0x3a, 0x7b, 0x22, 0x61, 0x64, 0x64, 0x69, 0x74, 0x69, 0x6f, 0x6e, 0x61, 0x6c, 0x50, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x74, 0x69, 0x65, 0x73, 0x22, 0x3a, 0x66, 0x61, 0x6c, 0x73, 0x65, 0x2c, 0x22, 0x70, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x74, 0x69, 0x65, 0x73, 0x22, 0x3a, 0x7b, 0x22, 0x61, 0x6c, 0x69, 0x61, 0x73, 0x22, 0x3a, 0x7b, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x22, 0x7d, 0x2c, 0x22, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x5f, 0x74, 0x6f, 0x70, 0x69, 0x63, 0x5f, 0x72, 0x65, 0x66, 0x65, 0x72, 0x65, 0x6e, 0x63, 0x65, 0x22, 0x3a, 0x7b, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x22, 0x7d, 0x7d, 0x2c, 0x22, 0x72, 0x65, 0x71, 0x75, 0x69, 0x72, 0x65, 0x64, 0x22, 0x3a, 0x5b, 0x22, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x5f, 0x74, 0x6f, 0x70, 0x69, 0x63, 0x5f, 0x72, 0x65, 0x66, 0x65, 0x72, 0x65, 0x6e, 0x63, 0x65, 0x22, 0x2c, 0x22, 0x61, 0x6c, 0x69, 0x61, 0x73, 0x22, 0x5d, 0x2c, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x5b, 0x22, 0x6f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x22, 0x2c, 0x22, 0x6e, 0x75, 0x6c, 0x6c, 0x22, 0x5d, 0x7d, 0x2c, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x61, 0x72, 0x72, 0x61, 0x79, 0x22, 0x7d, 0x7d, 0x2c, 0x22, 0x72, 0x65, 0x71, 0x75, 0x69, 0x72, 0x65, 0x64, 0x22, 0x3a, 0x5b, 0x22, 0x74, 0x6f, 0x70, 0x69, 0x63, 0x73, 0x22, 0x5d, 0x2c, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x6f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x22, 0x7d}}
+	CloudStorageService_UnmountTopicsToolOpenAI       = mcp.Tool{Name: "redpanda_api_dataplane_v1_CloudStorageService_UnmountTopics", Description: "", InputSchema: mcp.ToolInputSchema{Type: "", Properties: map[string]interface{}(nil), Required: []string(nil)}, RawInputSchema: json.RawMessage{0x7b, 0x22, 0x61, 0x64, 0x64, 0x69, 0x74, 0x69, 0x6f, 0x6e, 0x61, 0x6c, 0x50, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x74, 0x69, 0x65, 0x73, 0x22, 0x3a, 0x66, 0x61, 0x6c, 0x73, 0x65, 0x2c, 0x22, 0x70, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x74, 0x69, 0x65, 0x73, 0x22, 0x3a, 0x7b, 0x22, 0x74, 0x6f, 0x70, 0x69, 0x63, 0x73, 0x22, 0x3a, 0x7b, 0x22, 0x69, 0x74, 0x65, 0x6d, 0x73, 0x22, 0x3a, 0x7b, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x22, 0x7d, 0x2c, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x61, 0x72, 0x72, 0x61, 0x79, 0x22, 0x7d, 0x7d, 0x2c, 0x22, 0x72, 0x65, 0x71, 0x75, 0x69, 0x72, 0x65, 0x64, 0x22, 0x3a, 0x5b, 0x22, 0x74, 0x6f, 0x70, 0x69, 0x63, 0x73, 0x22, 0x5d, 0x2c, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x6f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x22, 0x7d}}
+	CloudStorageService_UpdateMountTaskToolOpenAI     = mcp.Tool{Name: "redpanda_api_dataplane_v1_CloudStorageService_UpdateMountTask", Description: "", InputSchema: mcp.ToolInputSchema{Type: "", Properties: map[string]interface{}(nil), Required: []string(nil)}, RawInputSchema: json.RawMessage{0x7b, 0x22, 0x61, 0x64, 0x64, 0x69, 0x74, 0x69, 0x6f, 0x6e, 0x61, 0x6c, 0x50, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x74, 0x69, 0x65, 0x73, 0x22, 0x3a, 0x66, 0x61, 0x6c, 0x73, 0x65, 0x2c, 0x22, 0x70, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x74, 0x69, 0x65, 0x73, 0x22, 0x3a, 0x7b, 0x22, 0x61, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x22, 0x3a, 0x7b, 0x22, 0x65, 0x6e, 0x75, 0x6d, 0x22, 0x3a, 0x5b, 0x22, 0x41, 0x43, 0x54, 0x49, 0x4f, 0x4e, 0x5f, 0x55, 0x4e, 0x53, 0x50, 0x45, 0x43, 0x49, 0x46, 0x49, 0x45, 0x44, 0x22, 0x2c, 0x22, 0x41, 0x43, 0x54, 0x49, 0x4f, 0x4e, 0x5f, 0x50, 0x52, 0x45, 0x50, 0x41, 0x52, 0x45, 0x22, 0x2c, 0x22, 0x41, 0x43, 0x54, 0x49, 0x4f, 0x4e, 0x5f, 0x45, 0x58, 0x45, 0x43, 0x55, 0x54, 0x45, 0x22, 0x2c, 0x22, 0x41, 0x43, 0x54, 0x49, 0x4f, 0x4e, 0x5f, 0x46, 0x49, 0x4e, 0x49, 0x53, 0x48, 0x22, 0x2c, 0x22, 0x41, 0x43, 0x54, 0x49, 0x4f, 0x4e, 0x5f, 0x43, 0x41, 0x4e, 0x43, 0x45, 0x4c, 0x22, 0x5d, 0x2c, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x22, 0x7d, 0x2c, 0x22, 0x69, 0x64, 0x22, 0x3a, 0x7b, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x69, 0x6e, 0x74, 0x65, 0x67, 0x65, 0x72, 0x22, 0x7d, 0x7d, 0x2c, 0x22, 0x72, 0x65, 0x71, 0x75, 0x69, 0x72, 0x65, 0x64, 0x22, 0x3a, 0x5b, 0x22, 0x69, 0x64, 0x22, 0x2c, 0x22, 0x61, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x22, 0x5d, 0x2c, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x6f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x22, 0x7d}}
 )
 
 // CloudStorageServiceServer is compatible with the grpc-go server interface.
@@ -35,161 +44,603 @@ type CloudStorageServiceServer interface {
 	UpdateMountTask(ctx context.Context, req *v1.UpdateMountTaskRequest) (*v1.UpdateMountTaskResponse, error)
 }
 
-func RegisterCloudStorageServiceHandler(s *mcpserver.MCPServer, srv CloudStorageServiceServer) {
-	s.AddTool(CloudStorageService_DeleteMountTaskTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		marshaled, err := json.Marshal(request.Params.Arguments)
+// RegisterCloudStorageServiceHandler registers standard MCP handlers for CloudStorageService
+func RegisterCloudStorageServiceHandler(s *mcpserver.MCPServer, srv CloudStorageServiceServer, opts ...runtime.Option) {
+	config := runtime.NewConfig()
+	for _, opt := range opts {
+		opt(config)
+	}
+	DeleteMountTaskTool := CloudStorageService_DeleteMountTaskTool
+	// Add extra properties to schema if configured
+	if len(config.ExtraProperties) > 0 {
+		DeleteMountTaskTool = runtime.AddExtraPropertiesToTool(DeleteMountTaskTool, config.ExtraProperties)
+	}
+
+	s.AddTool(DeleteMountTaskTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		var req v1.DeleteMountTaskRequest
+
+		message := request.Params.Arguments
+
+		// Extract extra properties if configured
+		for _, prop := range config.ExtraProperties {
+			if propVal, ok := message[prop.Name]; ok {
+				ctx = context.WithValue(ctx, prop.ContextKey, propVal)
+			}
+		}
+
+		marshaled, err := json.Marshal(message)
 		if err != nil {
 			return nil, err
 		}
 
-		var req v1.DeleteMountTaskRequest
 		if err := (protojson.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(marshaled, &req); err != nil {
 			return nil, err
 		}
 
 		resp, err := srv.DeleteMountTask(ctx, &req)
 		if err != nil {
-			return nil, err
+			return runtime.HandleError(err)
 		}
 
 		marshaled, err = (protojson.MarshalOptions{UseProtoNames: true, EmitDefaultValues: true}).Marshal(resp)
 		if err != nil {
 			return nil, err
 		}
+
 		return mcp.NewToolResultText(string(marshaled)), nil
 	})
-	s.AddTool(CloudStorageService_GetMountTaskTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		marshaled, err := json.Marshal(request.Params.Arguments)
+	GetMountTaskTool := CloudStorageService_GetMountTaskTool
+	// Add extra properties to schema if configured
+	if len(config.ExtraProperties) > 0 {
+		GetMountTaskTool = runtime.AddExtraPropertiesToTool(GetMountTaskTool, config.ExtraProperties)
+	}
+
+	s.AddTool(GetMountTaskTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		var req v1.GetMountTaskRequest
+
+		message := request.Params.Arguments
+
+		// Extract extra properties if configured
+		for _, prop := range config.ExtraProperties {
+			if propVal, ok := message[prop.Name]; ok {
+				ctx = context.WithValue(ctx, prop.ContextKey, propVal)
+			}
+		}
+
+		marshaled, err := json.Marshal(message)
 		if err != nil {
 			return nil, err
 		}
 
-		var req v1.GetMountTaskRequest
 		if err := (protojson.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(marshaled, &req); err != nil {
 			return nil, err
 		}
 
 		resp, err := srv.GetMountTask(ctx, &req)
 		if err != nil {
-			return nil, err
+			return runtime.HandleError(err)
 		}
 
 		marshaled, err = (protojson.MarshalOptions{UseProtoNames: true, EmitDefaultValues: true}).Marshal(resp)
 		if err != nil {
 			return nil, err
 		}
+
 		return mcp.NewToolResultText(string(marshaled)), nil
 	})
-	s.AddTool(CloudStorageService_ListMountTasksTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		marshaled, err := json.Marshal(request.Params.Arguments)
+	ListMountTasksTool := CloudStorageService_ListMountTasksTool
+	// Add extra properties to schema if configured
+	if len(config.ExtraProperties) > 0 {
+		ListMountTasksTool = runtime.AddExtraPropertiesToTool(ListMountTasksTool, config.ExtraProperties)
+	}
+
+	s.AddTool(ListMountTasksTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		var req v1.ListMountTasksRequest
+
+		message := request.Params.Arguments
+
+		// Extract extra properties if configured
+		for _, prop := range config.ExtraProperties {
+			if propVal, ok := message[prop.Name]; ok {
+				ctx = context.WithValue(ctx, prop.ContextKey, propVal)
+			}
+		}
+
+		marshaled, err := json.Marshal(message)
 		if err != nil {
 			return nil, err
 		}
 
-		var req v1.ListMountTasksRequest
 		if err := (protojson.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(marshaled, &req); err != nil {
 			return nil, err
 		}
 
 		resp, err := srv.ListMountTasks(ctx, &req)
 		if err != nil {
-			return nil, err
+			return runtime.HandleError(err)
 		}
 
 		marshaled, err = (protojson.MarshalOptions{UseProtoNames: true, EmitDefaultValues: true}).Marshal(resp)
 		if err != nil {
 			return nil, err
 		}
+
 		return mcp.NewToolResultText(string(marshaled)), nil
 	})
-	s.AddTool(CloudStorageService_ListMountableTopicsTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		marshaled, err := json.Marshal(request.Params.Arguments)
+	ListMountableTopicsTool := CloudStorageService_ListMountableTopicsTool
+	// Add extra properties to schema if configured
+	if len(config.ExtraProperties) > 0 {
+		ListMountableTopicsTool = runtime.AddExtraPropertiesToTool(ListMountableTopicsTool, config.ExtraProperties)
+	}
+
+	s.AddTool(ListMountableTopicsTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		var req v1.ListMountableTopicsRequest
+
+		message := request.Params.Arguments
+
+		// Extract extra properties if configured
+		for _, prop := range config.ExtraProperties {
+			if propVal, ok := message[prop.Name]; ok {
+				ctx = context.WithValue(ctx, prop.ContextKey, propVal)
+			}
+		}
+
+		marshaled, err := json.Marshal(message)
 		if err != nil {
 			return nil, err
 		}
 
-		var req v1.ListMountableTopicsRequest
 		if err := (protojson.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(marshaled, &req); err != nil {
 			return nil, err
 		}
 
 		resp, err := srv.ListMountableTopics(ctx, &req)
 		if err != nil {
-			return nil, err
+			return runtime.HandleError(err)
 		}
 
 		marshaled, err = (protojson.MarshalOptions{UseProtoNames: true, EmitDefaultValues: true}).Marshal(resp)
 		if err != nil {
 			return nil, err
 		}
+
 		return mcp.NewToolResultText(string(marshaled)), nil
 	})
-	s.AddTool(CloudStorageService_MountTopicsTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		marshaled, err := json.Marshal(request.Params.Arguments)
+	MountTopicsTool := CloudStorageService_MountTopicsTool
+	// Add extra properties to schema if configured
+	if len(config.ExtraProperties) > 0 {
+		MountTopicsTool = runtime.AddExtraPropertiesToTool(MountTopicsTool, config.ExtraProperties)
+	}
+
+	s.AddTool(MountTopicsTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		var req v1.MountTopicsRequest
+
+		message := request.Params.Arguments
+
+		// Extract extra properties if configured
+		for _, prop := range config.ExtraProperties {
+			if propVal, ok := message[prop.Name]; ok {
+				ctx = context.WithValue(ctx, prop.ContextKey, propVal)
+			}
+		}
+
+		marshaled, err := json.Marshal(message)
 		if err != nil {
 			return nil, err
 		}
 
-		var req v1.MountTopicsRequest
 		if err := (protojson.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(marshaled, &req); err != nil {
 			return nil, err
 		}
 
 		resp, err := srv.MountTopics(ctx, &req)
 		if err != nil {
-			return nil, err
+			return runtime.HandleError(err)
 		}
 
 		marshaled, err = (protojson.MarshalOptions{UseProtoNames: true, EmitDefaultValues: true}).Marshal(resp)
 		if err != nil {
 			return nil, err
 		}
+
 		return mcp.NewToolResultText(string(marshaled)), nil
 	})
-	s.AddTool(CloudStorageService_UnmountTopicsTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		marshaled, err := json.Marshal(request.Params.Arguments)
+	UnmountTopicsTool := CloudStorageService_UnmountTopicsTool
+	// Add extra properties to schema if configured
+	if len(config.ExtraProperties) > 0 {
+		UnmountTopicsTool = runtime.AddExtraPropertiesToTool(UnmountTopicsTool, config.ExtraProperties)
+	}
+
+	s.AddTool(UnmountTopicsTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		var req v1.UnmountTopicsRequest
+
+		message := request.Params.Arguments
+
+		// Extract extra properties if configured
+		for _, prop := range config.ExtraProperties {
+			if propVal, ok := message[prop.Name]; ok {
+				ctx = context.WithValue(ctx, prop.ContextKey, propVal)
+			}
+		}
+
+		marshaled, err := json.Marshal(message)
 		if err != nil {
 			return nil, err
 		}
 
-		var req v1.UnmountTopicsRequest
 		if err := (protojson.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(marshaled, &req); err != nil {
 			return nil, err
 		}
 
 		resp, err := srv.UnmountTopics(ctx, &req)
 		if err != nil {
-			return nil, err
+			return runtime.HandleError(err)
 		}
 
 		marshaled, err = (protojson.MarshalOptions{UseProtoNames: true, EmitDefaultValues: true}).Marshal(resp)
 		if err != nil {
 			return nil, err
 		}
+
 		return mcp.NewToolResultText(string(marshaled)), nil
 	})
-	s.AddTool(CloudStorageService_UpdateMountTaskTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		marshaled, err := json.Marshal(request.Params.Arguments)
+	UpdateMountTaskTool := CloudStorageService_UpdateMountTaskTool
+	// Add extra properties to schema if configured
+	if len(config.ExtraProperties) > 0 {
+		UpdateMountTaskTool = runtime.AddExtraPropertiesToTool(UpdateMountTaskTool, config.ExtraProperties)
+	}
+
+	s.AddTool(UpdateMountTaskTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		var req v1.UpdateMountTaskRequest
+
+		message := request.Params.Arguments
+
+		// Extract extra properties if configured
+		for _, prop := range config.ExtraProperties {
+			if propVal, ok := message[prop.Name]; ok {
+				ctx = context.WithValue(ctx, prop.ContextKey, propVal)
+			}
+		}
+
+		marshaled, err := json.Marshal(message)
 		if err != nil {
 			return nil, err
 		}
 
-		var req v1.UpdateMountTaskRequest
 		if err := (protojson.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(marshaled, &req); err != nil {
 			return nil, err
 		}
 
 		resp, err := srv.UpdateMountTask(ctx, &req)
 		if err != nil {
-			return nil, err
+			return runtime.HandleError(err)
 		}
 
 		marshaled, err = (protojson.MarshalOptions{UseProtoNames: true, EmitDefaultValues: true}).Marshal(resp)
 		if err != nil {
 			return nil, err
 		}
+
 		return mcp.NewToolResultText(string(marshaled)), nil
 	})
+}
+
+// RegisterCloudStorageServiceHandlerOpenAI registers OpenAI-compatible MCP handlers for CloudStorageService
+func RegisterCloudStorageServiceHandlerOpenAI(s *mcpserver.MCPServer, srv CloudStorageServiceServer, opts ...runtime.Option) {
+	config := runtime.NewConfig()
+	for _, opt := range opts {
+		opt(config)
+	}
+	DeleteMountTaskToolOpenAI := CloudStorageService_DeleteMountTaskToolOpenAI
+	// Add extra properties to schema if configured
+	if len(config.ExtraProperties) > 0 {
+		DeleteMountTaskToolOpenAI = runtime.AddExtraPropertiesToTool(DeleteMountTaskToolOpenAI, config.ExtraProperties)
+	}
+
+	s.AddTool(DeleteMountTaskToolOpenAI, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		var req v1.DeleteMountTaskRequest
+
+		message := request.Params.Arguments
+
+		// Extract extra properties if configured
+		for _, prop := range config.ExtraProperties {
+			if propVal, ok := message[prop.Name]; ok {
+				ctx = context.WithValue(ctx, prop.ContextKey, propVal)
+			}
+		}
+
+		runtime.FixOpenAI(req.ProtoReflect().Descriptor(), message)
+
+		marshaled, err := json.Marshal(message)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := (protojson.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(marshaled, &req); err != nil {
+			return nil, err
+		}
+
+		resp, err := srv.DeleteMountTask(ctx, &req)
+		if err != nil {
+			return runtime.HandleError(err)
+		}
+
+		marshaled, err = (protojson.MarshalOptions{UseProtoNames: true, EmitDefaultValues: true}).Marshal(resp)
+		if err != nil {
+			return nil, err
+		}
+
+		return mcp.NewToolResultText(string(marshaled)), nil
+	})
+	GetMountTaskToolOpenAI := CloudStorageService_GetMountTaskToolOpenAI
+	// Add extra properties to schema if configured
+	if len(config.ExtraProperties) > 0 {
+		GetMountTaskToolOpenAI = runtime.AddExtraPropertiesToTool(GetMountTaskToolOpenAI, config.ExtraProperties)
+	}
+
+	s.AddTool(GetMountTaskToolOpenAI, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		var req v1.GetMountTaskRequest
+
+		message := request.Params.Arguments
+
+		// Extract extra properties if configured
+		for _, prop := range config.ExtraProperties {
+			if propVal, ok := message[prop.Name]; ok {
+				ctx = context.WithValue(ctx, prop.ContextKey, propVal)
+			}
+		}
+
+		runtime.FixOpenAI(req.ProtoReflect().Descriptor(), message)
+
+		marshaled, err := json.Marshal(message)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := (protojson.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(marshaled, &req); err != nil {
+			return nil, err
+		}
+
+		resp, err := srv.GetMountTask(ctx, &req)
+		if err != nil {
+			return runtime.HandleError(err)
+		}
+
+		marshaled, err = (protojson.MarshalOptions{UseProtoNames: true, EmitDefaultValues: true}).Marshal(resp)
+		if err != nil {
+			return nil, err
+		}
+
+		return mcp.NewToolResultText(string(marshaled)), nil
+	})
+	ListMountTasksToolOpenAI := CloudStorageService_ListMountTasksToolOpenAI
+	// Add extra properties to schema if configured
+	if len(config.ExtraProperties) > 0 {
+		ListMountTasksToolOpenAI = runtime.AddExtraPropertiesToTool(ListMountTasksToolOpenAI, config.ExtraProperties)
+	}
+
+	s.AddTool(ListMountTasksToolOpenAI, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		var req v1.ListMountTasksRequest
+
+		message := request.Params.Arguments
+
+		// Extract extra properties if configured
+		for _, prop := range config.ExtraProperties {
+			if propVal, ok := message[prop.Name]; ok {
+				ctx = context.WithValue(ctx, prop.ContextKey, propVal)
+			}
+		}
+
+		runtime.FixOpenAI(req.ProtoReflect().Descriptor(), message)
+
+		marshaled, err := json.Marshal(message)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := (protojson.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(marshaled, &req); err != nil {
+			return nil, err
+		}
+
+		resp, err := srv.ListMountTasks(ctx, &req)
+		if err != nil {
+			return runtime.HandleError(err)
+		}
+
+		marshaled, err = (protojson.MarshalOptions{UseProtoNames: true, EmitDefaultValues: true}).Marshal(resp)
+		if err != nil {
+			return nil, err
+		}
+
+		return mcp.NewToolResultText(string(marshaled)), nil
+	})
+	ListMountableTopicsToolOpenAI := CloudStorageService_ListMountableTopicsToolOpenAI
+	// Add extra properties to schema if configured
+	if len(config.ExtraProperties) > 0 {
+		ListMountableTopicsToolOpenAI = runtime.AddExtraPropertiesToTool(ListMountableTopicsToolOpenAI, config.ExtraProperties)
+	}
+
+	s.AddTool(ListMountableTopicsToolOpenAI, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		var req v1.ListMountableTopicsRequest
+
+		message := request.Params.Arguments
+
+		// Extract extra properties if configured
+		for _, prop := range config.ExtraProperties {
+			if propVal, ok := message[prop.Name]; ok {
+				ctx = context.WithValue(ctx, prop.ContextKey, propVal)
+			}
+		}
+
+		runtime.FixOpenAI(req.ProtoReflect().Descriptor(), message)
+
+		marshaled, err := json.Marshal(message)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := (protojson.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(marshaled, &req); err != nil {
+			return nil, err
+		}
+
+		resp, err := srv.ListMountableTopics(ctx, &req)
+		if err != nil {
+			return runtime.HandleError(err)
+		}
+
+		marshaled, err = (protojson.MarshalOptions{UseProtoNames: true, EmitDefaultValues: true}).Marshal(resp)
+		if err != nil {
+			return nil, err
+		}
+
+		return mcp.NewToolResultText(string(marshaled)), nil
+	})
+	MountTopicsToolOpenAI := CloudStorageService_MountTopicsToolOpenAI
+	// Add extra properties to schema if configured
+	if len(config.ExtraProperties) > 0 {
+		MountTopicsToolOpenAI = runtime.AddExtraPropertiesToTool(MountTopicsToolOpenAI, config.ExtraProperties)
+	}
+
+	s.AddTool(MountTopicsToolOpenAI, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		var req v1.MountTopicsRequest
+
+		message := request.Params.Arguments
+
+		// Extract extra properties if configured
+		for _, prop := range config.ExtraProperties {
+			if propVal, ok := message[prop.Name]; ok {
+				ctx = context.WithValue(ctx, prop.ContextKey, propVal)
+			}
+		}
+
+		runtime.FixOpenAI(req.ProtoReflect().Descriptor(), message)
+
+		marshaled, err := json.Marshal(message)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := (protojson.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(marshaled, &req); err != nil {
+			return nil, err
+		}
+
+		resp, err := srv.MountTopics(ctx, &req)
+		if err != nil {
+			return runtime.HandleError(err)
+		}
+
+		marshaled, err = (protojson.MarshalOptions{UseProtoNames: true, EmitDefaultValues: true}).Marshal(resp)
+		if err != nil {
+			return nil, err
+		}
+
+		return mcp.NewToolResultText(string(marshaled)), nil
+	})
+	UnmountTopicsToolOpenAI := CloudStorageService_UnmountTopicsToolOpenAI
+	// Add extra properties to schema if configured
+	if len(config.ExtraProperties) > 0 {
+		UnmountTopicsToolOpenAI = runtime.AddExtraPropertiesToTool(UnmountTopicsToolOpenAI, config.ExtraProperties)
+	}
+
+	s.AddTool(UnmountTopicsToolOpenAI, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		var req v1.UnmountTopicsRequest
+
+		message := request.Params.Arguments
+
+		// Extract extra properties if configured
+		for _, prop := range config.ExtraProperties {
+			if propVal, ok := message[prop.Name]; ok {
+				ctx = context.WithValue(ctx, prop.ContextKey, propVal)
+			}
+		}
+
+		runtime.FixOpenAI(req.ProtoReflect().Descriptor(), message)
+
+		marshaled, err := json.Marshal(message)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := (protojson.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(marshaled, &req); err != nil {
+			return nil, err
+		}
+
+		resp, err := srv.UnmountTopics(ctx, &req)
+		if err != nil {
+			return runtime.HandleError(err)
+		}
+
+		marshaled, err = (protojson.MarshalOptions{UseProtoNames: true, EmitDefaultValues: true}).Marshal(resp)
+		if err != nil {
+			return nil, err
+		}
+
+		return mcp.NewToolResultText(string(marshaled)), nil
+	})
+	UpdateMountTaskToolOpenAI := CloudStorageService_UpdateMountTaskToolOpenAI
+	// Add extra properties to schema if configured
+	if len(config.ExtraProperties) > 0 {
+		UpdateMountTaskToolOpenAI = runtime.AddExtraPropertiesToTool(UpdateMountTaskToolOpenAI, config.ExtraProperties)
+	}
+
+	s.AddTool(UpdateMountTaskToolOpenAI, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		var req v1.UpdateMountTaskRequest
+
+		message := request.Params.Arguments
+
+		// Extract extra properties if configured
+		for _, prop := range config.ExtraProperties {
+			if propVal, ok := message[prop.Name]; ok {
+				ctx = context.WithValue(ctx, prop.ContextKey, propVal)
+			}
+		}
+
+		runtime.FixOpenAI(req.ProtoReflect().Descriptor(), message)
+
+		marshaled, err := json.Marshal(message)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := (protojson.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(marshaled, &req); err != nil {
+			return nil, err
+		}
+
+		resp, err := srv.UpdateMountTask(ctx, &req)
+		if err != nil {
+			return runtime.HandleError(err)
+		}
+
+		marshaled, err = (protojson.MarshalOptions{UseProtoNames: true, EmitDefaultValues: true}).Marshal(resp)
+		if err != nil {
+			return nil, err
+		}
+
+		return mcp.NewToolResultText(string(marshaled)), nil
+	})
+}
+
+// RegisterCloudStorageServiceHandlerWithProvider registers handlers for the specified LLM provider
+func RegisterCloudStorageServiceHandlerWithProvider(s *mcpserver.MCPServer, srv CloudStorageServiceServer, provider runtime.LLMProvider, opts ...runtime.Option) {
+	switch provider {
+	case runtime.LLMProviderOpenAI:
+		RegisterCloudStorageServiceHandlerOpenAI(s, srv, opts...)
+	case runtime.LLMProviderStandard:
+		fallthrough
+	default:
+		RegisterCloudStorageServiceHandler(s, srv, opts...)
+	}
+}
+
+// CloudStorageServiceClient is compatible with the grpc-go client interface.
+type CloudStorageServiceClient interface {
+	DeleteMountTask(ctx context.Context, req *v1.DeleteMountTaskRequest, opts ...grpc.CallOption) (*v1.DeleteMountTaskResponse, error)
+	GetMountTask(ctx context.Context, req *v1.GetMountTaskRequest, opts ...grpc.CallOption) (*v1.GetMountTaskResponse, error)
+	ListMountTasks(ctx context.Context, req *v1.ListMountTasksRequest, opts ...grpc.CallOption) (*v1.ListMountTasksResponse, error)
+	ListMountableTopics(ctx context.Context, req *v1.ListMountableTopicsRequest, opts ...grpc.CallOption) (*v1.ListMountableTopicsResponse, error)
+	MountTopics(ctx context.Context, req *v1.MountTopicsRequest, opts ...grpc.CallOption) (*v1.MountTopicsResponse, error)
+	UnmountTopics(ctx context.Context, req *v1.UnmountTopicsRequest, opts ...grpc.CallOption) (*v1.UnmountTopicsResponse, error)
+	UpdateMountTask(ctx context.Context, req *v1.UpdateMountTaskRequest, opts ...grpc.CallOption) (*v1.UpdateMountTaskResponse, error)
 }
 
 // ConnectCloudStorageServiceClient is compatible with the connectrpc-go client interface.
@@ -203,22 +654,42 @@ type ConnectCloudStorageServiceClient interface {
 	UpdateMountTask(ctx context.Context, req *connect.Request[v1.UpdateMountTaskRequest]) (*connect.Response[v1.UpdateMountTaskResponse], error)
 }
 
-// Register connectrpc handler, to forward MCP calls to it.
-func ForwardToConnectCloudStorageServiceClient(s *mcpserver.MCPServer, client ConnectCloudStorageServiceClient) {
-	s.AddTool(CloudStorageService_DeleteMountTaskTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		marshaled, err := json.Marshal(request.Params.Arguments)
+// ForwardToConnectCloudStorageServiceClient registers a connectrpc client, to forward MCP calls to it.
+func ForwardToConnectCloudStorageServiceClient(s *mcpserver.MCPServer, client ConnectCloudStorageServiceClient, opts ...runtime.Option) {
+	config := runtime.NewConfig()
+	for _, opt := range opts {
+		opt(config)
+	}
+	DeleteMountTaskTool := CloudStorageService_DeleteMountTaskTool
+	// Add extra properties to schema if configured
+	if len(config.ExtraProperties) > 0 {
+		DeleteMountTaskTool = runtime.AddExtraPropertiesToTool(DeleteMountTaskTool, config.ExtraProperties)
+	}
+
+	s.AddTool(DeleteMountTaskTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		var req v1.DeleteMountTaskRequest
+
+		message := request.Params.Arguments
+
+		// Extract extra properties if configured
+		for _, prop := range config.ExtraProperties {
+			if propVal, ok := message[prop.Name]; ok {
+				ctx = context.WithValue(ctx, prop.ContextKey, propVal)
+			}
+		}
+
+		marshaled, err := json.Marshal(message)
 		if err != nil {
 			return nil, err
 		}
 
-		var req v1.DeleteMountTaskRequest
 		if err := (protojson.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(marshaled, &req); err != nil {
 			return nil, err
 		}
 
 		resp, err := client.DeleteMountTask(ctx, connect.NewRequest(&req))
 		if err != nil {
-			return nil, err
+			return runtime.HandleError(err)
 		}
 
 		marshaled, err = (protojson.MarshalOptions{UseProtoNames: true, EmitDefaultValues: true}).Marshal(resp.Msg)
@@ -227,20 +698,36 @@ func ForwardToConnectCloudStorageServiceClient(s *mcpserver.MCPServer, client Co
 		}
 		return mcp.NewToolResultText(string(marshaled)), nil
 	})
-	s.AddTool(CloudStorageService_GetMountTaskTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		marshaled, err := json.Marshal(request.Params.Arguments)
+	GetMountTaskTool := CloudStorageService_GetMountTaskTool
+	// Add extra properties to schema if configured
+	if len(config.ExtraProperties) > 0 {
+		GetMountTaskTool = runtime.AddExtraPropertiesToTool(GetMountTaskTool, config.ExtraProperties)
+	}
+
+	s.AddTool(GetMountTaskTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		var req v1.GetMountTaskRequest
+
+		message := request.Params.Arguments
+
+		// Extract extra properties if configured
+		for _, prop := range config.ExtraProperties {
+			if propVal, ok := message[prop.Name]; ok {
+				ctx = context.WithValue(ctx, prop.ContextKey, propVal)
+			}
+		}
+
+		marshaled, err := json.Marshal(message)
 		if err != nil {
 			return nil, err
 		}
 
-		var req v1.GetMountTaskRequest
 		if err := (protojson.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(marshaled, &req); err != nil {
 			return nil, err
 		}
 
 		resp, err := client.GetMountTask(ctx, connect.NewRequest(&req))
 		if err != nil {
-			return nil, err
+			return runtime.HandleError(err)
 		}
 
 		marshaled, err = (protojson.MarshalOptions{UseProtoNames: true, EmitDefaultValues: true}).Marshal(resp.Msg)
@@ -249,20 +736,36 @@ func ForwardToConnectCloudStorageServiceClient(s *mcpserver.MCPServer, client Co
 		}
 		return mcp.NewToolResultText(string(marshaled)), nil
 	})
-	s.AddTool(CloudStorageService_ListMountTasksTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		marshaled, err := json.Marshal(request.Params.Arguments)
+	ListMountTasksTool := CloudStorageService_ListMountTasksTool
+	// Add extra properties to schema if configured
+	if len(config.ExtraProperties) > 0 {
+		ListMountTasksTool = runtime.AddExtraPropertiesToTool(ListMountTasksTool, config.ExtraProperties)
+	}
+
+	s.AddTool(ListMountTasksTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		var req v1.ListMountTasksRequest
+
+		message := request.Params.Arguments
+
+		// Extract extra properties if configured
+		for _, prop := range config.ExtraProperties {
+			if propVal, ok := message[prop.Name]; ok {
+				ctx = context.WithValue(ctx, prop.ContextKey, propVal)
+			}
+		}
+
+		marshaled, err := json.Marshal(message)
 		if err != nil {
 			return nil, err
 		}
 
-		var req v1.ListMountTasksRequest
 		if err := (protojson.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(marshaled, &req); err != nil {
 			return nil, err
 		}
 
 		resp, err := client.ListMountTasks(ctx, connect.NewRequest(&req))
 		if err != nil {
-			return nil, err
+			return runtime.HandleError(err)
 		}
 
 		marshaled, err = (protojson.MarshalOptions{UseProtoNames: true, EmitDefaultValues: true}).Marshal(resp.Msg)
@@ -271,20 +774,36 @@ func ForwardToConnectCloudStorageServiceClient(s *mcpserver.MCPServer, client Co
 		}
 		return mcp.NewToolResultText(string(marshaled)), nil
 	})
-	s.AddTool(CloudStorageService_ListMountableTopicsTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		marshaled, err := json.Marshal(request.Params.Arguments)
+	ListMountableTopicsTool := CloudStorageService_ListMountableTopicsTool
+	// Add extra properties to schema if configured
+	if len(config.ExtraProperties) > 0 {
+		ListMountableTopicsTool = runtime.AddExtraPropertiesToTool(ListMountableTopicsTool, config.ExtraProperties)
+	}
+
+	s.AddTool(ListMountableTopicsTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		var req v1.ListMountableTopicsRequest
+
+		message := request.Params.Arguments
+
+		// Extract extra properties if configured
+		for _, prop := range config.ExtraProperties {
+			if propVal, ok := message[prop.Name]; ok {
+				ctx = context.WithValue(ctx, prop.ContextKey, propVal)
+			}
+		}
+
+		marshaled, err := json.Marshal(message)
 		if err != nil {
 			return nil, err
 		}
 
-		var req v1.ListMountableTopicsRequest
 		if err := (protojson.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(marshaled, &req); err != nil {
 			return nil, err
 		}
 
 		resp, err := client.ListMountableTopics(ctx, connect.NewRequest(&req))
 		if err != nil {
-			return nil, err
+			return runtime.HandleError(err)
 		}
 
 		marshaled, err = (protojson.MarshalOptions{UseProtoNames: true, EmitDefaultValues: true}).Marshal(resp.Msg)
@@ -293,20 +812,36 @@ func ForwardToConnectCloudStorageServiceClient(s *mcpserver.MCPServer, client Co
 		}
 		return mcp.NewToolResultText(string(marshaled)), nil
 	})
-	s.AddTool(CloudStorageService_MountTopicsTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		marshaled, err := json.Marshal(request.Params.Arguments)
+	MountTopicsTool := CloudStorageService_MountTopicsTool
+	// Add extra properties to schema if configured
+	if len(config.ExtraProperties) > 0 {
+		MountTopicsTool = runtime.AddExtraPropertiesToTool(MountTopicsTool, config.ExtraProperties)
+	}
+
+	s.AddTool(MountTopicsTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		var req v1.MountTopicsRequest
+
+		message := request.Params.Arguments
+
+		// Extract extra properties if configured
+		for _, prop := range config.ExtraProperties {
+			if propVal, ok := message[prop.Name]; ok {
+				ctx = context.WithValue(ctx, prop.ContextKey, propVal)
+			}
+		}
+
+		marshaled, err := json.Marshal(message)
 		if err != nil {
 			return nil, err
 		}
 
-		var req v1.MountTopicsRequest
 		if err := (protojson.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(marshaled, &req); err != nil {
 			return nil, err
 		}
 
 		resp, err := client.MountTopics(ctx, connect.NewRequest(&req))
 		if err != nil {
-			return nil, err
+			return runtime.HandleError(err)
 		}
 
 		marshaled, err = (protojson.MarshalOptions{UseProtoNames: true, EmitDefaultValues: true}).Marshal(resp.Msg)
@@ -315,20 +850,36 @@ func ForwardToConnectCloudStorageServiceClient(s *mcpserver.MCPServer, client Co
 		}
 		return mcp.NewToolResultText(string(marshaled)), nil
 	})
-	s.AddTool(CloudStorageService_UnmountTopicsTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		marshaled, err := json.Marshal(request.Params.Arguments)
+	UnmountTopicsTool := CloudStorageService_UnmountTopicsTool
+	// Add extra properties to schema if configured
+	if len(config.ExtraProperties) > 0 {
+		UnmountTopicsTool = runtime.AddExtraPropertiesToTool(UnmountTopicsTool, config.ExtraProperties)
+	}
+
+	s.AddTool(UnmountTopicsTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		var req v1.UnmountTopicsRequest
+
+		message := request.Params.Arguments
+
+		// Extract extra properties if configured
+		for _, prop := range config.ExtraProperties {
+			if propVal, ok := message[prop.Name]; ok {
+				ctx = context.WithValue(ctx, prop.ContextKey, propVal)
+			}
+		}
+
+		marshaled, err := json.Marshal(message)
 		if err != nil {
 			return nil, err
 		}
 
-		var req v1.UnmountTopicsRequest
 		if err := (protojson.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(marshaled, &req); err != nil {
 			return nil, err
 		}
 
 		resp, err := client.UnmountTopics(ctx, connect.NewRequest(&req))
 		if err != nil {
-			return nil, err
+			return runtime.HandleError(err)
 		}
 
 		marshaled, err = (protojson.MarshalOptions{UseProtoNames: true, EmitDefaultValues: true}).Marshal(resp.Msg)
@@ -337,23 +888,313 @@ func ForwardToConnectCloudStorageServiceClient(s *mcpserver.MCPServer, client Co
 		}
 		return mcp.NewToolResultText(string(marshaled)), nil
 	})
-	s.AddTool(CloudStorageService_UpdateMountTaskTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		marshaled, err := json.Marshal(request.Params.Arguments)
+	UpdateMountTaskTool := CloudStorageService_UpdateMountTaskTool
+	// Add extra properties to schema if configured
+	if len(config.ExtraProperties) > 0 {
+		UpdateMountTaskTool = runtime.AddExtraPropertiesToTool(UpdateMountTaskTool, config.ExtraProperties)
+	}
+
+	s.AddTool(UpdateMountTaskTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		var req v1.UpdateMountTaskRequest
+
+		message := request.Params.Arguments
+
+		// Extract extra properties if configured
+		for _, prop := range config.ExtraProperties {
+			if propVal, ok := message[prop.Name]; ok {
+				ctx = context.WithValue(ctx, prop.ContextKey, propVal)
+			}
+		}
+
+		marshaled, err := json.Marshal(message)
 		if err != nil {
 			return nil, err
 		}
 
-		var req v1.UpdateMountTaskRequest
 		if err := (protojson.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(marshaled, &req); err != nil {
 			return nil, err
 		}
 
 		resp, err := client.UpdateMountTask(ctx, connect.NewRequest(&req))
 		if err != nil {
-			return nil, err
+			return runtime.HandleError(err)
 		}
 
 		marshaled, err = (protojson.MarshalOptions{UseProtoNames: true, EmitDefaultValues: true}).Marshal(resp.Msg)
+		if err != nil {
+			return nil, err
+		}
+		return mcp.NewToolResultText(string(marshaled)), nil
+	})
+}
+
+// ForwardToCloudStorageServiceClient registers a gRPC client, to forward MCP calls to it.
+func ForwardToCloudStorageServiceClient(s *mcpserver.MCPServer, client CloudStorageServiceClient, opts ...runtime.Option) {
+	config := runtime.NewConfig()
+	for _, opt := range opts {
+		opt(config)
+	}
+	DeleteMountTaskTool := CloudStorageService_DeleteMountTaskTool
+	// Add extra properties to schema if configured
+	if len(config.ExtraProperties) > 0 {
+		DeleteMountTaskTool = runtime.AddExtraPropertiesToTool(DeleteMountTaskTool, config.ExtraProperties)
+	}
+
+	s.AddTool(DeleteMountTaskTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		var req v1.DeleteMountTaskRequest
+
+		message := request.Params.Arguments
+
+		// Extract extra properties if configured
+		for _, prop := range config.ExtraProperties {
+			if propVal, ok := message[prop.Name]; ok {
+				ctx = context.WithValue(ctx, prop.ContextKey, propVal)
+			}
+		}
+
+		marshaled, err := json.Marshal(message)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := (protojson.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(marshaled, &req); err != nil {
+			return nil, err
+		}
+
+		resp, err := client.DeleteMountTask(ctx, &req)
+		if err != nil {
+			return runtime.HandleError(err)
+		}
+
+		marshaled, err = (protojson.MarshalOptions{UseProtoNames: true, EmitDefaultValues: true}).Marshal(resp)
+		if err != nil {
+			return nil, err
+		}
+		return mcp.NewToolResultText(string(marshaled)), nil
+	})
+	GetMountTaskTool := CloudStorageService_GetMountTaskTool
+	// Add extra properties to schema if configured
+	if len(config.ExtraProperties) > 0 {
+		GetMountTaskTool = runtime.AddExtraPropertiesToTool(GetMountTaskTool, config.ExtraProperties)
+	}
+
+	s.AddTool(GetMountTaskTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		var req v1.GetMountTaskRequest
+
+		message := request.Params.Arguments
+
+		// Extract extra properties if configured
+		for _, prop := range config.ExtraProperties {
+			if propVal, ok := message[prop.Name]; ok {
+				ctx = context.WithValue(ctx, prop.ContextKey, propVal)
+			}
+		}
+
+		marshaled, err := json.Marshal(message)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := (protojson.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(marshaled, &req); err != nil {
+			return nil, err
+		}
+
+		resp, err := client.GetMountTask(ctx, &req)
+		if err != nil {
+			return runtime.HandleError(err)
+		}
+
+		marshaled, err = (protojson.MarshalOptions{UseProtoNames: true, EmitDefaultValues: true}).Marshal(resp)
+		if err != nil {
+			return nil, err
+		}
+		return mcp.NewToolResultText(string(marshaled)), nil
+	})
+	ListMountTasksTool := CloudStorageService_ListMountTasksTool
+	// Add extra properties to schema if configured
+	if len(config.ExtraProperties) > 0 {
+		ListMountTasksTool = runtime.AddExtraPropertiesToTool(ListMountTasksTool, config.ExtraProperties)
+	}
+
+	s.AddTool(ListMountTasksTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		var req v1.ListMountTasksRequest
+
+		message := request.Params.Arguments
+
+		// Extract extra properties if configured
+		for _, prop := range config.ExtraProperties {
+			if propVal, ok := message[prop.Name]; ok {
+				ctx = context.WithValue(ctx, prop.ContextKey, propVal)
+			}
+		}
+
+		marshaled, err := json.Marshal(message)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := (protojson.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(marshaled, &req); err != nil {
+			return nil, err
+		}
+
+		resp, err := client.ListMountTasks(ctx, &req)
+		if err != nil {
+			return runtime.HandleError(err)
+		}
+
+		marshaled, err = (protojson.MarshalOptions{UseProtoNames: true, EmitDefaultValues: true}).Marshal(resp)
+		if err != nil {
+			return nil, err
+		}
+		return mcp.NewToolResultText(string(marshaled)), nil
+	})
+	ListMountableTopicsTool := CloudStorageService_ListMountableTopicsTool
+	// Add extra properties to schema if configured
+	if len(config.ExtraProperties) > 0 {
+		ListMountableTopicsTool = runtime.AddExtraPropertiesToTool(ListMountableTopicsTool, config.ExtraProperties)
+	}
+
+	s.AddTool(ListMountableTopicsTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		var req v1.ListMountableTopicsRequest
+
+		message := request.Params.Arguments
+
+		// Extract extra properties if configured
+		for _, prop := range config.ExtraProperties {
+			if propVal, ok := message[prop.Name]; ok {
+				ctx = context.WithValue(ctx, prop.ContextKey, propVal)
+			}
+		}
+
+		marshaled, err := json.Marshal(message)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := (protojson.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(marshaled, &req); err != nil {
+			return nil, err
+		}
+
+		resp, err := client.ListMountableTopics(ctx, &req)
+		if err != nil {
+			return runtime.HandleError(err)
+		}
+
+		marshaled, err = (protojson.MarshalOptions{UseProtoNames: true, EmitDefaultValues: true}).Marshal(resp)
+		if err != nil {
+			return nil, err
+		}
+		return mcp.NewToolResultText(string(marshaled)), nil
+	})
+	MountTopicsTool := CloudStorageService_MountTopicsTool
+	// Add extra properties to schema if configured
+	if len(config.ExtraProperties) > 0 {
+		MountTopicsTool = runtime.AddExtraPropertiesToTool(MountTopicsTool, config.ExtraProperties)
+	}
+
+	s.AddTool(MountTopicsTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		var req v1.MountTopicsRequest
+
+		message := request.Params.Arguments
+
+		// Extract extra properties if configured
+		for _, prop := range config.ExtraProperties {
+			if propVal, ok := message[prop.Name]; ok {
+				ctx = context.WithValue(ctx, prop.ContextKey, propVal)
+			}
+		}
+
+		marshaled, err := json.Marshal(message)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := (protojson.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(marshaled, &req); err != nil {
+			return nil, err
+		}
+
+		resp, err := client.MountTopics(ctx, &req)
+		if err != nil {
+			return runtime.HandleError(err)
+		}
+
+		marshaled, err = (protojson.MarshalOptions{UseProtoNames: true, EmitDefaultValues: true}).Marshal(resp)
+		if err != nil {
+			return nil, err
+		}
+		return mcp.NewToolResultText(string(marshaled)), nil
+	})
+	UnmountTopicsTool := CloudStorageService_UnmountTopicsTool
+	// Add extra properties to schema if configured
+	if len(config.ExtraProperties) > 0 {
+		UnmountTopicsTool = runtime.AddExtraPropertiesToTool(UnmountTopicsTool, config.ExtraProperties)
+	}
+
+	s.AddTool(UnmountTopicsTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		var req v1.UnmountTopicsRequest
+
+		message := request.Params.Arguments
+
+		// Extract extra properties if configured
+		for _, prop := range config.ExtraProperties {
+			if propVal, ok := message[prop.Name]; ok {
+				ctx = context.WithValue(ctx, prop.ContextKey, propVal)
+			}
+		}
+
+		marshaled, err := json.Marshal(message)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := (protojson.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(marshaled, &req); err != nil {
+			return nil, err
+		}
+
+		resp, err := client.UnmountTopics(ctx, &req)
+		if err != nil {
+			return runtime.HandleError(err)
+		}
+
+		marshaled, err = (protojson.MarshalOptions{UseProtoNames: true, EmitDefaultValues: true}).Marshal(resp)
+		if err != nil {
+			return nil, err
+		}
+		return mcp.NewToolResultText(string(marshaled)), nil
+	})
+	UpdateMountTaskTool := CloudStorageService_UpdateMountTaskTool
+	// Add extra properties to schema if configured
+	if len(config.ExtraProperties) > 0 {
+		UpdateMountTaskTool = runtime.AddExtraPropertiesToTool(UpdateMountTaskTool, config.ExtraProperties)
+	}
+
+	s.AddTool(UpdateMountTaskTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		var req v1.UpdateMountTaskRequest
+
+		message := request.Params.Arguments
+
+		// Extract extra properties if configured
+		for _, prop := range config.ExtraProperties {
+			if propVal, ok := message[prop.Name]; ok {
+				ctx = context.WithValue(ctx, prop.ContextKey, propVal)
+			}
+		}
+
+		marshaled, err := json.Marshal(message)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := (protojson.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(marshaled, &req); err != nil {
+			return nil, err
+		}
+
+		resp, err := client.UpdateMountTask(ctx, &req)
+		if err != nil {
+			return runtime.HandleError(err)
+		}
+
+		marshaled, err = (protojson.MarshalOptions{UseProtoNames: true, EmitDefaultValues: true}).Marshal(resp)
 		if err != nil {
 			return nil, err
 		}

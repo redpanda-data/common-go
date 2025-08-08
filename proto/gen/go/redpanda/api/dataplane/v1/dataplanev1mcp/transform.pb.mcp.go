@@ -11,13 +11,18 @@ import (
 	"connectrpc.com/connect"
 	"github.com/mark3labs/mcp-go/mcp"
 	mcpserver "github.com/mark3labs/mcp-go/server"
+	"github.com/redpanda-data/protoc-gen-go-mcp/pkg/runtime"
+	grpc "google.golang.org/grpc"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
 var (
-	TransformService_DeleteTransformTool = mcp.Tool{Name: "redpanda_api_dataplane_v1_TransformService_DeleteTransform", Description: "", InputSchema: mcp.ToolInputSchema{Type: "", Properties: map[string]interface{}(nil), Required: []string(nil)}, RawInputSchema: json.RawMessage{0x7b, 0x22, 0x70, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x74, 0x69, 0x65, 0x73, 0x22, 0x3a, 0x7b, 0x22, 0x6e, 0x61, 0x6d, 0x65, 0x22, 0x3a, 0x7b, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x22, 0x7d, 0x7d, 0x2c, 0x22, 0x72, 0x65, 0x71, 0x75, 0x69, 0x72, 0x65, 0x64, 0x22, 0x3a, 0x5b, 0x22, 0x6e, 0x61, 0x6d, 0x65, 0x22, 0x5d, 0x2c, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x6f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x22, 0x7d}}
-	TransformService_GetTransformTool    = mcp.Tool{Name: "redpanda_api_dataplane_v1_TransformService_GetTransform", Description: "", InputSchema: mcp.ToolInputSchema{Type: "", Properties: map[string]interface{}(nil), Required: []string(nil)}, RawInputSchema: json.RawMessage{0x7b, 0x22, 0x70, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x74, 0x69, 0x65, 0x73, 0x22, 0x3a, 0x7b, 0x22, 0x6e, 0x61, 0x6d, 0x65, 0x22, 0x3a, 0x7b, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x22, 0x7d, 0x7d, 0x2c, 0x22, 0x72, 0x65, 0x71, 0x75, 0x69, 0x72, 0x65, 0x64, 0x22, 0x3a, 0x5b, 0x22, 0x6e, 0x61, 0x6d, 0x65, 0x22, 0x5d, 0x2c, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x6f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x22, 0x7d}}
-	TransformService_ListTransformsTool  = mcp.Tool{Name: "redpanda_api_dataplane_v1_TransformService_ListTransforms", Description: "", InputSchema: mcp.ToolInputSchema{Type: "", Properties: map[string]interface{}(nil), Required: []string(nil)}, RawInputSchema: json.RawMessage{0x7b, 0x22, 0x70, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x74, 0x69, 0x65, 0x73, 0x22, 0x3a, 0x7b, 0x22, 0x66, 0x69, 0x6c, 0x74, 0x65, 0x72, 0x22, 0x3a, 0x7b, 0x22, 0x70, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x74, 0x69, 0x65, 0x73, 0x22, 0x3a, 0x7b, 0x22, 0x6e, 0x61, 0x6d, 0x65, 0x5f, 0x63, 0x6f, 0x6e, 0x74, 0x61, 0x69, 0x6e, 0x73, 0x22, 0x3a, 0x7b, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x22, 0x7d, 0x7d, 0x2c, 0x22, 0x72, 0x65, 0x71, 0x75, 0x69, 0x72, 0x65, 0x64, 0x22, 0x3a, 0x5b, 0x5d, 0x2c, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x6f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x22, 0x7d, 0x2c, 0x22, 0x70, 0x61, 0x67, 0x65, 0x5f, 0x73, 0x69, 0x7a, 0x65, 0x22, 0x3a, 0x7b, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x69, 0x6e, 0x74, 0x65, 0x67, 0x65, 0x72, 0x22, 0x7d, 0x2c, 0x22, 0x70, 0x61, 0x67, 0x65, 0x5f, 0x74, 0x6f, 0x6b, 0x65, 0x6e, 0x22, 0x3a, 0x7b, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x22, 0x7d, 0x7d, 0x2c, 0x22, 0x72, 0x65, 0x71, 0x75, 0x69, 0x72, 0x65, 0x64, 0x22, 0x3a, 0x5b, 0x5d, 0x2c, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x6f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x22, 0x7d}}
+	TransformService_DeleteTransformTool       = mcp.Tool{Name: "redpanda_api_dataplane_v1_TransformService_DeleteTransform", Description: "", InputSchema: mcp.ToolInputSchema{Type: "", Properties: map[string]interface{}(nil), Required: []string(nil)}, RawInputSchema: json.RawMessage{0x7b, 0x22, 0x70, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x74, 0x69, 0x65, 0x73, 0x22, 0x3a, 0x7b, 0x22, 0x6e, 0x61, 0x6d, 0x65, 0x22, 0x3a, 0x7b, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x22, 0x7d, 0x7d, 0x2c, 0x22, 0x72, 0x65, 0x71, 0x75, 0x69, 0x72, 0x65, 0x64, 0x22, 0x3a, 0x5b, 0x22, 0x6e, 0x61, 0x6d, 0x65, 0x22, 0x5d, 0x2c, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x6f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x22, 0x7d}}
+	TransformService_GetTransformTool          = mcp.Tool{Name: "redpanda_api_dataplane_v1_TransformService_GetTransform", Description: "", InputSchema: mcp.ToolInputSchema{Type: "", Properties: map[string]interface{}(nil), Required: []string(nil)}, RawInputSchema: json.RawMessage{0x7b, 0x22, 0x70, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x74, 0x69, 0x65, 0x73, 0x22, 0x3a, 0x7b, 0x22, 0x6e, 0x61, 0x6d, 0x65, 0x22, 0x3a, 0x7b, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x22, 0x7d, 0x7d, 0x2c, 0x22, 0x72, 0x65, 0x71, 0x75, 0x69, 0x72, 0x65, 0x64, 0x22, 0x3a, 0x5b, 0x22, 0x6e, 0x61, 0x6d, 0x65, 0x22, 0x5d, 0x2c, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x6f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x22, 0x7d}}
+	TransformService_ListTransformsTool        = mcp.Tool{Name: "redpanda_api_dataplane_v1_TransformService_ListTransforms", Description: "", InputSchema: mcp.ToolInputSchema{Type: "", Properties: map[string]interface{}(nil), Required: []string(nil)}, RawInputSchema: json.RawMessage{0x7b, 0x22, 0x70, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x74, 0x69, 0x65, 0x73, 0x22, 0x3a, 0x7b, 0x22, 0x66, 0x69, 0x6c, 0x74, 0x65, 0x72, 0x22, 0x3a, 0x7b, 0x22, 0x70, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x74, 0x69, 0x65, 0x73, 0x22, 0x3a, 0x7b, 0x22, 0x6e, 0x61, 0x6d, 0x65, 0x5f, 0x63, 0x6f, 0x6e, 0x74, 0x61, 0x69, 0x6e, 0x73, 0x22, 0x3a, 0x7b, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x22, 0x7d, 0x7d, 0x2c, 0x22, 0x72, 0x65, 0x71, 0x75, 0x69, 0x72, 0x65, 0x64, 0x22, 0x3a, 0x5b, 0x5d, 0x2c, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x6f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x22, 0x7d, 0x2c, 0x22, 0x70, 0x61, 0x67, 0x65, 0x5f, 0x73, 0x69, 0x7a, 0x65, 0x22, 0x3a, 0x7b, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x69, 0x6e, 0x74, 0x65, 0x67, 0x65, 0x72, 0x22, 0x7d, 0x2c, 0x22, 0x70, 0x61, 0x67, 0x65, 0x5f, 0x74, 0x6f, 0x6b, 0x65, 0x6e, 0x22, 0x3a, 0x7b, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x22, 0x7d, 0x7d, 0x2c, 0x22, 0x72, 0x65, 0x71, 0x75, 0x69, 0x72, 0x65, 0x64, 0x22, 0x3a, 0x5b, 0x5d, 0x2c, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x6f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x22, 0x7d}}
+	TransformService_DeleteTransformToolOpenAI = mcp.Tool{Name: "redpanda_api_dataplane_v1_TransformService_DeleteTransform", Description: "", InputSchema: mcp.ToolInputSchema{Type: "", Properties: map[string]interface{}(nil), Required: []string(nil)}, RawInputSchema: json.RawMessage{0x7b, 0x22, 0x61, 0x64, 0x64, 0x69, 0x74, 0x69, 0x6f, 0x6e, 0x61, 0x6c, 0x50, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x74, 0x69, 0x65, 0x73, 0x22, 0x3a, 0x66, 0x61, 0x6c, 0x73, 0x65, 0x2c, 0x22, 0x70, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x74, 0x69, 0x65, 0x73, 0x22, 0x3a, 0x7b, 0x22, 0x6e, 0x61, 0x6d, 0x65, 0x22, 0x3a, 0x7b, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x22, 0x7d, 0x7d, 0x2c, 0x22, 0x72, 0x65, 0x71, 0x75, 0x69, 0x72, 0x65, 0x64, 0x22, 0x3a, 0x5b, 0x22, 0x6e, 0x61, 0x6d, 0x65, 0x22, 0x5d, 0x2c, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x6f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x22, 0x7d}}
+	TransformService_GetTransformToolOpenAI    = mcp.Tool{Name: "redpanda_api_dataplane_v1_TransformService_GetTransform", Description: "", InputSchema: mcp.ToolInputSchema{Type: "", Properties: map[string]interface{}(nil), Required: []string(nil)}, RawInputSchema: json.RawMessage{0x7b, 0x22, 0x61, 0x64, 0x64, 0x69, 0x74, 0x69, 0x6f, 0x6e, 0x61, 0x6c, 0x50, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x74, 0x69, 0x65, 0x73, 0x22, 0x3a, 0x66, 0x61, 0x6c, 0x73, 0x65, 0x2c, 0x22, 0x70, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x74, 0x69, 0x65, 0x73, 0x22, 0x3a, 0x7b, 0x22, 0x6e, 0x61, 0x6d, 0x65, 0x22, 0x3a, 0x7b, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x22, 0x7d, 0x7d, 0x2c, 0x22, 0x72, 0x65, 0x71, 0x75, 0x69, 0x72, 0x65, 0x64, 0x22, 0x3a, 0x5b, 0x22, 0x6e, 0x61, 0x6d, 0x65, 0x22, 0x5d, 0x2c, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x6f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x22, 0x7d}}
+	TransformService_ListTransformsToolOpenAI  = mcp.Tool{Name: "redpanda_api_dataplane_v1_TransformService_ListTransforms", Description: "", InputSchema: mcp.ToolInputSchema{Type: "", Properties: map[string]interface{}(nil), Required: []string(nil)}, RawInputSchema: json.RawMessage{0x7b, 0x22, 0x61, 0x64, 0x64, 0x69, 0x74, 0x69, 0x6f, 0x6e, 0x61, 0x6c, 0x50, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x74, 0x69, 0x65, 0x73, 0x22, 0x3a, 0x66, 0x61, 0x6c, 0x73, 0x65, 0x2c, 0x22, 0x70, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x74, 0x69, 0x65, 0x73, 0x22, 0x3a, 0x7b, 0x22, 0x66, 0x69, 0x6c, 0x74, 0x65, 0x72, 0x22, 0x3a, 0x7b, 0x22, 0x61, 0x64, 0x64, 0x69, 0x74, 0x69, 0x6f, 0x6e, 0x61, 0x6c, 0x50, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x74, 0x69, 0x65, 0x73, 0x22, 0x3a, 0x66, 0x61, 0x6c, 0x73, 0x65, 0x2c, 0x22, 0x70, 0x72, 0x6f, 0x70, 0x65, 0x72, 0x74, 0x69, 0x65, 0x73, 0x22, 0x3a, 0x7b, 0x22, 0x6e, 0x61, 0x6d, 0x65, 0x5f, 0x63, 0x6f, 0x6e, 0x74, 0x61, 0x69, 0x6e, 0x73, 0x22, 0x3a, 0x7b, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x22, 0x7d, 0x7d, 0x2c, 0x22, 0x72, 0x65, 0x71, 0x75, 0x69, 0x72, 0x65, 0x64, 0x22, 0x3a, 0x5b, 0x22, 0x6e, 0x61, 0x6d, 0x65, 0x5f, 0x63, 0x6f, 0x6e, 0x74, 0x61, 0x69, 0x6e, 0x73, 0x22, 0x5d, 0x2c, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x5b, 0x22, 0x6f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x22, 0x2c, 0x22, 0x6e, 0x75, 0x6c, 0x6c, 0x22, 0x5d, 0x7d, 0x2c, 0x22, 0x70, 0x61, 0x67, 0x65, 0x5f, 0x73, 0x69, 0x7a, 0x65, 0x22, 0x3a, 0x7b, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x69, 0x6e, 0x74, 0x65, 0x67, 0x65, 0x72, 0x22, 0x7d, 0x2c, 0x22, 0x70, 0x61, 0x67, 0x65, 0x5f, 0x74, 0x6f, 0x6b, 0x65, 0x6e, 0x22, 0x3a, 0x7b, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x22, 0x7d, 0x7d, 0x2c, 0x22, 0x72, 0x65, 0x71, 0x75, 0x69, 0x72, 0x65, 0x64, 0x22, 0x3a, 0x5b, 0x22, 0x66, 0x69, 0x6c, 0x74, 0x65, 0x72, 0x22, 0x2c, 0x22, 0x70, 0x61, 0x67, 0x65, 0x5f, 0x74, 0x6f, 0x6b, 0x65, 0x6e, 0x22, 0x2c, 0x22, 0x70, 0x61, 0x67, 0x65, 0x5f, 0x73, 0x69, 0x7a, 0x65, 0x22, 0x5d, 0x2c, 0x22, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x6f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x22, 0x7d}}
 )
 
 // TransformServiceServer is compatible with the grpc-go server interface.
@@ -27,73 +32,279 @@ type TransformServiceServer interface {
 	ListTransforms(ctx context.Context, req *v1.ListTransformsRequest) (*v1.ListTransformsResponse, error)
 }
 
-func RegisterTransformServiceHandler(s *mcpserver.MCPServer, srv TransformServiceServer) {
-	s.AddTool(TransformService_DeleteTransformTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		marshaled, err := json.Marshal(request.Params.Arguments)
+// RegisterTransformServiceHandler registers standard MCP handlers for TransformService
+func RegisterTransformServiceHandler(s *mcpserver.MCPServer, srv TransformServiceServer, opts ...runtime.Option) {
+	config := runtime.NewConfig()
+	for _, opt := range opts {
+		opt(config)
+	}
+	DeleteTransformTool := TransformService_DeleteTransformTool
+	// Add extra properties to schema if configured
+	if len(config.ExtraProperties) > 0 {
+		DeleteTransformTool = runtime.AddExtraPropertiesToTool(DeleteTransformTool, config.ExtraProperties)
+	}
+
+	s.AddTool(DeleteTransformTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		var req v1.DeleteTransformRequest
+
+		message := request.Params.Arguments
+
+		// Extract extra properties if configured
+		for _, prop := range config.ExtraProperties {
+			if propVal, ok := message[prop.Name]; ok {
+				ctx = context.WithValue(ctx, prop.ContextKey, propVal)
+			}
+		}
+
+		marshaled, err := json.Marshal(message)
 		if err != nil {
 			return nil, err
 		}
 
-		var req v1.DeleteTransformRequest
 		if err := (protojson.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(marshaled, &req); err != nil {
 			return nil, err
 		}
 
 		resp, err := srv.DeleteTransform(ctx, &req)
 		if err != nil {
-			return nil, err
+			return runtime.HandleError(err)
 		}
 
 		marshaled, err = (protojson.MarshalOptions{UseProtoNames: true, EmitDefaultValues: true}).Marshal(resp)
 		if err != nil {
 			return nil, err
 		}
+
 		return mcp.NewToolResultText(string(marshaled)), nil
 	})
-	s.AddTool(TransformService_GetTransformTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		marshaled, err := json.Marshal(request.Params.Arguments)
+	GetTransformTool := TransformService_GetTransformTool
+	// Add extra properties to schema if configured
+	if len(config.ExtraProperties) > 0 {
+		GetTransformTool = runtime.AddExtraPropertiesToTool(GetTransformTool, config.ExtraProperties)
+	}
+
+	s.AddTool(GetTransformTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		var req v1.GetTransformRequest
+
+		message := request.Params.Arguments
+
+		// Extract extra properties if configured
+		for _, prop := range config.ExtraProperties {
+			if propVal, ok := message[prop.Name]; ok {
+				ctx = context.WithValue(ctx, prop.ContextKey, propVal)
+			}
+		}
+
+		marshaled, err := json.Marshal(message)
 		if err != nil {
 			return nil, err
 		}
 
-		var req v1.GetTransformRequest
 		if err := (protojson.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(marshaled, &req); err != nil {
 			return nil, err
 		}
 
 		resp, err := srv.GetTransform(ctx, &req)
 		if err != nil {
-			return nil, err
+			return runtime.HandleError(err)
 		}
 
 		marshaled, err = (protojson.MarshalOptions{UseProtoNames: true, EmitDefaultValues: true}).Marshal(resp)
 		if err != nil {
 			return nil, err
 		}
+
 		return mcp.NewToolResultText(string(marshaled)), nil
 	})
-	s.AddTool(TransformService_ListTransformsTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		marshaled, err := json.Marshal(request.Params.Arguments)
+	ListTransformsTool := TransformService_ListTransformsTool
+	// Add extra properties to schema if configured
+	if len(config.ExtraProperties) > 0 {
+		ListTransformsTool = runtime.AddExtraPropertiesToTool(ListTransformsTool, config.ExtraProperties)
+	}
+
+	s.AddTool(ListTransformsTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		var req v1.ListTransformsRequest
+
+		message := request.Params.Arguments
+
+		// Extract extra properties if configured
+		for _, prop := range config.ExtraProperties {
+			if propVal, ok := message[prop.Name]; ok {
+				ctx = context.WithValue(ctx, prop.ContextKey, propVal)
+			}
+		}
+
+		marshaled, err := json.Marshal(message)
 		if err != nil {
 			return nil, err
 		}
 
-		var req v1.ListTransformsRequest
 		if err := (protojson.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(marshaled, &req); err != nil {
 			return nil, err
 		}
 
 		resp, err := srv.ListTransforms(ctx, &req)
 		if err != nil {
-			return nil, err
+			return runtime.HandleError(err)
 		}
 
 		marshaled, err = (protojson.MarshalOptions{UseProtoNames: true, EmitDefaultValues: true}).Marshal(resp)
 		if err != nil {
 			return nil, err
 		}
+
 		return mcp.NewToolResultText(string(marshaled)), nil
 	})
+}
+
+// RegisterTransformServiceHandlerOpenAI registers OpenAI-compatible MCP handlers for TransformService
+func RegisterTransformServiceHandlerOpenAI(s *mcpserver.MCPServer, srv TransformServiceServer, opts ...runtime.Option) {
+	config := runtime.NewConfig()
+	for _, opt := range opts {
+		opt(config)
+	}
+	DeleteTransformToolOpenAI := TransformService_DeleteTransformToolOpenAI
+	// Add extra properties to schema if configured
+	if len(config.ExtraProperties) > 0 {
+		DeleteTransformToolOpenAI = runtime.AddExtraPropertiesToTool(DeleteTransformToolOpenAI, config.ExtraProperties)
+	}
+
+	s.AddTool(DeleteTransformToolOpenAI, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		var req v1.DeleteTransformRequest
+
+		message := request.Params.Arguments
+
+		// Extract extra properties if configured
+		for _, prop := range config.ExtraProperties {
+			if propVal, ok := message[prop.Name]; ok {
+				ctx = context.WithValue(ctx, prop.ContextKey, propVal)
+			}
+		}
+
+		runtime.FixOpenAI(req.ProtoReflect().Descriptor(), message)
+
+		marshaled, err := json.Marshal(message)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := (protojson.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(marshaled, &req); err != nil {
+			return nil, err
+		}
+
+		resp, err := srv.DeleteTransform(ctx, &req)
+		if err != nil {
+			return runtime.HandleError(err)
+		}
+
+		marshaled, err = (protojson.MarshalOptions{UseProtoNames: true, EmitDefaultValues: true}).Marshal(resp)
+		if err != nil {
+			return nil, err
+		}
+
+		return mcp.NewToolResultText(string(marshaled)), nil
+	})
+	GetTransformToolOpenAI := TransformService_GetTransformToolOpenAI
+	// Add extra properties to schema if configured
+	if len(config.ExtraProperties) > 0 {
+		GetTransformToolOpenAI = runtime.AddExtraPropertiesToTool(GetTransformToolOpenAI, config.ExtraProperties)
+	}
+
+	s.AddTool(GetTransformToolOpenAI, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		var req v1.GetTransformRequest
+
+		message := request.Params.Arguments
+
+		// Extract extra properties if configured
+		for _, prop := range config.ExtraProperties {
+			if propVal, ok := message[prop.Name]; ok {
+				ctx = context.WithValue(ctx, prop.ContextKey, propVal)
+			}
+		}
+
+		runtime.FixOpenAI(req.ProtoReflect().Descriptor(), message)
+
+		marshaled, err := json.Marshal(message)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := (protojson.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(marshaled, &req); err != nil {
+			return nil, err
+		}
+
+		resp, err := srv.GetTransform(ctx, &req)
+		if err != nil {
+			return runtime.HandleError(err)
+		}
+
+		marshaled, err = (protojson.MarshalOptions{UseProtoNames: true, EmitDefaultValues: true}).Marshal(resp)
+		if err != nil {
+			return nil, err
+		}
+
+		return mcp.NewToolResultText(string(marshaled)), nil
+	})
+	ListTransformsToolOpenAI := TransformService_ListTransformsToolOpenAI
+	// Add extra properties to schema if configured
+	if len(config.ExtraProperties) > 0 {
+		ListTransformsToolOpenAI = runtime.AddExtraPropertiesToTool(ListTransformsToolOpenAI, config.ExtraProperties)
+	}
+
+	s.AddTool(ListTransformsToolOpenAI, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		var req v1.ListTransformsRequest
+
+		message := request.Params.Arguments
+
+		// Extract extra properties if configured
+		for _, prop := range config.ExtraProperties {
+			if propVal, ok := message[prop.Name]; ok {
+				ctx = context.WithValue(ctx, prop.ContextKey, propVal)
+			}
+		}
+
+		runtime.FixOpenAI(req.ProtoReflect().Descriptor(), message)
+
+		marshaled, err := json.Marshal(message)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := (protojson.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(marshaled, &req); err != nil {
+			return nil, err
+		}
+
+		resp, err := srv.ListTransforms(ctx, &req)
+		if err != nil {
+			return runtime.HandleError(err)
+		}
+
+		marshaled, err = (protojson.MarshalOptions{UseProtoNames: true, EmitDefaultValues: true}).Marshal(resp)
+		if err != nil {
+			return nil, err
+		}
+
+		return mcp.NewToolResultText(string(marshaled)), nil
+	})
+}
+
+// RegisterTransformServiceHandlerWithProvider registers handlers for the specified LLM provider
+func RegisterTransformServiceHandlerWithProvider(s *mcpserver.MCPServer, srv TransformServiceServer, provider runtime.LLMProvider, opts ...runtime.Option) {
+	switch provider {
+	case runtime.LLMProviderOpenAI:
+		RegisterTransformServiceHandlerOpenAI(s, srv, opts...)
+	case runtime.LLMProviderStandard:
+		fallthrough
+	default:
+		RegisterTransformServiceHandler(s, srv, opts...)
+	}
+}
+
+// TransformServiceClient is compatible with the grpc-go client interface.
+type TransformServiceClient interface {
+	DeleteTransform(ctx context.Context, req *v1.DeleteTransformRequest, opts ...grpc.CallOption) (*v1.DeleteTransformResponse, error)
+	GetTransform(ctx context.Context, req *v1.GetTransformRequest, opts ...grpc.CallOption) (*v1.GetTransformResponse, error)
+	ListTransforms(ctx context.Context, req *v1.ListTransformsRequest, opts ...grpc.CallOption) (*v1.ListTransformsResponse, error)
 }
 
 // ConnectTransformServiceClient is compatible with the connectrpc-go client interface.
@@ -103,22 +314,42 @@ type ConnectTransformServiceClient interface {
 	ListTransforms(ctx context.Context, req *connect.Request[v1.ListTransformsRequest]) (*connect.Response[v1.ListTransformsResponse], error)
 }
 
-// Register connectrpc handler, to forward MCP calls to it.
-func ForwardToConnectTransformServiceClient(s *mcpserver.MCPServer, client ConnectTransformServiceClient) {
-	s.AddTool(TransformService_DeleteTransformTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		marshaled, err := json.Marshal(request.Params.Arguments)
+// ForwardToConnectTransformServiceClient registers a connectrpc client, to forward MCP calls to it.
+func ForwardToConnectTransformServiceClient(s *mcpserver.MCPServer, client ConnectTransformServiceClient, opts ...runtime.Option) {
+	config := runtime.NewConfig()
+	for _, opt := range opts {
+		opt(config)
+	}
+	DeleteTransformTool := TransformService_DeleteTransformTool
+	// Add extra properties to schema if configured
+	if len(config.ExtraProperties) > 0 {
+		DeleteTransformTool = runtime.AddExtraPropertiesToTool(DeleteTransformTool, config.ExtraProperties)
+	}
+
+	s.AddTool(DeleteTransformTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		var req v1.DeleteTransformRequest
+
+		message := request.Params.Arguments
+
+		// Extract extra properties if configured
+		for _, prop := range config.ExtraProperties {
+			if propVal, ok := message[prop.Name]; ok {
+				ctx = context.WithValue(ctx, prop.ContextKey, propVal)
+			}
+		}
+
+		marshaled, err := json.Marshal(message)
 		if err != nil {
 			return nil, err
 		}
 
-		var req v1.DeleteTransformRequest
 		if err := (protojson.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(marshaled, &req); err != nil {
 			return nil, err
 		}
 
 		resp, err := client.DeleteTransform(ctx, connect.NewRequest(&req))
 		if err != nil {
-			return nil, err
+			return runtime.HandleError(err)
 		}
 
 		marshaled, err = (protojson.MarshalOptions{UseProtoNames: true, EmitDefaultValues: true}).Marshal(resp.Msg)
@@ -127,20 +358,36 @@ func ForwardToConnectTransformServiceClient(s *mcpserver.MCPServer, client Conne
 		}
 		return mcp.NewToolResultText(string(marshaled)), nil
 	})
-	s.AddTool(TransformService_GetTransformTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		marshaled, err := json.Marshal(request.Params.Arguments)
+	GetTransformTool := TransformService_GetTransformTool
+	// Add extra properties to schema if configured
+	if len(config.ExtraProperties) > 0 {
+		GetTransformTool = runtime.AddExtraPropertiesToTool(GetTransformTool, config.ExtraProperties)
+	}
+
+	s.AddTool(GetTransformTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		var req v1.GetTransformRequest
+
+		message := request.Params.Arguments
+
+		// Extract extra properties if configured
+		for _, prop := range config.ExtraProperties {
+			if propVal, ok := message[prop.Name]; ok {
+				ctx = context.WithValue(ctx, prop.ContextKey, propVal)
+			}
+		}
+
+		marshaled, err := json.Marshal(message)
 		if err != nil {
 			return nil, err
 		}
 
-		var req v1.GetTransformRequest
 		if err := (protojson.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(marshaled, &req); err != nil {
 			return nil, err
 		}
 
 		resp, err := client.GetTransform(ctx, connect.NewRequest(&req))
 		if err != nil {
-			return nil, err
+			return runtime.HandleError(err)
 		}
 
 		marshaled, err = (protojson.MarshalOptions{UseProtoNames: true, EmitDefaultValues: true}).Marshal(resp.Msg)
@@ -149,23 +396,161 @@ func ForwardToConnectTransformServiceClient(s *mcpserver.MCPServer, client Conne
 		}
 		return mcp.NewToolResultText(string(marshaled)), nil
 	})
-	s.AddTool(TransformService_ListTransformsTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		marshaled, err := json.Marshal(request.Params.Arguments)
+	ListTransformsTool := TransformService_ListTransformsTool
+	// Add extra properties to schema if configured
+	if len(config.ExtraProperties) > 0 {
+		ListTransformsTool = runtime.AddExtraPropertiesToTool(ListTransformsTool, config.ExtraProperties)
+	}
+
+	s.AddTool(ListTransformsTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		var req v1.ListTransformsRequest
+
+		message := request.Params.Arguments
+
+		// Extract extra properties if configured
+		for _, prop := range config.ExtraProperties {
+			if propVal, ok := message[prop.Name]; ok {
+				ctx = context.WithValue(ctx, prop.ContextKey, propVal)
+			}
+		}
+
+		marshaled, err := json.Marshal(message)
 		if err != nil {
 			return nil, err
 		}
 
-		var req v1.ListTransformsRequest
 		if err := (protojson.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(marshaled, &req); err != nil {
 			return nil, err
 		}
 
 		resp, err := client.ListTransforms(ctx, connect.NewRequest(&req))
 		if err != nil {
-			return nil, err
+			return runtime.HandleError(err)
 		}
 
 		marshaled, err = (protojson.MarshalOptions{UseProtoNames: true, EmitDefaultValues: true}).Marshal(resp.Msg)
+		if err != nil {
+			return nil, err
+		}
+		return mcp.NewToolResultText(string(marshaled)), nil
+	})
+}
+
+// ForwardToTransformServiceClient registers a gRPC client, to forward MCP calls to it.
+func ForwardToTransformServiceClient(s *mcpserver.MCPServer, client TransformServiceClient, opts ...runtime.Option) {
+	config := runtime.NewConfig()
+	for _, opt := range opts {
+		opt(config)
+	}
+	DeleteTransformTool := TransformService_DeleteTransformTool
+	// Add extra properties to schema if configured
+	if len(config.ExtraProperties) > 0 {
+		DeleteTransformTool = runtime.AddExtraPropertiesToTool(DeleteTransformTool, config.ExtraProperties)
+	}
+
+	s.AddTool(DeleteTransformTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		var req v1.DeleteTransformRequest
+
+		message := request.Params.Arguments
+
+		// Extract extra properties if configured
+		for _, prop := range config.ExtraProperties {
+			if propVal, ok := message[prop.Name]; ok {
+				ctx = context.WithValue(ctx, prop.ContextKey, propVal)
+			}
+		}
+
+		marshaled, err := json.Marshal(message)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := (protojson.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(marshaled, &req); err != nil {
+			return nil, err
+		}
+
+		resp, err := client.DeleteTransform(ctx, &req)
+		if err != nil {
+			return runtime.HandleError(err)
+		}
+
+		marshaled, err = (protojson.MarshalOptions{UseProtoNames: true, EmitDefaultValues: true}).Marshal(resp)
+		if err != nil {
+			return nil, err
+		}
+		return mcp.NewToolResultText(string(marshaled)), nil
+	})
+	GetTransformTool := TransformService_GetTransformTool
+	// Add extra properties to schema if configured
+	if len(config.ExtraProperties) > 0 {
+		GetTransformTool = runtime.AddExtraPropertiesToTool(GetTransformTool, config.ExtraProperties)
+	}
+
+	s.AddTool(GetTransformTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		var req v1.GetTransformRequest
+
+		message := request.Params.Arguments
+
+		// Extract extra properties if configured
+		for _, prop := range config.ExtraProperties {
+			if propVal, ok := message[prop.Name]; ok {
+				ctx = context.WithValue(ctx, prop.ContextKey, propVal)
+			}
+		}
+
+		marshaled, err := json.Marshal(message)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := (protojson.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(marshaled, &req); err != nil {
+			return nil, err
+		}
+
+		resp, err := client.GetTransform(ctx, &req)
+		if err != nil {
+			return runtime.HandleError(err)
+		}
+
+		marshaled, err = (protojson.MarshalOptions{UseProtoNames: true, EmitDefaultValues: true}).Marshal(resp)
+		if err != nil {
+			return nil, err
+		}
+		return mcp.NewToolResultText(string(marshaled)), nil
+	})
+	ListTransformsTool := TransformService_ListTransformsTool
+	// Add extra properties to schema if configured
+	if len(config.ExtraProperties) > 0 {
+		ListTransformsTool = runtime.AddExtraPropertiesToTool(ListTransformsTool, config.ExtraProperties)
+	}
+
+	s.AddTool(ListTransformsTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		var req v1.ListTransformsRequest
+
+		message := request.Params.Arguments
+
+		// Extract extra properties if configured
+		for _, prop := range config.ExtraProperties {
+			if propVal, ok := message[prop.Name]; ok {
+				ctx = context.WithValue(ctx, prop.ContextKey, propVal)
+			}
+		}
+
+		marshaled, err := json.Marshal(message)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := (protojson.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(marshaled, &req); err != nil {
+			return nil, err
+		}
+
+		resp, err := client.ListTransforms(ctx, &req)
+		if err != nil {
+			return runtime.HandleError(err)
+		}
+
+		marshaled, err = (protojson.MarshalOptions{UseProtoNames: true, EmitDefaultValues: true}).Marshal(resp)
 		if err != nil {
 			return nil, err
 		}
