@@ -4,19 +4,17 @@
 package dataplanev1mcp
 
 import (
-	v1 "buf.build/gen/go/redpandadata/dataplane/protocolbuffers/go/redpanda/api/dataplane/v1"
-	emptypb "google.golang.org/protobuf/types/known/emptypb"
-)
-
-import (
 	"context"
+	"encoding/json"
+
+	v1 "buf.build/gen/go/redpandadata/dataplane/protocolbuffers/go/redpanda/api/dataplane/v1"
+	"connectrpc.com/connect"
 	"github.com/mark3labs/mcp-go/mcp"
 	mcpserver "github.com/mark3labs/mcp-go/server"
-	"encoding/json"
-	"google.golang.org/protobuf/encoding/protojson"
-	"connectrpc.com/connect"
-	grpc "google.golang.org/grpc"
 	"github.com/redpanda-data/protoc-gen-go-mcp/pkg/runtime"
+	grpc "google.golang.org/grpc"
+	"google.golang.org/protobuf/encoding/protojson"
+	emptypb "google.golang.org/protobuf/types/known/emptypb"
 )
 
 var (

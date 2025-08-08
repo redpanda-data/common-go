@@ -16,9 +16,8 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"google.golang.org/protobuf/types/known/anypb"
-
 	code "google.golang.org/genproto/googleapis/rpc/code"
+	"google.golang.org/protobuf/types/known/anypb"
 )
 
 // ensure the imports are used
