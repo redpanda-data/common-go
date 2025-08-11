@@ -209,11 +209,11 @@ func ParseOperation(op string) (Operation, error) {
 		return OperationDelete, nil
 	case "describe":
 		return OperationDescribe, nil
-	case "describe_configs":
+	case "describeconfigs":
 		return OperationDescribeConfig, nil
 	case "alter":
 		return OperationAlter, nil
-	case "alter_configs":
+	case "alterconfigs":
 		return OperationAlterConfig, nil
 	default:
 		return "", fmt.Errorf("unable to parse, unknown operation: %s", op)
