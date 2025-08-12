@@ -12,7 +12,7 @@ plugins:
   - local:
       - go
       - run
-      - github.com/redpanda-data/protoc-gen-go-mcp/cmd/protoc-gen-go-mcp@04898b79f6c065eac02b151815fb9afa3169f1e6
+      - github.com/redpanda-data/protoc-gen-go-mcp/cmd/protoc-gen-go-mcp@7e5d5fef82414e43409409c442bcaaa6ed6442b1
     out: proto/gen/go
     opt: paths=source_relative
 inputs:
