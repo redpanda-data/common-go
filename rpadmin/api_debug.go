@@ -266,14 +266,17 @@ func WithMetricsSamples(v int32) DebugBundleOption {
 	}}
 }
 
-// WithLogsSince sets the logs-since parameter.
+// WithLogsSince sets the logs-since parameter. Accepts an ISO8601 formatted datetime string.
+// For example, "2023-10-20T15:04:05"
 func WithLogsSince(v string) DebugBundleOption {
 	return debugBundleOpt{func(param *debugBundleStartConfigParameters) {
 		param.LogsSince = v
 	}}
 }
 
-// WithLogsUntil sets the logs-until parameter.
+// WithLogsUntil sets the logs-until parameter. This will not be used when generating debug bundles on kuberneetes.
+// Accepts an ISO8601 formatted datetime string.
+// For example, "2023-10-20T15:04:05"
 func WithLogsUntil(v string) DebugBundleOption {
 	return debugBundleOpt{func(param *debugBundleStartConfigParameters) {
 		param.LogsUntil = v
