@@ -60,7 +60,7 @@ tasks:
       - rm -rf proto/gen
       - |
         {{ .PATH_PREFIX }} buf generate
-        {{ .PATH_PREFIX }} buf generate buf.build/redpandadata/dataplane --path redpanda/api/dataplane/v1 --template buf.gen.mcp.yaml
+        {{ .PATH_PREFIX }} buf generate buf.build/redpandadata/dataplane --path redpanda/api/dataplane/v1alpha3 --path redpanda/api/dataplane/v1 --template buf.gen.mcp.yaml
         {{ .PATH_PREFIX }} buf generate buf.build/redpandadata/cloud --path redpanda/api/controlplane/v1 --template buf.gen.mcp.yaml
       - task: :fmt
       
