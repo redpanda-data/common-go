@@ -484,17 +484,27 @@ func (a *AdminAPI) getURLFromBrokerID(brokerID int) (string, bool) {
 func (a *AdminAPI) sendOne(
 	ctx context.Context, method, path string, body, into any, retryable bool,
 ) error {
-	a.urlsMutex.RLock()
-	if len(a.urls) != 1 {
-		return fmt.Errorf("unable to issue a single-admin-endpoint request to %d admin endpoints", len(a.urls))
-	}
-	url := a.urls[0] + path
-	a.urlsMutex.RUnlock()
-	res, err := a.sendAndReceive(ctx, method, url, body, retryable)
+	res, err := a.SendOneStream(ctx, method, path, body, retryable)
 	if err != nil {
 		return err
 	}
-	return maybeUnmarshalRespInto(method, url, res, into)
+	return maybeUnmarshalRespInto(method, res.Request.URL.String(), res, into)
+}
+
+// SendOneStream sends a request to a single admin endpoint and returns the raw
+// HTTP response. This is useful for streaming responses, custom unmarshaling,
+// file downloads, or any scenario where you need direct access to the response
+// body.
+//
+// The caller is responsible for closing the response body.
+func (a *AdminAPI) SendOneStream(ctx context.Context, method, path string, body any, retryable bool) (*http.Response, error) {
+	a.urlsMutex.RLock()
+	if len(a.urls) != 1 {
+		return nil, fmt.Errorf("unable to issue a single-admin-endpoint request to %d admin endpoints", len(a.urls))
+	}
+	url := a.urls[0] + path
+	a.urlsMutex.RUnlock()
+	return a.sendAndReceive(ctx, method, url, body, retryable)
 }
 
 // sendAll sends a request to all URLs in the admin client. The first successful
