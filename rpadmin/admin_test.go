@@ -494,3 +494,74 @@ func TestNewHostClientIndex(t *testing.T) {
 	require.Equal(t, 1, len(cl.urls))
 	assert.Equal(t, "http://host1:9644", cl.urls[0])
 }
+
+func TestSendOneStream(t *testing.T) {
+	testData := "test response data"
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/test-endpoint", r.URL.Path)
+		assert.Equal(t, http.MethodGet, r.Method)
+		w.Header().Set("Content-Type", "text/plain")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(testData))
+	}))
+	defer server.Close()
+
+	client, err := NewAdminAPI([]string{server.URL}, new(NopAuth), nil)
+	require.NoError(t, err)
+
+	resp, err := client.SendOneStream(context.Background(), http.MethodGet, "/test-endpoint", nil, false)
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	defer resp.Body.Close()
+
+	// Verify we can read the response
+	data, err := io.ReadAll(resp.Body)
+	require.NoError(t, err)
+	assert.Equal(t, testData, string(data))
+
+	// Verify response metadata
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	assert.Equal(t, "text/plain", resp.Header.Get("Content-Type"))
+}
+
+func TestSendOneStreamWithMultipleEndpoints(t *testing.T) {
+	client, err := NewAdminAPI([]string{"http://host1:9644", "http://host2:9644"}, new(NopAuth), nil)
+	require.NoError(t, err)
+
+	resp, err := client.SendOneStream(context.Background(), http.MethodGet, "/test", nil, false)
+	assert.Error(t, err)
+	assert.Nil(t, resp)
+	assert.Contains(t, err.Error(), "unable to issue a single-admin-endpoint request to 2 admin endpoints")
+}
+
+func TestSendOneStreamWithRequestBody(t *testing.T) {
+	requestBody := map[string]string{"key": "value"}
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/test-post", r.URL.Path)
+		assert.Equal(t, http.MethodPost, r.Method)
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		assert.JSONEq(t, `{"key":"value"}`, string(body))
+
+		w.WriteHeader(http.StatusCreated)
+		w.Write([]byte("created"))
+	}))
+	defer server.Close()
+
+	client, err := NewAdminAPI([]string{server.URL}, new(NopAuth), nil)
+	require.NoError(t, err)
+
+	resp, err := client.SendOneStream(context.Background(), http.MethodPost, "/test-post", requestBody, false)
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	defer resp.Body.Close()
+
+	assert.Equal(t, http.StatusCreated, resp.StatusCode)
+
+	data, err := io.ReadAll(resp.Body)
+	require.NoError(t, err)
+	assert.Equal(t, "created", string(data))
+}
