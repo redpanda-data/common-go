@@ -16,7 +16,7 @@
 // versions:
 // 	protoc-gen-go v1.36.8
 // 	protoc        (unknown)
-// source: proto/redpanda/core/common/acl.proto
+// source: redpanda/core/common/acl.proto
 
 package common
 
@@ -98,11 +98,11 @@ func (x ACLResource) String() string {
 }
 
 func (ACLResource) Descriptor() protoreflect.EnumDescriptor {
-	return file_proto_redpanda_core_common_acl_proto_enumTypes[0].Descriptor()
+	return file_redpanda_core_common_acl_proto_enumTypes[0].Descriptor()
 }
 
 func (ACLResource) Type() protoreflect.EnumType {
-	return &file_proto_redpanda_core_common_acl_proto_enumTypes[0]
+	return &file_redpanda_core_common_acl_proto_enumTypes[0]
 }
 
 func (x ACLResource) Number() protoreflect.EnumNumber {
@@ -111,7 +111,7 @@ func (x ACLResource) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use ACLResource.Descriptor instead.
 func (ACLResource) EnumDescriptor() ([]byte, []int) {
-	return file_proto_redpanda_core_common_acl_proto_rawDescGZIP(), []int{0}
+	return file_redpanda_core_common_acl_proto_rawDescGZIP(), []int{0}
 }
 
 // / The ACL pattern type
@@ -159,11 +159,11 @@ func (x ACLPattern) String() string {
 }
 
 func (ACLPattern) Descriptor() protoreflect.EnumDescriptor {
-	return file_proto_redpanda_core_common_acl_proto_enumTypes[1].Descriptor()
+	return file_redpanda_core_common_acl_proto_enumTypes[1].Descriptor()
 }
 
 func (ACLPattern) Type() protoreflect.EnumType {
-	return &file_proto_redpanda_core_common_acl_proto_enumTypes[1]
+	return &file_redpanda_core_common_acl_proto_enumTypes[1]
 }
 
 func (x ACLPattern) Number() protoreflect.EnumNumber {
@@ -172,7 +172,7 @@ func (x ACLPattern) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use ACLPattern.Descriptor instead.
 func (ACLPattern) EnumDescriptor() ([]byte, []int) {
-	return file_proto_redpanda_core_common_acl_proto_rawDescGZIP(), []int{1}
+	return file_redpanda_core_common_acl_proto_rawDescGZIP(), []int{1}
 }
 
 // / The ACL operation to match
@@ -236,11 +236,11 @@ func (x ACLOperation) String() string {
 }
 
 func (ACLOperation) Descriptor() protoreflect.EnumDescriptor {
-	return file_proto_redpanda_core_common_acl_proto_enumTypes[2].Descriptor()
+	return file_redpanda_core_common_acl_proto_enumTypes[2].Descriptor()
 }
 
 func (ACLOperation) Type() protoreflect.EnumType {
-	return &file_proto_redpanda_core_common_acl_proto_enumTypes[2]
+	return &file_redpanda_core_common_acl_proto_enumTypes[2]
 }
 
 func (x ACLOperation) Number() protoreflect.EnumNumber {
@@ -249,7 +249,7 @@ func (x ACLOperation) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use ACLOperation.Descriptor instead.
 func (ACLOperation) EnumDescriptor() ([]byte, []int) {
-	return file_proto_redpanda_core_common_acl_proto_rawDescGZIP(), []int{2}
+	return file_redpanda_core_common_acl_proto_rawDescGZIP(), []int{2}
 }
 
 // / ACL permission types
@@ -289,11 +289,11 @@ func (x ACLPermissionType) String() string {
 }
 
 func (ACLPermissionType) Descriptor() protoreflect.EnumDescriptor {
-	return file_proto_redpanda_core_common_acl_proto_enumTypes[3].Descriptor()
+	return file_redpanda_core_common_acl_proto_enumTypes[3].Descriptor()
 }
 
 func (ACLPermissionType) Type() protoreflect.EnumType {
-	return &file_proto_redpanda_core_common_acl_proto_enumTypes[3]
+	return &file_redpanda_core_common_acl_proto_enumTypes[3]
 }
 
 func (x ACLPermissionType) Number() protoreflect.EnumNumber {
@@ -302,14 +302,14 @@ func (x ACLPermissionType) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use ACLPermissionType.Descriptor instead.
 func (ACLPermissionType) EnumDescriptor() ([]byte, []int) {
-	return file_proto_redpanda_core_common_acl_proto_rawDescGZIP(), []int{3}
+	return file_redpanda_core_common_acl_proto_rawDescGZIP(), []int{3}
 }
 
-var File_proto_redpanda_core_common_acl_proto protoreflect.FileDescriptor
+var File_redpanda_core_common_acl_proto protoreflect.FileDescriptor
 
-const file_proto_redpanda_core_common_acl_proto_rawDesc = "" +
+const file_redpanda_core_common_acl_proto_rawDesc = "" +
 	"\n" +
-	"$proto/redpanda/core/common/acl.proto\x12\x14redpanda.core.common\x1a\"proto/redpanda/pbgen/options.proto*\xf8\x01\n" +
+	"\x1eredpanda/core/common/acl.proto\x12\x14redpanda.core.common\x1a\x1credpanda/pbgen/options.proto*\xf8\x01\n" +
 	"\vACLResource\x12\x1c\n" +
 	"\x18ACL_RESOURCE_UNSPECIFIED\x10\x00\x12\x14\n" +
 	"\x10ACL_RESOURCE_ANY\x10\x01\x12\x18\n" +
@@ -349,25 +349,25 @@ const file_proto_redpanda_core_common_acl_proto_rawDesc = "" +
 	"\x18com.redpanda.core.commonB\bAclProtoP\x01ZDgithub.com/redpanda-data/common-go/proto/gen/go/redpanda/core/common\xa2\x02\x03RCC\xaa\x02\x14Redpanda.Core.Common\xca\x02\x14Redpanda\\Core\\Common\xe2\x02 Redpanda\\Core\\Common\\GPBMetadata\xea\x02\x16Redpanda::Core::Commonb\x06proto3"
 
 var (
-	file_proto_redpanda_core_common_acl_proto_rawDescOnce sync.Once
-	file_proto_redpanda_core_common_acl_proto_rawDescData []byte
+	file_redpanda_core_common_acl_proto_rawDescOnce sync.Once
+	file_redpanda_core_common_acl_proto_rawDescData []byte
 )
 
-func file_proto_redpanda_core_common_acl_proto_rawDescGZIP() []byte {
-	file_proto_redpanda_core_common_acl_proto_rawDescOnce.Do(func() {
-		file_proto_redpanda_core_common_acl_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_proto_redpanda_core_common_acl_proto_rawDesc), len(file_proto_redpanda_core_common_acl_proto_rawDesc)))
+func file_redpanda_core_common_acl_proto_rawDescGZIP() []byte {
+	file_redpanda_core_common_acl_proto_rawDescOnce.Do(func() {
+		file_redpanda_core_common_acl_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_redpanda_core_common_acl_proto_rawDesc), len(file_redpanda_core_common_acl_proto_rawDesc)))
 	})
-	return file_proto_redpanda_core_common_acl_proto_rawDescData
+	return file_redpanda_core_common_acl_proto_rawDescData
 }
 
-var file_proto_redpanda_core_common_acl_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
-var file_proto_redpanda_core_common_acl_proto_goTypes = []any{
+var file_redpanda_core_common_acl_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
+var file_redpanda_core_common_acl_proto_goTypes = []any{
 	(ACLResource)(0),       // 0: redpanda.core.common.ACLResource
 	(ACLPattern)(0),        // 1: redpanda.core.common.ACLPattern
 	(ACLOperation)(0),      // 2: redpanda.core.common.ACLOperation
 	(ACLPermissionType)(0), // 3: redpanda.core.common.ACLPermissionType
 }
-var file_proto_redpanda_core_common_acl_proto_depIdxs = []int32{
+var file_redpanda_core_common_acl_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type
 	0, // [0:0] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
@@ -375,26 +375,26 @@ var file_proto_redpanda_core_common_acl_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for field type_name
 }
 
-func init() { file_proto_redpanda_core_common_acl_proto_init() }
-func file_proto_redpanda_core_common_acl_proto_init() {
-	if File_proto_redpanda_core_common_acl_proto != nil {
+func init() { file_redpanda_core_common_acl_proto_init() }
+func file_redpanda_core_common_acl_proto_init() {
+	if File_redpanda_core_common_acl_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_redpanda_core_common_acl_proto_rawDesc), len(file_proto_redpanda_core_common_acl_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_redpanda_core_common_acl_proto_rawDesc), len(file_redpanda_core_common_acl_proto_rawDesc)),
 			NumEnums:      4,
 			NumMessages:   0,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
-		GoTypes:           file_proto_redpanda_core_common_acl_proto_goTypes,
-		DependencyIndexes: file_proto_redpanda_core_common_acl_proto_depIdxs,
-		EnumInfos:         file_proto_redpanda_core_common_acl_proto_enumTypes,
+		GoTypes:           file_redpanda_core_common_acl_proto_goTypes,
+		DependencyIndexes: file_redpanda_core_common_acl_proto_depIdxs,
+		EnumInfos:         file_redpanda_core_common_acl_proto_enumTypes,
 	}.Build()
-	File_proto_redpanda_core_common_acl_proto = out.File
-	file_proto_redpanda_core_common_acl_proto_goTypes = nil
-	file_proto_redpanda_core_common_acl_proto_depIdxs = nil
+	File_redpanda_core_common_acl_proto = out.File
+	file_redpanda_core_common_acl_proto_goTypes = nil
+	file_redpanda_core_common_acl_proto_depIdxs = nil
 }

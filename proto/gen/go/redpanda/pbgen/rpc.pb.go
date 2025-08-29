@@ -16,7 +16,7 @@
 // versions:
 // 	protoc-gen-go v1.36.8
 // 	protoc        (unknown)
-// source: proto/redpanda/pbgen/rpc.proto
+// source: redpanda/pbgen/rpc.proto
 
 package pbgen
 
@@ -74,11 +74,11 @@ func (x RPCAuthZLevel) String() string {
 }
 
 func (RPCAuthZLevel) Descriptor() protoreflect.EnumDescriptor {
-	return file_proto_redpanda_pbgen_rpc_proto_enumTypes[0].Descriptor()
+	return file_redpanda_pbgen_rpc_proto_enumTypes[0].Descriptor()
 }
 
 func (RPCAuthZLevel) Type() protoreflect.EnumType {
-	return &file_proto_redpanda_pbgen_rpc_proto_enumTypes[0]
+	return &file_redpanda_pbgen_rpc_proto_enumTypes[0]
 }
 
 func (x RPCAuthZLevel) Number() protoreflect.EnumNumber {
@@ -87,7 +87,7 @@ func (x RPCAuthZLevel) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use RPCAuthZLevel.Descriptor instead.
 func (RPCAuthZLevel) EnumDescriptor() ([]byte, []int) {
-	return file_proto_redpanda_pbgen_rpc_proto_rawDescGZIP(), []int{0}
+	return file_redpanda_pbgen_rpc_proto_rawDescGZIP(), []int{0}
 }
 
 type RPCOptions struct {
@@ -108,7 +108,7 @@ type RPCOptions struct {
 
 func (x *RPCOptions) Reset() {
 	*x = RPCOptions{}
-	mi := &file_proto_redpanda_pbgen_rpc_proto_msgTypes[0]
+	mi := &file_redpanda_pbgen_rpc_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -120,7 +120,7 @@ func (x *RPCOptions) String() string {
 func (*RPCOptions) ProtoMessage() {}
 
 func (x *RPCOptions) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_redpanda_pbgen_rpc_proto_msgTypes[0]
+	mi := &file_redpanda_pbgen_rpc_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -133,7 +133,7 @@ func (x *RPCOptions) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RPCOptions.ProtoReflect.Descriptor instead.
 func (*RPCOptions) Descriptor() ([]byte, []int) {
-	return file_proto_redpanda_pbgen_rpc_proto_rawDescGZIP(), []int{0}
+	return file_redpanda_pbgen_rpc_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *RPCOptions) GetAuthz() RPCAuthZLevel {
@@ -150,14 +150,14 @@ func (x *RPCOptions) GetHttpRoute() string {
 	return ""
 }
 
-var file_proto_redpanda_pbgen_rpc_proto_extTypes = []protoimpl.ExtensionInfo{
+var file_redpanda_pbgen_rpc_proto_extTypes = []protoimpl.ExtensionInfo{
 	{
 		ExtendedType:  (*descriptorpb.MethodOptions)(nil),
 		ExtensionType: (*RPCOptions)(nil),
 		Field:         51501,
 		Name:          "redpanda.pbgen.rpc",
 		Tag:           "bytes,51501,opt,name=rpc",
-		Filename:      "proto/redpanda/pbgen/rpc.proto",
+		Filename:      "redpanda/pbgen/rpc.proto",
 	},
 }
 
@@ -181,14 +181,14 @@ var (
 	// ```
 	//
 	// optional redpanda.pbgen.RPCOptions rpc = 51501;
-	E_Rpc = &file_proto_redpanda_pbgen_rpc_proto_extTypes[0]
+	E_Rpc = &file_redpanda_pbgen_rpc_proto_extTypes[0]
 )
 
-var File_proto_redpanda_pbgen_rpc_proto protoreflect.FileDescriptor
+var File_redpanda_pbgen_rpc_proto protoreflect.FileDescriptor
 
-const file_proto_redpanda_pbgen_rpc_proto_rawDesc = "" +
+const file_redpanda_pbgen_rpc_proto_rawDesc = "" +
 	"\n" +
-	"\x1eproto/redpanda/pbgen/rpc.proto\x12\x0eredpanda.pbgen\x1a google/protobuf/descriptor.proto\"`\n" +
+	"\x18redpanda/pbgen/rpc.proto\x12\x0eredpanda.pbgen\x1a google/protobuf/descriptor.proto\"`\n" +
 	"\n" +
 	"RPCOptions\x123\n" +
 	"\x05authz\x18\x02 \x01(\x0e2\x1d.redpanda.pbgen.RPCAuthZLevelR\x05authz\x12\x1d\n" +
@@ -204,25 +204,25 @@ const file_proto_redpanda_pbgen_rpc_proto_rawDesc = "" +
 	"\x12com.redpanda.pbgenB\bRpcProtoP\x01Z>github.com/redpanda-data/common-go/proto/gen/go/redpanda/pbgen\xa2\x02\x03RPX\xaa\x02\x0eRedpanda.Pbgen\xca\x02\x0eRedpanda\\Pbgen\xe2\x02\x1aRedpanda\\Pbgen\\GPBMetadata\xea\x02\x0fRedpanda::Pbgenb\x06proto3"
 
 var (
-	file_proto_redpanda_pbgen_rpc_proto_rawDescOnce sync.Once
-	file_proto_redpanda_pbgen_rpc_proto_rawDescData []byte
+	file_redpanda_pbgen_rpc_proto_rawDescOnce sync.Once
+	file_redpanda_pbgen_rpc_proto_rawDescData []byte
 )
 
-func file_proto_redpanda_pbgen_rpc_proto_rawDescGZIP() []byte {
-	file_proto_redpanda_pbgen_rpc_proto_rawDescOnce.Do(func() {
-		file_proto_redpanda_pbgen_rpc_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_proto_redpanda_pbgen_rpc_proto_rawDesc), len(file_proto_redpanda_pbgen_rpc_proto_rawDesc)))
+func file_redpanda_pbgen_rpc_proto_rawDescGZIP() []byte {
+	file_redpanda_pbgen_rpc_proto_rawDescOnce.Do(func() {
+		file_redpanda_pbgen_rpc_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_redpanda_pbgen_rpc_proto_rawDesc), len(file_redpanda_pbgen_rpc_proto_rawDesc)))
 	})
-	return file_proto_redpanda_pbgen_rpc_proto_rawDescData
+	return file_redpanda_pbgen_rpc_proto_rawDescData
 }
 
-var file_proto_redpanda_pbgen_rpc_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_proto_redpanda_pbgen_rpc_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
-var file_proto_redpanda_pbgen_rpc_proto_goTypes = []any{
+var file_redpanda_pbgen_rpc_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_redpanda_pbgen_rpc_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
+var file_redpanda_pbgen_rpc_proto_goTypes = []any{
 	(RPCAuthZLevel)(0),                 // 0: redpanda.pbgen.RPCAuthZLevel
 	(*RPCOptions)(nil),                 // 1: redpanda.pbgen.RPCOptions
 	(*descriptorpb.MethodOptions)(nil), // 2: google.protobuf.MethodOptions
 }
-var file_proto_redpanda_pbgen_rpc_proto_depIdxs = []int32{
+var file_redpanda_pbgen_rpc_proto_depIdxs = []int32{
 	0, // 0: redpanda.pbgen.RPCOptions.authz:type_name -> redpanda.pbgen.RPCAuthZLevel
 	2, // 1: redpanda.pbgen.rpc:extendee -> google.protobuf.MethodOptions
 	1, // 2: redpanda.pbgen.rpc:type_name -> redpanda.pbgen.RPCOptions
@@ -233,28 +233,28 @@ var file_proto_redpanda_pbgen_rpc_proto_depIdxs = []int32{
 	0, // [0:1] is the sub-list for field type_name
 }
 
-func init() { file_proto_redpanda_pbgen_rpc_proto_init() }
-func file_proto_redpanda_pbgen_rpc_proto_init() {
-	if File_proto_redpanda_pbgen_rpc_proto != nil {
+func init() { file_redpanda_pbgen_rpc_proto_init() }
+func file_redpanda_pbgen_rpc_proto_init() {
+	if File_redpanda_pbgen_rpc_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_redpanda_pbgen_rpc_proto_rawDesc), len(file_proto_redpanda_pbgen_rpc_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_redpanda_pbgen_rpc_proto_rawDesc), len(file_redpanda_pbgen_rpc_proto_rawDesc)),
 			NumEnums:      1,
 			NumMessages:   1,
 			NumExtensions: 1,
 			NumServices:   0,
 		},
-		GoTypes:           file_proto_redpanda_pbgen_rpc_proto_goTypes,
-		DependencyIndexes: file_proto_redpanda_pbgen_rpc_proto_depIdxs,
-		EnumInfos:         file_proto_redpanda_pbgen_rpc_proto_enumTypes,
-		MessageInfos:      file_proto_redpanda_pbgen_rpc_proto_msgTypes,
-		ExtensionInfos:    file_proto_redpanda_pbgen_rpc_proto_extTypes,
+		GoTypes:           file_redpanda_pbgen_rpc_proto_goTypes,
+		DependencyIndexes: file_redpanda_pbgen_rpc_proto_depIdxs,
+		EnumInfos:         file_redpanda_pbgen_rpc_proto_enumTypes,
+		MessageInfos:      file_redpanda_pbgen_rpc_proto_msgTypes,
+		ExtensionInfos:    file_redpanda_pbgen_rpc_proto_extTypes,
 	}.Build()
-	File_proto_redpanda_pbgen_rpc_proto = out.File
-	file_proto_redpanda_pbgen_rpc_proto_goTypes = nil
-	file_proto_redpanda_pbgen_rpc_proto_depIdxs = nil
+	File_redpanda_pbgen_rpc_proto = out.File
+	file_redpanda_pbgen_rpc_proto_goTypes = nil
+	file_redpanda_pbgen_rpc_proto_depIdxs = nil
 }

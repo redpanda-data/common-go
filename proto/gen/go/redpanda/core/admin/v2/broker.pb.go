@@ -16,9 +16,9 @@
 // versions:
 // 	protoc-gen-go v1.36.8
 // 	protoc        (unknown)
-// source: proto/redpanda/core/admin/v2/broker.proto
+// source: redpanda/core/admin/v2/broker.proto
 
-package v2
+package adminv2
 
 import (
 	reflect "reflect"
@@ -50,7 +50,7 @@ type GetBrokerRequest struct {
 
 func (x *GetBrokerRequest) Reset() {
 	*x = GetBrokerRequest{}
-	mi := &file_proto_redpanda_core_admin_v2_broker_proto_msgTypes[0]
+	mi := &file_redpanda_core_admin_v2_broker_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -62,7 +62,7 @@ func (x *GetBrokerRequest) String() string {
 func (*GetBrokerRequest) ProtoMessage() {}
 
 func (x *GetBrokerRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_redpanda_core_admin_v2_broker_proto_msgTypes[0]
+	mi := &file_redpanda_core_admin_v2_broker_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -75,7 +75,7 @@ func (x *GetBrokerRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetBrokerRequest.ProtoReflect.Descriptor instead.
 func (*GetBrokerRequest) Descriptor() ([]byte, []int) {
-	return file_proto_redpanda_core_admin_v2_broker_proto_rawDescGZIP(), []int{0}
+	return file_redpanda_core_admin_v2_broker_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *GetBrokerRequest) GetNodeId() int32 {
@@ -96,7 +96,7 @@ type GetBrokerResponse struct {
 
 func (x *GetBrokerResponse) Reset() {
 	*x = GetBrokerResponse{}
-	mi := &file_proto_redpanda_core_admin_v2_broker_proto_msgTypes[1]
+	mi := &file_redpanda_core_admin_v2_broker_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -108,7 +108,7 @@ func (x *GetBrokerResponse) String() string {
 func (*GetBrokerResponse) ProtoMessage() {}
 
 func (x *GetBrokerResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_redpanda_core_admin_v2_broker_proto_msgTypes[1]
+	mi := &file_redpanda_core_admin_v2_broker_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -121,7 +121,7 @@ func (x *GetBrokerResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetBrokerResponse.ProtoReflect.Descriptor instead.
 func (*GetBrokerResponse) Descriptor() ([]byte, []int) {
-	return file_proto_redpanda_core_admin_v2_broker_proto_rawDescGZIP(), []int{1}
+	return file_redpanda_core_admin_v2_broker_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *GetBrokerResponse) GetBroker() *Broker {
@@ -140,7 +140,7 @@ type ListBrokersRequest struct {
 
 func (x *ListBrokersRequest) Reset() {
 	*x = ListBrokersRequest{}
-	mi := &file_proto_redpanda_core_admin_v2_broker_proto_msgTypes[2]
+	mi := &file_redpanda_core_admin_v2_broker_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -152,7 +152,7 @@ func (x *ListBrokersRequest) String() string {
 func (*ListBrokersRequest) ProtoMessage() {}
 
 func (x *ListBrokersRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_redpanda_core_admin_v2_broker_proto_msgTypes[2]
+	mi := &file_redpanda_core_admin_v2_broker_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -165,7 +165,7 @@ func (x *ListBrokersRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListBrokersRequest.ProtoReflect.Descriptor instead.
 func (*ListBrokersRequest) Descriptor() ([]byte, []int) {
-	return file_proto_redpanda_core_admin_v2_broker_proto_rawDescGZIP(), []int{2}
+	return file_redpanda_core_admin_v2_broker_proto_rawDescGZIP(), []int{2}
 }
 
 // ListBrokersResponse is the response from the ListBrokers RPC.
@@ -179,7 +179,7 @@ type ListBrokersResponse struct {
 
 func (x *ListBrokersResponse) Reset() {
 	*x = ListBrokersResponse{}
-	mi := &file_proto_redpanda_core_admin_v2_broker_proto_msgTypes[3]
+	mi := &file_redpanda_core_admin_v2_broker_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -191,7 +191,7 @@ func (x *ListBrokersResponse) String() string {
 func (*ListBrokersResponse) ProtoMessage() {}
 
 func (x *ListBrokersResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_redpanda_core_admin_v2_broker_proto_msgTypes[3]
+	mi := &file_redpanda_core_admin_v2_broker_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -204,7 +204,7 @@ func (x *ListBrokersResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListBrokersResponse.ProtoReflect.Descriptor instead.
 func (*ListBrokersResponse) Descriptor() ([]byte, []int) {
-	return file_proto_redpanda_core_admin_v2_broker_proto_rawDescGZIP(), []int{3}
+	return file_redpanda_core_admin_v2_broker_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *ListBrokersResponse) GetBrokers() []*Broker {
@@ -229,7 +229,7 @@ type Broker struct {
 
 func (x *Broker) Reset() {
 	*x = Broker{}
-	mi := &file_proto_redpanda_core_admin_v2_broker_proto_msgTypes[4]
+	mi := &file_redpanda_core_admin_v2_broker_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -241,7 +241,7 @@ func (x *Broker) String() string {
 func (*Broker) ProtoMessage() {}
 
 func (x *Broker) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_redpanda_core_admin_v2_broker_proto_msgTypes[4]
+	mi := &file_redpanda_core_admin_v2_broker_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -254,7 +254,7 @@ func (x *Broker) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Broker.ProtoReflect.Descriptor instead.
 func (*Broker) Descriptor() ([]byte, []int) {
-	return file_proto_redpanda_core_admin_v2_broker_proto_rawDescGZIP(), []int{4}
+	return file_redpanda_core_admin_v2_broker_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *Broker) GetNodeId() int32 {
@@ -291,7 +291,7 @@ type BuildInfo struct {
 
 func (x *BuildInfo) Reset() {
 	*x = BuildInfo{}
-	mi := &file_proto_redpanda_core_admin_v2_broker_proto_msgTypes[5]
+	mi := &file_redpanda_core_admin_v2_broker_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -303,7 +303,7 @@ func (x *BuildInfo) String() string {
 func (*BuildInfo) ProtoMessage() {}
 
 func (x *BuildInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_redpanda_core_admin_v2_broker_proto_msgTypes[5]
+	mi := &file_redpanda_core_admin_v2_broker_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -316,7 +316,7 @@ func (x *BuildInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BuildInfo.ProtoReflect.Descriptor instead.
 func (*BuildInfo) Descriptor() ([]byte, []int) {
-	return file_proto_redpanda_core_admin_v2_broker_proto_rawDescGZIP(), []int{5}
+	return file_redpanda_core_admin_v2_broker_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *BuildInfo) GetVersion() string {
@@ -344,7 +344,7 @@ type AdminServer struct {
 
 func (x *AdminServer) Reset() {
 	*x = AdminServer{}
-	mi := &file_proto_redpanda_core_admin_v2_broker_proto_msgTypes[6]
+	mi := &file_redpanda_core_admin_v2_broker_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -356,7 +356,7 @@ func (x *AdminServer) String() string {
 func (*AdminServer) ProtoMessage() {}
 
 func (x *AdminServer) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_redpanda_core_admin_v2_broker_proto_msgTypes[6]
+	mi := &file_redpanda_core_admin_v2_broker_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -369,7 +369,7 @@ func (x *AdminServer) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AdminServer.ProtoReflect.Descriptor instead.
 func (*AdminServer) Descriptor() ([]byte, []int) {
-	return file_proto_redpanda_core_admin_v2_broker_proto_rawDescGZIP(), []int{6}
+	return file_redpanda_core_admin_v2_broker_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *AdminServer) GetRoutes() []*RPCRoute {
@@ -396,7 +396,7 @@ type RPCRoute struct {
 
 func (x *RPCRoute) Reset() {
 	*x = RPCRoute{}
-	mi := &file_proto_redpanda_core_admin_v2_broker_proto_msgTypes[7]
+	mi := &file_redpanda_core_admin_v2_broker_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -408,7 +408,7 @@ func (x *RPCRoute) String() string {
 func (*RPCRoute) ProtoMessage() {}
 
 func (x *RPCRoute) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_redpanda_core_admin_v2_broker_proto_msgTypes[7]
+	mi := &file_redpanda_core_admin_v2_broker_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -421,7 +421,7 @@ func (x *RPCRoute) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RPCRoute.ProtoReflect.Descriptor instead.
 func (*RPCRoute) Descriptor() ([]byte, []int) {
-	return file_proto_redpanda_core_admin_v2_broker_proto_rawDescGZIP(), []int{7}
+	return file_redpanda_core_admin_v2_broker_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *RPCRoute) GetName() string {
@@ -438,11 +438,11 @@ func (x *RPCRoute) GetHttpRoute() string {
 	return ""
 }
 
-var File_proto_redpanda_core_admin_v2_broker_proto protoreflect.FileDescriptor
+var File_redpanda_core_admin_v2_broker_proto protoreflect.FileDescriptor
 
-const file_proto_redpanda_core_admin_v2_broker_proto_rawDesc = "" +
+const file_redpanda_core_admin_v2_broker_proto_rawDesc = "" +
 	"\n" +
-	")proto/redpanda/core/admin/v2/broker.proto\x12\x16redpanda.core.admin.v2\x1a\"proto/redpanda/pbgen/options.proto\x1a\x1eproto/redpanda/pbgen/rpc.proto\"+\n" +
+	"#redpanda/core/admin/v2/broker.proto\x12\x16redpanda.core.admin.v2\x1a\x1credpanda/pbgen/options.proto\x1a\x18redpanda/pbgen/rpc.proto\"+\n" +
 	"\x10GetBrokerRequest\x12\x17\n" +
 	"\anode_id\x18\x01 \x01(\x05R\x06nodeId\"K\n" +
 	"\x11GetBrokerResponse\x126\n" +
@@ -466,23 +466,23 @@ const file_proto_redpanda_core_admin_v2_broker_proto_rawDesc = "" +
 	"http_route\x18\x02 \x01(\tR\thttpRoute2\xe9\x01\n" +
 	"\rBrokerService\x12h\n" +
 	"\tGetBroker\x12(.redpanda.core.admin.v2.GetBrokerRequest\x1a).redpanda.core.admin.v2.GetBrokerResponse\"\x06\xea\x92\x19\x02\x10\x03\x12n\n" +
-	"\vListBrokers\x12*.redpanda.core.admin.v2.ListBrokersRequest\x1a+.redpanda.core.admin.v2.ListBrokersResponse\"\x06\xea\x92\x19\x02\x10\x03B\xfc\x01\xea\x92\x19\fproto::admin\n" +
-	"\x1acom.redpanda.core.admin.v2B\vBrokerProtoP\x01ZFgithub.com/redpanda-data/common-go/proto/gen/go/redpanda/core/admin/v2\xa2\x02\x03RCA\xaa\x02\x16Redpanda.Core.Admin.V2\xca\x02\x16Redpanda\\Core\\Admin\\V2\xe2\x02\"Redpanda\\Core\\Admin\\V2\\GPBMetadata\xea\x02\x19Redpanda::Core::Admin::V2b\x06proto3"
+	"\vListBrokers\x12*.redpanda.core.admin.v2.ListBrokersRequest\x1a+.redpanda.core.admin.v2.ListBrokersResponse\"\x06\xea\x92\x19\x02\x10\x03B\x84\x02\xea\x92\x19\fproto::admin\n" +
+	"\x1acom.redpanda.core.admin.v2B\vBrokerProtoP\x01ZNgithub.com/redpanda-data/common-go/proto/gen/go/redpanda/core/admin/v2;adminv2\xa2\x02\x03RCA\xaa\x02\x16Redpanda.Core.Admin.V2\xca\x02\x16Redpanda\\Core\\Admin\\V2\xe2\x02\"Redpanda\\Core\\Admin\\V2\\GPBMetadata\xea\x02\x19Redpanda::Core::Admin::V2b\x06proto3"
 
 var (
-	file_proto_redpanda_core_admin_v2_broker_proto_rawDescOnce sync.Once
-	file_proto_redpanda_core_admin_v2_broker_proto_rawDescData []byte
+	file_redpanda_core_admin_v2_broker_proto_rawDescOnce sync.Once
+	file_redpanda_core_admin_v2_broker_proto_rawDescData []byte
 )
 
-func file_proto_redpanda_core_admin_v2_broker_proto_rawDescGZIP() []byte {
-	file_proto_redpanda_core_admin_v2_broker_proto_rawDescOnce.Do(func() {
-		file_proto_redpanda_core_admin_v2_broker_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_proto_redpanda_core_admin_v2_broker_proto_rawDesc), len(file_proto_redpanda_core_admin_v2_broker_proto_rawDesc)))
+func file_redpanda_core_admin_v2_broker_proto_rawDescGZIP() []byte {
+	file_redpanda_core_admin_v2_broker_proto_rawDescOnce.Do(func() {
+		file_redpanda_core_admin_v2_broker_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_redpanda_core_admin_v2_broker_proto_rawDesc), len(file_redpanda_core_admin_v2_broker_proto_rawDesc)))
 	})
-	return file_proto_redpanda_core_admin_v2_broker_proto_rawDescData
+	return file_redpanda_core_admin_v2_broker_proto_rawDescData
 }
 
-var file_proto_redpanda_core_admin_v2_broker_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
-var file_proto_redpanda_core_admin_v2_broker_proto_goTypes = []any{
+var file_redpanda_core_admin_v2_broker_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
+var file_redpanda_core_admin_v2_broker_proto_goTypes = []any{
 	(*GetBrokerRequest)(nil),    // 0: redpanda.core.admin.v2.GetBrokerRequest
 	(*GetBrokerResponse)(nil),   // 1: redpanda.core.admin.v2.GetBrokerResponse
 	(*ListBrokersRequest)(nil),  // 2: redpanda.core.admin.v2.ListBrokersRequest
@@ -492,7 +492,7 @@ var file_proto_redpanda_core_admin_v2_broker_proto_goTypes = []any{
 	(*AdminServer)(nil),         // 6: redpanda.core.admin.v2.AdminServer
 	(*RPCRoute)(nil),            // 7: redpanda.core.admin.v2.RPCRoute
 }
-var file_proto_redpanda_core_admin_v2_broker_proto_depIdxs = []int32{
+var file_redpanda_core_admin_v2_broker_proto_depIdxs = []int32{
 	4, // 0: redpanda.core.admin.v2.GetBrokerResponse.broker:type_name -> redpanda.core.admin.v2.Broker
 	4, // 1: redpanda.core.admin.v2.ListBrokersResponse.brokers:type_name -> redpanda.core.admin.v2.Broker
 	5, // 2: redpanda.core.admin.v2.Broker.build_info:type_name -> redpanda.core.admin.v2.BuildInfo
@@ -509,26 +509,26 @@ var file_proto_redpanda_core_admin_v2_broker_proto_depIdxs = []int32{
 	0, // [0:5] is the sub-list for field type_name
 }
 
-func init() { file_proto_redpanda_core_admin_v2_broker_proto_init() }
-func file_proto_redpanda_core_admin_v2_broker_proto_init() {
-	if File_proto_redpanda_core_admin_v2_broker_proto != nil {
+func init() { file_redpanda_core_admin_v2_broker_proto_init() }
+func file_redpanda_core_admin_v2_broker_proto_init() {
+	if File_redpanda_core_admin_v2_broker_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_redpanda_core_admin_v2_broker_proto_rawDesc), len(file_proto_redpanda_core_admin_v2_broker_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_redpanda_core_admin_v2_broker_proto_rawDesc), len(file_redpanda_core_admin_v2_broker_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   8,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_proto_redpanda_core_admin_v2_broker_proto_goTypes,
-		DependencyIndexes: file_proto_redpanda_core_admin_v2_broker_proto_depIdxs,
-		MessageInfos:      file_proto_redpanda_core_admin_v2_broker_proto_msgTypes,
+		GoTypes:           file_redpanda_core_admin_v2_broker_proto_goTypes,
+		DependencyIndexes: file_redpanda_core_admin_v2_broker_proto_depIdxs,
+		MessageInfos:      file_redpanda_core_admin_v2_broker_proto_msgTypes,
 	}.Build()
-	File_proto_redpanda_core_admin_v2_broker_proto = out.File
-	file_proto_redpanda_core_admin_v2_broker_proto_goTypes = nil
-	file_proto_redpanda_core_admin_v2_broker_proto_depIdxs = nil
+	File_redpanda_core_admin_v2_broker_proto = out.File
+	file_redpanda_core_admin_v2_broker_proto_goTypes = nil
+	file_redpanda_core_admin_v2_broker_proto_depIdxs = nil
 }

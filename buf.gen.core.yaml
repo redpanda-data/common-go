@@ -5,15 +5,6 @@ managed:
     - file_option: go_package_prefix
       value: github.com/redpanda-data/common-go/proto/gen/go
       module: buf.build/redpandadata/core
-    - file_option: go_package
-      value: github.com/redpanda-data/common-go/proto/gen/go/redpanda/core/admin/v2
-      path: proto/redpanda/core/admin/v2
-    - file_option: go_package
-      value: github.com/redpanda-data/common-go/proto/gen/go/redpanda/core/common
-      path: proto/redpanda/core/common
-    - file_option: go_package
-      value: github.com/redpanda-data/common-go/proto/gen/go/redpanda/pbgen
-      path: proto/redpanda/pbgen
 plugins:
   - remote: buf.build/protocolbuffers/go
     out: proto/gen/go

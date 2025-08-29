@@ -16,9 +16,9 @@
 // versions:
 // 	protoc-gen-go v1.36.8
 // 	protoc        (unknown)
-// source: proto/redpanda/core/admin/v2/shadow_link.proto
+// source: redpanda/core/admin/v2/shadow_link.proto
 
-package v2
+package adminv2
 
 import (
 	reflect "reflect"
@@ -88,11 +88,11 @@ func (x ShadowLinkState) String() string {
 }
 
 func (ShadowLinkState) Descriptor() protoreflect.EnumDescriptor {
-	return file_proto_redpanda_core_admin_v2_shadow_link_proto_enumTypes[0].Descriptor()
+	return file_redpanda_core_admin_v2_shadow_link_proto_enumTypes[0].Descriptor()
 }
 
 func (ShadowLinkState) Type() protoreflect.EnumType {
-	return &file_proto_redpanda_core_admin_v2_shadow_link_proto_enumTypes[0]
+	return &file_redpanda_core_admin_v2_shadow_link_proto_enumTypes[0]
 }
 
 func (x ShadowLinkState) Number() protoreflect.EnumNumber {
@@ -101,7 +101,7 @@ func (x ShadowLinkState) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use ShadowLinkState.Descriptor instead.
 func (ShadowLinkState) EnumDescriptor() ([]byte, []int) {
-	return file_proto_redpanda_core_admin_v2_shadow_link_proto_rawDescGZIP(), []int{0}
+	return file_redpanda_core_admin_v2_shadow_link_proto_rawDescGZIP(), []int{0}
 }
 
 // Valid SCRAM mechanisms
@@ -140,11 +140,11 @@ func (x ScramMechanism) String() string {
 }
 
 func (ScramMechanism) Descriptor() protoreflect.EnumDescriptor {
-	return file_proto_redpanda_core_admin_v2_shadow_link_proto_enumTypes[1].Descriptor()
+	return file_redpanda_core_admin_v2_shadow_link_proto_enumTypes[1].Descriptor()
 }
 
 func (ScramMechanism) Type() protoreflect.EnumType {
-	return &file_proto_redpanda_core_admin_v2_shadow_link_proto_enumTypes[1]
+	return &file_redpanda_core_admin_v2_shadow_link_proto_enumTypes[1]
 }
 
 func (x ScramMechanism) Number() protoreflect.EnumNumber {
@@ -153,7 +153,7 @@ func (x ScramMechanism) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use ScramMechanism.Descriptor instead.
 func (ScramMechanism) EnumDescriptor() ([]byte, []int) {
-	return file_proto_redpanda_core_admin_v2_shadow_link_proto_rawDescGZIP(), []int{1}
+	return file_redpanda_core_admin_v2_shadow_link_proto_rawDescGZIP(), []int{1}
 }
 
 // The matching pattern type
@@ -192,11 +192,11 @@ func (x PatternType) String() string {
 }
 
 func (PatternType) Descriptor() protoreflect.EnumDescriptor {
-	return file_proto_redpanda_core_admin_v2_shadow_link_proto_enumTypes[2].Descriptor()
+	return file_redpanda_core_admin_v2_shadow_link_proto_enumTypes[2].Descriptor()
 }
 
 func (PatternType) Type() protoreflect.EnumType {
-	return &file_proto_redpanda_core_admin_v2_shadow_link_proto_enumTypes[2]
+	return &file_redpanda_core_admin_v2_shadow_link_proto_enumTypes[2]
 }
 
 func (x PatternType) Number() protoreflect.EnumNumber {
@@ -205,7 +205,7 @@ func (x PatternType) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use PatternType.Descriptor instead.
 func (PatternType) EnumDescriptor() ([]byte, []int) {
-	return file_proto_redpanda_core_admin_v2_shadow_link_proto_rawDescGZIP(), []int{2}
+	return file_redpanda_core_admin_v2_shadow_link_proto_rawDescGZIP(), []int{2}
 }
 
 // What type of filter this is, include or exclude
@@ -244,11 +244,11 @@ func (x FilterType) String() string {
 }
 
 func (FilterType) Descriptor() protoreflect.EnumDescriptor {
-	return file_proto_redpanda_core_admin_v2_shadow_link_proto_enumTypes[3].Descriptor()
+	return file_redpanda_core_admin_v2_shadow_link_proto_enumTypes[3].Descriptor()
 }
 
 func (FilterType) Type() protoreflect.EnumType {
-	return &file_proto_redpanda_core_admin_v2_shadow_link_proto_enumTypes[3]
+	return &file_redpanda_core_admin_v2_shadow_link_proto_enumTypes[3]
 }
 
 func (x FilterType) Number() protoreflect.EnumNumber {
@@ -257,7 +257,7 @@ func (x FilterType) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use FilterType.Descriptor instead.
 func (FilterType) EnumDescriptor() ([]byte, []int) {
-	return file_proto_redpanda_core_admin_v2_shadow_link_proto_rawDescGZIP(), []int{3}
+	return file_redpanda_core_admin_v2_shadow_link_proto_rawDescGZIP(), []int{3}
 }
 
 // Task states
@@ -308,11 +308,11 @@ func (x TaskState) String() string {
 }
 
 func (TaskState) Descriptor() protoreflect.EnumDescriptor {
-	return file_proto_redpanda_core_admin_v2_shadow_link_proto_enumTypes[4].Descriptor()
+	return file_redpanda_core_admin_v2_shadow_link_proto_enumTypes[4].Descriptor()
 }
 
 func (TaskState) Type() protoreflect.EnumType {
-	return &file_proto_redpanda_core_admin_v2_shadow_link_proto_enumTypes[4]
+	return &file_redpanda_core_admin_v2_shadow_link_proto_enumTypes[4]
 }
 
 func (x TaskState) Number() protoreflect.EnumNumber {
@@ -321,7 +321,7 @@ func (x TaskState) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use TaskState.Descriptor instead.
 func (TaskState) EnumDescriptor() ([]byte, []int) {
-	return file_proto_redpanda_core_admin_v2_shadow_link_proto_rawDescGZIP(), []int{4}
+	return file_redpanda_core_admin_v2_shadow_link_proto_rawDescGZIP(), []int{4}
 }
 
 // State of a shadow topic
@@ -368,11 +368,11 @@ func (x ShadowTopicState) String() string {
 }
 
 func (ShadowTopicState) Descriptor() protoreflect.EnumDescriptor {
-	return file_proto_redpanda_core_admin_v2_shadow_link_proto_enumTypes[5].Descriptor()
+	return file_redpanda_core_admin_v2_shadow_link_proto_enumTypes[5].Descriptor()
 }
 
 func (ShadowTopicState) Type() protoreflect.EnumType {
-	return &file_proto_redpanda_core_admin_v2_shadow_link_proto_enumTypes[5]
+	return &file_redpanda_core_admin_v2_shadow_link_proto_enumTypes[5]
 }
 
 func (x ShadowTopicState) Number() protoreflect.EnumNumber {
@@ -381,7 +381,7 @@ func (x ShadowTopicState) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use ShadowTopicState.Descriptor instead.
 func (ShadowTopicState) EnumDescriptor() ([]byte, []int) {
-	return file_proto_redpanda_core_admin_v2_shadow_link_proto_rawDescGZIP(), []int{5}
+	return file_redpanda_core_admin_v2_shadow_link_proto_rawDescGZIP(), []int{5}
 }
 
 // A ShadowLink resource
@@ -401,7 +401,7 @@ type ShadowLink struct {
 
 func (x *ShadowLink) Reset() {
 	*x = ShadowLink{}
-	mi := &file_proto_redpanda_core_admin_v2_shadow_link_proto_msgTypes[0]
+	mi := &file_redpanda_core_admin_v2_shadow_link_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -413,7 +413,7 @@ func (x *ShadowLink) String() string {
 func (*ShadowLink) ProtoMessage() {}
 
 func (x *ShadowLink) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_redpanda_core_admin_v2_shadow_link_proto_msgTypes[0]
+	mi := &file_redpanda_core_admin_v2_shadow_link_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -426,7 +426,7 @@ func (x *ShadowLink) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ShadowLink.ProtoReflect.Descriptor instead.
 func (*ShadowLink) Descriptor() ([]byte, []int) {
-	return file_proto_redpanda_core_admin_v2_shadow_link_proto_rawDescGZIP(), []int{0}
+	return file_redpanda_core_admin_v2_shadow_link_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *ShadowLink) GetName() string {
@@ -468,7 +468,7 @@ type CreateShadowLinkRequest struct {
 
 func (x *CreateShadowLinkRequest) Reset() {
 	*x = CreateShadowLinkRequest{}
-	mi := &file_proto_redpanda_core_admin_v2_shadow_link_proto_msgTypes[1]
+	mi := &file_redpanda_core_admin_v2_shadow_link_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -480,7 +480,7 @@ func (x *CreateShadowLinkRequest) String() string {
 func (*CreateShadowLinkRequest) ProtoMessage() {}
 
 func (x *CreateShadowLinkRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_redpanda_core_admin_v2_shadow_link_proto_msgTypes[1]
+	mi := &file_redpanda_core_admin_v2_shadow_link_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -493,7 +493,7 @@ func (x *CreateShadowLinkRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateShadowLinkRequest.ProtoReflect.Descriptor instead.
 func (*CreateShadowLinkRequest) Descriptor() ([]byte, []int) {
-	return file_proto_redpanda_core_admin_v2_shadow_link_proto_rawDescGZIP(), []int{1}
+	return file_redpanda_core_admin_v2_shadow_link_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *CreateShadowLinkRequest) GetShadowLink() *ShadowLink {
@@ -514,7 +514,7 @@ type CreateShadowLinkResponse struct {
 
 func (x *CreateShadowLinkResponse) Reset() {
 	*x = CreateShadowLinkResponse{}
-	mi := &file_proto_redpanda_core_admin_v2_shadow_link_proto_msgTypes[2]
+	mi := &file_redpanda_core_admin_v2_shadow_link_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -526,7 +526,7 @@ func (x *CreateShadowLinkResponse) String() string {
 func (*CreateShadowLinkResponse) ProtoMessage() {}
 
 func (x *CreateShadowLinkResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_redpanda_core_admin_v2_shadow_link_proto_msgTypes[2]
+	mi := &file_redpanda_core_admin_v2_shadow_link_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -539,7 +539,7 @@ func (x *CreateShadowLinkResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateShadowLinkResponse.ProtoReflect.Descriptor instead.
 func (*CreateShadowLinkResponse) Descriptor() ([]byte, []int) {
-	return file_proto_redpanda_core_admin_v2_shadow_link_proto_rawDescGZIP(), []int{2}
+	return file_redpanda_core_admin_v2_shadow_link_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *CreateShadowLinkResponse) GetShadowLink() *ShadowLink {
@@ -560,7 +560,7 @@ type DeleteShadowLinkRequest struct {
 
 func (x *DeleteShadowLinkRequest) Reset() {
 	*x = DeleteShadowLinkRequest{}
-	mi := &file_proto_redpanda_core_admin_v2_shadow_link_proto_msgTypes[3]
+	mi := &file_redpanda_core_admin_v2_shadow_link_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -572,7 +572,7 @@ func (x *DeleteShadowLinkRequest) String() string {
 func (*DeleteShadowLinkRequest) ProtoMessage() {}
 
 func (x *DeleteShadowLinkRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_redpanda_core_admin_v2_shadow_link_proto_msgTypes[3]
+	mi := &file_redpanda_core_admin_v2_shadow_link_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -585,7 +585,7 @@ func (x *DeleteShadowLinkRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteShadowLinkRequest.ProtoReflect.Descriptor instead.
 func (*DeleteShadowLinkRequest) Descriptor() ([]byte, []int) {
-	return file_proto_redpanda_core_admin_v2_shadow_link_proto_rawDescGZIP(), []int{3}
+	return file_redpanda_core_admin_v2_shadow_link_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *DeleteShadowLinkRequest) GetName() string {
@@ -604,7 +604,7 @@ type DeleteShadowLinkResponse struct {
 
 func (x *DeleteShadowLinkResponse) Reset() {
 	*x = DeleteShadowLinkResponse{}
-	mi := &file_proto_redpanda_core_admin_v2_shadow_link_proto_msgTypes[4]
+	mi := &file_redpanda_core_admin_v2_shadow_link_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -616,7 +616,7 @@ func (x *DeleteShadowLinkResponse) String() string {
 func (*DeleteShadowLinkResponse) ProtoMessage() {}
 
 func (x *DeleteShadowLinkResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_redpanda_core_admin_v2_shadow_link_proto_msgTypes[4]
+	mi := &file_redpanda_core_admin_v2_shadow_link_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -629,7 +629,7 @@ func (x *DeleteShadowLinkResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteShadowLinkResponse.ProtoReflect.Descriptor instead.
 func (*DeleteShadowLinkResponse) Descriptor() ([]byte, []int) {
-	return file_proto_redpanda_core_admin_v2_shadow_link_proto_rawDescGZIP(), []int{4}
+	return file_redpanda_core_admin_v2_shadow_link_proto_rawDescGZIP(), []int{4}
 }
 
 // Request to get the information about a shadow link
@@ -643,7 +643,7 @@ type GetShadowLinkRequest struct {
 
 func (x *GetShadowLinkRequest) Reset() {
 	*x = GetShadowLinkRequest{}
-	mi := &file_proto_redpanda_core_admin_v2_shadow_link_proto_msgTypes[5]
+	mi := &file_redpanda_core_admin_v2_shadow_link_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -655,7 +655,7 @@ func (x *GetShadowLinkRequest) String() string {
 func (*GetShadowLinkRequest) ProtoMessage() {}
 
 func (x *GetShadowLinkRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_redpanda_core_admin_v2_shadow_link_proto_msgTypes[5]
+	mi := &file_redpanda_core_admin_v2_shadow_link_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -668,7 +668,7 @@ func (x *GetShadowLinkRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetShadowLinkRequest.ProtoReflect.Descriptor instead.
 func (*GetShadowLinkRequest) Descriptor() ([]byte, []int) {
-	return file_proto_redpanda_core_admin_v2_shadow_link_proto_rawDescGZIP(), []int{5}
+	return file_redpanda_core_admin_v2_shadow_link_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *GetShadowLinkRequest) GetName() string {
@@ -689,7 +689,7 @@ type GetShadowLinkResponse struct {
 
 func (x *GetShadowLinkResponse) Reset() {
 	*x = GetShadowLinkResponse{}
-	mi := &file_proto_redpanda_core_admin_v2_shadow_link_proto_msgTypes[6]
+	mi := &file_redpanda_core_admin_v2_shadow_link_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -701,7 +701,7 @@ func (x *GetShadowLinkResponse) String() string {
 func (*GetShadowLinkResponse) ProtoMessage() {}
 
 func (x *GetShadowLinkResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_redpanda_core_admin_v2_shadow_link_proto_msgTypes[6]
+	mi := &file_redpanda_core_admin_v2_shadow_link_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -714,7 +714,7 @@ func (x *GetShadowLinkResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetShadowLinkResponse.ProtoReflect.Descriptor instead.
 func (*GetShadowLinkResponse) Descriptor() ([]byte, []int) {
-	return file_proto_redpanda_core_admin_v2_shadow_link_proto_rawDescGZIP(), []int{6}
+	return file_redpanda_core_admin_v2_shadow_link_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *GetShadowLinkResponse) GetShadowLink() *ShadowLink {
@@ -733,7 +733,7 @@ type ListShadowLinksRequest struct {
 
 func (x *ListShadowLinksRequest) Reset() {
 	*x = ListShadowLinksRequest{}
-	mi := &file_proto_redpanda_core_admin_v2_shadow_link_proto_msgTypes[7]
+	mi := &file_redpanda_core_admin_v2_shadow_link_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -745,7 +745,7 @@ func (x *ListShadowLinksRequest) String() string {
 func (*ListShadowLinksRequest) ProtoMessage() {}
 
 func (x *ListShadowLinksRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_redpanda_core_admin_v2_shadow_link_proto_msgTypes[7]
+	mi := &file_redpanda_core_admin_v2_shadow_link_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -758,7 +758,7 @@ func (x *ListShadowLinksRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListShadowLinksRequest.ProtoReflect.Descriptor instead.
 func (*ListShadowLinksRequest) Descriptor() ([]byte, []int) {
-	return file_proto_redpanda_core_admin_v2_shadow_link_proto_rawDescGZIP(), []int{7}
+	return file_redpanda_core_admin_v2_shadow_link_proto_rawDescGZIP(), []int{7}
 }
 
 // All shadow links on the cluster
@@ -772,7 +772,7 @@ type ListShadowLinksResponse struct {
 
 func (x *ListShadowLinksResponse) Reset() {
 	*x = ListShadowLinksResponse{}
-	mi := &file_proto_redpanda_core_admin_v2_shadow_link_proto_msgTypes[8]
+	mi := &file_redpanda_core_admin_v2_shadow_link_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -784,7 +784,7 @@ func (x *ListShadowLinksResponse) String() string {
 func (*ListShadowLinksResponse) ProtoMessage() {}
 
 func (x *ListShadowLinksResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_redpanda_core_admin_v2_shadow_link_proto_msgTypes[8]
+	mi := &file_redpanda_core_admin_v2_shadow_link_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -797,7 +797,7 @@ func (x *ListShadowLinksResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListShadowLinksResponse.ProtoReflect.Descriptor instead.
 func (*ListShadowLinksResponse) Descriptor() ([]byte, []int) {
-	return file_proto_redpanda_core_admin_v2_shadow_link_proto_rawDescGZIP(), []int{8}
+	return file_redpanda_core_admin_v2_shadow_link_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *ListShadowLinksResponse) GetShadowLinks() []*ShadowLink {
@@ -821,7 +821,7 @@ type UpdateShadowLinkRequest struct {
 
 func (x *UpdateShadowLinkRequest) Reset() {
 	*x = UpdateShadowLinkRequest{}
-	mi := &file_proto_redpanda_core_admin_v2_shadow_link_proto_msgTypes[9]
+	mi := &file_redpanda_core_admin_v2_shadow_link_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -833,7 +833,7 @@ func (x *UpdateShadowLinkRequest) String() string {
 func (*UpdateShadowLinkRequest) ProtoMessage() {}
 
 func (x *UpdateShadowLinkRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_redpanda_core_admin_v2_shadow_link_proto_msgTypes[9]
+	mi := &file_redpanda_core_admin_v2_shadow_link_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -846,7 +846,7 @@ func (x *UpdateShadowLinkRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateShadowLinkRequest.ProtoReflect.Descriptor instead.
 func (*UpdateShadowLinkRequest) Descriptor() ([]byte, []int) {
-	return file_proto_redpanda_core_admin_v2_shadow_link_proto_rawDescGZIP(), []int{9}
+	return file_redpanda_core_admin_v2_shadow_link_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *UpdateShadowLinkRequest) GetShadowLink() *ShadowLink {
@@ -874,7 +874,7 @@ type UpdateShadowLinkResponse struct {
 
 func (x *UpdateShadowLinkResponse) Reset() {
 	*x = UpdateShadowLinkResponse{}
-	mi := &file_proto_redpanda_core_admin_v2_shadow_link_proto_msgTypes[10]
+	mi := &file_redpanda_core_admin_v2_shadow_link_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -886,7 +886,7 @@ func (x *UpdateShadowLinkResponse) String() string {
 func (*UpdateShadowLinkResponse) ProtoMessage() {}
 
 func (x *UpdateShadowLinkResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_redpanda_core_admin_v2_shadow_link_proto_msgTypes[10]
+	mi := &file_redpanda_core_admin_v2_shadow_link_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -899,7 +899,7 @@ func (x *UpdateShadowLinkResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateShadowLinkResponse.ProtoReflect.Descriptor instead.
 func (*UpdateShadowLinkResponse) Descriptor() ([]byte, []int) {
-	return file_proto_redpanda_core_admin_v2_shadow_link_proto_rawDescGZIP(), []int{10}
+	return file_redpanda_core_admin_v2_shadow_link_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *UpdateShadowLinkResponse) GetShadowLink() *ShadowLink {
@@ -923,7 +923,7 @@ type FailOverRequest struct {
 
 func (x *FailOverRequest) Reset() {
 	*x = FailOverRequest{}
-	mi := &file_proto_redpanda_core_admin_v2_shadow_link_proto_msgTypes[11]
+	mi := &file_redpanda_core_admin_v2_shadow_link_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -935,7 +935,7 @@ func (x *FailOverRequest) String() string {
 func (*FailOverRequest) ProtoMessage() {}
 
 func (x *FailOverRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_redpanda_core_admin_v2_shadow_link_proto_msgTypes[11]
+	mi := &file_redpanda_core_admin_v2_shadow_link_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -948,7 +948,7 @@ func (x *FailOverRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FailOverRequest.ProtoReflect.Descriptor instead.
 func (*FailOverRequest) Descriptor() ([]byte, []int) {
-	return file_proto_redpanda_core_admin_v2_shadow_link_proto_rawDescGZIP(), []int{11}
+	return file_redpanda_core_admin_v2_shadow_link_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *FailOverRequest) GetName() string {
@@ -976,7 +976,7 @@ type FailOverResponse struct {
 
 func (x *FailOverResponse) Reset() {
 	*x = FailOverResponse{}
-	mi := &file_proto_redpanda_core_admin_v2_shadow_link_proto_msgTypes[12]
+	mi := &file_redpanda_core_admin_v2_shadow_link_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -988,7 +988,7 @@ func (x *FailOverResponse) String() string {
 func (*FailOverResponse) ProtoMessage() {}
 
 func (x *FailOverResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_redpanda_core_admin_v2_shadow_link_proto_msgTypes[12]
+	mi := &file_redpanda_core_admin_v2_shadow_link_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1001,7 +1001,7 @@ func (x *FailOverResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FailOverResponse.ProtoReflect.Descriptor instead.
 func (*FailOverResponse) Descriptor() ([]byte, []int) {
-	return file_proto_redpanda_core_admin_v2_shadow_link_proto_rawDescGZIP(), []int{12}
+	return file_redpanda_core_admin_v2_shadow_link_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *FailOverResponse) GetShadowLink() *ShadowLink {
@@ -1028,7 +1028,7 @@ type ShadowLinkConfigurations struct {
 
 func (x *ShadowLinkConfigurations) Reset() {
 	*x = ShadowLinkConfigurations{}
-	mi := &file_proto_redpanda_core_admin_v2_shadow_link_proto_msgTypes[13]
+	mi := &file_redpanda_core_admin_v2_shadow_link_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1040,7 +1040,7 @@ func (x *ShadowLinkConfigurations) String() string {
 func (*ShadowLinkConfigurations) ProtoMessage() {}
 
 func (x *ShadowLinkConfigurations) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_redpanda_core_admin_v2_shadow_link_proto_msgTypes[13]
+	mi := &file_redpanda_core_admin_v2_shadow_link_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1053,7 +1053,7 @@ func (x *ShadowLinkConfigurations) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ShadowLinkConfigurations.ProtoReflect.Descriptor instead.
 func (*ShadowLinkConfigurations) Descriptor() ([]byte, []int) {
-	return file_proto_redpanda_core_admin_v2_shadow_link_proto_rawDescGZIP(), []int{13}
+	return file_redpanda_core_admin_v2_shadow_link_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *ShadowLinkConfigurations) GetClientOptions() *ShadowLinkClientOptions {
@@ -1125,7 +1125,7 @@ type ShadowLinkClientOptions struct {
 
 func (x *ShadowLinkClientOptions) Reset() {
 	*x = ShadowLinkClientOptions{}
-	mi := &file_proto_redpanda_core_admin_v2_shadow_link_proto_msgTypes[14]
+	mi := &file_redpanda_core_admin_v2_shadow_link_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1137,7 +1137,7 @@ func (x *ShadowLinkClientOptions) String() string {
 func (*ShadowLinkClientOptions) ProtoMessage() {}
 
 func (x *ShadowLinkClientOptions) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_redpanda_core_admin_v2_shadow_link_proto_msgTypes[14]
+	mi := &file_redpanda_core_admin_v2_shadow_link_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1150,7 +1150,7 @@ func (x *ShadowLinkClientOptions) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ShadowLinkClientOptions.ProtoReflect.Descriptor instead.
 func (*ShadowLinkClientOptions) Descriptor() ([]byte, []int) {
-	return file_proto_redpanda_core_admin_v2_shadow_link_proto_rawDescGZIP(), []int{14}
+	return file_redpanda_core_admin_v2_shadow_link_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *ShadowLinkClientOptions) GetBootstrapServers() []string {
@@ -1248,7 +1248,7 @@ type TopicMetadataSyncOptions struct {
 
 func (x *TopicMetadataSyncOptions) Reset() {
 	*x = TopicMetadataSyncOptions{}
-	mi := &file_proto_redpanda_core_admin_v2_shadow_link_proto_msgTypes[15]
+	mi := &file_redpanda_core_admin_v2_shadow_link_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1260,7 +1260,7 @@ func (x *TopicMetadataSyncOptions) String() string {
 func (*TopicMetadataSyncOptions) ProtoMessage() {}
 
 func (x *TopicMetadataSyncOptions) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_redpanda_core_admin_v2_shadow_link_proto_msgTypes[15]
+	mi := &file_redpanda_core_admin_v2_shadow_link_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1273,7 +1273,7 @@ func (x *TopicMetadataSyncOptions) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TopicMetadataSyncOptions.ProtoReflect.Descriptor instead.
 func (*TopicMetadataSyncOptions) Descriptor() ([]byte, []int) {
-	return file_proto_redpanda_core_admin_v2_shadow_link_proto_rawDescGZIP(), []int{15}
+	return file_redpanda_core_admin_v2_shadow_link_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *TopicMetadataSyncOptions) GetInterval() *durationpb.Duration {
@@ -1313,7 +1313,7 @@ type ConsumerOffsetSyncOptions struct {
 
 func (x *ConsumerOffsetSyncOptions) Reset() {
 	*x = ConsumerOffsetSyncOptions{}
-	mi := &file_proto_redpanda_core_admin_v2_shadow_link_proto_msgTypes[16]
+	mi := &file_redpanda_core_admin_v2_shadow_link_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1325,7 +1325,7 @@ func (x *ConsumerOffsetSyncOptions) String() string {
 func (*ConsumerOffsetSyncOptions) ProtoMessage() {}
 
 func (x *ConsumerOffsetSyncOptions) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_redpanda_core_admin_v2_shadow_link_proto_msgTypes[16]
+	mi := &file_redpanda_core_admin_v2_shadow_link_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1338,7 +1338,7 @@ func (x *ConsumerOffsetSyncOptions) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConsumerOffsetSyncOptions.ProtoReflect.Descriptor instead.
 func (*ConsumerOffsetSyncOptions) Descriptor() ([]byte, []int) {
-	return file_proto_redpanda_core_admin_v2_shadow_link_proto_rawDescGZIP(), []int{16}
+	return file_redpanda_core_admin_v2_shadow_link_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *ConsumerOffsetSyncOptions) GetInterval() *durationpb.Duration {
@@ -1382,7 +1382,7 @@ type SecuritySettingsSyncOptions struct {
 
 func (x *SecuritySettingsSyncOptions) Reset() {
 	*x = SecuritySettingsSyncOptions{}
-	mi := &file_proto_redpanda_core_admin_v2_shadow_link_proto_msgTypes[17]
+	mi := &file_redpanda_core_admin_v2_shadow_link_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1394,7 +1394,7 @@ func (x *SecuritySettingsSyncOptions) String() string {
 func (*SecuritySettingsSyncOptions) ProtoMessage() {}
 
 func (x *SecuritySettingsSyncOptions) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_redpanda_core_admin_v2_shadow_link_proto_msgTypes[17]
+	mi := &file_redpanda_core_admin_v2_shadow_link_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1407,7 +1407,7 @@ func (x *SecuritySettingsSyncOptions) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SecuritySettingsSyncOptions.ProtoReflect.Descriptor instead.
 func (*SecuritySettingsSyncOptions) Descriptor() ([]byte, []int) {
-	return file_proto_redpanda_core_admin_v2_shadow_link_proto_rawDescGZIP(), []int{17}
+	return file_redpanda_core_admin_v2_shadow_link_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *SecuritySettingsSyncOptions) GetInterval() *durationpb.Duration {
@@ -1461,7 +1461,7 @@ type TLSSettings struct {
 
 func (x *TLSSettings) Reset() {
 	*x = TLSSettings{}
-	mi := &file_proto_redpanda_core_admin_v2_shadow_link_proto_msgTypes[18]
+	mi := &file_redpanda_core_admin_v2_shadow_link_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1473,7 +1473,7 @@ func (x *TLSSettings) String() string {
 func (*TLSSettings) ProtoMessage() {}
 
 func (x *TLSSettings) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_redpanda_core_admin_v2_shadow_link_proto_msgTypes[18]
+	mi := &file_redpanda_core_admin_v2_shadow_link_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1486,7 +1486,7 @@ func (x *TLSSettings) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TLSSettings.ProtoReflect.Descriptor instead.
 func (*TLSSettings) Descriptor() ([]byte, []int) {
-	return file_proto_redpanda_core_admin_v2_shadow_link_proto_rawDescGZIP(), []int{18}
+	return file_redpanda_core_admin_v2_shadow_link_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *TLSSettings) GetTlsSettings() isTLSSettings_TlsSettings {
@@ -1546,7 +1546,7 @@ type AuthenticationConfiguration struct {
 
 func (x *AuthenticationConfiguration) Reset() {
 	*x = AuthenticationConfiguration{}
-	mi := &file_proto_redpanda_core_admin_v2_shadow_link_proto_msgTypes[19]
+	mi := &file_redpanda_core_admin_v2_shadow_link_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1558,7 +1558,7 @@ func (x *AuthenticationConfiguration) String() string {
 func (*AuthenticationConfiguration) ProtoMessage() {}
 
 func (x *AuthenticationConfiguration) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_redpanda_core_admin_v2_shadow_link_proto_msgTypes[19]
+	mi := &file_redpanda_core_admin_v2_shadow_link_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1571,7 +1571,7 @@ func (x *AuthenticationConfiguration) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AuthenticationConfiguration.ProtoReflect.Descriptor instead.
 func (*AuthenticationConfiguration) Descriptor() ([]byte, []int) {
-	return file_proto_redpanda_core_admin_v2_shadow_link_proto_rawDescGZIP(), []int{19}
+	return file_redpanda_core_admin_v2_shadow_link_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *AuthenticationConfiguration) GetAuthentication() isAuthenticationConfiguration_Authentication {
@@ -1618,7 +1618,7 @@ type TLSFileSettings struct {
 
 func (x *TLSFileSettings) Reset() {
 	*x = TLSFileSettings{}
-	mi := &file_proto_redpanda_core_admin_v2_shadow_link_proto_msgTypes[20]
+	mi := &file_redpanda_core_admin_v2_shadow_link_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1630,7 +1630,7 @@ func (x *TLSFileSettings) String() string {
 func (*TLSFileSettings) ProtoMessage() {}
 
 func (x *TLSFileSettings) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_redpanda_core_admin_v2_shadow_link_proto_msgTypes[20]
+	mi := &file_redpanda_core_admin_v2_shadow_link_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1643,7 +1643,7 @@ func (x *TLSFileSettings) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TLSFileSettings.ProtoReflect.Descriptor instead.
 func (*TLSFileSettings) Descriptor() ([]byte, []int) {
-	return file_proto_redpanda_core_admin_v2_shadow_link_proto_rawDescGZIP(), []int{20}
+	return file_redpanda_core_admin_v2_shadow_link_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *TLSFileSettings) GetCaPath() string {
@@ -1685,7 +1685,7 @@ type TLSPEMSettings struct {
 
 func (x *TLSPEMSettings) Reset() {
 	*x = TLSPEMSettings{}
-	mi := &file_proto_redpanda_core_admin_v2_shadow_link_proto_msgTypes[21]
+	mi := &file_redpanda_core_admin_v2_shadow_link_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1697,7 +1697,7 @@ func (x *TLSPEMSettings) String() string {
 func (*TLSPEMSettings) ProtoMessage() {}
 
 func (x *TLSPEMSettings) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_redpanda_core_admin_v2_shadow_link_proto_msgTypes[21]
+	mi := &file_redpanda_core_admin_v2_shadow_link_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1710,7 +1710,7 @@ func (x *TLSPEMSettings) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TLSPEMSettings.ProtoReflect.Descriptor instead.
 func (*TLSPEMSettings) Descriptor() ([]byte, []int) {
-	return file_proto_redpanda_core_admin_v2_shadow_link_proto_rawDescGZIP(), []int{21}
+	return file_redpanda_core_admin_v2_shadow_link_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *TLSPEMSettings) GetCa() string {
@@ -1761,7 +1761,7 @@ type ScramConfig struct {
 
 func (x *ScramConfig) Reset() {
 	*x = ScramConfig{}
-	mi := &file_proto_redpanda_core_admin_v2_shadow_link_proto_msgTypes[22]
+	mi := &file_redpanda_core_admin_v2_shadow_link_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1773,7 +1773,7 @@ func (x *ScramConfig) String() string {
 func (*ScramConfig) ProtoMessage() {}
 
 func (x *ScramConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_redpanda_core_admin_v2_shadow_link_proto_msgTypes[22]
+	mi := &file_redpanda_core_admin_v2_shadow_link_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1786,7 +1786,7 @@ func (x *ScramConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ScramConfig.ProtoReflect.Descriptor instead.
 func (*ScramConfig) Descriptor() ([]byte, []int) {
-	return file_proto_redpanda_core_admin_v2_shadow_link_proto_rawDescGZIP(), []int{22}
+	return file_redpanda_core_admin_v2_shadow_link_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *ScramConfig) GetUsername() string {
@@ -1841,7 +1841,7 @@ type NameFilter struct {
 
 func (x *NameFilter) Reset() {
 	*x = NameFilter{}
-	mi := &file_proto_redpanda_core_admin_v2_shadow_link_proto_msgTypes[23]
+	mi := &file_redpanda_core_admin_v2_shadow_link_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1853,7 +1853,7 @@ func (x *NameFilter) String() string {
 func (*NameFilter) ProtoMessage() {}
 
 func (x *NameFilter) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_redpanda_core_admin_v2_shadow_link_proto_msgTypes[23]
+	mi := &file_redpanda_core_admin_v2_shadow_link_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1866,7 +1866,7 @@ func (x *NameFilter) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use NameFilter.ProtoReflect.Descriptor instead.
 func (*NameFilter) Descriptor() ([]byte, []int) {
-	return file_proto_redpanda_core_admin_v2_shadow_link_proto_rawDescGZIP(), []int{23}
+	return file_redpanda_core_admin_v2_shadow_link_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *NameFilter) GetPatternType() PatternType {
@@ -1903,7 +1903,7 @@ type ACLFilter struct {
 
 func (x *ACLFilter) Reset() {
 	*x = ACLFilter{}
-	mi := &file_proto_redpanda_core_admin_v2_shadow_link_proto_msgTypes[24]
+	mi := &file_redpanda_core_admin_v2_shadow_link_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1915,7 +1915,7 @@ func (x *ACLFilter) String() string {
 func (*ACLFilter) ProtoMessage() {}
 
 func (x *ACLFilter) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_redpanda_core_admin_v2_shadow_link_proto_msgTypes[24]
+	mi := &file_redpanda_core_admin_v2_shadow_link_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1928,7 +1928,7 @@ func (x *ACLFilter) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ACLFilter.ProtoReflect.Descriptor instead.
 func (*ACLFilter) Descriptor() ([]byte, []int) {
-	return file_proto_redpanda_core_admin_v2_shadow_link_proto_rawDescGZIP(), []int{24}
+	return file_redpanda_core_admin_v2_shadow_link_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *ACLFilter) GetResourceFilter() *ACLResourceFilter {
@@ -1962,7 +1962,7 @@ type ACLResourceFilter struct {
 
 func (x *ACLResourceFilter) Reset() {
 	*x = ACLResourceFilter{}
-	mi := &file_proto_redpanda_core_admin_v2_shadow_link_proto_msgTypes[25]
+	mi := &file_redpanda_core_admin_v2_shadow_link_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1974,7 +1974,7 @@ func (x *ACLResourceFilter) String() string {
 func (*ACLResourceFilter) ProtoMessage() {}
 
 func (x *ACLResourceFilter) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_redpanda_core_admin_v2_shadow_link_proto_msgTypes[25]
+	mi := &file_redpanda_core_admin_v2_shadow_link_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1987,7 +1987,7 @@ func (x *ACLResourceFilter) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ACLResourceFilter.ProtoReflect.Descriptor instead.
 func (*ACLResourceFilter) Descriptor() ([]byte, []int) {
-	return file_proto_redpanda_core_admin_v2_shadow_link_proto_rawDescGZIP(), []int{25}
+	return file_redpanda_core_admin_v2_shadow_link_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *ACLResourceFilter) GetResourceType() common.ACLResource {
@@ -2031,7 +2031,7 @@ type ACLAccessFilter struct {
 
 func (x *ACLAccessFilter) Reset() {
 	*x = ACLAccessFilter{}
-	mi := &file_proto_redpanda_core_admin_v2_shadow_link_proto_msgTypes[26]
+	mi := &file_redpanda_core_admin_v2_shadow_link_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2043,7 +2043,7 @@ func (x *ACLAccessFilter) String() string {
 func (*ACLAccessFilter) ProtoMessage() {}
 
 func (x *ACLAccessFilter) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_redpanda_core_admin_v2_shadow_link_proto_msgTypes[26]
+	mi := &file_redpanda_core_admin_v2_shadow_link_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2056,7 +2056,7 @@ func (x *ACLAccessFilter) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ACLAccessFilter.ProtoReflect.Descriptor instead.
 func (*ACLAccessFilter) Descriptor() ([]byte, []int) {
-	return file_proto_redpanda_core_admin_v2_shadow_link_proto_rawDescGZIP(), []int{26}
+	return file_redpanda_core_admin_v2_shadow_link_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *ACLAccessFilter) GetPrincipal() string {
@@ -2101,7 +2101,7 @@ type ShadowLinkStatus struct {
 
 func (x *ShadowLinkStatus) Reset() {
 	*x = ShadowLinkStatus{}
-	mi := &file_proto_redpanda_core_admin_v2_shadow_link_proto_msgTypes[27]
+	mi := &file_redpanda_core_admin_v2_shadow_link_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2113,7 +2113,7 @@ func (x *ShadowLinkStatus) String() string {
 func (*ShadowLinkStatus) ProtoMessage() {}
 
 func (x *ShadowLinkStatus) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_redpanda_core_admin_v2_shadow_link_proto_msgTypes[27]
+	mi := &file_redpanda_core_admin_v2_shadow_link_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2126,7 +2126,7 @@ func (x *ShadowLinkStatus) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ShadowLinkStatus.ProtoReflect.Descriptor instead.
 func (*ShadowLinkStatus) Descriptor() ([]byte, []int) {
-	return file_proto_redpanda_core_admin_v2_shadow_link_proto_rawDescGZIP(), []int{27}
+	return file_redpanda_core_admin_v2_shadow_link_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *ShadowLinkStatus) GetState() ShadowLinkState {
@@ -2167,7 +2167,7 @@ type ShadowLinkTaskStatus struct {
 
 func (x *ShadowLinkTaskStatus) Reset() {
 	*x = ShadowLinkTaskStatus{}
-	mi := &file_proto_redpanda_core_admin_v2_shadow_link_proto_msgTypes[28]
+	mi := &file_redpanda_core_admin_v2_shadow_link_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2179,7 +2179,7 @@ func (x *ShadowLinkTaskStatus) String() string {
 func (*ShadowLinkTaskStatus) ProtoMessage() {}
 
 func (x *ShadowLinkTaskStatus) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_redpanda_core_admin_v2_shadow_link_proto_msgTypes[28]
+	mi := &file_redpanda_core_admin_v2_shadow_link_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2192,7 +2192,7 @@ func (x *ShadowLinkTaskStatus) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ShadowLinkTaskStatus.ProtoReflect.Descriptor instead.
 func (*ShadowLinkTaskStatus) Descriptor() ([]byte, []int) {
-	return file_proto_redpanda_core_admin_v2_shadow_link_proto_rawDescGZIP(), []int{28}
+	return file_redpanda_core_admin_v2_shadow_link_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *ShadowLinkTaskStatus) GetName() string {
@@ -2240,7 +2240,7 @@ type ShadowTopicStatus struct {
 
 func (x *ShadowTopicStatus) Reset() {
 	*x = ShadowTopicStatus{}
-	mi := &file_proto_redpanda_core_admin_v2_shadow_link_proto_msgTypes[29]
+	mi := &file_redpanda_core_admin_v2_shadow_link_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2252,7 +2252,7 @@ func (x *ShadowTopicStatus) String() string {
 func (*ShadowTopicStatus) ProtoMessage() {}
 
 func (x *ShadowTopicStatus) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_redpanda_core_admin_v2_shadow_link_proto_msgTypes[29]
+	mi := &file_redpanda_core_admin_v2_shadow_link_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2265,7 +2265,7 @@ func (x *ShadowTopicStatus) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ShadowTopicStatus.ProtoReflect.Descriptor instead.
 func (*ShadowTopicStatus) Descriptor() ([]byte, []int) {
-	return file_proto_redpanda_core_admin_v2_shadow_link_proto_rawDescGZIP(), []int{29}
+	return file_redpanda_core_admin_v2_shadow_link_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *ShadowTopicStatus) GetName() string {
@@ -2313,7 +2313,7 @@ type TopicPartitionInformation struct {
 
 func (x *TopicPartitionInformation) Reset() {
 	*x = TopicPartitionInformation{}
-	mi := &file_proto_redpanda_core_admin_v2_shadow_link_proto_msgTypes[30]
+	mi := &file_redpanda_core_admin_v2_shadow_link_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2325,7 +2325,7 @@ func (x *TopicPartitionInformation) String() string {
 func (*TopicPartitionInformation) ProtoMessage() {}
 
 func (x *TopicPartitionInformation) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_redpanda_core_admin_v2_shadow_link_proto_msgTypes[30]
+	mi := &file_redpanda_core_admin_v2_shadow_link_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2338,7 +2338,7 @@ func (x *TopicPartitionInformation) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TopicPartitionInformation.ProtoReflect.Descriptor instead.
 func (*TopicPartitionInformation) Descriptor() ([]byte, []int) {
-	return file_proto_redpanda_core_admin_v2_shadow_link_proto_rawDescGZIP(), []int{30}
+	return file_redpanda_core_admin_v2_shadow_link_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *TopicPartitionInformation) GetPartitionId() int64 {
@@ -2369,11 +2369,11 @@ func (x *TopicPartitionInformation) GetHighWatermark() int64 {
 	return 0
 }
 
-var File_proto_redpanda_core_admin_v2_shadow_link_proto protoreflect.FileDescriptor
+var File_redpanda_core_admin_v2_shadow_link_proto protoreflect.FileDescriptor
 
-const file_proto_redpanda_core_admin_v2_shadow_link_proto_rawDesc = "" +
+const file_redpanda_core_admin_v2_shadow_link_proto_rawDesc = "" +
 	"\n" +
-	".proto/redpanda/core/admin/v2/shadow_link.proto\x12\x16redpanda.core.admin.v2\x1a\"proto/redpanda/pbgen/options.proto\x1a\x1eproto/redpanda/pbgen/rpc.proto\x1a$proto/redpanda/core/common/acl.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a\x1bgoogle/api/field_info.proto\x1a\x19google/api/resource.proto\x1a\x1egoogle/protobuf/duration.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a google/protobuf/field_mask.proto\"\xe5\x01\n" +
+	"(redpanda/core/admin/v2/shadow_link.proto\x12\x16redpanda.core.admin.v2\x1a\x1credpanda/pbgen/options.proto\x1a\x18redpanda/pbgen/rpc.proto\x1a\x1eredpanda/core/common/acl.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a\x1bgoogle/api/field_info.proto\x1a\x19google/api/resource.proto\x1a\x1egoogle/protobuf/duration.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a google/protobuf/field_mask.proto\"\xe5\x01\n" +
 	"\n" +
 	"ShadowLink\x12\x17\n" +
 	"\x04name\x18\x01 \x01(\tB\x03\xe0A\x02R\x04name\x12\x1d\n" +
@@ -2546,24 +2546,24 @@ const file_proto_redpanda_core_admin_v2_shadow_link_proto_rawDesc = "" +
 	"\rGetShadowLink\x12,.redpanda.core.admin.v2.GetShadowLinkRequest\x1a-.redpanda.core.admin.v2.GetShadowLinkResponse\"\x06\xea\x92\x19\x02\x10\x03\x12z\n" +
 	"\x0fListShadowLinks\x12..redpanda.core.admin.v2.ListShadowLinksRequest\x1a/.redpanda.core.admin.v2.ListShadowLinksResponse\"\x06\xea\x92\x19\x02\x10\x03\x12}\n" +
 	"\x10UpdateShadowLink\x12/.redpanda.core.admin.v2.UpdateShadowLinkRequest\x1a0.redpanda.core.admin.v2.UpdateShadowLinkResponse\"\x06\xea\x92\x19\x02\x10\x03\x12e\n" +
-	"\bFailOver\x12'.redpanda.core.admin.v2.FailOverRequest\x1a(.redpanda.core.admin.v2.FailOverResponse\"\x06\xea\x92\x19\x02\x10\x03B\x80\x02\xea\x92\x19\fproto::admin\n" +
-	"\x1acom.redpanda.core.admin.v2B\x0fShadowLinkProtoP\x01ZFgithub.com/redpanda-data/common-go/proto/gen/go/redpanda/core/admin/v2\xa2\x02\x03RCA\xaa\x02\x16Redpanda.Core.Admin.V2\xca\x02\x16Redpanda\\Core\\Admin\\V2\xe2\x02\"Redpanda\\Core\\Admin\\V2\\GPBMetadata\xea\x02\x19Redpanda::Core::Admin::V2b\x06proto3"
+	"\bFailOver\x12'.redpanda.core.admin.v2.FailOverRequest\x1a(.redpanda.core.admin.v2.FailOverResponse\"\x06\xea\x92\x19\x02\x10\x03B\x88\x02\xea\x92\x19\fproto::admin\n" +
+	"\x1acom.redpanda.core.admin.v2B\x0fShadowLinkProtoP\x01ZNgithub.com/redpanda-data/common-go/proto/gen/go/redpanda/core/admin/v2;adminv2\xa2\x02\x03RCA\xaa\x02\x16Redpanda.Core.Admin.V2\xca\x02\x16Redpanda\\Core\\Admin\\V2\xe2\x02\"Redpanda\\Core\\Admin\\V2\\GPBMetadata\xea\x02\x19Redpanda::Core::Admin::V2b\x06proto3"
 
 var (
-	file_proto_redpanda_core_admin_v2_shadow_link_proto_rawDescOnce sync.Once
-	file_proto_redpanda_core_admin_v2_shadow_link_proto_rawDescData []byte
+	file_redpanda_core_admin_v2_shadow_link_proto_rawDescOnce sync.Once
+	file_redpanda_core_admin_v2_shadow_link_proto_rawDescData []byte
 )
 
-func file_proto_redpanda_core_admin_v2_shadow_link_proto_rawDescGZIP() []byte {
-	file_proto_redpanda_core_admin_v2_shadow_link_proto_rawDescOnce.Do(func() {
-		file_proto_redpanda_core_admin_v2_shadow_link_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_proto_redpanda_core_admin_v2_shadow_link_proto_rawDesc), len(file_proto_redpanda_core_admin_v2_shadow_link_proto_rawDesc)))
+func file_redpanda_core_admin_v2_shadow_link_proto_rawDescGZIP() []byte {
+	file_redpanda_core_admin_v2_shadow_link_proto_rawDescOnce.Do(func() {
+		file_redpanda_core_admin_v2_shadow_link_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_redpanda_core_admin_v2_shadow_link_proto_rawDesc), len(file_redpanda_core_admin_v2_shadow_link_proto_rawDesc)))
 	})
-	return file_proto_redpanda_core_admin_v2_shadow_link_proto_rawDescData
+	return file_redpanda_core_admin_v2_shadow_link_proto_rawDescData
 }
 
-var file_proto_redpanda_core_admin_v2_shadow_link_proto_enumTypes = make([]protoimpl.EnumInfo, 6)
-var file_proto_redpanda_core_admin_v2_shadow_link_proto_msgTypes = make([]protoimpl.MessageInfo, 31)
-var file_proto_redpanda_core_admin_v2_shadow_link_proto_goTypes = []any{
+var file_redpanda_core_admin_v2_shadow_link_proto_enumTypes = make([]protoimpl.EnumInfo, 6)
+var file_redpanda_core_admin_v2_shadow_link_proto_msgTypes = make([]protoimpl.MessageInfo, 31)
+var file_redpanda_core_admin_v2_shadow_link_proto_goTypes = []any{
 	(ShadowLinkState)(0),                // 0: redpanda.core.admin.v2.ShadowLinkState
 	(ScramMechanism)(0),                 // 1: redpanda.core.admin.v2.ScramMechanism
 	(PatternType)(0),                    // 2: redpanda.core.admin.v2.PatternType
@@ -2609,7 +2609,7 @@ var file_proto_redpanda_core_admin_v2_shadow_link_proto_goTypes = []any{
 	(common.ACLOperation)(0),            // 42: redpanda.core.common.ACLOperation
 	(common.ACLPermissionType)(0),       // 43: redpanda.core.common.ACLPermissionType
 }
-var file_proto_redpanda_core_admin_v2_shadow_link_proto_depIdxs = []int32{
+var file_redpanda_core_admin_v2_shadow_link_proto_depIdxs = []int32{
 	19, // 0: redpanda.core.admin.v2.ShadowLink.configurations:type_name -> redpanda.core.admin.v2.ShadowLinkConfigurations
 	33, // 1: redpanda.core.admin.v2.ShadowLink.status:type_name -> redpanda.core.admin.v2.ShadowLinkStatus
 	6,  // 2: redpanda.core.admin.v2.CreateShadowLinkRequest.shadow_link:type_name -> redpanda.core.admin.v2.ShadowLink
@@ -2672,35 +2672,35 @@ var file_proto_redpanda_core_admin_v2_shadow_link_proto_depIdxs = []int32{
 	0,  // [0:43] is the sub-list for field type_name
 }
 
-func init() { file_proto_redpanda_core_admin_v2_shadow_link_proto_init() }
-func file_proto_redpanda_core_admin_v2_shadow_link_proto_init() {
-	if File_proto_redpanda_core_admin_v2_shadow_link_proto != nil {
+func init() { file_redpanda_core_admin_v2_shadow_link_proto_init() }
+func file_redpanda_core_admin_v2_shadow_link_proto_init() {
+	if File_redpanda_core_admin_v2_shadow_link_proto != nil {
 		return
 	}
-	file_proto_redpanda_core_admin_v2_shadow_link_proto_msgTypes[14].OneofWrappers = []any{}
-	file_proto_redpanda_core_admin_v2_shadow_link_proto_msgTypes[18].OneofWrappers = []any{
+	file_redpanda_core_admin_v2_shadow_link_proto_msgTypes[14].OneofWrappers = []any{}
+	file_redpanda_core_admin_v2_shadow_link_proto_msgTypes[18].OneofWrappers = []any{
 		(*TLSSettings_TlsFileSettings)(nil),
 		(*TLSSettings_TlsPemSettings)(nil),
 	}
-	file_proto_redpanda_core_admin_v2_shadow_link_proto_msgTypes[19].OneofWrappers = []any{
+	file_redpanda_core_admin_v2_shadow_link_proto_msgTypes[19].OneofWrappers = []any{
 		(*AuthenticationConfiguration_ScramConfiguration)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_redpanda_core_admin_v2_shadow_link_proto_rawDesc), len(file_proto_redpanda_core_admin_v2_shadow_link_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_redpanda_core_admin_v2_shadow_link_proto_rawDesc), len(file_redpanda_core_admin_v2_shadow_link_proto_rawDesc)),
 			NumEnums:      6,
 			NumMessages:   31,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_proto_redpanda_core_admin_v2_shadow_link_proto_goTypes,
-		DependencyIndexes: file_proto_redpanda_core_admin_v2_shadow_link_proto_depIdxs,
-		EnumInfos:         file_proto_redpanda_core_admin_v2_shadow_link_proto_enumTypes,
-		MessageInfos:      file_proto_redpanda_core_admin_v2_shadow_link_proto_msgTypes,
+		GoTypes:           file_redpanda_core_admin_v2_shadow_link_proto_goTypes,
+		DependencyIndexes: file_redpanda_core_admin_v2_shadow_link_proto_depIdxs,
+		EnumInfos:         file_redpanda_core_admin_v2_shadow_link_proto_enumTypes,
+		MessageInfos:      file_redpanda_core_admin_v2_shadow_link_proto_msgTypes,
 	}.Build()
-	File_proto_redpanda_core_admin_v2_shadow_link_proto = out.File
-	file_proto_redpanda_core_admin_v2_shadow_link_proto_goTypes = nil
-	file_proto_redpanda_core_admin_v2_shadow_link_proto_depIdxs = nil
+	File_redpanda_core_admin_v2_shadow_link_proto = out.File
+	file_redpanda_core_admin_v2_shadow_link_proto_goTypes = nil
+	file_redpanda_core_admin_v2_shadow_link_proto_depIdxs = nil
 }
