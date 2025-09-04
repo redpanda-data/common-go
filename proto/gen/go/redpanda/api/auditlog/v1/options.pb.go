@@ -2,9 +2,9 @@
 // versions:
 // 	protoc-gen-go v1.36.8
 // 	protoc        (unknown)
-// source: redpanda/api/common/v1/auditlog.proto
+// source: redpanda/api/auditlog/v1/options.proto
 
-package commonv1
+package auditlogv1
 
 import (
 	reflect "reflect"
@@ -60,11 +60,11 @@ func (x AuditPolicy) String() string {
 }
 
 func (AuditPolicy) Descriptor() protoreflect.EnumDescriptor {
-	return file_redpanda_api_common_v1_auditlog_proto_enumTypes[0].Descriptor()
+	return file_redpanda_api_auditlog_v1_options_proto_enumTypes[0].Descriptor()
 }
 
 func (AuditPolicy) Type() protoreflect.EnumType {
-	return &file_redpanda_api_common_v1_auditlog_proto_enumTypes[0]
+	return &file_redpanda_api_auditlog_v1_options_proto_enumTypes[0]
 }
 
 func (x AuditPolicy) Number() protoreflect.EnumNumber {
@@ -73,7 +73,7 @@ func (x AuditPolicy) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use AuditPolicy.Descriptor instead.
 func (AuditPolicy) EnumDescriptor() ([]byte, []int) {
-	return file_redpanda_api_common_v1_auditlog_proto_rawDescGZIP(), []int{0}
+	return file_redpanda_api_auditlog_v1_options_proto_rawDescGZIP(), []int{0}
 }
 
 // Service-level audit configuration message
@@ -86,7 +86,7 @@ type ServiceAuditConfig struct {
 
 func (x *ServiceAuditConfig) Reset() {
 	*x = ServiceAuditConfig{}
-	mi := &file_redpanda_api_common_v1_auditlog_proto_msgTypes[0]
+	mi := &file_redpanda_api_auditlog_v1_options_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -98,7 +98,7 @@ func (x *ServiceAuditConfig) String() string {
 func (*ServiceAuditConfig) ProtoMessage() {}
 
 func (x *ServiceAuditConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_redpanda_api_common_v1_auditlog_proto_msgTypes[0]
+	mi := &file_redpanda_api_auditlog_v1_options_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -111,7 +111,7 @@ func (x *ServiceAuditConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ServiceAuditConfig.ProtoReflect.Descriptor instead.
 func (*ServiceAuditConfig) Descriptor() ([]byte, []int) {
-	return file_redpanda_api_common_v1_auditlog_proto_rawDescGZIP(), []int{0}
+	return file_redpanda_api_auditlog_v1_options_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *ServiceAuditConfig) GetEnabled() bool {
@@ -131,7 +131,7 @@ type MethodAuditConfig struct {
 
 func (x *MethodAuditConfig) Reset() {
 	*x = MethodAuditConfig{}
-	mi := &file_redpanda_api_common_v1_auditlog_proto_msgTypes[1]
+	mi := &file_redpanda_api_auditlog_v1_options_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -143,7 +143,7 @@ func (x *MethodAuditConfig) String() string {
 func (*MethodAuditConfig) ProtoMessage() {}
 
 func (x *MethodAuditConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_redpanda_api_common_v1_auditlog_proto_msgTypes[1]
+	mi := &file_redpanda_api_auditlog_v1_options_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -156,7 +156,7 @@ func (x *MethodAuditConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MethodAuditConfig.ProtoReflect.Descriptor instead.
 func (*MethodAuditConfig) Descriptor() ([]byte, []int) {
-	return file_redpanda_api_common_v1_auditlog_proto_rawDescGZIP(), []int{1}
+	return file_redpanda_api_auditlog_v1_options_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *MethodAuditConfig) GetEnabled() bool {
@@ -166,66 +166,66 @@ func (x *MethodAuditConfig) GetEnabled() bool {
 	return false
 }
 
-var file_redpanda_api_common_v1_auditlog_proto_extTypes = []protoimpl.ExtensionInfo{
+var file_redpanda_api_auditlog_v1_options_proto_extTypes = []protoimpl.ExtensionInfo{
 	{
 		ExtendedType:  (*descriptorpb.FieldOptions)(nil),
 		ExtensionType: (*bool)(nil),
 		Field:         15451,
-		Name:          "redpanda.api.common.v1.sensitive",
+		Name:          "redpanda.api.auditlog.v1.sensitive",
 		Tag:           "varint,15451,opt,name=sensitive",
-		Filename:      "redpanda/api/common/v1/auditlog.proto",
+		Filename:      "redpanda/api/auditlog/v1/options.proto",
 	},
 	{
 		ExtendedType:  (*descriptorpb.ServiceOptions)(nil),
 		ExtensionType: (*ServiceAuditConfig)(nil),
 		Field:         15452,
-		Name:          "redpanda.api.common.v1.service",
+		Name:          "redpanda.api.auditlog.v1.service",
 		Tag:           "bytes,15452,opt,name=service",
-		Filename:      "redpanda/api/common/v1/auditlog.proto",
+		Filename:      "redpanda/api/auditlog/v1/options.proto",
 	},
 	{
 		ExtendedType:  (*descriptorpb.MethodOptions)(nil),
 		ExtensionType: (*MethodAuditConfig)(nil),
 		Field:         50004,
-		Name:          "redpanda.api.common.v1.method",
+		Name:          "redpanda.api.auditlog.v1.method",
 		Tag:           "bytes,50004,opt,name=method",
-		Filename:      "redpanda/api/common/v1/auditlog.proto",
+		Filename:      "redpanda/api/auditlog/v1/options.proto",
 	},
 	{
 		ExtendedType:  (*descriptorpb.FieldOptions)(nil),
 		ExtensionType: (*AuditPolicy)(nil),
 		Field:         50005,
-		Name:          "redpanda.api.common.v1.audit_policy",
-		Tag:           "varint,50005,opt,name=audit_policy,enum=redpanda.api.common.v1.AuditPolicy",
-		Filename:      "redpanda/api/common/v1/auditlog.proto",
+		Name:          "redpanda.api.auditlog.v1.audit_policy",
+		Tag:           "varint,50005,opt,name=audit_policy,enum=redpanda.api.auditlog.v1.AuditPolicy",
+		Filename:      "redpanda/api/auditlog/v1/options.proto",
 	},
 }
 
 // Extension fields to descriptorpb.FieldOptions.
 var (
 	// optional bool sensitive = 15451;
-	E_Sensitive = &file_redpanda_api_common_v1_auditlog_proto_extTypes[0]
-	// optional redpanda.api.common.v1.AuditPolicy audit_policy = 50005;
-	E_AuditPolicy = &file_redpanda_api_common_v1_auditlog_proto_extTypes[3]
+	E_Sensitive = &file_redpanda_api_auditlog_v1_options_proto_extTypes[0]
+	// optional redpanda.api.auditlog.v1.AuditPolicy audit_policy = 50005;
+	E_AuditPolicy = &file_redpanda_api_auditlog_v1_options_proto_extTypes[3]
 )
 
 // Extension fields to descriptorpb.ServiceOptions.
 var (
-	// optional redpanda.api.common.v1.ServiceAuditConfig service = 15452;
-	E_Service = &file_redpanda_api_common_v1_auditlog_proto_extTypes[1]
+	// optional redpanda.api.auditlog.v1.ServiceAuditConfig service = 15452;
+	E_Service = &file_redpanda_api_auditlog_v1_options_proto_extTypes[1]
 )
 
 // Extension fields to descriptorpb.MethodOptions.
 var (
-	// optional redpanda.api.common.v1.MethodAuditConfig method = 50004;
-	E_Method = &file_redpanda_api_common_v1_auditlog_proto_extTypes[2]
+	// optional redpanda.api.auditlog.v1.MethodAuditConfig method = 50004;
+	E_Method = &file_redpanda_api_auditlog_v1_options_proto_extTypes[2]
 )
 
-var File_redpanda_api_common_v1_auditlog_proto protoreflect.FileDescriptor
+var File_redpanda_api_auditlog_v1_options_proto protoreflect.FileDescriptor
 
-const file_redpanda_api_common_v1_auditlog_proto_rawDesc = "" +
+const file_redpanda_api_auditlog_v1_options_proto_rawDesc = "" +
 	"\n" +
-	"%redpanda/api/common/v1/auditlog.proto\x12\x16redpanda.api.common.v1\x1a google/protobuf/descriptor.proto\".\n" +
+	"&redpanda/api/auditlog/v1/options.proto\x12\x18redpanda.api.auditlog.v1\x1a google/protobuf/descriptor.proto\".\n" +
 	"\x12ServiceAuditConfig\x12\x18\n" +
 	"\aenabled\x18\x01 \x01(\bR\aenabled\">\n" +
 	"\x11MethodAuditConfig\x12\x1d\n" +
@@ -237,42 +237,42 @@ const file_redpanda_api_common_v1_auditlog_proto_rawDesc = "" +
 	"\x12AUDIT_POLICY_NEVER\x10\x01\x12\x19\n" +
 	"\x15AUDIT_POLICY_REDACTED\x10\x02\x12\x19\n" +
 	"\x15AUDIT_POLICY_STANDARD\x10\x03:<\n" +
-	"\tsensitive\x12\x1d.google.protobuf.FieldOptions\x18\xdbx \x01(\bR\tsensitive:f\n" +
-	"\aservice\x12\x1f.google.protobuf.ServiceOptions\x18\xdcx \x01(\v2*.redpanda.api.common.v1.ServiceAuditConfigR\aservice:f\n" +
-	"\x06method\x12\x1e.google.protobuf.MethodOptions\x18Ԇ\x03 \x01(\v2).redpanda.api.common.v1.MethodAuditConfigR\x06method\x88\x01\x01:g\n" +
-	"\faudit_policy\x12\x1d.google.protobuf.FieldOptions\x18Ն\x03 \x01(\x0e2#.redpanda.api.common.v1.AuditPolicyR\vauditPolicyB\xff\x01\n" +
-	"\x1acom.redpanda.api.common.v1B\rAuditlogProtoP\x01ZWbuf.build/gen/go/redpandadata/common/protocolbuffers/go/redpanda/api/common/v1;commonv1\xa2\x02\x03RAC\xaa\x02\x16Redpanda.Api.Common.V1\xca\x02\x16Redpanda\\Api\\Common\\V1\xe2\x02\"Redpanda\\Api\\Common\\V1\\GPBMetadata\xea\x02\x19Redpanda::Api::Common::V1b\x06proto3"
+	"\tsensitive\x12\x1d.google.protobuf.FieldOptions\x18\xdbx \x01(\bR\tsensitive:h\n" +
+	"\aservice\x12\x1f.google.protobuf.ServiceOptions\x18\xdcx \x01(\v2,.redpanda.api.auditlog.v1.ServiceAuditConfigR\aservice:h\n" +
+	"\x06method\x12\x1e.google.protobuf.MethodOptions\x18Ԇ\x03 \x01(\v2+.redpanda.api.auditlog.v1.MethodAuditConfigR\x06method\x88\x01\x01:i\n" +
+	"\faudit_policy\x12\x1d.google.protobuf.FieldOptions\x18Ն\x03 \x01(\x0e2%.redpanda.api.auditlog.v1.AuditPolicyR\vauditPolicyB\x8c\x02\n" +
+	"\x1ccom.redpanda.api.auditlog.v1B\fOptionsProtoP\x01Z[buf.build/gen/go/redpandadata/common/protocolbuffers/go/redpanda/api/auditlog/v1;auditlogv1\xa2\x02\x03RAA\xaa\x02\x18Redpanda.Api.Auditlog.V1\xca\x02\x18Redpanda\\Api\\Auditlog\\V1\xe2\x02$Redpanda\\Api\\Auditlog\\V1\\GPBMetadata\xea\x02\x1bRedpanda::Api::Auditlog::V1b\x06proto3"
 
 var (
-	file_redpanda_api_common_v1_auditlog_proto_rawDescOnce sync.Once
-	file_redpanda_api_common_v1_auditlog_proto_rawDescData []byte
+	file_redpanda_api_auditlog_v1_options_proto_rawDescOnce sync.Once
+	file_redpanda_api_auditlog_v1_options_proto_rawDescData []byte
 )
 
-func file_redpanda_api_common_v1_auditlog_proto_rawDescGZIP() []byte {
-	file_redpanda_api_common_v1_auditlog_proto_rawDescOnce.Do(func() {
-		file_redpanda_api_common_v1_auditlog_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_redpanda_api_common_v1_auditlog_proto_rawDesc), len(file_redpanda_api_common_v1_auditlog_proto_rawDesc)))
+func file_redpanda_api_auditlog_v1_options_proto_rawDescGZIP() []byte {
+	file_redpanda_api_auditlog_v1_options_proto_rawDescOnce.Do(func() {
+		file_redpanda_api_auditlog_v1_options_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_redpanda_api_auditlog_v1_options_proto_rawDesc), len(file_redpanda_api_auditlog_v1_options_proto_rawDesc)))
 	})
-	return file_redpanda_api_common_v1_auditlog_proto_rawDescData
+	return file_redpanda_api_auditlog_v1_options_proto_rawDescData
 }
 
-var file_redpanda_api_common_v1_auditlog_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_redpanda_api_common_v1_auditlog_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
-var file_redpanda_api_common_v1_auditlog_proto_goTypes = []any{
-	(AuditPolicy)(0),                    // 0: redpanda.api.common.v1.AuditPolicy
-	(*ServiceAuditConfig)(nil),          // 1: redpanda.api.common.v1.ServiceAuditConfig
-	(*MethodAuditConfig)(nil),           // 2: redpanda.api.common.v1.MethodAuditConfig
+var file_redpanda_api_auditlog_v1_options_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_redpanda_api_auditlog_v1_options_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_redpanda_api_auditlog_v1_options_proto_goTypes = []any{
+	(AuditPolicy)(0),                    // 0: redpanda.api.auditlog.v1.AuditPolicy
+	(*ServiceAuditConfig)(nil),          // 1: redpanda.api.auditlog.v1.ServiceAuditConfig
+	(*MethodAuditConfig)(nil),           // 2: redpanda.api.auditlog.v1.MethodAuditConfig
 	(*descriptorpb.FieldOptions)(nil),   // 3: google.protobuf.FieldOptions
 	(*descriptorpb.ServiceOptions)(nil), // 4: google.protobuf.ServiceOptions
 	(*descriptorpb.MethodOptions)(nil),  // 5: google.protobuf.MethodOptions
 }
-var file_redpanda_api_common_v1_auditlog_proto_depIdxs = []int32{
-	3, // 0: redpanda.api.common.v1.sensitive:extendee -> google.protobuf.FieldOptions
-	4, // 1: redpanda.api.common.v1.service:extendee -> google.protobuf.ServiceOptions
-	5, // 2: redpanda.api.common.v1.method:extendee -> google.protobuf.MethodOptions
-	3, // 3: redpanda.api.common.v1.audit_policy:extendee -> google.protobuf.FieldOptions
-	1, // 4: redpanda.api.common.v1.service:type_name -> redpanda.api.common.v1.ServiceAuditConfig
-	2, // 5: redpanda.api.common.v1.method:type_name -> redpanda.api.common.v1.MethodAuditConfig
-	0, // 6: redpanda.api.common.v1.audit_policy:type_name -> redpanda.api.common.v1.AuditPolicy
+var file_redpanda_api_auditlog_v1_options_proto_depIdxs = []int32{
+	3, // 0: redpanda.api.auditlog.v1.sensitive:extendee -> google.protobuf.FieldOptions
+	4, // 1: redpanda.api.auditlog.v1.service:extendee -> google.protobuf.ServiceOptions
+	5, // 2: redpanda.api.auditlog.v1.method:extendee -> google.protobuf.MethodOptions
+	3, // 3: redpanda.api.auditlog.v1.audit_policy:extendee -> google.protobuf.FieldOptions
+	1, // 4: redpanda.api.auditlog.v1.service:type_name -> redpanda.api.auditlog.v1.ServiceAuditConfig
+	2, // 5: redpanda.api.auditlog.v1.method:type_name -> redpanda.api.auditlog.v1.MethodAuditConfig
+	0, // 6: redpanda.api.auditlog.v1.audit_policy:type_name -> redpanda.api.auditlog.v1.AuditPolicy
 	7, // [7:7] is the sub-list for method output_type
 	7, // [7:7] is the sub-list for method input_type
 	4, // [4:7] is the sub-list for extension type_name
@@ -280,29 +280,29 @@ var file_redpanda_api_common_v1_auditlog_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for field type_name
 }
 
-func init() { file_redpanda_api_common_v1_auditlog_proto_init() }
-func file_redpanda_api_common_v1_auditlog_proto_init() {
-	if File_redpanda_api_common_v1_auditlog_proto != nil {
+func init() { file_redpanda_api_auditlog_v1_options_proto_init() }
+func file_redpanda_api_auditlog_v1_options_proto_init() {
+	if File_redpanda_api_auditlog_v1_options_proto != nil {
 		return
 	}
-	file_redpanda_api_common_v1_auditlog_proto_msgTypes[1].OneofWrappers = []any{}
+	file_redpanda_api_auditlog_v1_options_proto_msgTypes[1].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_redpanda_api_common_v1_auditlog_proto_rawDesc), len(file_redpanda_api_common_v1_auditlog_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_redpanda_api_auditlog_v1_options_proto_rawDesc), len(file_redpanda_api_auditlog_v1_options_proto_rawDesc)),
 			NumEnums:      1,
 			NumMessages:   2,
 			NumExtensions: 4,
 			NumServices:   0,
 		},
-		GoTypes:           file_redpanda_api_common_v1_auditlog_proto_goTypes,
-		DependencyIndexes: file_redpanda_api_common_v1_auditlog_proto_depIdxs,
-		EnumInfos:         file_redpanda_api_common_v1_auditlog_proto_enumTypes,
-		MessageInfos:      file_redpanda_api_common_v1_auditlog_proto_msgTypes,
-		ExtensionInfos:    file_redpanda_api_common_v1_auditlog_proto_extTypes,
+		GoTypes:           file_redpanda_api_auditlog_v1_options_proto_goTypes,
+		DependencyIndexes: file_redpanda_api_auditlog_v1_options_proto_depIdxs,
+		EnumInfos:         file_redpanda_api_auditlog_v1_options_proto_enumTypes,
+		MessageInfos:      file_redpanda_api_auditlog_v1_options_proto_msgTypes,
+		ExtensionInfos:    file_redpanda_api_auditlog_v1_options_proto_extTypes,
 	}.Build()
-	File_redpanda_api_common_v1_auditlog_proto = out.File
-	file_redpanda_api_common_v1_auditlog_proto_goTypes = nil
-	file_redpanda_api_common_v1_auditlog_proto_depIdxs = nil
+	File_redpanda_api_auditlog_v1_options_proto = out.File
+	file_redpanda_api_auditlog_v1_options_proto_goTypes = nil
+	file_redpanda_api_auditlog_v1_options_proto_depIdxs = nil
 }

@@ -1,10 +1,10 @@
 syntax = "proto3";
 
-package redpanda.api.common.v1;
+package redpanda.api.auditlog.v1;
 
 import "google/protobuf/descriptor.proto";
 
-option go_package = "buf.build/gen/go/redpandadata/common/protocolbuffers/go/redpanda/api/common/v1;commonv1";
+option go_package = "buf.build/gen/go/redpandadata/common/protocolbuffers/go/redpanda/api/auditlog/v1;auditlogv1";
 
 // Extension to mark fields as sensitive for audit log redaction
 extend google.protobuf.FieldOptions {
