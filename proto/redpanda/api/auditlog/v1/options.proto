@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+package redpanda.api.auditlog.v1;
+
+import "google/protobuf/descriptor.proto";
+
+option go_package = "buf.build/gen/go/redpandadata/common/protocolbuffers/go/redpanda/api/auditlog/v1;auditlogv1";
+
+// Extension to mark fields as sensitive for audit log redaction
+extend google.protobuf.FieldOptions {
+  bool sensitive = 15451;
+}
+
+// Field-level audit policy
+enum AuditPolicy {
+  AUDIT_POLICY_UNSPECIFIED = 0; // Defaults to STANDARD for opted-in messages
+  AUDIT_POLICY_NEVER = 1; // Field excluded from audit logs
+  AUDIT_POLICY_REDACTED = 2; // Field present but value redacted
+  AUDIT_POLICY_STANDARD = 3; // Field logged as-is (default)
+}
+
+// Service-level audit configuration message
+message ServiceAuditConfig {
+  bool enabled = 1;
+}
+
+// Method-level audit configuration message
+message MethodAuditConfig {
+  optional bool enabled = 1;
+}
+
+// Service-level audit configuration
+extend google.protobuf.ServiceOptions {
+  ServiceAuditConfig service = 15452;
+}
+
+// Method-level audit configuration (overrides service level)
+extend google.protobuf.MethodOptions {
+  optional MethodAuditConfig method = 50004;
+}
+
+// Field-level audit policy
+extend google.protobuf.FieldOptions {
+  AuditPolicy audit_policy = 50005;
+}
