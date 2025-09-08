@@ -6,20 +6,20 @@ toolchain go1.24.2
 
 require (
 	buf.build/gen/go/redpandadata/cloud/protocolbuffers/go v1.36.6-20250320090119-84779f9e5085.1
-	buf.build/gen/go/redpandadata/dataplane/protocolbuffers/go v1.36.1-20250404200318-65f29ddd7b29.1
+	buf.build/gen/go/redpandadata/dataplane/protocolbuffers/go v1.36.8-20250905074422-039f8a2554f3.1
 	connectrpc.com/connect v1.18.1
 	github.com/mark3labs/mcp-go v0.37.0
-	github.com/redpanda-data/protoc-gen-go-mcp v0.0.0-20250908104001-39108991e58d
+	github.com/redpanda-data/protoc-gen-go-mcp v0.0.0-20250909171927-b7cee5736952
 	google.golang.org/genproto/googleapis/api v0.0.0-20250818200422-3122310a409c
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250818200422-3122310a409c
 	google.golang.org/grpc v1.75.0
-	google.golang.org/protobuf v1.36.7
+	google.golang.org/protobuf v1.36.8
 )
 
 require (
-	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.6-20250307204501-0409229c3780.1 // indirect
-	buf.build/gen/go/grpc-ecosystem/grpc-gateway/protocolbuffers/go v1.36.6-20221127060915-a1ecdc58eccd.1 // indirect
-	buf.build/gen/go/redpandadata/common/protocolbuffers/go v1.36.6-20240917150400-3f349e63f44a.1 // indirect
+	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.8-20250425153114-8976f5be98c1.1 // indirect
+	buf.build/gen/go/grpc-ecosystem/grpc-gateway/protocolbuffers/go v1.36.8-20240617172850-a48fcebcf8f1.1 // indirect
+	buf.build/gen/go/redpandadata/common/protocolbuffers/go v1.36.8-20250504123906-40b63a811436.1 // indirect
 	github.com/bahlo/generic-list-go v0.2.0 // indirect
 	github.com/buger/jsonparser v1.1.1 // indirect
 	github.com/google/uuid v1.6.0 // indirect
