@@ -9,11 +9,11 @@ require (
 	buf.build/gen/go/redpandadata/dataplane/protocolbuffers/go v1.36.1-20250404200318-65f29ddd7b29.1
 	connectrpc.com/connect v1.18.1
 	github.com/mark3labs/mcp-go v0.37.0
-	github.com/redpanda-data/protoc-gen-go-mcp v0.0.0-20250812151819-7e5d5fef8241
-	google.golang.org/genproto/googleapis/api v0.0.0-20250409194420-de1ac958c67a
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20250409194420-de1ac958c67a
-	google.golang.org/grpc v1.71.0
-	google.golang.org/protobuf v1.36.6
+	github.com/redpanda-data/protoc-gen-go-mcp v0.0.0-20250908104001-39108991e58d
+	google.golang.org/genproto/googleapis/api v0.0.0-20250818200422-3122310a409c
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20250818200422-3122310a409c
+	google.golang.org/grpc v1.75.0
+	google.golang.org/protobuf v1.36.7
 )
 
 require (
@@ -29,9 +29,9 @@ require (
 	github.com/spf13/cast v1.7.1 // indirect
 	github.com/wk8/go-ordered-map/v2 v2.1.8 // indirect
 	github.com/yosida95/uritemplate/v3 v3.0.2 // indirect
-	golang.org/x/net v0.37.0 // indirect
-	golang.org/x/sys v0.31.0 // indirect
-	golang.org/x/text v0.23.0 // indirect
+	golang.org/x/net v0.41.0 // indirect
+	golang.org/x/sys v0.33.0 // indirect
+	golang.org/x/text v0.28.0 // indirect
 	google.golang.org/genproto v0.0.0-20250409194420-de1ac958c67a // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
