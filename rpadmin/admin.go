@@ -21,8 +21,7 @@ import (
 	"math/rand"
 	"net"
 	"net/http"
-	"net/url"
-	"sort"
+	urlpkg "net/url"
 	"strconv"
 	"strings"
 	"sync"
@@ -35,60 +34,8 @@ import (
 	commonnet "github.com/redpanda-data/common-go/net"
 )
 
-// ErrNoAdminAPILeader happens when there's no leader for the Admin API.
-var ErrNoAdminAPILeader = errors.New("no Admin API leader found")
-
-// ErrNoSRVRecordsFound happens when we try to deduce Admin API URLs
-// from Kubernetes SRV DNS records, but no records were returned by
-// the DNS query.
-var ErrNoSRVRecordsFound = errors.New("not SRV DNS records found")
-
-// HTTPResponseError is the error response.
-type HTTPResponseError struct {
-	Method   string
-	URL      string
-	Response *http.Response
-	Body     []byte
-}
-
-type (
-	// Auth affixes auth to an http request.
-	Auth interface{ apply(req *http.Request) }
-	// Opt is an option to configure an admin client.
-	Opt interface{ apply(*pester.Client) }
-	// BasicAuth options struct.
-	BasicAuth struct {
-		Username string
-		Password string
-	}
-	// BearerToken options struct.
-	BearerToken struct {
-		Token string
-	}
-	// NopAuth options struct.
-	NopAuth struct{}
-)
-
-// responseWrapper functions as a testing mechanism for ensuring
-// that we actually close all of our network connections
-var responseWrapper = func(r *http.Response) *http.Response { return r }
-
-func (a *BasicAuth) apply(req *http.Request) {
-	req.SetBasicAuth(a.Username, a.Password)
-}
-
-func (a *BearerToken) apply(req *http.Request) {
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", a.Token))
-}
-
-func (*NopAuth) apply(*http.Request) {}
-
-// GenericErrorBody is the JSON decodable body that is produced by generic error
-// handling in the admin server when a seastar http exception is thrown.
-type GenericErrorBody struct {
-	Message string `json:"message"`
-	Code    int    `json:"code"`
-}
+// DialContextFunc implements a dialing function that returns a net.Conn
+type DialContextFunc = func(ctx context.Context, network, addr string) (net.Conn, error)
 
 // AdminAPI is a client to interact with Redpanda's admin server.
 type AdminAPI struct {
@@ -104,6 +51,17 @@ type AdminAPI struct {
 	tlsConfig           *tls.Config
 	forCloud            bool
 	opts                []Opt
+}
+
+// NewAdminAPIClient creates a new Redpanda Admin API client, to set additional
+// options such as Auth and TLS, use Opt.
+func NewAdminAPIClient(urls []string, opts ...Opt) (*AdminAPI, error) {
+	return newAdminAPI(urls, &NopAuth{}, nil, nil, false, opts...)
+}
+
+// NewAdminAPI creates a new Redpanda Admin API client.
+func NewAdminAPI(urls []string, auth Auth, tlsConfig *tls.Config) (*AdminAPI, error) {
+	return newAdminAPI(urls, auth, tlsConfig, nil, false)
 }
 
 // NewClient returns an AdminAPI client that talks to each of the admin api addresses passed in.
@@ -132,17 +90,101 @@ func NewHostClient(addrs []string, tls *tls.Config, auth Auth, forCloud bool, ho
 	return newAdminAPI(addrs, auth, tls, nil, forCloud)
 }
 
-// DialContextFunc implements a dialing function that returns a net.Conn
-type DialContextFunc = func(ctx context.Context, network, addr string) (net.Conn, error)
-
-// NewAdminAPIWithDialer creates a new Redpanda Admin API client with a specified dialer function.
+// NewAdminAPIWithDialer creates a new Redpanda Admin API client with a
+// specified dialer function.
 func NewAdminAPIWithDialer(urls []string, auth Auth, tlsConfig *tls.Config, dialer DialContextFunc, opts ...Opt) (*AdminAPI, error) {
 	return newAdminAPI(urls, auth, tlsConfig, dialer, false, opts...)
 }
 
-// NewAdminAPI creates a new Redpanda Admin API client.
-func NewAdminAPI(urls []string, auth Auth, tlsConfig *tls.Config) (*AdminAPI, error) {
-	return newAdminAPI(urls, auth, tlsConfig, nil, false)
+// ForBroker returns a new admin client with the same configuration as the initial
+// client, but that talks to a single broker with the given id.
+func (a *AdminAPI) ForBroker(ctx context.Context, id int) (*AdminAPI, error) {
+	url, err := a.BrokerIDToURL(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	return a.newAdminForSingleHost(url)
+}
+
+// ForHost returns a new admin client with the same configuration as the initial
+// client, but that talks to a single broker at the given url.
+func (a *AdminAPI) ForHost(url string) (*AdminAPI, error) {
+	return a.newAdminForSingleHost(url)
+}
+
+// Close closes all idle connections of the underlying transport
+// this should be called when an admin client is no longer in-use
+// in order to not leak connections from the underlying transport
+// pool.
+func (a *AdminAPI) Close() {
+	a.transport.CloseIdleConnections()
+}
+
+// Do sends an HTTP request to one of the admin API URLs, retrying on
+// failure. The request must have a relative URL, the host and scheme
+// will be set by this method as well as the authentication mechanism
+// set on the AdminAPI.Auth Opt.
+func (a *AdminAPI) Do(req *http.Request) (*http.Response, error) {
+	rng := rand.New(rand.NewSource(time.Now().UnixNano())) //nolint:gosec // old rpk code.
+
+	a.urlsMutex.RLock()
+	shuffled := make([]string, len(a.urls))
+	copy(shuffled, a.urls)
+	rng.Shuffle(len(shuffled), func(i, j int) { shuffled[i], shuffled[j] = shuffled[j], shuffled[i] })
+	a.urlsMutex.RUnlock()
+
+	// After a 503 or 504, wait a little for an election
+	const unavailableBackoff = 1500 * time.Millisecond
+
+	var err error
+	for i := range shuffled {
+		parsedURL, parseErr := urlpkg.Parse(shuffled[i])
+		if parseErr != nil {
+			return nil, fmt.Errorf("unable to parse url %q: %v", shuffled[i], parseErr)
+		}
+
+		clonedReq := req.Clone(req.Context())
+		if clonedReq.GetBody != nil {
+			cBody, err := clonedReq.GetBody()
+			if err != nil {
+				return nil, fmt.Errorf("unable to re use request body on a different node: %v", err)
+			}
+			clonedReq.Body = cBody
+		}
+
+		clonedReq.URL.Host = parsedURL.Host
+		clonedReq.URL.Scheme = parsedURL.Scheme
+		// ensure that we have prefixed path
+		if !strings.HasPrefix(clonedReq.URL.Path, "/") {
+			clonedReq.URL.Path = "/" + clonedReq.URL.Path
+		}
+
+		// If err is set, we are retrying after a failure on the previous node
+		if err != nil {
+			var httpErr *HTTPResponseError
+			if errors.As(err, &httpErr) {
+				status := httpErr.Response.StatusCode
+
+				// The node was up but told us the cluster
+				// wasn't ready: wait before retry.
+				if status == 503 || status == 504 {
+					time.Sleep(unavailableBackoff)
+				}
+			}
+		}
+
+		// Where there are multiple nodes, disable the HTTP request retry in favour of our
+		// own retry across the available nodes
+		retryable := len(shuffled) == 1
+
+		var res *http.Response
+		res, err = a.sendReqAndReceive(clonedReq, retryable)
+		if err == nil {
+			return res, nil
+		}
+	}
+
+	return nil, err
 }
 
 func newAdminAPI(urls []string, auth Auth, tlsConfig *tls.Config, dialer DialContextFunc, forCloud bool, opts ...Opt) (*AdminAPI, error) {
@@ -180,12 +222,9 @@ func newAdminAPI(urls []string, auth Auth, tlsConfig *tls.Config, dialer DialCon
 
 	client.Timeout = 10 * time.Second
 
-	for _, opt := range opts {
-		opt.apply(client)
-	}
 	transport := defaultTransport()
 
-	a := &AdminAPI{
+	adminAPI := &AdminAPI{
 		urls:           make([]string, len(urls)),
 		retryClient:    client,
 		oneshotClient:  &http.Client{Timeout: client.Timeout},
@@ -198,21 +237,25 @@ func newAdminAPI(urls []string, auth Auth, tlsConfig *tls.Config, dialer DialCon
 		opts:           opts,
 	}
 
-	if tlsConfig != nil {
-		transport.TLSClientConfig = tlsConfig
-	}
-	if dialer != nil {
-		transport.DialContext = dialer
+	for _, opt := range opts {
+		opt.apply(adminAPI)
 	}
 
-	a.retryClient.Transport = transport
-	a.oneshotClient.Transport = transport
+	if adminAPI.tlsConfig != nil {
+		transport.TLSClientConfig = adminAPI.tlsConfig
+	}
+	if adminAPI.dialer != nil {
+		transport.DialContext = adminAPI.dialer
+	}
 
-	if err := a.initURLs(urls, tlsConfig, forCloud); err != nil {
+	adminAPI.retryClient.Transport = transport
+	adminAPI.oneshotClient.Transport = transport
+
+	if err := adminAPI.initURLs(urls); err != nil {
 		return nil, err
 	}
 
-	return a, nil
+	return adminAPI, nil
 }
 
 const (
@@ -220,7 +263,7 @@ const (
 	schemeHTTPS = "https"
 )
 
-func (a *AdminAPI) initURLs(urls []string, tlsConfig *tls.Config, forCloud bool) error {
+func (a *AdminAPI) initURLs(urls []string) error {
 	a.urlsMutex.Lock()
 	defer a.urlsMutex.Unlock()
 
@@ -236,7 +279,7 @@ func (a *AdminAPI) initURLs(urls []string, tlsConfig *tls.Config, forCloud bool)
 		switch scheme {
 		case "", schemeHTTP:
 			scheme = schemeHTTP
-			if tlsConfig != nil {
+			if a.tlsConfig != nil {
 				scheme = schemeHTTPS
 			}
 		case schemeHTTPS:
@@ -244,34 +287,13 @@ func (a *AdminAPI) initURLs(urls []string, tlsConfig *tls.Config, forCloud bool)
 			return fmt.Errorf("unrecognized scheme %q in host %q", scheme, u)
 		}
 		full := fmt.Sprintf("%s://%s", scheme, host)
-		if forCloud {
+		if a.forCloud {
 			full += "/api" // our cloud paths are prefixed with "/api"
 		}
 		a.urls[i] = full
 	}
 
 	return nil
-}
-
-// SetAuth sets the auth in the client.
-func (a *AdminAPI) SetAuth(auth Auth) {
-	a.auth = auth
-}
-
-// ForBroker returns a new admin client with the same configuration as the initial
-// client, but that talks to a single broker with the given id.
-func (a *AdminAPI) ForBroker(ctx context.Context, id int) (*AdminAPI, error) {
-	url, err := a.BrokerIDToURL(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-	return a.newAdminForSingleHost(url)
-}
-
-// ForHost returns a new admin client with the same configuration as the initial
-// client, but that talks to a single broker at the given url.
-func (a *AdminAPI) ForHost(url string) (*AdminAPI, error) {
-	return a.newAdminForSingleHost(url)
 }
 
 func (a *AdminAPI) newAdminForSingleHost(host string) (*AdminAPI, error) {
@@ -341,47 +363,15 @@ func (a *AdminAPI) GetLeaderID(ctx context.Context) (*int, error) {
 // one of them succeeds, or we run out of nodes.  In the latter case, we will return
 // the error from the last node we tried.
 func (a *AdminAPI) sendAny(ctx context.Context, method, path string, body, into any) error {
-	// Shuffle the list of URLs
-	rng := rand.New(rand.NewSource(time.Now().UnixNano())) //nolint:gosec // old rpk code.
+	req, err := prepareRequest(ctx, method, path, body)
+	if err != nil {
+		return err
+	}
 
-	a.urlsMutex.RLock()
-	shuffled := make([]string, len(a.urls))
-	copy(shuffled, a.urls)
-	rng.Shuffle(len(shuffled), func(i, j int) { shuffled[i], shuffled[j] = shuffled[j], shuffled[i] })
-	a.urlsMutex.RUnlock()
-
-	// After a 503 or 504, wait a little for an election
-	const unavailableBackoff = 1500 * time.Millisecond
-
-	var err error
-	for i := range shuffled {
-		url := shuffled[i] + path
-
-		// If err is set, we are retrying after a failure on the previous node
-		if err != nil {
-			zap.L().Warn(fmt.Sprintf("Request error, trying another node: %s", err.Error()))
-			var httpErr *HTTPResponseError
-			if errors.As(err, &httpErr) {
-				status := httpErr.Response.StatusCode
-
-				// The node was up but told us the cluster
-				// wasn't ready: wait before retry.
-				if status == 503 || status == 504 {
-					time.Sleep(unavailableBackoff)
-				}
-			}
-		}
-
-		// Where there are multiple nodes, disable the HTTP request retry in favour of our
-		// own retry across the available nodes
-		retryable := len(shuffled) == 1
-
-		var res *http.Response
-		res, err = a.sendAndReceive(ctx, method, url, body, retryable)
-		if err == nil {
-			// Success, return the result from this node.
-			return maybeUnmarshalRespInto(method, url, res, into)
-		}
+	res, err := a.Do(req)
+	if err == nil {
+		// Success, return the result from this node.
+		return maybeUnmarshalRespInto(method, res.Request.URL.String(), res, into)
 	}
 
 	// Fall through: all nodes failed.
@@ -600,6 +590,10 @@ func (a *AdminAPI) eachBroker(fn func(aa *AdminAPI) error) error {
 	return grp.Wait().ErrorOrNil()
 }
 
+// responseWrapper functions as a testing mechanism for ensuring
+// that we actually close all of our network connections
+var responseWrapper = func(r *http.Response) *http.Response { return r }
+
 // Unmarshals a response body into `into`, if it is non-nil.
 //
 // * If into is a *[]byte, the raw response put directly into `into`.
@@ -631,9 +625,16 @@ func maybeUnmarshalRespInto(method, url string, resp *http.Response, into any) e
 // non-nil, this json encodes the body and sends it with the request.
 // If the body is already an io.Reader, the reader is used directly
 // without marshaling.
-func (a *AdminAPI) sendAndReceive(
-	ctx context.Context, method, url string, body any, retryable bool,
-) (*http.Response, error) {
+func (a *AdminAPI) sendAndReceive(ctx context.Context, method, url string, body any, retryable bool) (*http.Response, error) {
+	req, err := prepareRequest(ctx, method, url, body)
+	if err != nil {
+		return nil, err
+	}
+
+	return a.sendReqAndReceive(req, retryable)
+}
+
+func prepareRequest(ctx context.Context, method, url string, body any) (*http.Request, error) {
 	var r io.Reader
 	if body != nil {
 		// We might be passing io reader already as body, e.g: license file.
@@ -650,20 +651,24 @@ func (a *AdminAPI) sendAndReceive(
 
 	req, err := http.NewRequestWithContext(ctx, method, url, r)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to create request for %s %s: %w", method, url, err) // should not happen
 	}
-
-	a.auth.apply(req)
 
 	const applicationJSON = "application/json"
 	req.Header.Set("Content-Type", applicationJSON)
 	req.Header.Set("Accept", applicationJSON)
+	return req, nil
+}
+
+func (a *AdminAPI) sendReqAndReceive(req *http.Request, retryable bool) (*http.Response, error) {
+	a.auth.apply(req)
 
 	// Issue request to the appropriate client, depending on retry behaviour
 	var res *http.Response
 	bearer := strings.Contains(req.Header.Get("Authorization"), "Bearer ")
 	basic := strings.Contains(req.Header.Get("Authorization"), "Basic ")
-	zap.L().Debug("Sending request", zap.String("method", method), zap.String("url", url), zap.Bool("bearer", bearer), zap.Bool("basic", basic))
+	zap.L().Debug("Sending request", zap.String("method", req.Method), zap.String("url", req.URL.String()), zap.Bool("bearer", bearer), zap.Bool("basic", basic))
+	var err error
 	if retryable {
 		res, err = a.retryClient.Do(req)
 	} else {
@@ -681,7 +686,7 @@ func (a *AdminAPI) sendAndReceive(
 		// Get "http://localhost:9644/v1/security/users": EOF
 		// which doesn't make it obvious to the user what's going on.
 		if errors.Is(err, io.EOF) {
-			return nil, fmt.Errorf("%s to server %s expected a tls connection: %w", method, url, err)
+			return nil, fmt.Errorf("%s to server %s expected a tls connection: %w", req.Method, req.URL.String(), err)
 		}
 		return nil, err
 	}
@@ -694,116 +699,12 @@ func (a *AdminAPI) sendAndReceive(
 		resBody, err := io.ReadAll(res.Body)
 		status := http.StatusText(res.StatusCode)
 		if err != nil {
-			return nil, fmt.Errorf("request %s %s failed: %s, unable to read body: %w", method, url, status, err)
+			return nil, fmt.Errorf("request %s %s failed: %s, unable to read body: %w", req.Method, req.URL.String(), status, err)
 		}
-		return nil, &HTTPResponseError{Response: res, Body: resBody, Method: method, URL: url}
+		return nil, &HTTPResponseError{Response: res, Body: resBody, Method: req.Method, URL: req.URL.String()}
 	}
 
 	return res, nil
-}
-
-// DecodeGenericErrorBody decodes generic error body.
-func (he HTTPResponseError) DecodeGenericErrorBody() (GenericErrorBody, error) {
-	var resp GenericErrorBody
-	err := json.Unmarshal(he.Body, &resp)
-	return resp, err
-}
-
-// Error returns string representation of the error.
-func (he HTTPResponseError) Error() string {
-	return fmt.Sprintf("request %s %s failed: %s, body: %q\n",
-		he.Method, he.URL, http.StatusText(he.Response.StatusCode), he.Body)
-}
-
-type clientOpt struct{ fn func(*pester.Client) }
-
-func (opt clientOpt) apply(cl *pester.Client) { opt.fn(cl) }
-
-// ClientTimeout sets the client timeout, overriding the default of 10s.
-func ClientTimeout(t time.Duration) Opt {
-	return clientOpt{func(cl *pester.Client) {
-		cl.Timeout = t
-	}}
-}
-
-// MaxRetries sets the client maxRetries, overriding the default of 3.
-func MaxRetries(r int) Opt {
-	return clientOpt{func(cl *pester.Client) {
-		cl.MaxRetries = r
-	}}
-}
-
-// AdminAddressesFromK8SDNS attempts to deduce admin API URLs
-// based on Kubernetes DNS resolution.
-// https://github.com/kubernetes/dns/blob/master/docs/specification.md
-// Assume that Admin API URL configured is a Kubernetes Service URL.
-// This Admin API URL is passed in as the function argument.
-// Since it's a Kubernetes service, Kubernetes DNS creates a DNS SRV record
-// for the admin port mapping.
-// We can query the DNS record to get the target host names and ports.
-// To check if a workload is running inside a kubernetes pod test for
-// KUBERNETES_SERVICE_HOST or KUBERNETES_SERVICE_PORT env vars.
-func AdminAddressesFromK8SDNS(adminAPIURL string) ([]string, error) {
-	adminURL, err := url.Parse(adminAPIURL)
-	if err != nil {
-		return nil, err
-	}
-
-	_, records, err := net.LookupSRV("admin", "tcp", adminURL.Hostname())
-	if err != nil {
-		return nil, err
-	}
-
-	if len(records) == 0 {
-		return nil, ErrNoSRVRecordsFound
-	}
-
-	// targets may be in the form
-	// redpanda-1.redpanda.redpanda.svc.cluster.local.
-	// take advantage of ordinals and order them accordingly
-	sort.Slice(records, func(i, j int) bool {
-		return records[i].Target < records[j].Target
-	})
-
-	urls := make([]string, 0, len(records))
-
-	proto := "http://"
-	if adminURL.Scheme == schemeHTTPS {
-		proto = "https://"
-	}
-
-	for _, r := range records {
-		urls = append(urls, proto+r.Target+":"+strconv.Itoa(int(r.Port)))
-	}
-
-	return urls, nil
-}
-
-// UpdateAPIUrlsFromKubernetesDNS updates the client's internal URLs to admin addresses from Kubernetes DNS.
-// See AdminAddressesFromK8SDNS.
-func (a *AdminAPI) UpdateAPIUrlsFromKubernetesDNS() error {
-	a.urlsMutex.RLock()
-	if len(a.urls) == 0 {
-		return errors.New("at least one url is required for the admin api")
-	}
-
-	baseURL := a.urls[0]
-	a.urlsMutex.RUnlock()
-
-	urls, err := AdminAddressesFromK8SDNS(baseURL)
-	if err != nil {
-		return err
-	}
-
-	return a.initURLs(urls, a.tlsConfig, a.forCloud)
-}
-
-// Close closes all idle connections of the underlying transport
-// this should be called when an admin client is no longer in-use
-// in order to not leak connections from the underlying transport
-// pool.
-func (a *AdminAPI) Close() {
-	a.transport.CloseIdleConnections()
 }
 
 func defaultTransport() *http.Transport {
