@@ -60,7 +60,7 @@ func (a *AdminAPI) SingleKeyConfig(ctx context.Context, key string) (Config, err
 	return unmarshaled, nil
 }
 
-// LLoggerLevel represents the  logger name and level used with the GetLogLevels
+// LoggerLevel represents the logger name and level used with the GetLogLevels
 type LoggerLevel struct {
 	Name  string `json:"name"`
 	Level string `json:"level"`
