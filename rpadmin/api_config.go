@@ -60,6 +60,23 @@ func (a *AdminAPI) SingleKeyConfig(ctx context.Context, key string) (Config, err
 	return unmarshaled, nil
 }
 
+// LoggerLevel represents the logger name and level used with the GetLogLevels
+type LoggerLevel struct {
+	Name  string `json:"name"`
+	Level string `json:"level"`
+}
+
+// GetLogLevels obtains the current logger level for the logger `name` for the single admin host in this client.
+//
+// This function will return an error if the client
+// has multiple URLs configured.
+func (a *AdminAPI) GetLogLevels(ctx context.Context) ([]LoggerLevel, error) {
+	path := "/v1/loggers?include-levels=true"
+	var logLevel []LoggerLevel
+	err := a.sendOne(ctx, http.MethodGet, path, nil, &logLevel, false)
+	return logLevel, err
+}
+
 // SetLogLevel sets the logger level for the logger `name` to the given level
 // for the single admin host in this client. This function will return an error
 // if the client has multiple URLs configured.
