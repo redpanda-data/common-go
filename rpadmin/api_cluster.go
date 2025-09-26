@@ -20,6 +20,7 @@ type ClusterHealthOverview struct {
 	UnhealthyReasons          []string `json:"unhealthy_reasons"`
 	ControllerID              int      `json:"controller_id"`
 	AllNodes                  []int    `json:"all_nodes"`
+	NodesInMaintenance        []int    `json:"nodes_in_maintenance_mode"`
 	NodesDown                 []int    `json:"nodes_down"`
 	NodesInRecoveryMode       []int    `json:"nodes_in_recovery_mode,omitempty"` // This is nil if not-supported or no nodes in recovery mode.
 	LeaderlessPartitions      []string `json:"leaderless_partitions"`
@@ -96,6 +97,28 @@ type ClusterView map[string]any
 func (a *AdminAPI) GetHealthOverview(ctx context.Context) (ClusterHealthOverview, error) {
 	var response ClusterHealthOverview
 	return response, a.sendAny(ctx, http.MethodGet, "/v1/cluster/health_overview", nil, &response)
+}
+
+// GetHealthOverviewWithMaintenance gets the cluster health overview with nodes, if any, in maintenance.
+func (a *AdminAPI) GetHealthOverviewWithMaintenance(ctx context.Context) (ClusterHealthOverview, error) {
+	var response ClusterHealthOverview
+	if err := a.sendAny(ctx, http.MethodGet, "/v1/cluster/health_overview", nil, &response); err != nil {
+		return ClusterHealthOverview{}, err
+	}
+
+	brokers, err := a.Brokers(ctx)
+	if err != nil {
+		return ClusterHealthOverview{}, err
+	}
+
+	var nodesInMaintenance []int
+	for _, broker := range brokers {
+		if broker.Maintenance != nil && broker.Maintenance.Draining {
+			nodesInMaintenance = append(nodesInMaintenance, broker.NodeID)
+		}
+	}
+	response.NodesInMaintenance = nodesInMaintenance
+	return response, nil
 }
 
 // GetPartitionStatus gets the cluster partition status.
