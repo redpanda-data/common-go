@@ -56,7 +56,7 @@ linters:
     - rowserrcheck
     - sqlclosecheck
     - stylecheck
-    - tenv
+    - usetesting
     - typecheck
     - unconvert
     - unparam
