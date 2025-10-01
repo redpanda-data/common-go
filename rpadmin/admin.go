@@ -27,6 +27,7 @@ import (
 	"sync"
 	"time"
 
+	"connectrpc.com/connect"
 	"github.com/hashicorp/go-multierror"
 	"github.com/sethgrid/pester"
 	"go.uber.org/zap"
@@ -701,7 +702,15 @@ func (a *AdminAPI) sendReqAndReceive(req *http.Request, retryable bool) (*http.R
 		if err != nil {
 			return nil, fmt.Errorf("request %s %s failed: %s, unable to read body: %w", req.Method, req.URL.String(), status, err)
 		}
-		return nil, &HTTPResponseError{Response: res, Body: resBody, Method: req.Method, URL: req.URL.String()}
+		respErr := &HTTPResponseError{Response: res, Body: resBody, Method: req.Method, URL: req.URL.String()}
+		// We use the error writer to detect whether the request was made using
+		// the Connect protocol (AdminV2); If it was, we return a Connect error
+		// for better handling upstream.
+		isProto := connect.NewErrorWriter(connect.WithRequireConnectProtocolHeader()).IsSupported(req)
+		if isProto {
+			return nil, connect.NewError(connectCodeFromBody(respErr.Body), respErr)
+		}
+		return nil, respErr
 	}
 
 	return res, nil
@@ -720,4 +729,22 @@ func defaultTransport() *http.Transport {
 		TLSHandshakeTimeout:   10 * time.Second,
 		ExpectContinueTimeout: 1 * time.Second,
 	}
+}
+
+// connect error codes come in the `code` field of the JSON body, e.g:
+// { "code": "not_found", "message": "Failed to find foo" }.
+func connectCodeFromBody(body []byte) connect.Code {
+	resp := struct {
+		Message string `json:"message"`
+		Code    string `json:"code"`
+	}{}
+	if err := json.Unmarshal(body, &resp); err != nil {
+		return connect.CodeUnknown
+	}
+	var code connect.Code
+	err := code.UnmarshalText([]byte(resp.Code))
+	if err != nil {
+		return connect.CodeUnknown
+	}
+	return code
 }
