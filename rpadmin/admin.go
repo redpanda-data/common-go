@@ -734,10 +734,7 @@ func defaultTransport() *http.Transport {
 // connect error codes come in the `code` field of the JSON body, e.g:
 // { "code": "not_found", "message": "Failed to find foo" }.
 func connectCodeFromBody(body []byte) connect.Code {
-	resp := struct {
-		Message string `json:"message"`
-		Code    string `json:"code"`
-	}{}
+	var resp GenericConnectError
 	if err := json.Unmarshal(body, &resp); err != nil {
 		return connect.CodeUnknown
 	}
