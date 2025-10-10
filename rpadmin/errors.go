@@ -46,8 +46,41 @@ func (he HTTPResponseError) DecodeGenericErrorBody() (GenericErrorBody, error) {
 	return resp, err
 }
 
+// GenericConnectError is the JSON decodable body that is produced by connect
+// error handling in the admin server.
+type GenericConnectError struct {
+	Message string `json:"message"`
+	Code    string `json:"code"`
+}
+
+// DecodeGenericConnectErrorBody decodes generic connect error body.
+func (he HTTPResponseError) DecodeGenericConnectErrorBody() (GenericConnectError, error) {
+	var resp GenericConnectError
+	err := json.Unmarshal(he.Body, &resp)
+	return resp, err
+}
+
 // Error returns string representation of the error.
 func (he HTTPResponseError) Error() string {
-	return fmt.Sprintf("request %s %s failed: %s, body: %q\n",
-		he.Method, he.URL, http.StatusText(he.Response.StatusCode), he.Body)
+	errorMessage := fmt.Sprintf("request %s %s failed: %s, body: %s", he.Method, he.URL, http.StatusText(he.Response.StatusCode), he.Body)
+	if he.Body != nil {
+		var message string
+		// The error is either a GenericErrorBody or a GenericConnectError.
+		// We just want the message out of it as the Status Code is already
+		// available, and we don't want to return the JSON body if possible.
+		ge, genericErr := he.DecodeGenericErrorBody()
+		if genericErr != nil {
+			ce, connectErr := he.DecodeGenericConnectErrorBody()
+			if connectErr != nil {
+				// If the body is not decodable, we just return the original.
+				return errorMessage
+			}
+			message = ce.Message
+		} else {
+			message = ge.Message
+		}
+		return fmt.Sprintf("request %s %s failed: %s, %s", he.Method, he.URL, http.StatusText(he.Response.StatusCode), message)
+	}
+
+	return errorMessage
 }
