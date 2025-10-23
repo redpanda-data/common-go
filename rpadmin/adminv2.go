@@ -26,6 +26,11 @@ func (a *AdminAPI) ShadowLinkService(opts ...connect.ClientOption) adminv2connec
 	return adminv2connect.NewShadowLinkServiceClient(a, "/", withDefaultClientOpts(opts)...)
 }
 
+// ClusterService returns a client for the ClusterService of the Admin API V2.
+func (a *AdminAPI) ClusterService(opts ...connect.ClientOption) adminv2connect.ClusterServiceClient {
+	return adminv2connect.NewClusterServiceClient(a, "/", withDefaultClientOpts(opts)...)
+}
+
 // newContentTypeInterceptor is a Connect interceptor that sets the Content-Type
 // and Accept headers to "application/proto" for all requests. This ensures that
 // we override the default "application/json" used by some of our shared
