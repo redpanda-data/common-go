@@ -210,6 +210,8 @@ func handlerForNode(
 			} else {
 				w.WriteHeader(http.StatusInternalServerError)
 			}
+		default:
+			require.Failf(t, "unexpected url path: %s", r.URL.Path)
 		}
 	}
 }
@@ -389,6 +391,8 @@ func TestDialerPassing(t *testing.T) {
 				w.Write([]byte(fmt.Sprintf(`{"node_id": %d}`, id))) //nolint:gocritic // original rpk code
 			case strings.HasPrefix(r.URL.Path, "/v1/partitions/redpanda/controller/0"):
 				w.Write([]byte(`{"leader_id": 0}`))
+			default:
+				require.Failf(t, "unexpected url path: %s", r.URL.Path)
 			}
 		}))
 
@@ -427,6 +431,8 @@ func TestIdleConnectionClosure(t *testing.T) {
 				w.Write([]byte(fmt.Sprintf(`{"node_id": %d}`, id))) //nolint:gocritic // original rpk code
 			case strings.HasPrefix(r.URL.Path, "/v1/partitions/redpanda/controller/0"):
 				w.Write([]byte(`{"leader_id": 0}`))
+			default:
+				require.Failf(t, "unexpected url path: %s", r.URL.Path)
 			}
 		}))
 

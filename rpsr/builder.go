@@ -246,7 +246,7 @@ func (b *ACLBuilder) ValidateCreate() error {
 		return errors.New("invalid deny principals with no denied hosts")
 	}
 	for _, p := range append(b.allowPrincipal, b.denyPrincipal...) {
-		if p != "*" && !(strings.HasPrefix(p, "User:") || strings.HasPrefix(p, "RedpandaRole:")) {
+		if p != "*" && (!strings.HasPrefix(p, "User:") && !strings.HasPrefix(p, "RedpandaRole:")) {
 			return fmt.Errorf("invalid principal %v: must start with 'User:' or 'RedpandaRole:'", p)
 		}
 	}

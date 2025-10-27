@@ -70,7 +70,7 @@ const (
 
 // ErrNotFound is returned when no ACLs match the provided filter.
 //
-//nolint:stylecheck // this comes from Redpanda.
+//nolint:staticcheck // this comes from Redpanda.
 var ErrNotFound = errors.New("Not found")
 
 // ACL represents an individual access control rule.
