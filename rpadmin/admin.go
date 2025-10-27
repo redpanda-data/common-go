@@ -153,6 +153,10 @@ func (a *AdminAPI) Do(req *http.Request) (*http.Response, error) {
 			clonedReq.Body = cBody
 		}
 
+		if parsedURL.Path == "/api" && a.forCloud {
+			clonedReq.URL.Path = parsedURL.Path + clonedReq.URL.Path
+		}
+
 		clonedReq.URL.Host = parsedURL.Host
 		clonedReq.URL.Scheme = parsedURL.Scheme
 		// ensure that we have prefixed path
