@@ -6,6 +6,8 @@ on:
       - main
     paths:
       - '**.go'
+      - '**/go.mod'
+      - '**/go.sum'
       - '.golangci.yaml'
       - '.github/workflows/golangci-lint.yaml'
   pull_request:
