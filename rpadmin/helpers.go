@@ -10,6 +10,7 @@
 package rpadmin
 
 import (
+	"context"
 	"errors"
 	"net"
 	"net/url"
@@ -33,7 +34,7 @@ func AdminAddressesFromK8SDNS(adminAPIURL string) ([]string, error) {
 		return nil, err
 	}
 
-	_, records, err := net.LookupSRV("admin", "tcp", adminURL.Hostname())
+	_, records, err := net.DefaultResolver.LookupSRV(context.Background(), "admin", "tcp", adminURL.Hostname())
 	if err != nil {
 		return nil, err
 	}

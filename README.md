@@ -5,10 +5,6 @@ for sharing code across various Redpanda code bases. While the community
 is welcome to utilize the code herein, please note that we do not offer 
 any guarantees, support, or consider feature requests.
 
-This repository is used to share code between different Redpanda code bases.
-It may be used by the community, but we do not provide any guarantees, support
-and won't consider any feature requests.
-
 ## API Module
 
 The API Module contains a collection of helper functions designed to streamline 
