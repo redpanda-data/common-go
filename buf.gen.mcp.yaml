@@ -8,6 +8,9 @@ managed:
     - file_option: go_package_prefix
       value: buf.build/gen/go/redpandadata/cloud/protocolbuffers/go
       module: buf.build/redpandadata/cloud
+    - file_option: go_package_prefix
+      value: buf.build/gen/go/redpandadata/core/protocolbuffers/go
+      module: buf.build/redpandadata/core
 plugins:
   - local:
       - go
