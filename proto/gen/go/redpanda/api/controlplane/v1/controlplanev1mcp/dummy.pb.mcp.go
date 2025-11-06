@@ -4,17 +4,19 @@
 package controlplanev1mcp
 
 import (
-	"context"
-	"encoding/json"
-
 	v1 "buf.build/gen/go/redpandadata/cloud/protocolbuffers/go/redpanda/api/controlplane/v1"
-	"connectrpc.com/connect"
+	emptypb "google.golang.org/protobuf/types/known/emptypb"
+)
+
+import (
+	"context"
 	"github.com/mark3labs/mcp-go/mcp"
 	mcpserver "github.com/mark3labs/mcp-go/server"
-	"github.com/redpanda-data/protoc-gen-go-mcp/pkg/runtime"
-	grpc "google.golang.org/grpc"
+	"encoding/json"
 	"google.golang.org/protobuf/encoding/protojson"
-	emptypb "google.golang.org/protobuf/types/known/emptypb"
+	"connectrpc.com/connect"
+	grpc "google.golang.org/grpc"
+	"github.com/redpanda-data/protoc-gen-go-mcp/pkg/runtime"
 )
 
 var (
