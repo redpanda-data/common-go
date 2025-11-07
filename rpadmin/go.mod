@@ -5,7 +5,7 @@ go 1.24.0
 toolchain go1.24.3
 
 require (
-	buf.build/gen/go/redpandadata/core/connectrpc/go v1.19.1-20251025023032-d04cd59f0958.2
+	buf.build/gen/go/redpandadata/core/connectrpc/go v1.19.1-20251107181116-874373458fcf.2
 	connectrpc.com/connect v1.19.1
 	github.com/foxcpp/go-mockdns v1.1.0
 	github.com/hashicorp/go-multierror v1.1.1
@@ -16,7 +16,7 @@ require (
 )
 
 require (
-	buf.build/gen/go/redpandadata/core/protocolbuffers/go v1.36.10-20251025023032-d04cd59f0958.1 // indirect
+	buf.build/gen/go/redpandadata/core/protocolbuffers/go v1.36.10-20251107181116-874373458fcf.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/miekg/dns v1.1.57 // indirect
@@ -26,7 +26,7 @@ require (
 	golang.org/x/net v0.38.0 // indirect
 	golang.org/x/sys v0.31.0 // indirect
 	golang.org/x/tools v0.15.0 // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20251014184007-4626949a642f // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20251103181224-f26f9409b101 // indirect
 	google.golang.org/protobuf v1.36.10 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
