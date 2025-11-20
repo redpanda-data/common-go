@@ -1,0 +1,589 @@
+package redpandaotelexporter
+
+import (
+	"context"
+	"encoding/json"
+	"flag"
+	"regexp"
+	"testing"
+	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"github.com/testcontainers/testcontainers-go/modules/redpanda"
+	"github.com/twmb/franz-go/pkg/kadm"
+	"github.com/twmb/franz-go/pkg/kgo"
+	"go.opentelemetry.io/otel/attribute"
+	otellog "go.opentelemetry.io/otel/log"
+	"go.opentelemetry.io/otel/metric"
+	sdklog "go.opentelemetry.io/otel/sdk/log"
+	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
+	"go.opentelemetry.io/otel/sdk/resource"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	semconv "go.opentelemetry.io/otel/semconv/v1.24.0"
+	"go.opentelemetry.io/otel/trace"
+	logspb "go.opentelemetry.io/proto/otlp/logs/v1"
+	metricspb "go.opentelemetry.io/proto/otlp/metrics/v1"
+	tracepb "go.opentelemetry.io/proto/otlp/trace/v1"
+	"google.golang.org/protobuf/proto"
+)
+
+var (
+	// hexRegex32 matches exactly 32 hexadecimal characters (trace ID)
+	hexRegex32 = regexp.MustCompile("^[0-9a-fA-F]{32}$")
+	// hexRegex16 matches exactly 16 hexadecimal characters (span ID)
+	hexRegex16 = regexp.MustCompile("^[0-9a-fA-F]{16}$")
+
+	// useLocalBroker allows using a local Redpanda instance at localhost:9092 instead of testcontainers
+	// Usage: go test -local-broker
+	useLocalBroker = flag.Bool("local-broker", false, "use local Redpanda at localhost:9092 instead of testcontainers")
+)
+
+// setupRedpanda starts a Redpanda container for testing or uses a local instance
+func setupRedpanda(t *testing.T) string {
+	t.Helper()
+
+	// Check if using local Redpanda
+	if *useLocalBroker {
+		t.Log("Using local Redpanda at localhost:9092")
+		return "localhost:9092"
+	}
+
+	// Use testcontainers
+	ctx := t.Context()
+	container, err := redpanda.Run(ctx, "docker.redpanda.com/redpandadata/redpanda:latest")
+	require.NoError(t, err, "failed to start redpanda container")
+
+	// Register cleanup
+	t.Cleanup(func() {
+		if err := container.Terminate(context.Background()); err != nil {
+			t.Logf("failed to terminate container: %v", err)
+		}
+	})
+
+	brokers, err := container.KafkaSeedBroker(ctx)
+	require.NoError(t, err, "failed to get kafka seed broker")
+
+	return brokers
+}
+
+// createTopic creates a Kafka topic
+func createTopic(t *testing.T, brokers, topic string) {
+	t.Helper()
+
+	client, err := kgo.NewClient(
+		kgo.SeedBrokers(brokers),
+		kgo.RequestTimeoutOverhead(10*time.Second),
+	)
+	require.NoError(t, err, "failed to create kafka client")
+	defer client.Close()
+
+	// Create admin client
+	admin := kadm.NewClient(client)
+
+	// Create topic with 1 partition and replication factor 1
+	ctx := t.Context()
+	_, err = admin.CreateTopics(ctx, 1, 1, nil, topic)
+	if err != nil {
+		// Ignore "topic already exists" error
+		t.Logf("topic creation note (may already exist): %v", err)
+	}
+}
+
+// createTestResource creates a test resource with standard attributes
+func createTestResource(t *testing.T) *resource.Resource {
+	t.Helper()
+
+	res, err := resource.New(t.Context(),
+		resource.WithAttributes(
+			semconv.ServiceName("test-service"),
+			semconv.ServiceVersion("1.0.0"),
+			attribute.String("environment", "test"),
+		),
+	)
+	require.NoError(t, err, "failed to create resource")
+
+	return res
+}
+
+// consumeRecords reads records from a Kafka topic
+func consumeRecords(t *testing.T, brokers, topic string) []*kgo.Record {
+	t.Helper()
+
+	client, err := kgo.NewClient(
+		kgo.SeedBrokers(brokers),
+		kgo.ConsumeTopics(topic),
+	)
+	require.NoError(t, err, "failed to create kafka consumer client")
+	defer client.Close()
+
+	// Retry up to 3 times with short timeout per attempt
+	maxAttempts := 3
+	pollTimeout := 500 * time.Millisecond
+
+	for attempt := 1; attempt <= maxAttempts; attempt++ {
+		ctx, cancel := context.WithTimeout(t.Context(), pollTimeout)
+		fetches := client.PollFetches(ctx)
+		cancel()
+
+		require.Empty(t, fetches.Errors(), "fetch errors occurred")
+
+		var records []*kgo.Record
+		fetches.EachRecord(func(r *kgo.Record) {
+			if r.Topic == topic {
+				records = append(records, r)
+			}
+		})
+
+		if len(records) > 0 {
+			return records
+		}
+
+		// If not the last attempt, wait a bit before retrying
+		if attempt < maxAttempts {
+			time.Sleep(100 * time.Millisecond)
+		}
+	}
+
+	return nil
+}
+
+// assertHexEncoded validates that a string is properly hex-encoded using regex
+func assertHexEncoded(t *testing.T, value string, expectedLen int, fieldName string) {
+	t.Helper()
+
+	var pattern *regexp.Regexp
+	switch expectedLen {
+	case 32:
+		pattern = hexRegex32
+	case 16:
+		pattern = hexRegex16
+	default:
+		t.Fatalf("unsupported hex length: %d", expectedLen)
+	}
+
+	assert.Regexp(t, pattern, value, "%s should be %d hex characters", fieldName, expectedLen)
+}
+
+// TestTraceExporter_JSON tests trace exporter with JSON serialization
+func TestTraceExporter_JSON(t *testing.T) {
+	ctx := t.Context()
+	brokers := setupRedpanda(t)
+
+	// Create topic
+	createTopic(t, brokers, "test-traces-json")
+
+	res := createTestResource(t)
+
+	// Create exporter
+	exporter, err := NewTraceExporter(
+		WithTopic("test-traces-json"),
+		WithBrokers(brokers),
+		WithClientID("test-trace-exporter"),
+		WithResource(res),
+		WithSerializationFormat(SerializationFormatJSON),
+	)
+	require.NoError(t, err, "failed to create trace exporter")
+	defer exporter.Shutdown(context.Background())
+
+	// Create a test span
+	tracerProvider := sdktrace.NewTracerProvider(
+		sdktrace.WithBatcher(exporter),
+		sdktrace.WithResource(res),
+	)
+	defer tracerProvider.Shutdown(context.Background())
+
+	tracer := tracerProvider.Tracer("test-tracer")
+	_, span := tracer.Start(ctx, "test-operation",
+		trace.WithAttributes(
+			attribute.String("test.key", "test.value"),
+			attribute.Int("test.count", 42),
+		),
+	)
+	span.AddEvent("test-event")
+	span.End()
+
+	// Force flush
+	err = tracerProvider.ForceFlush(ctx)
+	require.NoError(t, err, "failed to flush tracer provider")
+
+	// Consume records from Kafka
+	records := consumeRecords(t, brokers, "test-traces-json")
+	require.NotEmpty(t, records, "no message found in topic")
+
+	// Parse and validate the span data
+	var spanData map[string]any
+	err = json.Unmarshal(records[0].Value, &spanData)
+	require.NoError(t, err, "failed to unmarshal span data")
+
+	// Verify basic fields
+	assert.Equal(t, "test-operation", spanData["name"], "span name mismatch")
+
+	// Verify traceId is hex encoded string (32 hex chars) - OTLP spec compliance
+	traceID, ok := spanData["traceId"].(string)
+	require.True(t, ok, "traceId not found or not a string")
+	assertHexEncoded(t, traceID, 32, "traceId")
+
+	// Verify spanId is hex encoded string (16 hex chars) - OTLP spec compliance
+	spanID, ok := spanData["spanId"].(string)
+	require.True(t, ok, "spanId not found or not a string")
+	assertHexEncoded(t, spanID, 16, "spanId")
+
+	// Verify kind - OTLP JSON spec requires numeric values for enums
+	kind, ok := spanData["kind"].(float64)
+	require.True(t, ok, "kind not found or not a number (got type %T), OTLP spec requires integer enum", spanData["kind"])
+	// SpanKind values: UNSPECIFIED=0, INTERNAL=1, SERVER=2, CLIENT=3, PRODUCER=4, CONSUMER=5
+	assert.GreaterOrEqual(t, kind, 0.0, "kind value out of range")
+	assert.LessOrEqual(t, kind, 5.0, "kind value out of range")
+
+	// Verify status structure and code - OTLP JSON spec requires numeric values for enums
+	status, ok := spanData["status"].(map[string]any)
+	require.True(t, ok, "status not found or wrong type")
+
+	statusCode, ok := status["code"].(float64)
+	require.True(t, ok, "status.code not found or not a number (got type %T), OTLP spec requires integer enum", status["code"])
+	// Status codes: UNSET=0, OK=1, ERROR=2
+	assert.GreaterOrEqual(t, statusCode, 0.0, "status.code value out of range")
+	assert.LessOrEqual(t, statusCode, 2.0, "status.code value out of range")
+
+	// Verify attributes - OTLP JSON spec requires array of {key, value} objects
+	// where value is an AnyValue with typed fields like stringValue, intValue, etc.
+	attrs, ok := spanData["attributes"].([]any)
+	require.True(t, ok, "attributes not found or wrong type")
+	require.GreaterOrEqual(t, len(attrs), 2, "expected at least 2 attributes")
+
+	// Convert array to map for easier validation
+	attrMap := make(map[string]map[string]any)
+	for _, attr := range attrs {
+		attrObj, ok := attr.(map[string]any)
+		require.True(t, ok, "attribute is not an object")
+		key, ok := attrObj["key"].(string)
+		require.True(t, ok, "attribute key is not a string")
+		value, ok := attrObj["value"].(map[string]any)
+		require.True(t, ok, "attribute value is not an AnyValue object")
+		attrMap[key] = value
+	}
+
+	// Verify string attribute
+	stringValue, ok := attrMap["test.key"]["stringValue"].(string)
+	require.True(t, ok, "test.key stringValue not found")
+	assert.Equal(t, "test.value", stringValue, "string attribute mismatch")
+
+	// Verify int attribute (stored as string per OTLP spec)
+	intValue, ok := attrMap["test.count"]["intValue"].(string)
+	require.True(t, ok, "test.count intValue not found")
+	assert.Equal(t, "42", intValue, "numeric attribute mismatch")
+}
+
+// TestTraceExporter_Protobuf tests trace exporter with Protobuf serialization
+func TestTraceExporter_Protobuf(t *testing.T) {
+	ctx := t.Context()
+	brokers := setupRedpanda(t)
+
+	// Create topic
+	createTopic(t, brokers, "test-traces-protobuf")
+
+	res := createTestResource(t)
+
+	// Create exporter
+	exporter, err := NewTraceExporter(
+		WithTopic("test-traces-protobuf"),
+		WithBrokers(brokers),
+		WithClientID("test-trace-exporter-pb"),
+		WithResource(res),
+		WithSerializationFormat(SerializationFormatProtobuf),
+	)
+	require.NoError(t, err, "failed to create trace exporter")
+	defer exporter.Shutdown(context.Background())
+
+	// Create a test span
+	tracerProvider := sdktrace.NewTracerProvider(
+		sdktrace.WithBatcher(exporter),
+		sdktrace.WithResource(res),
+	)
+	defer tracerProvider.Shutdown(context.Background())
+
+	tracer := tracerProvider.Tracer("test-tracer")
+	_, span := tracer.Start(ctx, "test-protobuf-operation",
+		trace.WithAttributes(
+			attribute.String("format", "protobuf"),
+		),
+	)
+	span.End()
+
+	// Force flush
+	err = tracerProvider.ForceFlush(ctx)
+	require.NoError(t, err, "failed to flush tracer provider")
+
+	// Consume records from Kafka
+	records := consumeRecords(t, brokers, "test-traces-protobuf")
+	require.NotEmpty(t, records, "no message found in topic")
+
+	// Parse protobuf
+	var protoSpan tracepb.Span
+	err = proto.Unmarshal(records[0].Value, &protoSpan)
+	require.NoError(t, err, "failed to unmarshal protobuf")
+
+	// Verify span
+	assert.Equal(t, "test-protobuf-operation", protoSpan.Name, "span name mismatch")
+
+	// Verify resource attributes are in headers (not in the protobuf body)
+	require.NotEmpty(t, records[0].Headers, "no headers found")
+	hasServiceName := false
+	for _, header := range records[0].Headers {
+		if header.Key == "service.name" {
+			hasServiceName = true
+			assert.Equal(t, "test-service", string(header.Value), "service.name mismatch")
+			break
+		}
+	}
+	assert.True(t, hasServiceName, "service.name header not found")
+}
+
+// TestMetricExporter tests metric exporter
+func TestMetricExporter(t *testing.T) {
+	ctx := t.Context()
+	brokers := setupRedpanda(t)
+
+	// Create topic
+	createTopic(t, brokers, "test-metrics")
+
+	res := createTestResource(t)
+
+	// Create exporter
+	exporter, err := NewMetricExporter(
+		WithTopic("test-metrics"),
+		WithBrokers(brokers),
+		WithClientID("test-metric-exporter"),
+		WithResource(res),
+		WithSerializationFormat(SerializationFormatJSON),
+	)
+	require.NoError(t, err, "failed to create metric exporter")
+	defer exporter.Shutdown(context.Background())
+
+	// Create meter provider
+	meterProvider := sdkmetric.NewMeterProvider(
+		sdkmetric.WithReader(sdkmetric.NewPeriodicReader(exporter,
+			sdkmetric.WithInterval(1*time.Second))),
+		sdkmetric.WithResource(res),
+	)
+	defer meterProvider.Shutdown(context.Background())
+
+	// Create and record metrics
+	meter := meterProvider.Meter("test-meter")
+	counter, err := meter.Int64Counter("test.counter")
+	require.NoError(t, err, "failed to create counter")
+
+	counter.Add(ctx, 10, metric.WithAttributes(
+		attribute.String("test", "value"),
+	))
+
+	// Force flush
+	err = meterProvider.ForceFlush(ctx)
+	require.NoError(t, err, "failed to flush meter provider")
+
+	// Consume records from Kafka
+	records := consumeRecords(t, brokers, "test-metrics")
+	require.NotEmpty(t, records, "no metric message found")
+
+	t.Logf("Found metric message of size %d bytes", len(records[0].Value))
+}
+
+// TestMetricExporter_Protobuf tests metric exporter with protobuf format
+func TestMetricExporter_Protobuf(t *testing.T) {
+	ctx := t.Context()
+	brokers := setupRedpanda(t)
+
+	// Create topic
+	createTopic(t, brokers, "test-metrics-protobuf")
+
+	res := createTestResource(t)
+
+	// Create exporter with protobuf format
+	exporter, err := NewMetricExporter(
+		WithTopic("test-metrics-protobuf"),
+		WithBrokers(brokers),
+		WithClientID("test-metric-exporter-pb"),
+		WithResource(res),
+		WithSerializationFormat(SerializationFormatProtobuf),
+	)
+	require.NoError(t, err, "failed to create metric exporter")
+	defer exporter.Shutdown(context.Background())
+
+	// Create meter provider
+	meterProvider := sdkmetric.NewMeterProvider(
+		sdkmetric.WithReader(sdkmetric.NewPeriodicReader(exporter,
+			sdkmetric.WithInterval(1*time.Second))),
+		sdkmetric.WithResource(res),
+	)
+	defer meterProvider.Shutdown(context.Background())
+
+	// Create and record metrics
+	meter := meterProvider.Meter("test-meter-pb")
+	counter, err := meter.Int64Counter("test.counter.pb")
+	require.NoError(t, err, "failed to create counter")
+
+	counter.Add(ctx, 15, metric.WithAttributes(
+		attribute.String("format", "protobuf"),
+	))
+
+	// Force flush
+	err = meterProvider.ForceFlush(ctx)
+	require.NoError(t, err, "failed to flush meter provider")
+
+	// Consume records from Kafka
+	records := consumeRecords(t, brokers, "test-metrics-protobuf")
+	require.NotEmpty(t, records, "no metric message found")
+
+	t.Logf("Found protobuf metric message of size %d bytes", len(records[0].Value))
+
+	// Parse protobuf
+	var protoMetric metricspb.Metric
+	err = proto.Unmarshal(records[0].Value, &protoMetric)
+	require.NoError(t, err, "failed to unmarshal protobuf")
+
+	// Verify metric
+	assert.Equal(t, "test.counter.pb", protoMetric.Name, "metric name mismatch")
+
+	// Verify resource attributes are in headers (not in the protobuf body)
+	require.NotEmpty(t, records[0].Headers, "no headers found")
+	hasServiceName := false
+	for _, header := range records[0].Headers {
+		if header.Key == "service.name" {
+			hasServiceName = true
+			assert.Equal(t, "test-service", string(header.Value), "service.name mismatch")
+			break
+		}
+	}
+	assert.True(t, hasServiceName, "service.name header not found")
+}
+
+// TestLogExporter tests log exporter
+func TestLogExporter(t *testing.T) {
+	ctx := t.Context()
+	brokers := setupRedpanda(t)
+
+	// Create topic
+	createTopic(t, brokers, "test-logs")
+
+	res := createTestResource(t)
+
+	// Create exporter
+	exporter, err := NewLogExporter(
+		WithTopic("test-logs"),
+		WithBrokers(brokers),
+		WithClientID("test-log-exporter"),
+		WithResource(res),
+		WithSerializationFormat(SerializationFormatJSON),
+	)
+	require.NoError(t, err, "failed to create log exporter")
+	defer exporter.Shutdown(context.Background())
+
+	// Create logger provider
+	loggerProvider := sdklog.NewLoggerProvider(
+		sdklog.WithProcessor(sdklog.NewBatchProcessor(exporter)),
+		sdklog.WithResource(res),
+	)
+	defer loggerProvider.Shutdown(context.Background())
+
+	// Emit a log
+	logger := loggerProvider.Logger("test-logger")
+	logRecord := otellog.Record{}
+	logRecord.SetTimestamp(time.Now())
+	logRecord.SetBody(otellog.StringValue("test log message"))
+	logRecord.SetSeverity(otellog.SeverityInfo)
+	logRecord.AddAttributes(
+		otellog.String("test.attribute", "test.value"),
+	)
+	logger.Emit(ctx, logRecord)
+
+	// Force flush
+	err = loggerProvider.ForceFlush(ctx)
+	require.NoError(t, err, "failed to flush logger provider")
+
+	// Consume records from Kafka
+	records := consumeRecords(t, brokers, "test-logs")
+	require.NotEmpty(t, records, "no log message found")
+
+	// Parse and validate log data
+	var logData map[string]any
+	err = json.Unmarshal(records[0].Value, &logData)
+	require.NoError(t, err, "failed to unmarshal log data")
+
+	// Verify body - OTLP JSON spec requires AnyValue typed structure
+	body, ok := logData["body"].(map[string]any)
+	require.True(t, ok, "body is not an AnyValue object")
+	bodyValue, ok := body["stringValue"].(string)
+	require.True(t, ok, "body stringValue not found")
+	assert.Equal(t, "test log message", bodyValue, "log body mismatch")
+}
+
+// TestLogExporter_Protobuf tests log exporter with protobuf format
+func TestLogExporter_Protobuf(t *testing.T) {
+	ctx := t.Context()
+	brokers := setupRedpanda(t)
+
+	// Create topic
+	createTopic(t, brokers, "test-logs-protobuf")
+
+	res := createTestResource(t)
+
+	// Create exporter with protobuf format
+	exporter, err := NewLogExporter(
+		WithTopic("test-logs-protobuf"),
+		WithBrokers(brokers),
+		WithClientID("test-log-exporter-pb"),
+		WithResource(res),
+		WithSerializationFormat(SerializationFormatProtobuf),
+	)
+	require.NoError(t, err, "failed to create log exporter")
+	defer exporter.Shutdown(context.Background())
+
+	// Create logger provider
+	loggerProvider := sdklog.NewLoggerProvider(
+		sdklog.WithProcessor(sdklog.NewBatchProcessor(exporter)),
+		sdklog.WithResource(res),
+	)
+	defer loggerProvider.Shutdown(context.Background())
+
+	// Emit a log
+	logger := loggerProvider.Logger("test-logger-pb")
+	logRecord := otellog.Record{}
+	logRecord.SetTimestamp(time.Now())
+	logRecord.SetBody(otellog.StringValue("test protobuf log message"))
+	logRecord.SetSeverity(otellog.SeverityWarn)
+	logRecord.AddAttributes(
+		otellog.String("format", "protobuf"),
+	)
+	logger.Emit(ctx, logRecord)
+
+	// Force flush
+	err = loggerProvider.ForceFlush(ctx)
+	require.NoError(t, err, "failed to flush logger provider")
+
+	// Consume records from Kafka
+	records := consumeRecords(t, brokers, "test-logs-protobuf")
+	require.NotEmpty(t, records, "no log message found")
+
+	t.Logf("Found protobuf log message of size %d bytes", len(records[0].Value))
+
+	// Parse protobuf
+	var protoLog logspb.LogRecord
+	err = proto.Unmarshal(records[0].Value, &protoLog)
+	require.NoError(t, err, "failed to unmarshal protobuf")
+
+	// Verify log record
+	assert.Equal(t, logspb.SeverityNumber_SEVERITY_NUMBER_WARN, protoLog.SeverityNumber, "severity mismatch")
+
+	// Verify resource attributes are in headers (not in the protobuf body)
+	require.NotEmpty(t, records[0].Headers, "no headers found")
+	hasServiceName := false
+	for _, header := range records[0].Headers {
+		if header.Key == "service.name" {
+			hasServiceName = true
+			assert.Equal(t, "test-service", string(header.Value), "service.name mismatch")
+			break
+		}
+	}
+	assert.True(t, hasServiceName, "service.name header not found")
+}
