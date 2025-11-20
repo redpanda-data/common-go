@@ -129,3 +129,260 @@ func (f *fakeSecretManager) CheckSecretExists(_ context.Context, key string) boo
 	_, ok := f.secrets[key]
 	return ok
 }
+
+func (f *fakeSecretManager) CreateSecret(_ context.Context, key string, value string) error {
+	if f.secrets == nil {
+		f.secrets = make(map[string]string)
+	}
+	f.secrets[key] = value
+	return nil
+}
+
+func (f *fakeSecretManager) UpdateSecret(_ context.Context, key string, value string) error {
+	if f.secrets == nil {
+		f.secrets = make(map[string]string)
+	}
+	f.secrets[key] = value
+	return nil
+}
+
+func (f *fakeSecretManager) DeleteSecret(_ context.Context, key string) error {
+	if f.secrets != nil {
+		delete(f.secrets, key)
+	}
+	return nil
+}
+
+func Test_secretManager_CreateSecret(t *testing.T) {
+	type args struct {
+		key        string
+		value      string
+		prefix     string
+		trimPrefix string
+	}
+	tests := []struct {
+		name          string
+		args          args
+		wantErr       bool
+		wantSecretKey string
+	}{
+		{
+			name: "should create secret with prefix",
+			args: args{
+				key:        "secrets.MY_SECRET",
+				value:      "mySecretValue",
+				prefix:     "prefix/",
+				trimPrefix: "secrets.",
+			},
+			wantErr:       false,
+			wantSecretKey: "prefix/MY_SECRET",
+		},
+		{
+			name: "should create secret without trimPrefix",
+			args: args{
+				key:        "MY_SECRET",
+				value:      "mySecretValue",
+				prefix:     "prefix/",
+				trimPrefix: "",
+			},
+			wantErr:       false,
+			wantSecretKey: "prefix/MY_SECRET",
+		},
+		{
+			name: "should fail with invalid key format",
+			args: args{
+				key:        "INVALID_KEY",
+				value:      "mySecretValue",
+				prefix:     "prefix/",
+				trimPrefix: "secrets.",
+			},
+			wantErr:       true,
+			wantSecretKey: "",
+		},
+		{
+			name: "should create secret with JSON value",
+			args: args{
+				key:        "secrets.MY_SECRET",
+				value:      `{"username":"admin","password":"secret123"}`,
+				prefix:     "prefix/",
+				trimPrefix: "secrets.",
+			},
+			wantErr:       false,
+			wantSecretKey: "prefix/MY_SECRET",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fakeManager := &fakeSecretManager{
+				secrets: make(map[string]string),
+			}
+			secretsApi, err := NewSecretProvider(fakeManager, tt.args.prefix, tt.args.trimPrefix)
+			require.NoError(t, err)
+
+			err = secretsApi.CreateSecret(context.Background(), tt.args.key, tt.args.value)
+			if tt.wantErr {
+				assert.Error(t, err)
+				return
+			}
+
+			require.NoError(t, err)
+
+			// Verify the secret was created with the correct key
+			value, exists := fakeManager.secrets[tt.wantSecretKey]
+			assert.True(t, exists, "secret should exist at key: %s", tt.wantSecretKey)
+			assert.Equal(t, tt.args.value, value, "secret value should match")
+
+			// Verify we can retrieve the secret
+			retrievedValue, found := secretsApi.GetSecretValue(context.Background(), tt.args.key)
+			assert.True(t, found, "should be able to retrieve the created secret")
+			assert.Equal(t, tt.args.value, retrievedValue, "retrieved value should match")
+		})
+	}
+}
+
+func Test_secretManager_UpdateSecret(t *testing.T) {
+	type args struct {
+		key        string
+		oldValue   string
+		newValue   string
+		prefix     string
+		trimPrefix string
+	}
+	tests := []struct {
+		name          string
+		args          args
+		wantErr       bool
+		wantSecretKey string
+	}{
+		{
+			name: "should update existing secret",
+			args: args{
+				key:        "secrets.MY_SECRET",
+				oldValue:   "oldValue",
+				newValue:   "newValue",
+				prefix:     "prefix/",
+				trimPrefix: "secrets.",
+			},
+			wantErr:       false,
+			wantSecretKey: "prefix/MY_SECRET",
+		},
+		{
+			name: "should fail with invalid key format",
+			args: args{
+				key:        "INVALID_KEY",
+				oldValue:   "oldValue",
+				newValue:   "newValue",
+				prefix:     "prefix/",
+				trimPrefix: "secrets.",
+			},
+			wantErr:       true,
+			wantSecretKey: "",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fakeManager := &fakeSecretManager{
+				secrets: make(map[string]string),
+			}
+			// Pre-create the secret with old value
+			if tt.wantSecretKey != "" {
+				fakeManager.secrets[tt.wantSecretKey] = tt.args.oldValue
+			}
+
+			secretsApi, err := NewSecretProvider(fakeManager, tt.args.prefix, tt.args.trimPrefix)
+			require.NoError(t, err)
+
+			err = secretsApi.UpdateSecret(context.Background(), tt.args.key, tt.args.newValue)
+			if tt.wantErr {
+				assert.Error(t, err)
+				return
+			}
+
+			require.NoError(t, err)
+
+			// Verify the secret was updated
+			value, exists := fakeManager.secrets[tt.wantSecretKey]
+			assert.True(t, exists, "secret should exist at key: %s", tt.wantSecretKey)
+			assert.Equal(t, tt.args.newValue, value, "secret value should be updated")
+
+			// Verify we can retrieve the updated secret
+			retrievedValue, found := secretsApi.GetSecretValue(context.Background(), tt.args.key)
+			assert.True(t, found, "should be able to retrieve the updated secret")
+			assert.Equal(t, tt.args.newValue, retrievedValue, "retrieved value should match new value")
+		})
+	}
+}
+
+func Test_secretManager_DeleteSecret(t *testing.T) {
+	type args struct {
+		key        string
+		value      string
+		prefix     string
+		trimPrefix string
+	}
+	tests := []struct {
+		name          string
+		args          args
+		wantErr       bool
+		wantSecretKey string
+	}{
+		{
+			name: "should delete existing secret",
+			args: args{
+				key:        "secrets.MY_SECRET",
+				value:      "secretValue",
+				prefix:     "prefix/",
+				trimPrefix: "secrets.",
+			},
+			wantErr:       false,
+			wantSecretKey: "prefix/MY_SECRET",
+		},
+		{
+			name: "should fail with invalid key format",
+			args: args{
+				key:        "INVALID_KEY",
+				value:      "secretValue",
+				prefix:     "prefix/",
+				trimPrefix: "secrets.",
+			},
+			wantErr:       true,
+			wantSecretKey: "",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fakeManager := &fakeSecretManager{
+				secrets: make(map[string]string),
+			}
+			// Pre-create the secret
+			if tt.wantSecretKey != "" {
+				fakeManager.secrets[tt.wantSecretKey] = tt.args.value
+			}
+
+			secretsApi, err := NewSecretProvider(fakeManager, tt.args.prefix, tt.args.trimPrefix)
+			require.NoError(t, err)
+
+			// Verify secret exists before deletion
+			if !tt.wantErr {
+				exists := secretsApi.CheckSecretExists(context.Background(), tt.args.key)
+				assert.True(t, exists, "secret should exist before deletion")
+			}
+
+			err = secretsApi.DeleteSecret(context.Background(), tt.args.key)
+			if tt.wantErr {
+				assert.Error(t, err)
+				return
+			}
+
+			require.NoError(t, err)
+
+			// Verify the secret was deleted
+			_, exists := fakeManager.secrets[tt.wantSecretKey]
+			assert.False(t, exists, "secret should not exist after deletion")
+
+			// Verify we cannot retrieve the deleted secret
+			_, found := secretsApi.GetSecretValue(context.Background(), tt.args.key)
+			assert.False(t, found, "should not be able to retrieve deleted secret")
+		})
+	}
+}

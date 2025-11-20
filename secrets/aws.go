@@ -54,6 +54,40 @@ func (a *awsSecretsManager) CheckSecretExists(ctx context.Context, key string) b
 	return err == nil
 }
 
+func (a *awsSecretsManager) CreateSecret(ctx context.Context, key string, value string) error {
+	_, err := a.client.CreateSecret(ctx, &secretsmanager.CreateSecretInput{
+		Name:         &key,
+		SecretString: &value,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create secret: %w", err)
+	}
+	return nil
+}
+
+func (a *awsSecretsManager) UpdateSecret(ctx context.Context, key string, value string) error {
+	_, err := a.client.PutSecretValue(ctx, &secretsmanager.PutSecretValueInput{
+		SecretId:     &key,
+		SecretString: &value,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to update secret: %w", err)
+	}
+	return nil
+}
+
+func (a *awsSecretsManager) DeleteSecret(ctx context.Context, key string) error {
+	forceDelete := true
+	_, err := a.client.DeleteSecret(ctx, &secretsmanager.DeleteSecretInput{
+		SecretId:                   &key,
+		ForceDeleteWithoutRecovery: &forceDelete,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to delete secret: %w", err)
+	}
+	return nil
+}
+
 func createAWSClient(ctx context.Context, region string, roleARN string) (*secretsmanager.Client, error) {
 	cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(region))
 	if err != nil {

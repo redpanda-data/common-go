@@ -63,6 +63,40 @@ func (a *azSecretsManager) CheckSecretExists(ctx context.Context, key string) bo
 	return err == nil && len(page.Value) > 0
 }
 
+// CreateSecret creates a new secret.
+func (a *azSecretsManager) CreateSecret(ctx context.Context, key string, value string) error {
+	key = sanitize(key)
+	_, err := a.client.SetSecret(ctx, key, azsecrets.SetSecretParameters{
+		Value: &value,
+	}, nil)
+	if err != nil {
+		return fmt.Errorf("failed to create secret: %w", err)
+	}
+	return nil
+}
+
+// UpdateSecret updates an existing secret.
+func (a *azSecretsManager) UpdateSecret(ctx context.Context, key string, value string) error {
+	key = sanitize(key)
+	_, err := a.client.SetSecret(ctx, key, azsecrets.SetSecretParameters{
+		Value: &value,
+	}, nil)
+	if err != nil {
+		return fmt.Errorf("failed to update secret: %w", err)
+	}
+	return nil
+}
+
+// DeleteSecret deletes a secret.
+func (a *azSecretsManager) DeleteSecret(ctx context.Context, key string) error {
+	key = sanitize(key)
+	_, err := a.client.DeleteSecret(ctx, key, nil)
+	if err != nil {
+		return fmt.Errorf("failed to delete secret: %w", err)
+	}
+	return nil
+}
+
 // sanitize as Azure does not allow the '_' character in secret name
 func sanitize(key string) string {
 	return strings.ReplaceAll(key, "_", "-")

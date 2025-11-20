@@ -18,6 +18,7 @@ package secrets
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"github.com/tidwall/gjson"
@@ -27,6 +28,9 @@ import (
 type SecretAPI interface {
 	GetSecretValue(context.Context, string) (string, bool)
 	CheckSecretExists(context.Context, string) bool
+	CreateSecret(context.Context, string, string) error
+	UpdateSecret(context.Context, string, string) error
+	DeleteSecret(context.Context, string) error
 }
 
 // SecretProviderFn is a secret API provider function type.
@@ -65,6 +69,36 @@ func (s *secretProvider) CheckSecretExists(ctx context.Context, key string) bool
 	}
 
 	return s.SecretAPI.CheckSecretExists(ctx, secretName)
+}
+
+// CreateSecret creates a new secret.
+func (s *secretProvider) CreateSecret(ctx context.Context, key string, value string) error {
+	secretName, _, ok := s.trimPrefixAndSplit(key)
+	if !ok {
+		return fmt.Errorf("invalid key format: %s", key)
+	}
+
+	return s.SecretAPI.CreateSecret(ctx, secretName, value)
+}
+
+// UpdateSecret updates an existing secret.
+func (s *secretProvider) UpdateSecret(ctx context.Context, key string, value string) error {
+	secretName, _, ok := s.trimPrefixAndSplit(key)
+	if !ok {
+		return fmt.Errorf("invalid key format: %s", key)
+	}
+
+	return s.SecretAPI.UpdateSecret(ctx, secretName, value)
+}
+
+// DeleteSecret deletes a secret.
+func (s *secretProvider) DeleteSecret(ctx context.Context, key string) error {
+	secretName, _, ok := s.trimPrefixAndSplit(key)
+	if !ok {
+		return fmt.Errorf("invalid key format: %s", key)
+	}
+
+	return s.SecretAPI.DeleteSecret(ctx, secretName)
 }
 
 // NewSecretProvider handles prefix trim and optional JSON field retrieval

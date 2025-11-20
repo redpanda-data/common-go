@@ -112,6 +112,69 @@ func (g *gcpSecretsManager) CheckSecretExists(ctx context.Context, key string) b
 	return err == nil
 }
 
+func (g *gcpSecretsManager) CreateSecret(ctx context.Context, key string, value string) error {
+	secretID := g.getSecretID(key)
+
+	// Create the secret
+	_, err := g.client.CreateSecret(ctx, &secretmanagerpb.CreateSecretRequest{
+		Parent:   fmt.Sprintf("projects/%s", g.projectID),
+		SecretId: key,
+		Secret: &secretmanagerpb.Secret{
+			Replication: &secretmanagerpb.Replication{
+				Replication: &secretmanagerpb.Replication_Automatic_{
+					Automatic: &secretmanagerpb.Replication_Automatic{},
+				},
+			},
+		},
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create secret: %w", err)
+	}
+
+	// Add the secret version with the value
+	_, err = g.client.AddSecretVersion(ctx, &secretmanagerpb.AddSecretVersionRequest{
+		Parent: secretID,
+		Payload: &secretmanagerpb.SecretPayload{
+			Data: []byte(value),
+		},
+	})
+	if err != nil {
+		return fmt.Errorf("failed to add secret version: %w", err)
+	}
+
+	return nil
+}
+
+func (g *gcpSecretsManager) UpdateSecret(ctx context.Context, key string, value string) error {
+	secretID := g.getSecretID(key)
+
+	// Add a new secret version with the updated value
+	_, err := g.client.AddSecretVersion(ctx, &secretmanagerpb.AddSecretVersionRequest{
+		Parent: secretID,
+		Payload: &secretmanagerpb.SecretPayload{
+			Data: []byte(value),
+		},
+	})
+	if err != nil {
+		return fmt.Errorf("failed to update secret: %w", err)
+	}
+
+	return nil
+}
+
+func (g *gcpSecretsManager) DeleteSecret(ctx context.Context, key string) error {
+	secretID := g.getSecretID(key)
+
+	err := g.client.DeleteSecret(ctx, &secretmanagerpb.DeleteSecretRequest{
+		Name: secretID,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to delete secret: %w", err)
+	}
+
+	return nil
+}
+
 func (g *gcpSecretsManager) getLatestSecretID(key string) string {
 	return fmt.Sprintf("%v/versions/latest", g.getSecretID(key))
 }
