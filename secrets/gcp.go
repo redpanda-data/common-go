@@ -13,16 +13,19 @@ import (
 	"google.golang.org/api/option"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/fieldmaskpb"
 )
 
 type gcpSecretsManager struct {
 	client    *secretmanager.Client
 	projectID string
 	logger    *slog.Logger
+	tags      map[string]string
 }
 
 // NewGCPSecretsManager creates a secret API for GCP.
-func NewGCPSecretsManager(ctx context.Context, logger *slog.Logger, projectID string, audience string) (SecretAPI, error) {
+// The optional globalTags parameter specifies tags that will be applied to all secrets.
+func NewGCPSecretsManager(ctx context.Context, logger *slog.Logger, projectID string, audience string, globalTags ...map[string]string) (SecretAPI, error) {
 	var client *secretmanager.Client
 	var err error
 
@@ -40,10 +43,18 @@ func NewGCPSecretsManager(ctx context.Context, logger *slog.Logger, projectID st
 		}
 	}
 
+	tags := make(map[string]string)
+	if len(globalTags) > 0 && globalTags[0] != nil {
+		for k, v := range globalTags[0] {
+			tags[k] = v
+		}
+	}
+
 	return &gcpSecretsManager{
 		client:    client,
 		projectID: projectID,
 		logger:    logger,
+		tags:      tags,
 	}, nil
 }
 
@@ -112,8 +123,9 @@ func (g *gcpSecretsManager) CheckSecretExists(ctx context.Context, key string) b
 	return err == nil
 }
 
-func (g *gcpSecretsManager) CreateSecret(ctx context.Context, key string, value string) error {
+func (g *gcpSecretsManager) CreateSecret(ctx context.Context, key string, value string, labels map[string]string) error {
 	secretID := g.getSecretID(key)
+	mergedLabels := g.mergeTags(labels)
 
 	// Create the secret
 	_, err := g.client.CreateSecret(ctx, &secretmanagerpb.CreateSecretRequest{
@@ -125,6 +137,7 @@ func (g *gcpSecretsManager) CreateSecret(ctx context.Context, key string, value 
 					Automatic: &secretmanagerpb.Replication_Automatic{},
 				},
 			},
+			Labels: mergedLabels,
 		},
 	})
 	if err != nil {
@@ -145,11 +158,36 @@ func (g *gcpSecretsManager) CreateSecret(ctx context.Context, key string, value 
 	return nil
 }
 
-func (g *gcpSecretsManager) UpdateSecret(ctx context.Context, key string, value string) error {
+func (g *gcpSecretsManager) UpdateSecret(ctx context.Context, key string, value string, labels map[string]string) error {
 	secretID := g.getSecretID(key)
+	mergedLabels := g.mergeTags(labels)
+
+	// Get the current secret to update labels
+	secret, err := g.client.GetSecret(ctx, &secretmanagerpb.GetSecretRequest{
+		Name: secretID,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to get secret: %w", err)
+	}
+
+	// Update labels
+	secret.Labels = mergedLabels
+
+	fm, err := fieldmaskpb.New(secret, "labels")
+	if err != nil {
+		return fmt.Errorf("failed to create field mask: %w", err)
+	}
+
+	_, err = g.client.UpdateSecret(ctx, &secretmanagerpb.UpdateSecretRequest{
+		Secret:     secret,
+		UpdateMask: fm,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to update secret labels: %w", err)
+	}
 
 	// Add a new secret version with the updated value
-	_, err := g.client.AddSecretVersion(ctx, &secretmanagerpb.AddSecretVersionRequest{
+	_, err = g.client.AddSecretVersion(ctx, &secretmanagerpb.AddSecretVersionRequest{
 		Parent: secretID,
 		Payload: &secretmanagerpb.SecretPayload{
 			Data: []byte(value),
@@ -181,4 +219,21 @@ func (g *gcpSecretsManager) getLatestSecretID(key string) string {
 
 func (g *gcpSecretsManager) getSecretID(key string) string {
 	return fmt.Sprintf("projects/%v/secrets/%v", g.projectID, key)
+}
+
+// mergeTags merges provided labels with global tags, with global tags taking precedence.
+func (g *gcpSecretsManager) mergeTags(labels map[string]string) map[string]string {
+	merged := make(map[string]string)
+
+	// Add labels first
+	for k, v := range labels {
+		merged[k] = v
+	}
+
+	// Global tags override labels
+	for k, v := range g.tags {
+		merged[k] = v
+	}
+
+	return merged
 }

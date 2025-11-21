@@ -17,18 +17,28 @@ import (
 type awsSecretsManager struct {
 	client *secretsmanager.Client
 	logger *slog.Logger
+	tags   map[string]string
 }
 
 // NewAWSSecretsManager creates a secret API for AWS.
-func NewAWSSecretsManager(ctx context.Context, logger *slog.Logger, region string, roleARN string) (SecretAPI, error) {
+// The optional globalTags parameter specifies tags that will be applied to all secrets.
+func NewAWSSecretsManager(ctx context.Context, logger *slog.Logger, region string, roleARN string, globalTags ...map[string]string) (SecretAPI, error) {
 	cl, err := createAWSClient(ctx, region, roleARN)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create secrets manager client: %w", err)
 	}
 
+	tags := make(map[string]string)
+	if len(globalTags) > 0 && globalTags[0] != nil {
+		for k, v := range globalTags[0] {
+			tags[k] = v
+		}
+	}
+
 	return &awsSecretsManager{
 		client: cl,
 		logger: logger,
+		tags:   tags,
 	}, nil
 }
 
@@ -54,10 +64,13 @@ func (a *awsSecretsManager) CheckSecretExists(ctx context.Context, key string) b
 	return err == nil
 }
 
-func (a *awsSecretsManager) CreateSecret(ctx context.Context, key string, value string) error {
+func (a *awsSecretsManager) CreateSecret(ctx context.Context, key string, value string, labels map[string]string) error {
+	tags := a.mergeTags(labels)
+
 	_, err := a.client.CreateSecret(ctx, &secretsmanager.CreateSecretInput{
 		Name:         &key,
 		SecretString: &value,
+		Tags:         tags,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create secret: %w", err)
@@ -65,7 +78,8 @@ func (a *awsSecretsManager) CreateSecret(ctx context.Context, key string, value 
 	return nil
 }
 
-func (a *awsSecretsManager) UpdateSecret(ctx context.Context, key string, value string) error {
+func (a *awsSecretsManager) UpdateSecret(ctx context.Context, key string, value string, labels map[string]string) error {
+	// Update the secret value
 	_, err := a.client.PutSecretValue(ctx, &secretsmanager.PutSecretValueInput{
 		SecretId:     &key,
 		SecretString: &value,
@@ -73,6 +87,62 @@ func (a *awsSecretsManager) UpdateSecret(ctx context.Context, key string, value 
 	if err != nil {
 		return fmt.Errorf("failed to update secret: %w", err)
 	}
+
+	// Get current secret to determine which tags to remove
+	describeResp, err := a.client.DescribeSecret(ctx, &secretsmanager.DescribeSecretInput{
+		SecretId: &key,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to describe secret: %w", err)
+	}
+
+	// Merge labels with global tags
+	mergedTags := a.mergeTags(labels)
+
+	// Determine tags to remove (existing tags not in merged tags)
+	existingTags := make(map[string]string)
+	for _, tag := range describeResp.Tags {
+		if tag.Key != nil && tag.Value != nil {
+			existingTags[*tag.Key] = *tag.Value
+		}
+	}
+
+	keysToRemove := make([]string, 0)
+	for k := range existingTags {
+		found := false
+		for _, tag := range mergedTags {
+			if tag.Key != nil && *tag.Key == k {
+				found = true
+				break
+			}
+		}
+		if !found {
+			keysToRemove = append(keysToRemove, k)
+		}
+	}
+
+	// Remove old tags
+	if len(keysToRemove) > 0 {
+		_, err = a.client.UntagResource(ctx, &secretsmanager.UntagResourceInput{
+			SecretId: &key,
+			TagKeys:  keysToRemove,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to untag secret: %w", err)
+		}
+	}
+
+	// Add/update tags
+	if len(mergedTags) > 0 {
+		_, err = a.client.TagResource(ctx, &secretsmanager.TagResourceInput{
+			SecretId: &key,
+			Tags:     mergedTags,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to tag secret: %w", err)
+		}
+	}
+
 	return nil
 }
 
@@ -86,6 +156,33 @@ func (a *awsSecretsManager) DeleteSecret(ctx context.Context, key string) error 
 		return fmt.Errorf("failed to delete secret: %w", err)
 	}
 	return nil
+}
+
+// mergeTags merges provided labels with global tags, with global tags taking precedence.
+func (a *awsSecretsManager) mergeTags(labels map[string]string) []types.Tag {
+	merged := make(map[string]string)
+
+	// Add labels first
+	for k, v := range labels {
+		merged[k] = v
+	}
+
+	// Global tags override labels
+	for k, v := range a.tags {
+		merged[k] = v
+	}
+
+	// Convert to AWS Tag slice
+	tags := make([]types.Tag, 0, len(merged))
+	for k, v := range merged {
+		k, v := k, v
+		tags = append(tags, types.Tag{
+			Key:   &k,
+			Value: &v,
+		})
+	}
+
+	return tags
 }
 
 func createAWSClient(ctx context.Context, region string, roleARN string) (*secretsmanager.Client, error) {

@@ -26,11 +26,11 @@ import (
 
 // SecretAPI is the generic Secret API interface.
 type SecretAPI interface {
-	GetSecretValue(context.Context, string) (string, bool)
-	CheckSecretExists(context.Context, string) bool
-	CreateSecret(context.Context, string, string) error
-	UpdateSecret(context.Context, string, string) error
-	DeleteSecret(context.Context, string) error
+	GetSecretValue(ctx context.Context, key string) (string, bool)
+	CheckSecretExists(ctx context.Context, key string) bool
+	CreateSecret(ctx context.Context, key string, value string, labels map[string]string) error
+	UpdateSecret(ctx context.Context, key string, value string, labels map[string]string) error
+	DeleteSecret(ctx context.Context, key string) error
 }
 
 // SecretProviderFn is a secret API provider function type.
@@ -72,23 +72,23 @@ func (s *secretProvider) CheckSecretExists(ctx context.Context, key string) bool
 }
 
 // CreateSecret creates a new secret.
-func (s *secretProvider) CreateSecret(ctx context.Context, key string, value string) error {
+func (s *secretProvider) CreateSecret(ctx context.Context, key string, value string, labels map[string]string) error {
 	secretName, _, ok := s.trimPrefixAndSplit(key)
 	if !ok {
 		return fmt.Errorf("invalid key format: %s", key)
 	}
 
-	return s.SecretAPI.CreateSecret(ctx, secretName, value)
+	return s.SecretAPI.CreateSecret(ctx, secretName, value, labels)
 }
 
 // UpdateSecret updates an existing secret.
-func (s *secretProvider) UpdateSecret(ctx context.Context, key string, value string) error {
+func (s *secretProvider) UpdateSecret(ctx context.Context, key string, value string, labels map[string]string) error {
 	secretName, _, ok := s.trimPrefixAndSplit(key)
 	if !ok {
 		return fmt.Errorf("invalid key format: %s", key)
 	}
 
-	return s.SecretAPI.UpdateSecret(ctx, secretName, value)
+	return s.SecretAPI.UpdateSecret(ctx, secretName, value, labels)
 }
 
 // DeleteSecret deletes a secret.

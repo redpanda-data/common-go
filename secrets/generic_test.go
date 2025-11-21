@@ -130,7 +130,7 @@ func (f *fakeSecretManager) CheckSecretExists(_ context.Context, key string) boo
 	return ok
 }
 
-func (f *fakeSecretManager) CreateSecret(_ context.Context, key string, value string) error {
+func (f *fakeSecretManager) CreateSecret(_ context.Context, key string, value string, _ map[string]string) error {
 	if f.secrets == nil {
 		f.secrets = make(map[string]string)
 	}
@@ -138,7 +138,7 @@ func (f *fakeSecretManager) CreateSecret(_ context.Context, key string, value st
 	return nil
 }
 
-func (f *fakeSecretManager) UpdateSecret(_ context.Context, key string, value string) error {
+func (f *fakeSecretManager) UpdateSecret(_ context.Context, key string, value string, _ map[string]string) error {
 	if f.secrets == nil {
 		f.secrets = make(map[string]string)
 	}
@@ -219,7 +219,7 @@ func Test_secretManager_CreateSecret(t *testing.T) {
 			secretsApi, err := NewSecretProvider(fakeManager, tt.args.prefix, tt.args.trimPrefix)
 			require.NoError(t, err)
 
-			err = secretsApi.CreateSecret(context.Background(), tt.args.key, tt.args.value)
+			err = secretsApi.CreateSecret(context.Background(), tt.args.key, tt.args.value, nil)
 			if tt.wantErr {
 				assert.Error(t, err)
 				return
@@ -292,7 +292,7 @@ func Test_secretManager_UpdateSecret(t *testing.T) {
 			secretsApi, err := NewSecretProvider(fakeManager, tt.args.prefix, tt.args.trimPrefix)
 			require.NoError(t, err)
 
-			err = secretsApi.UpdateSecret(context.Background(), tt.args.key, tt.args.newValue)
+			err = secretsApi.UpdateSecret(context.Background(), tt.args.key, tt.args.newValue, nil)
 			if tt.wantErr {
 				assert.Error(t, err)
 				return
