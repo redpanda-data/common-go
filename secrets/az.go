@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"maps"
 	"strings"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
@@ -17,10 +18,12 @@ const latestVersion = ""
 type azSecretsManager struct {
 	client *azsecrets.Client
 	logger *slog.Logger
+	tags   map[string]string
 }
 
 // NewAzSecretsManager creates a new Azure secrets manager client.
-func NewAzSecretsManager(logger *slog.Logger, vaultURL string) (SecretAPI, error) {
+// The optional globalTags parameter specifies tags that will be applied to all secrets.
+func NewAzSecretsManager(logger *slog.Logger, vaultURL string, globalTags ...map[string]string) (SecretAPI, error) {
 	cred, err := azidentity.NewDefaultAzureCredential(nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to obtain Azure credentials: %w", err)
@@ -31,9 +34,17 @@ func NewAzSecretsManager(logger *slog.Logger, vaultURL string) (SecretAPI, error
 		return nil, fmt.Errorf("failed to create secretmanager client: %w", err)
 	}
 
+	tags := make(map[string]string)
+	if len(globalTags) > 0 && globalTags[0] != nil {
+		for k, v := range globalTags[0] {
+			tags[k] = v
+		}
+	}
+
 	return &azSecretsManager{
 		client: client,
 		logger: logger,
+		tags:   tags,
 	}, nil
 }
 
@@ -63,7 +74,67 @@ func (a *azSecretsManager) CheckSecretExists(ctx context.Context, key string) bo
 	return err == nil && len(page.Value) > 0
 }
 
+// CreateSecret creates a new secret.
+func (a *azSecretsManager) CreateSecret(ctx context.Context, key string, value string, tags map[string]string) error {
+	key = sanitize(key)
+	mergedTags := a.mergeTags(tags)
+
+	_, err := a.client.SetSecret(ctx, key, azsecrets.SetSecretParameters{
+		Value: &value,
+		Tags:  mergedTags,
+	}, nil)
+	if err != nil {
+		return fmt.Errorf("failed to create secret: %w", err)
+	}
+	return nil
+}
+
+// UpdateSecret updates an existing secret.
+func (a *azSecretsManager) UpdateSecret(ctx context.Context, key string, value string, tags map[string]string) error {
+	key = sanitize(key)
+	mergedTags := a.mergeTags(tags)
+
+	_, err := a.client.SetSecret(ctx, key, azsecrets.SetSecretParameters{
+		Value: &value,
+		Tags:  mergedTags,
+	}, nil)
+	if err != nil {
+		return fmt.Errorf("failed to update secret: %w", err)
+	}
+	return nil
+}
+
+// DeleteSecret deletes a secret.
+func (a *azSecretsManager) DeleteSecret(ctx context.Context, key string) error {
+	key = sanitize(key)
+	_, err := a.client.DeleteSecret(ctx, key, nil)
+	if err != nil {
+		return fmt.Errorf("failed to delete secret: %w", err)
+	}
+	return nil
+}
+
 // sanitize as Azure does not allow the '_' character in secret name
 func sanitize(key string) string {
 	return strings.ReplaceAll(key, "_", "-")
+}
+
+// mergeTags merges provided tags with global tags, with global tags taking precedence.
+func (a *azSecretsManager) mergeTags(tags map[string]string) map[string]*string {
+	merged := make(map[string]string, len(tags)+len(a.tags))
+
+	// Add provided tags first
+	maps.Copy(merged, tags)
+
+	// Global tags override provided tags
+	maps.Copy(merged, a.tags)
+
+	// Convert to Azure tags format (map[string]*string)
+	azureTags := make(map[string]*string, len(merged))
+	for k, v := range merged {
+		v := v
+		azureTags[k] = &v
+	}
+
+	return azureTags
 }
