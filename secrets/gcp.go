@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"maps"
 	"os"
 
 	secretmanager "cloud.google.com/go/secretmanager/apiv1"
@@ -123,9 +124,9 @@ func (g *gcpSecretsManager) CheckSecretExists(ctx context.Context, key string) b
 	return err == nil
 }
 
-func (g *gcpSecretsManager) CreateSecret(ctx context.Context, key string, value string, labels map[string]string) error {
+func (g *gcpSecretsManager) CreateSecret(ctx context.Context, key string, value string, tags map[string]string) error {
 	secretID := g.getSecretID(key)
-	mergedLabels := g.mergeTags(labels)
+	mergedTags := g.mergeTags(tags)
 
 	// Create the secret
 	_, err := g.client.CreateSecret(ctx, &secretmanagerpb.CreateSecretRequest{
@@ -137,7 +138,7 @@ func (g *gcpSecretsManager) CreateSecret(ctx context.Context, key string, value 
 					Automatic: &secretmanagerpb.Replication_Automatic{},
 				},
 			},
-			Labels: mergedLabels,
+			Labels: mergedTags,
 		},
 	})
 	if err != nil {
@@ -158,11 +159,11 @@ func (g *gcpSecretsManager) CreateSecret(ctx context.Context, key string, value 
 	return nil
 }
 
-func (g *gcpSecretsManager) UpdateSecret(ctx context.Context, key string, value string, labels map[string]string) error {
+func (g *gcpSecretsManager) UpdateSecret(ctx context.Context, key string, value string, tags map[string]string) error {
 	secretID := g.getSecretID(key)
-	mergedLabels := g.mergeTags(labels)
+	mergedTags := g.mergeTags(tags)
 
-	// Get the current secret to update labels
+	// Get the current secret to update tags
 	secret, err := g.client.GetSecret(ctx, &secretmanagerpb.GetSecretRequest{
 		Name: secretID,
 	})
@@ -170,8 +171,8 @@ func (g *gcpSecretsManager) UpdateSecret(ctx context.Context, key string, value 
 		return fmt.Errorf("failed to get secret: %w", err)
 	}
 
-	// Update labels
-	secret.Labels = mergedLabels
+	// Update tags
+	secret.Labels = mergedTags
 
 	fm, err := fieldmaskpb.New(secret, "labels")
 	if err != nil {
@@ -183,7 +184,7 @@ func (g *gcpSecretsManager) UpdateSecret(ctx context.Context, key string, value 
 		UpdateMask: fm,
 	})
 	if err != nil {
-		return fmt.Errorf("failed to update secret labels: %w", err)
+		return fmt.Errorf("failed to update secret tags: %w", err)
 	}
 
 	// Add a new secret version with the updated value
@@ -221,19 +222,15 @@ func (g *gcpSecretsManager) getSecretID(key string) string {
 	return fmt.Sprintf("projects/%v/secrets/%v", g.projectID, key)
 }
 
-// mergeTags merges provided labels with global tags, with global tags taking precedence.
-func (g *gcpSecretsManager) mergeTags(labels map[string]string) map[string]string {
-	merged := make(map[string]string)
+// mergeTags merges provided tags with global tags, with global tags taking precedence.
+func (g *gcpSecretsManager) mergeTags(tags map[string]string) map[string]string {
+	merged := make(map[string]string, len(tags)+len(g.tags))
 
-	// Add labels first
-	for k, v := range labels {
-		merged[k] = v
-	}
+	// Add provided tags first
+	maps.Copy(merged, tags)
 
-	// Global tags override labels
-	for k, v := range g.tags {
-		merged[k] = v
-	}
+	// Global tags override provided tags
+	maps.Copy(merged, g.tags)
 
 	return merged
 }

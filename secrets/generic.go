@@ -28,8 +28,12 @@ import (
 type SecretAPI interface {
 	GetSecretValue(ctx context.Context, key string) (string, bool)
 	CheckSecretExists(ctx context.Context, key string) bool
-	CreateSecret(ctx context.Context, key string, value string, labels map[string]string) error
-	UpdateSecret(ctx context.Context, key string, value string, labels map[string]string) error
+	// CreateSecret creates a new secret with the provided tags.
+	// Global tags will overwrite any provided tags with the same keys.
+	CreateSecret(ctx context.Context, key string, value string, tags map[string]string) error
+	// UpdateSecret updates an existing secret with the provided tags.
+	// Global tags will overwrite any provided tags with the same keys.
+	UpdateSecret(ctx context.Context, key string, value string, tags map[string]string) error
 	DeleteSecret(ctx context.Context, key string) error
 }
 
@@ -72,23 +76,23 @@ func (s *secretProvider) CheckSecretExists(ctx context.Context, key string) bool
 }
 
 // CreateSecret creates a new secret.
-func (s *secretProvider) CreateSecret(ctx context.Context, key string, value string, labels map[string]string) error {
+func (s *secretProvider) CreateSecret(ctx context.Context, key string, value string, tags map[string]string) error {
 	secretName, _, ok := s.trimPrefixAndSplit(key)
 	if !ok {
 		return fmt.Errorf("invalid key format: %s", key)
 	}
 
-	return s.SecretAPI.CreateSecret(ctx, secretName, value, labels)
+	return s.SecretAPI.CreateSecret(ctx, secretName, value, tags)
 }
 
 // UpdateSecret updates an existing secret.
-func (s *secretProvider) UpdateSecret(ctx context.Context, key string, value string, labels map[string]string) error {
+func (s *secretProvider) UpdateSecret(ctx context.Context, key string, value string, tags map[string]string) error {
 	secretName, _, ok := s.trimPrefixAndSplit(key)
 	if !ok {
 		return fmt.Errorf("invalid key format: %s", key)
 	}
 
-	return s.SecretAPI.UpdateSecret(ctx, secretName, value, labels)
+	return s.SecretAPI.UpdateSecret(ctx, secretName, value, tags)
 }
 
 // DeleteSecret deletes a secret.

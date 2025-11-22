@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"maps"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -64,13 +65,13 @@ func (a *awsSecretsManager) CheckSecretExists(ctx context.Context, key string) b
 	return err == nil
 }
 
-func (a *awsSecretsManager) CreateSecret(ctx context.Context, key string, value string, labels map[string]string) error {
-	tags := a.mergeTags(labels)
+func (a *awsSecretsManager) CreateSecret(ctx context.Context, key string, value string, tags map[string]string) error {
+	mergedTags := a.mergeTags(tags)
 
 	_, err := a.client.CreateSecret(ctx, &secretsmanager.CreateSecretInput{
 		Name:         &key,
 		SecretString: &value,
-		Tags:         tags,
+		Tags:         mergedTags,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create secret: %w", err)
@@ -78,7 +79,7 @@ func (a *awsSecretsManager) CreateSecret(ctx context.Context, key string, value 
 	return nil
 }
 
-func (a *awsSecretsManager) UpdateSecret(ctx context.Context, key string, value string, labels map[string]string) error {
+func (a *awsSecretsManager) UpdateSecret(ctx context.Context, key string, value string, tags map[string]string) error {
 	// Update the secret value
 	_, err := a.client.PutSecretValue(ctx, &secretsmanager.PutSecretValueInput{
 		SecretId:     &key,
@@ -96,8 +97,8 @@ func (a *awsSecretsManager) UpdateSecret(ctx context.Context, key string, value 
 		return fmt.Errorf("failed to describe secret: %w", err)
 	}
 
-	// Merge labels with global tags
-	mergedTags := a.mergeTags(labels)
+	// Merge tags with global tags
+	mergedTags := a.mergeTags(tags)
 
 	// Determine tags to remove (existing tags not in merged tags)
 	existingTags := make(map[string]string)
@@ -158,31 +159,27 @@ func (a *awsSecretsManager) DeleteSecret(ctx context.Context, key string) error 
 	return nil
 }
 
-// mergeTags merges provided labels with global tags, with global tags taking precedence.
-func (a *awsSecretsManager) mergeTags(labels map[string]string) []types.Tag {
-	merged := make(map[string]string)
+// mergeTags merges provided tags with global tags, with global tags taking precedence.
+func (a *awsSecretsManager) mergeTags(tags map[string]string) []types.Tag {
+	merged := make(map[string]string, len(tags)+len(a.tags))
 
-	// Add labels first
-	for k, v := range labels {
-		merged[k] = v
-	}
+	// Add provided tags first
+	maps.Copy(merged, tags)
 
-	// Global tags override labels
-	for k, v := range a.tags {
-		merged[k] = v
-	}
+	// Global tags override provided tags
+	maps.Copy(merged, a.tags)
 
 	// Convert to AWS Tag slice
-	tags := make([]types.Tag, 0, len(merged))
+	awsTags := make([]types.Tag, 0, len(merged))
 	for k, v := range merged {
 		k, v := k, v
-		tags = append(tags, types.Tag{
+		awsTags = append(awsTags, types.Tag{
 			Key:   &k,
 			Value: &v,
 		})
 	}
 
-	return tags
+	return awsTags
 }
 
 func createAWSClient(ctx context.Context, region string, roleARN string) (*secretsmanager.Client, error) {

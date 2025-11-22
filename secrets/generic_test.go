@@ -2,6 +2,7 @@ package secrets
 
 import (
 	"context"
+	"maps"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -10,6 +11,7 @@ import (
 
 type fakeSecretManager struct {
 	secrets map[string]string
+	tags    map[string]map[string]string // secretKey -> tags
 }
 
 func Test_secretManager_lookup(t *testing.T) {
@@ -130,19 +132,37 @@ func (f *fakeSecretManager) CheckSecretExists(_ context.Context, key string) boo
 	return ok
 }
 
-func (f *fakeSecretManager) CreateSecret(_ context.Context, key string, value string, _ map[string]string) error {
+func (f *fakeSecretManager) CreateSecret(_ context.Context, key string, value string, tags map[string]string) error {
 	if f.secrets == nil {
 		f.secrets = make(map[string]string)
 	}
+	if f.tags == nil {
+		f.tags = make(map[string]map[string]string)
+	}
 	f.secrets[key] = value
+	if tags != nil {
+		f.tags[key] = make(map[string]string)
+		for k, v := range tags {
+			f.tags[key][k] = v
+		}
+	}
 	return nil
 }
 
-func (f *fakeSecretManager) UpdateSecret(_ context.Context, key string, value string, _ map[string]string) error {
+func (f *fakeSecretManager) UpdateSecret(_ context.Context, key string, value string, tags map[string]string) error {
 	if f.secrets == nil {
 		f.secrets = make(map[string]string)
 	}
+	if f.tags == nil {
+		f.tags = make(map[string]map[string]string)
+	}
 	f.secrets[key] = value
+	if tags != nil {
+		f.tags[key] = make(map[string]string)
+		for k, v := range tags {
+			f.tags[key][k] = v
+		}
+	}
 	return nil
 }
 
@@ -383,6 +403,169 @@ func Test_secretManager_DeleteSecret(t *testing.T) {
 			// Verify we cannot retrieve the deleted secret
 			_, found := secretsApi.GetSecretValue(context.Background(), tt.args.key)
 			assert.False(t, found, "should not be able to retrieve deleted secret")
+		})
+	}
+}
+
+type fakeSecretManagerWithGlobalTags struct {
+	secrets    map[string]string
+	tags       map[string]map[string]string
+	globalTags map[string]string
+}
+
+func (f *fakeSecretManagerWithGlobalTags) GetSecretValue(_ context.Context, key string) (string, bool) {
+	value, ok := f.secrets[key]
+	return value, ok
+}
+
+func (f *fakeSecretManagerWithGlobalTags) CheckSecretExists(_ context.Context, key string) bool {
+	_, ok := f.secrets[key]
+	return ok
+}
+
+func (f *fakeSecretManagerWithGlobalTags) CreateSecret(_ context.Context, key string, value string, tags map[string]string) error {
+	if f.secrets == nil {
+		f.secrets = make(map[string]string)
+	}
+	if f.tags == nil {
+		f.tags = make(map[string]map[string]string)
+	}
+	f.secrets[key] = value
+
+	// Merge tags: provided tags first, then global tags override
+	merged := make(map[string]string, len(tags)+len(f.globalTags))
+	maps.Copy(merged, tags)
+	maps.Copy(merged, f.globalTags)
+	f.tags[key] = merged
+	return nil
+}
+
+func (f *fakeSecretManagerWithGlobalTags) UpdateSecret(_ context.Context, key string, value string, tags map[string]string) error {
+	if f.secrets == nil {
+		f.secrets = make(map[string]string)
+	}
+	if f.tags == nil {
+		f.tags = make(map[string]map[string]string)
+	}
+	f.secrets[key] = value
+
+	// Merge tags: provided tags first, then global tags override
+	merged := make(map[string]string, len(tags)+len(f.globalTags))
+	maps.Copy(merged, tags)
+	maps.Copy(merged, f.globalTags)
+	f.tags[key] = merged
+	return nil
+}
+
+func (f *fakeSecretManagerWithGlobalTags) DeleteSecret(_ context.Context, key string) error {
+	if f.secrets != nil {
+		delete(f.secrets, key)
+	}
+	if f.tags != nil {
+		delete(f.tags, key)
+	}
+	return nil
+}
+
+func Test_secretManager_TagOverwriting(t *testing.T) {
+	tests := []struct {
+		name         string
+		globalTags   map[string]string
+		providedTags map[string]string
+		expectedTags map[string]string
+	}{
+		{
+			name: "global tags should overwrite provided tags with same keys",
+			globalTags: map[string]string{
+				"env":  "dev",
+				"team": "platform",
+			},
+			providedTags: map[string]string{
+				"env": "prod",
+			},
+			expectedTags: map[string]string{
+				"env":  "dev",
+				"team": "platform",
+			},
+		},
+		{
+			name: "global tags and provided tags should be merged when no conflict",
+			globalTags: map[string]string{
+				"env":  "dev",
+				"team": "platform",
+			},
+			providedTags: map[string]string{
+				"owner": "john",
+			},
+			expectedTags: map[string]string{
+				"env":   "dev",
+				"team":  "platform",
+				"owner": "john",
+			},
+		},
+		{
+			name:       "provided tags work when no global tags",
+			globalTags: map[string]string{},
+			providedTags: map[string]string{
+				"env": "staging",
+			},
+			expectedTags: map[string]string{
+				"env": "staging",
+			},
+		},
+		{
+			name: "all global tags overwrite all provided tags",
+			globalTags: map[string]string{
+				"env":  "dev",
+				"team": "platform",
+			},
+			providedTags: map[string]string{
+				"env":  "prod",
+				"team": "data",
+			},
+			expectedTags: map[string]string{
+				"env":  "dev",
+				"team": "platform",
+			},
+		},
+		{
+			name: "global tags used when no provided tags",
+			globalTags: map[string]string{
+				"env":  "dev",
+				"team": "platform",
+			},
+			providedTags: nil,
+			expectedTags: map[string]string{
+				"env":  "dev",
+				"team": "platform",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fakeManager := &fakeSecretManagerWithGlobalTags{
+				secrets:    make(map[string]string),
+				tags:       make(map[string]map[string]string),
+				globalTags: tt.globalTags,
+			}
+
+			secretsApi, err := NewSecretProvider(fakeManager, "prefix/", "secrets.")
+			require.NoError(t, err)
+
+			// Test CreateSecret
+			err = secretsApi.CreateSecret(context.Background(), "secrets.MY_SECRET", "myValue", tt.providedTags)
+			require.NoError(t, err)
+
+			actualTags := fakeManager.tags["prefix/MY_SECRET"]
+			assert.Equal(t, tt.expectedTags, actualTags, "CreateSecret: tags should match expected")
+
+			// Test UpdateSecret
+			err = secretsApi.UpdateSecret(context.Background(), "secrets.MY_SECRET", "newValue", tt.providedTags)
+			require.NoError(t, err)
+
+			actualTags = fakeManager.tags["prefix/MY_SECRET"]
+			assert.Equal(t, tt.expectedTags, actualTags, "UpdateSecret: tags should match expected")
 		})
 	}
 }

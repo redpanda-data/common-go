@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"maps"
 	"strings"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
@@ -74,9 +75,9 @@ func (a *azSecretsManager) CheckSecretExists(ctx context.Context, key string) bo
 }
 
 // CreateSecret creates a new secret.
-func (a *azSecretsManager) CreateSecret(ctx context.Context, key string, value string, labels map[string]string) error {
+func (a *azSecretsManager) CreateSecret(ctx context.Context, key string, value string, tags map[string]string) error {
 	key = sanitize(key)
-	mergedTags := a.mergeTags(labels)
+	mergedTags := a.mergeTags(tags)
 
 	_, err := a.client.SetSecret(ctx, key, azsecrets.SetSecretParameters{
 		Value: &value,
@@ -89,9 +90,9 @@ func (a *azSecretsManager) CreateSecret(ctx context.Context, key string, value s
 }
 
 // UpdateSecret updates an existing secret.
-func (a *azSecretsManager) UpdateSecret(ctx context.Context, key string, value string, labels map[string]string) error {
+func (a *azSecretsManager) UpdateSecret(ctx context.Context, key string, value string, tags map[string]string) error {
 	key = sanitize(key)
-	mergedTags := a.mergeTags(labels)
+	mergedTags := a.mergeTags(tags)
 
 	_, err := a.client.SetSecret(ctx, key, azsecrets.SetSecretParameters{
 		Value: &value,
@@ -118,26 +119,22 @@ func sanitize(key string) string {
 	return strings.ReplaceAll(key, "_", "-")
 }
 
-// mergeTags merges provided labels with global tags, with global tags taking precedence.
-func (a *azSecretsManager) mergeTags(labels map[string]string) map[string]*string {
-	merged := make(map[string]string)
+// mergeTags merges provided tags with global tags, with global tags taking precedence.
+func (a *azSecretsManager) mergeTags(tags map[string]string) map[string]*string {
+	merged := make(map[string]string, len(tags)+len(a.tags))
 
-	// Add labels first
-	for k, v := range labels {
-		merged[k] = v
-	}
+	// Add provided tags first
+	maps.Copy(merged, tags)
 
-	// Global tags override labels
-	for k, v := range a.tags {
-		merged[k] = v
-	}
+	// Global tags override provided tags
+	maps.Copy(merged, a.tags)
 
 	// Convert to Azure tags format (map[string]*string)
-	tags := make(map[string]*string, len(merged))
+	azureTags := make(map[string]*string, len(merged))
 	for k, v := range merged {
 		v := v
-		tags[k] = &v
+		azureTags[k] = &v
 	}
 
-	return tags
+	return azureTags
 }
