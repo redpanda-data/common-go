@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        dir: [api, rpadmin, secrets, net, rpsr]
+        dir: [api, rpadmin, secrets, net, rpsr, authz]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
