@@ -13,6 +13,7 @@ import (
 	"github.com/testcontainers/testcontainers-go/modules/redpanda"
 	"github.com/twmb/franz-go/pkg/kadm"
 	"github.com/twmb/franz-go/pkg/kgo"
+	"github.com/twmb/franz-go/pkg/sr"
 	"go.opentelemetry.io/otel/attribute"
 	otellog "go.opentelemetry.io/otel/log"
 	"go.opentelemetry.io/otel/metric"
@@ -586,4 +587,181 @@ func TestLogExporter_Protobuf(t *testing.T) {
 		}
 	}
 	assert.True(t, hasServiceName, "service.name header not found")
+}
+
+// setupRedpandaWithSchemaRegistry starts a Redpanda container with Schema Registry enabled
+func setupRedpandaWithSchemaRegistry(t *testing.T) (brokers string, sr string) {
+	t.Helper()
+
+	// Check if using local Redpanda
+	if *useLocalBroker {
+		t.Log("Using local Redpanda at localhost:9092 with Schema Registry at http://localhost:8081")
+		return "localhost:9092", "http://localhost:8081"
+	}
+
+	// Use testcontainers
+	ctx := t.Context()
+	container, err := redpanda.Run(ctx, "docker.redpanda.com/redpandadata/redpanda:latest")
+	require.NoError(t, err, "failed to start redpanda container")
+
+	// Register cleanup
+	t.Cleanup(func() {
+		if err := container.Terminate(context.Background()); err != nil {
+			t.Logf("failed to terminate container: %v", err)
+		}
+	})
+
+	brokers, err = container.KafkaSeedBroker(ctx)
+	require.NoError(t, err, "failed to get kafka seed broker")
+
+	schemaRegistryURL, err := container.SchemaRegistryAddress(ctx)
+	require.NoError(t, err, "failed to get schema registry address")
+
+	return brokers, schemaRegistryURL
+}
+
+// TestTraceExporter_SchemaRegistryJSON tests trace exporter with Schema Registry JSON serialization
+func TestTraceExporter_SchemaRegistryJSON(t *testing.T) {
+	ctx := t.Context()
+	brokers, schemaRegistryURL := setupRedpandaWithSchemaRegistry(t)
+
+	// Create topic
+	topicName := "test-traces-sr-json"
+	createTopic(t, brokers, topicName)
+
+	res := createTestResource(t)
+
+	// Create exporter with Schema Registry format
+	// The exporter will automatically register the built-in OTLP JSON schema
+	exporter, err := NewTraceExporter(
+		WithTopic(topicName),
+		WithBrokers(brokers),
+		WithClientID("test-trace-exporter-sr-json"),
+		WithResource(res),
+		WithSerializationFormat(SerializationFormatSchemaRegistryJSON),
+		WithSchemaRegistryURL(schemaRegistryURL),
+	)
+	require.NoError(t, err, "failed to create trace exporter")
+	defer exporter.Shutdown(context.Background())
+
+	// Create a test span
+	tracerProvider := sdktrace.NewTracerProvider(
+		sdktrace.WithBatcher(exporter),
+		sdktrace.WithResource(res),
+	)
+	defer tracerProvider.Shutdown(context.Background())
+
+	tracer := tracerProvider.Tracer("test-tracer")
+	_, span := tracer.Start(ctx, "test-sr-operation",
+		trace.WithAttributes(
+			attribute.String("test.key", "test.value"),
+		),
+	)
+	span.End()
+
+	// Force flush
+	err = tracerProvider.ForceFlush(ctx)
+	require.NoError(t, err, "failed to flush tracer provider")
+
+	// Consume records from Kafka
+	records := consumeRecords(t, brokers, topicName)
+	require.NotEmpty(t, records, "no message found in topic")
+
+	// Verify Schema Registry wire format using ConfluentHeader
+	value := records[0].Value
+	require.GreaterOrEqual(t, len(value), 5, "message too short for Schema Registry format")
+
+	// Use ConfluentHeader to decode the wire format
+	var header sr.ConfluentHeader
+	schemaID, payload, err := header.DecodeID(value)
+	require.NoError(t, err, "failed to decode Schema Registry header")
+	assert.Greater(t, schemaID, 0, "schema ID should be positive")
+
+	// Decode the JSON payload
+	var spanData map[string]any
+	err = json.Unmarshal(payload, &spanData)
+	require.NoError(t, err, "failed to unmarshal JSON payload")
+
+	// Verify basic fields
+	assert.Equal(t, "test-sr-operation", spanData["name"], "span name mismatch")
+
+	t.Logf("Successfully verified Schema Registry JSON format with schema ID %d", schemaID)
+}
+
+// TestTraceExporter_SchemaRegistryProtobuf tests trace exporter with Schema Registry Protobuf serialization
+func TestTraceExporter_SchemaRegistryProtobuf(t *testing.T) {
+	ctx := t.Context()
+	brokers, schemaRegistryURL := setupRedpandaWithSchemaRegistry(t)
+
+	// Create topic
+	topicName := "test-traces-sr-protobuf"
+	createTopic(t, brokers, topicName)
+
+	res := createTestResource(t)
+
+	// Create exporter with Schema Registry Protobuf format
+	// The exporter will automatically register the built-in OTLP protobuf schema
+	exporter, err := NewTraceExporter(
+		WithTopic(topicName),
+		WithBrokers(brokers),
+		WithClientID("test-trace-exporter-sr-pb"),
+		WithResource(res),
+		WithSerializationFormat(SerializationFormatSchemaRegistryProtobuf),
+		WithSchemaRegistryURL(schemaRegistryURL),
+	)
+	require.NoError(t, err, "failed to create trace exporter")
+	defer exporter.Shutdown(context.Background())
+
+	// Create a test span
+	tracerProvider := sdktrace.NewTracerProvider(
+		sdktrace.WithBatcher(exporter),
+		sdktrace.WithResource(res),
+	)
+	defer tracerProvider.Shutdown(context.Background())
+
+	tracer := tracerProvider.Tracer("test-tracer")
+	_, span := tracer.Start(ctx, "test-sr-pb-operation",
+		trace.WithAttributes(
+			attribute.String("test.key", "test.value"),
+		),
+	)
+	span.End()
+
+	// Force flush
+	err = tracerProvider.ForceFlush(ctx)
+	require.NoError(t, err, "failed to flush tracer provider")
+
+	// Consume records from Kafka
+	records := consumeRecords(t, brokers, topicName)
+	require.NotEmpty(t, records, "no message found in topic")
+
+	// Verify Schema Registry wire format using ConfluentHeader
+	value := records[0].Value
+	require.GreaterOrEqual(t, len(value), 6, "message too short for Schema Registry protobuf format")
+
+	// Use ConfluentHeader to decode the wire format
+	var header sr.ConfluentHeader
+
+	// First decode the schema ID
+	schemaID, remaining, err := header.DecodeID(value)
+	require.NoError(t, err, "failed to decode Schema Registry schema ID")
+	assert.Greater(t, schemaID, 0, "schema ID should be positive")
+
+	// Then decode the protobuf message indexes
+	messageIndexes, payload, err := header.DecodeIndex(remaining, 10)
+	require.NoError(t, err, "failed to decode protobuf message indexes")
+
+	// For a top-level message, the message index array should contain a single 0
+	require.Len(t, messageIndexes, 1, "expected single message index for top-level message")
+	assert.Equal(t, 0, messageIndexes[0], "message index should be 0 for top-level message")
+
+	// Decode the protobuf payload
+	var spanProto tracepb.Span
+	err = proto.Unmarshal(payload, &spanProto)
+	require.NoError(t, err, "failed to unmarshal protobuf payload")
+
+	// Verify basic fields
+	assert.Equal(t, "test-sr-pb-operation", spanProto.Name, "span name mismatch")
+
+	t.Logf("Successfully verified Schema Registry Protobuf format with schema ID %d and message indexes %v", schemaID, messageIndexes)
 }

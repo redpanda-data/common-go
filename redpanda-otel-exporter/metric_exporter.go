@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/twmb/franz-go/pkg/kgo"
+	"github.com/twmb/franz-go/pkg/sr"
 	"go.opentelemetry.io/otel/sdk/instrumentation"
 	"go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/metric/metricdata"
@@ -53,14 +54,31 @@ func (e *MetricExporter) Export(ctx context.Context, rm *metricdata.ResourceMetr
 		return nil
 	}
 
-	if e.config.serializationFormat == SerializationFormatProtobuf {
+	switch e.config.serializationFormat {
+	case SerializationFormatProtobuf:
 		return e.exportMetricsProtobuf(ctx, rm)
+	case SerializationFormatSchemaRegistryJSON:
+		return e.exportMetricsSchemaRegistryJSON(ctx, rm)
+	case SerializationFormatSchemaRegistryProtobuf:
+		return e.exportMetricsSchemaRegistryProtobuf(ctx, rm)
+	default:
+		return e.exportMetricsJSON(ctx, rm)
 	}
-	return e.exportMetricsJSON(ctx, rm)
 }
 
 // exportMetricsJSON exports metrics in JSON format
 func (e *MetricExporter) exportMetricsJSON(ctx context.Context, rm *metricdata.ResourceMetrics) error {
+	// Register schema with Schema Registry if configured (for governance/documentation)
+	if e.schemaRegistry != nil {
+		subject := e.getSubjectName()
+		schema := sr.Schema{
+			Schema: otlpMetricJSONSchema,
+			Type:   sr.TypeJSON,
+		}
+		// Ignore errors - schema registration is best-effort for plain format
+		_, _ = e.registerSchema(ctx, subject, schema)
+	}
+
 	records := make([]*kgo.Record, 0)
 
 	for _, sm := range rm.ScopeMetrics {
@@ -104,6 +122,17 @@ func (e *MetricExporter) exportMetricsProtobuf(ctx context.Context, rm *metricda
 		return nil
 	}
 
+	// Register schema with Schema Registry if configured (for governance/documentation)
+	if e.schemaRegistry != nil {
+		subject := e.getSubjectName()
+		schema := sr.Schema{
+			Schema: otlpMetricProtoSchema,
+			Type:   sr.TypeProtobuf,
+		}
+		// Ignore errors - schema registration is best-effort for plain format
+		_, _ = e.registerSchema(ctx, subject, schema)
+	}
+
 	records := make([]*kgo.Record, 0)
 
 	for _, sm := range rm.ScopeMetrics {
@@ -126,6 +155,111 @@ func (e *MetricExporter) exportMetricsProtobuf(ctx context.Context, rm *metricda
 			}
 
 			// Add resource attributes as Kafka headers (same as JSON format)
+			if rm.Resource != nil {
+				record.Headers = resourceToHeaders(rm.Resource)
+			}
+
+			records = append(records, record)
+		}
+	}
+
+	if len(records) == 0 {
+		return nil
+	}
+
+	return e.produceBatch(ctx, records)
+}
+
+// exportMetricsSchemaRegistryJSON exports metrics in JSON format with Schema Registry serdes encoding
+func (e *MetricExporter) exportMetricsSchemaRegistryJSON(ctx context.Context, rm *metricdata.ResourceMetrics) error {
+	records := make([]*kgo.Record, 0)
+
+	// Get the subject name to use for schema registration
+	subject := e.getSubjectName()
+
+	for _, sm := range rm.ScopeMetrics {
+		for _, m := range sm.Metrics {
+			metricData := e.metricToMap(m, sm.Scope)
+
+			// Marshal to JSON
+			jsonData, err := marshalJSON(metricData)
+			if err != nil {
+				return fmt.Errorf("failed to marshal metric to JSON: %w", err)
+			}
+
+			// Encode with Schema Registry serdes format (JSON)
+			schema := sr.Schema{
+				Schema: otlpMetricJSONSchema,
+				Type:   sr.TypeJSON,
+			}
+			value, err := e.encodeWithSchemaRegistry(ctx, jsonData, subject, schema)
+			if err != nil {
+				return fmt.Errorf("failed to encode metric with schema registry: %w", err)
+			}
+
+			// Use metric name as key for partitioning
+			key := []byte(m.Name)
+
+			record := &kgo.Record{
+				Topic: e.config.topic,
+				Key:   key,
+				Value: value,
+			}
+
+			// Add resource attributes as Kafka headers
+			if rm.Resource != nil {
+				record.Headers = resourceToHeaders(rm.Resource)
+			}
+
+			records = append(records, record)
+		}
+	}
+
+	if len(records) == 0 {
+		return nil
+	}
+
+	return e.produceBatch(ctx, records)
+}
+
+// exportMetricsSchemaRegistryProtobuf exports metrics in OTLP protobuf format with Schema Registry serdes encoding
+func (e *MetricExporter) exportMetricsSchemaRegistryProtobuf(ctx context.Context, rm *metricdata.ResourceMetrics) error {
+	records := make([]*kgo.Record, 0)
+
+	// Get the subject name to use for schema registration
+	subject := e.getSubjectName()
+
+	for _, sm := range rm.ScopeMetrics {
+		for _, m := range sm.Metrics {
+			// Convert metric to protobuf
+			metricProto := metricToProto(m)
+
+			// Marshal to protobuf
+			protoData, err := marshalProtobuf(metricProto)
+			if err != nil {
+				return fmt.Errorf("failed to marshal metric to protobuf: %w", err)
+			}
+
+			// Encode with Schema Registry serdes format (Protobuf with message indexes)
+			schema := sr.Schema{
+				Schema: otlpMetricProtoSchema,
+				Type:   sr.TypeProtobuf,
+			}
+			value, err := e.encodeWithSchemaRegistry(ctx, protoData, subject, schema)
+			if err != nil {
+				return fmt.Errorf("failed to encode metric protobuf with schema registry: %w", err)
+			}
+
+			// Use metric name as the key for partitioning
+			key := []byte(m.Name)
+
+			record := &kgo.Record{
+				Topic: e.config.topic,
+				Key:   key,
+				Value: value,
+			}
+
+			// Add resource attributes as Kafka headers
 			if rm.Resource != nil {
 				record.Headers = resourceToHeaders(rm.Resource)
 			}

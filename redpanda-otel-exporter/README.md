@@ -7,7 +7,8 @@ A Go OpenTelemetry exporter that exports traces, metrics, and logs to Kafka/Redp
 - **Full OpenTelemetry Support**: Implements exporters for traces, metrics, and logs
 - **High Performance**: Built on franz-go, one of the fastest Kafka clients for Go
 - **Flexible Configuration**: Supports custom Kafka client options
-- **Multiple Serialization Formats**: Choose between JSON (human-readable) or Protobuf (OTLP standard, efficient)
+- **Multiple Serialization Formats**: Choose between JSON, Protobuf (OTLP standard), or Schema Registry serdes format
+- **Schema Registry Integration**: Native support for Confluent Schema Registry with automatic schema management
 - **Resource Attributes**: Includes service and resource information with telemetry data
 - **Batch Processing**: Efficiently batches records for optimal throughput
 - **Optimized for Modern Data Pipelines**: One signal per Kafka record for seamless integration with Iceberg tables and other streaming platforms
@@ -30,7 +31,13 @@ This exporter differs from the standard OpenTelemetry Collector Kafka exporter i
 
 ## Data Format
 
-Telemetry data can be exported in either JSON or Protobuf format. Each Kafka record contains a single telemetry signal (one span, one metric, or one log record).
+Telemetry data can be exported in multiple formats:
+- **JSON**: Human-readable format
+- **Protobuf**: Binary OTLP format
+- **Schema Registry JSON**: JSON with Schema Registry serdes encoding
+- **Schema Registry Protobuf**: Protobuf with Schema Registry serdes encoding
+
+Each Kafka record contains a single telemetry signal (one span, one metric, or one log record).
 
 ### JSON Format Examples
 
@@ -252,7 +259,7 @@ loggerProvider := log.NewLoggerProvider(
 
 ### Serialization Formats
 
-The exporter supports two serialization formats:
+The exporter supports four serialization formats:
 
 #### JSON Format (Default)
 
@@ -276,15 +283,66 @@ exporter, err := exporter.NewTraceExporter(
 )
 ```
 
-**Benefits of Protobuf:**
-- Smaller message size (50-70% reduction typically)
-- Faster serialization/deserialization
-- Standard OTLP format compatible with other OpenTelemetry tools
-- Schema evolution support
+#### Schema Registry JSON Format
 
-**When to use each:**
+JSON format with Confluent Schema Registry serdes encoding. Messages include a magic byte (0x00) and schema ID prefix:
+
+```go
+import "github.com/twmb/franz-go/pkg/sr"
+
+exporter, err := exporter.NewTraceExporter(
+    exporter.WithBrokers("localhost:9092"),
+    exporter.WithSerializationFormat(exporter.SerializationFormatSchemaRegistryJSON),
+    exporter.WithSchemaRegistryURL("http://localhost:8081"),
+    // Optional: specify subject name (defaults to topic name)
+    exporter.WithSchemaSubject("my-custom-subject"),
+    // Optional: add auth or other SR client options
+    exporter.WithSchemaRegistryOptions(
+        sr.BasicAuth("username", "password"),
+    ),
+)
+```
+
+#### Schema Registry Protobuf Format
+
+Protobuf format with Confluent Schema Registry serdes encoding:
+
+```go
+import "github.com/twmb/franz-go/pkg/sr"
+
+exporter, err := exporter.NewTraceExporter(
+    exporter.WithBrokers("localhost:9092"),
+    exporter.WithSerializationFormat(exporter.SerializationFormatSchemaRegistryProtobuf),
+    exporter.WithSchemaRegistryURL("http://localhost:8081"),
+    // Optional: specify subject name (defaults to topic name)
+    exporter.WithSchemaSubject("my-custom-subject"),
+    // Optional: add auth or other SR client options
+    exporter.WithSchemaRegistryOptions(
+        sr.BasicAuth("username", "password"),
+        sr.HTTPClient(customHTTPClient),
+    ),
+)
+```
+
+**Schema Registry Features:**
+- Automatic schema lookup by subject name
+- Schema ID encoding in wire format (magic byte + schema ID + payload)
+- Compatible with Confluent Schema Registry and Redpanda Schema Registry
+- Supports topic naming strategy (subject = topic name) by default
+- Optional subject override for custom naming strategies
+- **Note**: Schemas must be pre-registered in the Schema Registry before using these formats
+
+**Benefits of each format:**
 - **JSON**: Development, debugging, human inspection, simple consumers
 - **Protobuf**: Production, high throughput, integration with OTLP ecosystem
+- **Schema Registry JSON**: Enforced schema validation, JSON consumers, schema evolution
+- **Schema Registry Protobuf**: Best of both worlds - compact binary format with schema management
+
+**When to use Schema Registry formats:**
+- When you need schema validation and evolution
+- When integrating with existing Schema Registry infrastructure
+- When consumers require schema metadata
+- When you want centralized schema management across multiple services
 
 ### Advanced Configuration
 
@@ -403,7 +461,10 @@ All exporters use functional options pattern:
 | `WithClientID(clientID string)` | Kafka client identifier | `"otel-kafka-exporter"` |
 | `WithTimeout(timeout time.Duration)` | Export operation timeout | `30s` |
 | `WithResource(resource *resource.Resource)` | OpenTelemetry resource | `nil` |
-| `WithSerializationFormat(format SerializationFormat)` | Format: JSON or Protobuf | `SerializationFormatJSON` |
+| `WithSerializationFormat(format SerializationFormat)` | Format: JSON, Protobuf, SchemaRegistryJSON, or SchemaRegistryProtobuf | `SerializationFormatJSON` |
+| `WithSchemaRegistryURL(url string)` | Schema Registry URL (required for SR formats) | `""` |
+| `WithSchemaSubject(subject string)` | Schema subject name override (defaults to topic name) | `""` (uses topic name) |
+| `WithSchemaRegistryOptions(opts ...sr.Opt)` | Additional franz-go Schema Registry client options (auth, TLS, etc.) | `[]` |
 | `WithKafkaOptions(opts ...kgo.Opt)` | Additional franz-go client options | `[]` |
 
 ## Performance Considerations
