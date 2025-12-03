@@ -330,7 +330,6 @@ exporter, err := exporter.NewTraceExporter(
 - Compatible with Confluent Schema Registry and Redpanda Schema Registry
 - Supports topic naming strategy (subject = topic name) by default
 - Optional subject override for custom naming strategies
-- **Note**: Schemas must be pre-registered in the Schema Registry before using these formats
 
 **Benefits of each format:**
 - **JSON**: Development, debugging, human inspection, simple consumers
