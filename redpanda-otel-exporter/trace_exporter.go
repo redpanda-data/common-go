@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/twmb/franz-go/pkg/kgo"
+	"github.com/twmb/franz-go/pkg/sr"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 )
 
@@ -52,14 +53,31 @@ func (e *TraceExporter) ExportSpans(ctx context.Context, spans []sdktrace.ReadOn
 		return nil
 	}
 
-	if e.config.serializationFormat == SerializationFormatProtobuf {
+	switch e.config.serializationFormat {
+	case SerializationFormatProtobuf:
 		return e.exportSpansProtobuf(ctx, spans)
+	case SerializationFormatSchemaRegistryJSON:
+		return e.exportSpansSchemaRegistryJSON(ctx, spans)
+	case SerializationFormatSchemaRegistryProtobuf:
+		return e.exportSpansSchemaRegistryProtobuf(ctx, spans)
+	default:
+		return e.exportSpansJSON(ctx, spans)
 	}
-	return e.exportSpansJSON(ctx, spans)
 }
 
 // exportSpansJSON exports spans in JSON format
 func (e *TraceExporter) exportSpansJSON(ctx context.Context, spans []sdktrace.ReadOnlySpan) error {
+	// Register schema with Schema Registry if configured (for governance/documentation)
+	if e.schemaRegistry != nil {
+		subject := e.getSubjectName()
+		schema := sr.Schema{
+			Schema: otlpTraceJSONSchema,
+			Type:   sr.TypeJSON,
+		}
+		// Ignore errors - schema registration is best-effort for plain format
+		_, _ = e.registerSchema(ctx, subject, schema)
+	}
+
 	records := make([]*kgo.Record, 0, len(spans))
 
 	for _, span := range spans {
@@ -97,6 +115,17 @@ func (e *TraceExporter) exportSpansProtobuf(ctx context.Context, spans []sdktrac
 		return nil
 	}
 
+	// Register schema with Schema Registry if configured (for governance/documentation)
+	if e.schemaRegistry != nil {
+		subject := e.getSubjectName()
+		schema := sr.Schema{
+			Schema: otlpTraceProtoSchema,
+			Type:   sr.TypeProtobuf,
+		}
+		// Ignore errors - schema registration is best-effort for plain format
+		_, _ = e.registerSchema(ctx, subject, schema)
+	}
+
 	records := make([]*kgo.Record, 0, len(spans))
 
 	for _, span := range spans {
@@ -118,6 +147,99 @@ func (e *TraceExporter) exportSpansProtobuf(ctx context.Context, spans []sdktrac
 		}
 
 		// Add resource attributes as Kafka headers (same as JSON format)
+		if e.config.resource != nil {
+			record.Headers = resourceToHeaders(e.config.resource)
+		}
+
+		records = append(records, record)
+	}
+
+	return e.produceBatch(ctx, records)
+}
+
+// exportSpansSchemaRegistryJSON exports spans in JSON format with Schema Registry serdes encoding
+func (e *TraceExporter) exportSpansSchemaRegistryJSON(ctx context.Context, spans []sdktrace.ReadOnlySpan) error {
+	records := make([]*kgo.Record, 0, len(spans))
+
+	// Get the subject name to use for schema registration
+	subject := e.getSubjectName()
+
+	for _, span := range spans {
+		spanData := spanToMap(span)
+
+		// Marshal to JSON
+		jsonData, err := marshalJSON(spanData)
+		if err != nil {
+			return fmt.Errorf("failed to marshal span to JSON: %w", err)
+		}
+
+		// Encode with Schema Registry serdes format (JSON)
+		schema := sr.Schema{
+			Schema: otlpTraceJSONSchema,
+			Type:   sr.TypeJSON,
+		}
+		value, err := e.encodeWithSchemaRegistry(ctx, jsonData, subject, schema)
+		if err != nil {
+			return fmt.Errorf("failed to encode span with schema registry: %w", err)
+		}
+
+		// Use trace ID as the key for partitioning
+		key := []byte(span.SpanContext().TraceID().String())
+
+		record := &kgo.Record{
+			Topic: e.config.topic,
+			Key:   key,
+			Value: value,
+		}
+
+		// Add resource attributes as Kafka headers
+		if e.config.resource != nil {
+			record.Headers = resourceToHeaders(e.config.resource)
+		}
+
+		records = append(records, record)
+	}
+
+	return e.produceBatch(ctx, records)
+}
+
+// exportSpansSchemaRegistryProtobuf exports spans in OTLP protobuf format with Schema Registry serdes encoding
+func (e *TraceExporter) exportSpansSchemaRegistryProtobuf(ctx context.Context, spans []sdktrace.ReadOnlySpan) error {
+	records := make([]*kgo.Record, 0, len(spans))
+
+	// Get the subject name to use for schema registration
+	subject := e.getSubjectName()
+
+	for _, span := range spans {
+		// Convert span to protobuf
+		spanProto := spanToProto(span)
+
+		// Marshal to protobuf
+		protoData, err := marshalProtobuf(spanProto)
+		if err != nil {
+			return fmt.Errorf("failed to marshal span to protobuf: %w", err)
+		}
+
+		// Encode with Schema Registry serdes format (Protobuf with message indexes)
+		schema := sr.Schema{
+			Schema: otlpTraceProtoSchema,
+			Type:   sr.TypeProtobuf,
+		}
+		value, err := e.encodeWithSchemaRegistry(ctx, protoData, subject, schema)
+		if err != nil {
+			return fmt.Errorf("failed to encode span protobuf with schema registry: %w", err)
+		}
+
+		// Use trace ID as the key for partitioning
+		key := []byte(span.SpanContext().TraceID().String())
+
+		record := &kgo.Record{
+			Topic: e.config.topic,
+			Key:   key,
+			Value: value,
+		}
+
+		// Add resource attributes as Kafka headers
 		if e.config.resource != nil {
 			record.Headers = resourceToHeaders(e.config.resource)
 		}

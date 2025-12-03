@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/twmb/franz-go/pkg/kgo"
+	"github.com/twmb/franz-go/pkg/sr"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/sdk/resource"
 	"google.golang.org/protobuf/proto"
@@ -22,6 +23,10 @@ const (
 	SerializationFormatJSON SerializationFormat = iota
 	// SerializationFormatProtobuf uses Protocol Buffers encoding (OTLP format)
 	SerializationFormatProtobuf
+	// SerializationFormatSchemaRegistryJSON uses JSON encoding with Schema Registry serdes format
+	SerializationFormatSchemaRegistryJSON
+	// SerializationFormatSchemaRegistryProtobuf uses Protocol Buffers encoding with Schema Registry serdes format
+	SerializationFormatSchemaRegistryProtobuf
 )
 
 // String returns the string representation of the serialization format
@@ -31,6 +36,10 @@ func (f SerializationFormat) String() string {
 		return "json"
 	case SerializationFormatProtobuf:
 		return "protobuf"
+	case SerializationFormatSchemaRegistryJSON:
+		return "schema-registry-json"
+	case SerializationFormatSchemaRegistryProtobuf:
+		return "schema-registry-protobuf"
 	default:
 		return "unknown"
 	}
@@ -44,6 +53,9 @@ type config struct {
 	timeout             time.Duration
 	resource            *resource.Resource
 	serializationFormat SerializationFormat
+	schemaRegistryURL   string         // Schema Registry URL for serdes format
+	schemaSubject       string         // Optional schema subject override (defaults to topic naming strategy)
+	schemaRegistryOpts  []sr.ClientOpt // Additional Schema Registry client options
 	kafkaOptions        []kgo.Opt
 }
 
@@ -92,6 +104,28 @@ func WithSerializationFormat(format SerializationFormat) Option {
 	}
 }
 
+// WithSchemaRegistryURL sets the Schema Registry URL for serdes format
+func WithSchemaRegistryURL(url string) Option {
+	return func(c *config) {
+		c.schemaRegistryURL = url
+	}
+}
+
+// WithSchemaSubject sets the schema subject (overrides default topic naming strategy)
+func WithSchemaSubject(subject string) Option {
+	return func(c *config) {
+		c.schemaSubject = subject
+	}
+}
+
+// WithSchemaRegistryOptions sets additional franz-go Schema Registry client options
+// Use this for authentication, TLS, and other Schema Registry client configuration
+func WithSchemaRegistryOptions(opts ...sr.ClientOpt) Option {
+	return func(c *config) {
+		c.schemaRegistryOpts = opts
+	}
+}
+
 // WithKafkaOptions sets additional franz-go client options
 func WithKafkaOptions(opts ...kgo.Opt) Option {
 	return func(c *config) {
@@ -101,10 +135,12 @@ func WithKafkaOptions(opts ...kgo.Opt) Option {
 
 // Exporter is the base type for Kafka OpenTelemetry exporters.
 type Exporter struct {
-	config config
-	client *kgo.Client
-	mu     sync.RWMutex
-	closed bool
+	config         config
+	client         *kgo.Client
+	schemaRegistry *sr.Client     // Schema Registry client (nil if not using SR format)
+	schemaIDCache  map[string]int // Cache of schema IDs by subject name
+	mu             sync.RWMutex
+	closed         bool
 }
 
 // newExporter creates a new Kafka exporter with the given default topic and options.
@@ -128,6 +164,14 @@ func newExporter(defaultTopic string, opts ...Option) (*Exporter, error) {
 		return nil, errors.New("topic cannot be empty")
 	}
 
+	// Validate Schema Registry configuration
+	if cfg.serializationFormat == SerializationFormatSchemaRegistryJSON ||
+		cfg.serializationFormat == SerializationFormatSchemaRegistryProtobuf {
+		if cfg.schemaRegistryURL == "" {
+			return nil, errors.New("schema registry URL is required for Schema Registry serdes format (use WithSchemaRegistryURL)")
+		}
+	}
+
 	// Base options for the Kafka client
 	kafkaOpts := []kgo.Opt{
 		kgo.SeedBrokers(cfg.brokers...),
@@ -145,9 +189,28 @@ func newExporter(defaultTopic string, opts ...Option) (*Exporter, error) {
 		return nil, fmt.Errorf("failed to create kafka client: %w", err)
 	}
 
+	// Initialize Schema Registry client if using SR format
+	var srClient *sr.Client
+	if cfg.serializationFormat == SerializationFormatSchemaRegistryJSON ||
+		cfg.serializationFormat == SerializationFormatSchemaRegistryProtobuf {
+		srOpts := []sr.ClientOpt{sr.URLs(cfg.schemaRegistryURL)}
+
+		// Append any additional options provided by the user (auth, TLS, etc.)
+		srOpts = append(srOpts, cfg.schemaRegistryOpts...)
+
+		var err error
+		srClient, err = sr.NewClient(srOpts...)
+		if err != nil {
+			client.Close()
+			return nil, fmt.Errorf("failed to create schema registry client: %w", err)
+		}
+	}
+
 	return &Exporter{
-		config: cfg,
-		client: client,
+		config:         cfg,
+		client:         client,
+		schemaRegistry: srClient,
+		schemaIDCache:  make(map[string]int),
 	}, nil
 }
 
@@ -259,6 +322,85 @@ func marshalProtobuf(msg proto.Message) ([]byte, error) {
 		return nil, fmt.Errorf("failed to marshal to protobuf: %w", err)
 	}
 	return data, nil
+}
+
+// getSubjectName returns the schema subject name to use.
+// If schemaSubject is configured, it uses that.
+// Otherwise, it returns "{topic}-value" following Confluent Schema Registry naming convention.
+func (e *Exporter) getSubjectName() string {
+	if e.config.schemaSubject != "" {
+		return e.config.schemaSubject
+	}
+	return e.config.topic + "-value"
+}
+
+// registerSchema registers a schema with Schema Registry and returns the schema ID.
+// The schema ID is cached to avoid repeated registrations.
+// This function can be called even when not using Schema Registry serdes format,
+// to register schemas for governance/documentation purposes.
+func (e *Exporter) registerSchema(ctx context.Context, subject string, schema sr.Schema) (int, error) {
+	if e.schemaRegistry == nil {
+		return 0, errors.New("schema registry client not initialized")
+	}
+
+	// Check cache first (schema IDs are immutable)
+	e.mu.RLock()
+	cachedID, found := e.schemaIDCache[subject]
+	e.mu.RUnlock()
+
+	if found {
+		// Use cached schema ID
+		return cachedID, nil
+	}
+
+	// Register or get existing schema
+	// CreateSchema is idempotent - if the schema already exists with the same content, it returns the existing schema
+	subjectSchema, err := e.schemaRegistry.CreateSchema(ctx, subject, schema)
+	if err != nil {
+		return 0, fmt.Errorf("failed to register schema for subject %s: %w", subject, err)
+	}
+
+	schemaID := subjectSchema.ID
+
+	// Cache the schema ID (schema IDs are immutable)
+	e.mu.Lock()
+	e.schemaIDCache[subject] = schemaID
+	e.mu.Unlock()
+
+	return schemaID, nil
+}
+
+// encodeWithSchemaRegistry encodes data with Schema Registry serdes format
+// This function registers the schema (if not already registered) and prepends the wire format header
+func (e *Exporter) encodeWithSchemaRegistry(ctx context.Context, data []byte, subject string, schema sr.Schema) ([]byte, error) {
+	// Register schema and get ID
+	schemaID, err := e.registerSchema(ctx, subject, schema)
+	if err != nil {
+		return nil, err
+	}
+
+	// Use ConfluentHeader to encode with Schema Registry wire format:
+	// For JSON: [magic_byte][schema_id][data]
+	// For Protobuf: [magic_byte][schema_id][message_indexes][data]
+	var header sr.ConfluentHeader
+
+	// For protobuf, we need to include message indexes
+	// For a top-level message, this is [0]
+	var index []int
+	if schema.Type == sr.TypeProtobuf {
+		index = []int{0}
+	}
+
+	// AppendEncode adds the Confluent wire format header and appends the data
+	result, err := header.AppendEncode(nil, schemaID, index)
+	if err != nil {
+		return nil, fmt.Errorf("failed to encode schema registry header: %w", err)
+	}
+
+	// Append the actual data
+	result = append(result, data...)
+
+	return result, nil
 }
 
 // resourceToHeaders converts resource attributes to Kafka record headers

@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/twmb/franz-go/pkg/kgo"
+	"github.com/twmb/franz-go/pkg/sr"
 	"go.opentelemetry.io/otel/log"
 	sdklog "go.opentelemetry.io/otel/sdk/log"
 )
@@ -52,14 +53,31 @@ func (e *LogExporter) Export(ctx context.Context, records []sdklog.Record) error
 		return nil
 	}
 
-	if e.config.serializationFormat == SerializationFormatProtobuf {
+	switch e.config.serializationFormat {
+	case SerializationFormatProtobuf:
 		return e.exportLogsProtobuf(ctx, records)
+	case SerializationFormatSchemaRegistryJSON:
+		return e.exportLogsSchemaRegistryJSON(ctx, records)
+	case SerializationFormatSchemaRegistryProtobuf:
+		return e.exportLogsSchemaRegistryProtobuf(ctx, records)
+	default:
+		return e.exportLogsJSON(ctx, records)
 	}
-	return e.exportLogsJSON(ctx, records)
 }
 
 // exportLogsJSON exports logs in JSON format
 func (e *LogExporter) exportLogsJSON(ctx context.Context, records []sdklog.Record) error {
+	// Register schema with Schema Registry if configured (for governance/documentation)
+	if e.schemaRegistry != nil {
+		subject := e.getSubjectName()
+		schema := sr.Schema{
+			Schema: otlpLogJSONSchema,
+			Type:   sr.TypeJSON,
+		}
+		// Ignore errors - schema registration is best-effort for plain format
+		_, _ = e.registerSchema(ctx, subject, schema)
+	}
+
 	kafkaRecords := make([]*kgo.Record, 0, len(records))
 
 	for _, record := range records {
@@ -94,6 +112,17 @@ func (e *LogExporter) exportLogsProtobuf(ctx context.Context, records []sdklog.R
 		return nil
 	}
 
+	// Register schema with Schema Registry if configured (for governance/documentation)
+	if e.schemaRegistry != nil {
+		subject := e.getSubjectName()
+		schema := sr.Schema{
+			Schema: otlpLogProtoSchema,
+			Type:   sr.TypeProtobuf,
+		}
+		// Ignore errors - schema registration is best-effort for plain format
+		_, _ = e.registerSchema(ctx, subject, schema)
+	}
+
 	kafkaRecords := make([]*kgo.Record, 0, len(records))
 
 	for _, record := range records {
@@ -112,6 +141,93 @@ func (e *LogExporter) exportLogsProtobuf(ctx context.Context, records []sdklog.R
 		}
 
 		// Add resource attributes as Kafka headers (same as JSON format)
+		if e.config.resource != nil {
+			kafkaRecord.Headers = resourceToHeaders(e.config.resource)
+		}
+
+		kafkaRecords = append(kafkaRecords, kafkaRecord)
+	}
+
+	return e.produceBatch(ctx, kafkaRecords)
+}
+
+// exportLogsSchemaRegistryJSON exports logs in JSON format with Schema Registry serdes encoding
+func (e *LogExporter) exportLogsSchemaRegistryJSON(ctx context.Context, records []sdklog.Record) error {
+	kafkaRecords := make([]*kgo.Record, 0, len(records))
+
+	// Get the subject name to use for schema registration
+	subject := e.getSubjectName()
+
+	for _, record := range records {
+		logData := e.logRecordToMap(record)
+
+		// Marshal to JSON
+		jsonData, err := marshalJSON(logData)
+		if err != nil {
+			return fmt.Errorf("failed to marshal log record to JSON: %w", err)
+		}
+
+		// Encode with Schema Registry serdes format (JSON)
+		schema := sr.Schema{
+			Schema: otlpLogJSONSchema,
+			Type:   sr.TypeJSON,
+		}
+		value, err := e.encodeWithSchemaRegistry(ctx, jsonData, subject, schema)
+		if err != nil {
+			return fmt.Errorf("failed to encode log record with schema registry: %w", err)
+		}
+
+		kafkaRecord := &kgo.Record{
+			Topic: e.config.topic,
+			Key:   nil,
+			Value: value,
+		}
+
+		// Add resource attributes as Kafka headers
+		if e.config.resource != nil {
+			kafkaRecord.Headers = resourceToHeaders(e.config.resource)
+		}
+
+		kafkaRecords = append(kafkaRecords, kafkaRecord)
+	}
+
+	return e.produceBatch(ctx, kafkaRecords)
+}
+
+// exportLogsSchemaRegistryProtobuf exports logs in OTLP protobuf format with Schema Registry serdes encoding
+func (e *LogExporter) exportLogsSchemaRegistryProtobuf(ctx context.Context, records []sdklog.Record) error {
+	kafkaRecords := make([]*kgo.Record, 0, len(records))
+
+	// Get the subject name to use for schema registration
+	subject := e.getSubjectName()
+
+	for _, record := range records {
+		// Convert log record to protobuf
+		logProto := logRecordToProto(record)
+
+		// Marshal to protobuf
+		protoData, err := marshalProtobuf(logProto)
+		if err != nil {
+			return fmt.Errorf("failed to marshal log record to protobuf: %w", err)
+		}
+
+		// Encode with Schema Registry serdes format (Protobuf with message indexes)
+		schema := sr.Schema{
+			Schema: otlpLogProtoSchema,
+			Type:   sr.TypeProtobuf,
+		}
+		value, err := e.encodeWithSchemaRegistry(ctx, protoData, subject, schema)
+		if err != nil {
+			return fmt.Errorf("failed to encode log record protobuf with schema registry: %w", err)
+		}
+
+		kafkaRecord := &kgo.Record{
+			Topic: e.config.topic,
+			Key:   nil,
+			Value: value,
+		}
+
+		// Add resource attributes as Kafka headers
 		if e.config.resource != nil {
 			kafkaRecord.Headers = resourceToHeaders(e.config.resource)
 		}
