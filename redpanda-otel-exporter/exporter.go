@@ -8,6 +8,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/twmb/franz-go/pkg/kadm"
+	"github.com/twmb/franz-go/pkg/kerr"
 	"github.com/twmb/franz-go/pkg/kgo"
 	"github.com/twmb/franz-go/pkg/sr"
 	"go.opentelemetry.io/otel/attribute"
@@ -143,6 +145,33 @@ type Exporter struct {
 	closed         bool
 }
 
+// ensureTopicExists creates the topic if it doesn't already exist.
+// It ignores "topic already exists" errors and returns other errors.
+func (e *Exporter) ensureTopicExists(ctx context.Context) error {
+	admin := kadm.NewClient(e.client)
+
+	// Create topic with default settings:
+	// - 3 partitions for parallelism
+	// - replication factor of -1 (use broker default)
+	// - nil configs (use broker defaults)
+	resp, err := admin.CreateTopics(ctx, 3, -1, nil, e.config.topic)
+	if err != nil {
+		return fmt.Errorf("failed to create topic %s: %w", e.config.topic, err)
+	}
+
+	// Check if topic creation succeeded or already exists
+	for _, topicResp := range resp {
+		if topicResp.Err != nil {
+			if !errors.Is(topicResp.Err, kerr.TopicAlreadyExists) {
+				return fmt.Errorf("failed to create topic %s: %w", topicResp.Topic, topicResp.Err)
+			}
+			// Topic already exists, which is fine
+		}
+	}
+	e.client.ForceMetadataRefresh()
+	return nil
+}
+
 // newExporter creates a new Kafka exporter with the given default topic and options.
 // The default topic can be overridden using the WithTopic option.
 func newExporter(defaultTopic string, opts ...Option) (*Exporter, error) {
@@ -206,12 +235,22 @@ func newExporter(defaultTopic string, opts ...Option) (*Exporter, error) {
 		}
 	}
 
-	return &Exporter{
+	exporter := &Exporter{
 		config:         cfg,
 		client:         client,
 		schemaRegistry: srClient,
 		schemaIDCache:  make(map[string]int),
-	}, nil
+	}
+	// Create topic if it doesn't exist
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	if err := exporter.ensureTopicExists(ctx); err != nil {
+		client.Close()
+		return nil, fmt.Errorf("failed to ensure topic exists: %w", err)
+	}
+
+	return exporter, nil
 }
 
 // Shutdown closes the exporter and releases resources.
@@ -243,6 +282,25 @@ func (e *Exporter) produceBatch(ctx context.Context, records []*kgo.Record) erro
 
 	results := e.client.ProduceSync(produceCtx, records...)
 	if err := results.FirstErr(); err != nil {
+		// Check if error is due to unknown topic or partition
+		if errors.Is(err, kerr.UnknownTopicOrPartition) {
+			// Try to create the topic and retry once
+			if createErr := e.ensureTopicExists(ctx); createErr != nil {
+				return fmt.Errorf("failed to produce batch to kafka (topic creation failed): %w", err)
+			}
+
+			// Retry the produce operation
+			produceCtx2, cancel2 := context.WithTimeout(ctx, e.config.timeout)
+			defer cancel2()
+
+			results = e.client.ProduceSync(produceCtx2, records...)
+			if retryErr := results.FirstErr(); retryErr != nil {
+				return fmt.Errorf("failed to produce batch to kafka after topic creation: %w", retryErr)
+			}
+
+			return nil
+		}
+
 		return fmt.Errorf("failed to produce batch to kafka: %w", err)
 	}
 

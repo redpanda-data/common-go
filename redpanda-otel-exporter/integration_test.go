@@ -11,7 +11,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go/modules/redpanda"
-	"github.com/twmb/franz-go/pkg/kadm"
 	"github.com/twmb/franz-go/pkg/kgo"
 	"github.com/twmb/franz-go/pkg/sr"
 	"go.opentelemetry.io/otel/attribute"
@@ -66,29 +65,6 @@ func setupRedpanda(t *testing.T) string {
 	require.NoError(t, err, "failed to get kafka seed broker")
 
 	return brokers
-}
-
-// createTopic creates a Kafka topic
-func createTopic(t *testing.T, brokers, topic string) {
-	t.Helper()
-
-	client, err := kgo.NewClient(
-		kgo.SeedBrokers(brokers),
-		kgo.RequestTimeoutOverhead(10*time.Second),
-	)
-	require.NoError(t, err, "failed to create kafka client")
-	defer client.Close()
-
-	// Create admin client
-	admin := kadm.NewClient(client)
-
-	// Create topic with 1 partition and replication factor 1
-	ctx := t.Context()
-	_, err = admin.CreateTopics(ctx, 1, 1, nil, topic)
-	if err != nil {
-		// Ignore "topic already exists" error
-		t.Logf("topic creation note (may already exist): %v", err)
-	}
 }
 
 // createTestResource creates a test resource with standard attributes
@@ -170,9 +146,6 @@ func assertHexEncoded(t *testing.T, value string, expectedLen int, fieldName str
 func TestTraceExporter_JSON(t *testing.T) {
 	ctx := t.Context()
 	brokers := setupRedpanda(t)
-
-	// Create topic
-	createTopic(t, brokers, "test-traces-json")
 
 	res := createTestResource(t)
 
@@ -281,9 +254,6 @@ func TestTraceExporter_Protobuf(t *testing.T) {
 	ctx := t.Context()
 	brokers := setupRedpanda(t)
 
-	// Create topic
-	createTopic(t, brokers, "test-traces-protobuf")
-
 	res := createTestResource(t)
 
 	// Create exporter
@@ -346,9 +316,6 @@ func TestMetricExporter(t *testing.T) {
 	ctx := t.Context()
 	brokers := setupRedpanda(t)
 
-	// Create topic
-	createTopic(t, brokers, "test-metrics")
-
 	res := createTestResource(t)
 
 	// Create exporter
@@ -394,9 +361,6 @@ func TestMetricExporter(t *testing.T) {
 func TestMetricExporter_Protobuf(t *testing.T) {
 	ctx := t.Context()
 	brokers := setupRedpanda(t)
-
-	// Create topic
-	createTopic(t, brokers, "test-metrics-protobuf")
 
 	res := createTestResource(t)
 
@@ -464,9 +428,6 @@ func TestLogExporter(t *testing.T) {
 	ctx := t.Context()
 	brokers := setupRedpanda(t)
 
-	// Create topic
-	createTopic(t, brokers, "test-logs")
-
 	res := createTestResource(t)
 
 	// Create exporter
@@ -523,9 +484,6 @@ func TestLogExporter(t *testing.T) {
 func TestLogExporter_Protobuf(t *testing.T) {
 	ctx := t.Context()
 	brokers := setupRedpanda(t)
-
-	// Create topic
-	createTopic(t, brokers, "test-logs-protobuf")
 
 	res := createTestResource(t)
 
@@ -627,7 +585,6 @@ func TestTraceExporter_SchemaRegistryJSON(t *testing.T) {
 
 	// Create topic
 	topicName := "test-traces-sr-json"
-	createTopic(t, brokers, topicName)
 
 	res := createTestResource(t)
 
@@ -695,7 +652,6 @@ func TestTraceExporter_SchemaRegistryProtobuf(t *testing.T) {
 
 	// Create topic
 	topicName := "test-traces-sr-protobuf"
-	createTopic(t, brokers, topicName)
 
 	res := createTestResource(t)
 
