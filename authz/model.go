@@ -154,27 +154,39 @@ type RoleID string
 // PrincipalID is a unique identifier that describes a principal.
 type PrincipalID string
 
+// UserPrincipal returns a PrincipalID for an individual user.
+//
+// The userID should generally be the email claim within the JWT.
+func UserPrincipal(userID string) PrincipalID {
+	return PrincipalID("user:" + userID)
+}
+
+// GroupPrincipal returns a PrincipalID for a group.
+func GroupPrincipal(groupID string) PrincipalID {
+	return PrincipalID("group:" + groupID)
+}
+
 // PermissionName is the string name of the permission.
 type PermissionName string
 
 // Role a collection of permissions with a unique identifier.
 type Role struct {
-	ID          RoleID
-	Permissions []PermissionName
+	ID          RoleID           `json:"id" yaml:"id" mapstructure:"id"`
+	Permissions []PermissionName `json:"permissions" yaml:"permissions" mapstructure:"permissions"`
 }
 
 // RoleBinding is what associates a principal with a role in the permissions model.
 type RoleBinding struct {
-	RoleID    RoleID
-	Principal PrincipalID
+	RoleID    RoleID      `json:"role_id" yaml:"role_id" mapstructure:"role_id"`
+	Principal PrincipalID `json:"principal" yaml:"principal" mapstructure:"principal"`
 	// Scope is the level at which the role is bound, which allows the permission
 	// to be granted to this resource as well as all sub-resources.
-	Scope ResourceName
+	Scope ResourceName `json:"scope" yaml:"scope" mapstructure:"scope"`
 }
 
 // Policy is a collection of roles and bindings that make up all the information
 // required to enforce access and authorize actions in a component.
 type Policy struct {
-	Roles    []Role
-	Bindings []RoleBinding
+	Roles    []Role        `json:"roles" yaml:"roles" mapstructure:"roles"`
+	Bindings []RoleBinding `json:"bindings" yaml:"bindings" mapstructure:"bindings"`
 }

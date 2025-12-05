@@ -117,7 +117,7 @@ func NewResourcePolicy(
 	p Policy,
 	resource ResourceName,
 	permissions []PermissionName,
-) (ResourcePolicy, error) {
+) (*ResourcePolicy, error) {
 	roleByID := map[RoleID]Role{}
 	for _, role := range p.Roles {
 		roleByID[role.ID] = role
@@ -127,13 +127,13 @@ func NewResourcePolicy(
 	for _, binding := range p.Bindings {
 		// Validate that the role exists
 		if _, ok := roleByID[binding.RoleID]; !ok {
-			return ResourcePolicy{}, fmt.Errorf("missing role %q for binding", binding.RoleID)
+			return &ResourcePolicy{}, fmt.Errorf("missing role %q for binding", binding.RoleID)
 		}
 		bindings := bindingsByScope[binding.Scope]
 		bindingsByScope[binding.Scope] = append(bindings, binding)
 	}
 
-	rp := ResourcePolicy{
+	rp := &ResourcePolicy{
 		resource:          resource,
 		roleByID:          roleByID,
 		bindingsByScope:   bindingsByScope,
