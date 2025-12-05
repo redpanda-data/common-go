@@ -11,8 +11,7 @@ message Span {
   bytes span_id = 2;
   string trace_state = 3;
   bytes parent_span_id = 4;
-  uint32 flags = 5;
-  string name = 6;
+  string name = 5;
   enum SpanKind {
     SPAN_KIND_UNSPECIFIED = 0;
     SPAN_KIND_INTERNAL = 1;
@@ -21,16 +20,17 @@ message Span {
     SPAN_KIND_PRODUCER = 4;
     SPAN_KIND_CONSUMER = 5;
   }
-  SpanKind kind = 7;
-  fixed64 start_time_unix_nano = 8;
-  fixed64 end_time_unix_nano = 9;
-  repeated KeyValue attributes = 10;
-  uint32 dropped_attributes_count = 11;
-  repeated Event events = 12;
-  uint32 dropped_events_count = 13;
-  repeated Link links = 14;
-  uint32 dropped_links_count = 15;
-  Status status = 16;
+  SpanKind kind = 6;
+  fixed64 start_time_unix_nano = 7;
+  fixed64 end_time_unix_nano = 8;
+  repeated KeyValue attributes = 9;
+  uint32 dropped_attributes_count = 10;
+  repeated Event events = 11;
+  uint32 dropped_events_count = 12;
+  repeated Link links = 13;
+  uint32 dropped_links_count = 14;
+  Status status = 15;
+  fixed32 flags = 16;
 }
 
 message Status {
@@ -81,7 +81,7 @@ message Link {
   string trace_state = 3;
   repeated KeyValue attributes = 4;
   uint32 dropped_attributes_count = 5;
-  uint32 flags = 6;
+  fixed32 flags = 6;
 }
 `
 

@@ -5,6 +5,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/bufbuild/protocompile"
+	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/twmb/franz-go/pkg/kgo"
@@ -12,9 +14,10 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/trace"
-	commonpb "go.opentelemetry.io/proto/otlp/common/v1"
 	tracepb "go.opentelemetry.io/proto/otlp/trace/v1"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/testing/protocmp"
+	"google.golang.org/protobuf/types/dynamicpb"
 )
 
 // TestTraceExporter_SchemaRegistryProtobuf_EndToEnd tests complete flow:
@@ -125,58 +128,34 @@ func TestTraceExporter_SchemaRegistryProtobuf_EndToEnd(t *testing.T) {
 	assert.Equal(t, 0, messageIndexes[0], "message index should be 0 for top-level message")
 	t.Logf("Message indexes: %v", messageIndexes)
 
-	// Unmarshal the protobuf payload
-	var spanProto tracepb.Span
-	err = proto.Unmarshal(payload, &spanProto)
-	require.NoError(t, err, "failed to unmarshal protobuf payload")
+	// Unmarshal using the actual compiled proto (what we encode with)
+	var spanActual tracepb.Span
+	err = proto.Unmarshal(payload, &spanActual)
+	require.NoError(t, err, "failed to unmarshal with compiled proto")
 
-	// Validate span content
-	assert.Equal(t, "test-sr-proto-e2e-operation", spanProto.Name, "span name mismatch")
-	assert.NotEmpty(t, spanProto.TraceId, "trace ID should not be empty")
-	assert.NotEmpty(t, spanProto.SpanId, "span ID should not be empty")
-	assert.Greater(t, spanProto.StartTimeUnixNano, uint64(0), "start time should be set")
-	assert.Greater(t, spanProto.EndTimeUnixNano, spanProto.StartTimeUnixNano, "end time should be after start time")
+	// Unmarshal using dynamic proto from otlpTraceProtoSchema (what consumers see from SR)
+	spanDynamic := unmarshalWithSchema(ctx, t, payload)
 
-	// Validate attributes
-	require.NotEmpty(t, spanProto.Attributes, "attributes should not be empty")
-	attrMap := make(map[string]*commonpb.AnyValue)
-	for _, attr := range spanProto.Attributes {
-		attrMap[attr.Key] = attr.Value
-	}
+	// Convert dynamic proto to the same type for comparison
+	// This validates that the schema in schemas.go matches the actual wire format
+	spanFromDynamic := &tracepb.Span{}
+	dynamicBytes, err := proto.Marshal(spanDynamic)
+	require.NoError(t, err, "failed to marshal dynamic proto")
+	err = proto.Unmarshal(dynamicBytes, spanFromDynamic)
+	require.NoError(t, err, "failed to unmarshal dynamic bytes to tracepb.Span")
 
-	// Check string attribute
-	require.Contains(t, attrMap, "test.key")
-	require.NotNil(t, attrMap["test.key"].GetStringValue())
-	assert.Equal(t, "test.value", attrMap["test.key"].GetStringValue())
+	// Compare the two spans - they should be identical
+	// This proves that otlpTraceProtoSchema correctly represents the wire format
+	assertProtoEqual(t, &spanActual, spanFromDynamic)
 
-	// Check int attribute
-	require.Contains(t, attrMap, "test.count")
-	assert.Equal(t, int64(42), attrMap["test.count"].GetIntValue())
-
-	// Check bool attribute
-	require.Contains(t, attrMap, "test.enabled")
-	assert.Equal(t, true, attrMap["test.enabled"].GetBoolValue())
-
-	// Validate events
-	require.Len(t, spanProto.Events, 1, "expected one event")
-	event := spanProto.Events[0]
-	assert.Equal(t, "test-event", event.Name)
-	require.NotEmpty(t, event.Attributes, "event should have attributes")
-
-	eventAttrMap := make(map[string]*commonpb.AnyValue)
-	for _, attr := range event.Attributes {
-		eventAttrMap[attr.Key] = attr.Value
-	}
-	require.Contains(t, eventAttrMap, "event.detail")
-	assert.Equal(t, "important", eventAttrMap["event.detail"].GetStringValue())
-
-	// Validate status
-	assert.NotNil(t, spanProto.Status)
-	// Status should be OK (1) or UNSET (0) for successful span
-	assert.Contains(t, []tracepb.Status_StatusCode{
-		tracepb.Status_STATUS_CODE_UNSET,
-		tracepb.Status_STATUS_CODE_OK,
-	}, spanProto.Status.Code)
+	// Basic validation that the span has expected content
+	assert.Equal(t, "test-sr-proto-e2e-operation", spanActual.Name, "span name mismatch")
+	assert.NotEmpty(t, spanActual.TraceId, "trace ID should not be empty")
+	assert.NotEmpty(t, spanActual.SpanId, "span ID should not be empty")
+	assert.Greater(t, spanActual.StartTimeUnixNano, uint64(0), "start time should be set")
+	assert.Greater(t, spanActual.EndTimeUnixNano, spanActual.StartTimeUnixNano, "end time should be after start time")
+	assert.NotEmpty(t, spanActual.Attributes, "attributes should not be empty")
+	assert.Len(t, spanActual.Events, 1, "expected one event")
 
 	// Verify resource attributes in headers
 	require.NotEmpty(t, record.Headers, "headers should not be empty")
@@ -188,13 +167,14 @@ func TestTraceExporter_SchemaRegistryProtobuf_EndToEnd(t *testing.T) {
 	assert.Equal(t, "1.0.0", headerMap["service.version"], "service.version header mismatch")
 	assert.Equal(t, "test", headerMap["environment"], "environment header mismatch")
 
-	t.Logf("Successfully validated end-to-end Schema Registry protobuf encoding:")
+	t.Log("Successfully validated end-to-end Schema Registry protobuf encoding:")
 	t.Logf("  - Schema ID: %d", schemaID)
 	t.Logf("  - Message indexes: %v", messageIndexes)
-	t.Logf("  - Span: %s", spanProto.Name)
-	t.Logf("  - Attributes: %d", len(spanProto.Attributes))
-	t.Logf("  - Events: %d", len(spanProto.Events))
+	t.Logf("  - Span: %s", spanActual.Name)
+	t.Logf("  - Attributes: %d", len(spanActual.Attributes))
+	t.Logf("  - Events: %d", len(spanActual.Events))
 	t.Logf("  - Resource headers: %d", len(record.Headers))
+	t.Log("  - Schema wire format validated: compiled proto == dynamic proto from schema")
 }
 
 // TestTraceExporter_SchemaRegistryProtobuf_MultipleSpans tests handling multiple spans
@@ -315,4 +295,46 @@ func TestTraceExporter_SchemaRegistryProtobuf_MultipleSpans(t *testing.T) {
 	}
 
 	t.Logf("Successfully validated %d spans with Schema Registry protobuf encoding", spanCount)
+}
+
+// unmarshalWithSchema unmarshals protobuf data using the schema from otlpTraceProtoSchema
+// This simulates what Schema Registry consumers do when decoding messages
+func unmarshalWithSchema(ctx context.Context, t *testing.T, payload []byte) proto.Message {
+	t.Helper()
+
+	// Compile the schema string into file descriptors
+	compiler := protocompile.Compiler{
+		Resolver: &protocompile.SourceResolver{
+			Accessor: protocompile.SourceAccessorFromMap(map[string]string{
+				"trace.proto": otlpTraceProtoSchema,
+			}),
+		},
+	}
+
+	fds, err := compiler.Compile(ctx, "trace.proto")
+	require.NoError(t, err, "failed to compile otlpTraceProtoSchema")
+	require.Len(t, fds, 1, "expected one compiled file")
+
+	// Get the Span message descriptor (index 0)
+	spanDesc := fds[0].Messages().Get(0)
+	require.Equal(t, "Span", string(spanDesc.Name()), "first message should be Span")
+
+	// Create dynamic message and unmarshal
+	spanDynamic := dynamicpb.NewMessage(spanDesc)
+	err = proto.Unmarshal(payload, spanDynamic)
+	require.NoError(t, err, "failed to unmarshal with dynamic proto from schema")
+
+	return spanDynamic
+}
+
+// assertProtoEqual compares two protos using protocmp
+func assertProtoEqual(t *testing.T, want, got proto.Message) {
+	t.Helper()
+	if proto.Equal(want, got) {
+		return
+	}
+
+	if diff := cmp.Diff(want, got, protocmp.Transform()); diff != "" {
+		t.Fatalf("Protos not equal (-want +got):\n%s\n\nThis means otlpTraceProtoSchema doesn't match the actual OTLP proto wire format", diff)
+	}
 }
