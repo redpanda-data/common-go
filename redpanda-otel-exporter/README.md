@@ -23,50 +23,67 @@ This exporter differs from the standard OpenTelemetry Collector Kafka exporter i
 - Simpler downstream consumption patterns
 - Better parallelism and scalability
 
-**Resource Attributes in Headers**: Resource attributes (service.name, service.version, etc.) are stored as Kafka record headers rather than in the JSON/Protobuf body. This:
-- Reduces message payload size
-- Enables efficient filtering at the Kafka level
-- Separates signal data from metadata
-- Maintains OTLP compliance while optimizing for Kafka
+**Resource and Scope Embedded**: Resource attributes (service.name, service.version, etc.) and instrumentation scope information are included directly in each message body. This:
+- Ensures complete context for each signal
+- Maintains OTLP compatibility
+- Enables self-contained records that can be processed independently
+- Supports both JSON and binary protobuf serialization with identical structure
 
 ## Data Format
 
 Telemetry data can be exported in multiple formats:
-- **JSON**: Human-readable format
-- **Protobuf**: Binary OTLP format
+- **JSON**: Human-readable format using protobuf JSON encoding (protojson)
+- **Protobuf**: Binary format using custom OTLP-compatible protobuf definitions
 - **Schema Registry JSON**: JSON with Schema Registry serdes encoding
 - **Schema Registry Protobuf**: Protobuf with Schema Registry serdes encoding
 
 Each Kafka record contains a single telemetry signal (one span, one metric, or one log record).
 
+### Protobuf Schema
+
+This exporter uses custom protobuf definitions located in the `./proto` directory that are compatible with the OpenTelemetry Protocol (OTLP) format. The schemas are defined in:
+- `proto/trace.proto` - Trace/span messages
+- `proto/metric.proto` - Metric messages
+- `proto/log.proto` - Log record messages
+- `proto/common.proto` - Common types (KeyValue, AnyValue, Resource, etc.)
+
+These schemas include resource and scope information directly in each message, enabling one-signal-per-record export pattern.
+
 ### JSON Format Examples
 
-The JSON format follows the **OTLP JSON encoding specification** ([opentelemetry-proto v1.9.0](https://github.com/open-telemetry/opentelemetry-proto/tree/v1.9.0/examples)):
-- **IDs**: Hex-encoded strings (traceId: 32 chars, spanId: 16 chars)
+The JSON format is generated using `protojson.Marshal()` from the protobuf messages, ensuring consistency between JSON and binary formats:
+- **IDs**: Base64-encoded byte arrays (traceId, spanId)
 - **Timestamps**: String-encoded uint64 nanoseconds (to avoid precision loss)
 - **Enums**: Integer values (not string names)
 - **Attributes**: Array of objects with typed values (stringValue, intValue, etc.)
-- **Resource attributes**: Stored in Kafka record headers (not in JSON body)
+- **Resource and Scope**: Included directly in each message
 
 #### Trace Format (Single Span)
 
 ```json
 {
+  "resource": {
+    "attributes": [
+      {"key": "service.name", "value": {"stringValue": "my-service"}},
+      {"key": "service.version", "value": {"stringValue": "1.0.0"}},
+      {"key": "deployment.environment", "value": {"stringValue": "production"}}
+    ]
+  },
+  "resourceSchemaUrl": "https://opentelemetry.io/schemas/1.24.0",
+  "scope": {
+    "name": "my-tracer",
+    "version": "1.0.0"
+  },
+  "scopeSchemaUrl": "",
+  "traceId": "S/kvNXezTaajzpKdDg5HNg==",
+  "spanId": "APBnqguqkLc=",
   "name": "HTTP GET /api/users",
-  "traceId": "4bf92f3577b34da6a3ce929d0e0e4736",
-  "spanId": "00f067aa0ba902b7",
   "kind": 2,
   "startTimeUnixNano": "1544712660300000000",
   "endTimeUnixNano": "1544712660600000000",
   "attributes": [
-    {
-      "key": "http.method",
-      "value": {"stringValue": "GET"}
-    },
-    {
-      "key": "http.status_code",
-      "value": {"intValue": "200"}
-    }
+    {"key": "http.method", "value": {"stringValue": "GET"}},
+    {"key": "http.status_code", "value": {"intValue": "200"}}
   ],
   "status": {
     "code": 1
@@ -74,53 +91,59 @@ The JSON format follows the **OTLP JSON encoding specification** ([opentelemetry
 }
 ```
 
-**Kafka Headers** (resource attributes):
-```
-service.name: my-service
-service.version: 1.0.0
-deployment.environment: production
-```
-
 #### Metric Format (Single Metric)
 
 ```json
 {
+  "resource": {
+    "attributes": [
+      {"key": "service.name", "value": {"stringValue": "my-service"}},
+      {"key": "service.version", "value": {"stringValue": "1.0.0"}}
+    ]
+  },
+  "resourceSchemaUrl": "https://opentelemetry.io/schemas/1.24.0",
+  "scope": {
+    "name": "my-meter",
+    "version": "1.0.0"
+  },
+  "scopeSchemaUrl": "",
   "name": "http.server.request_count",
   "description": "Total HTTP requests",
   "unit": "{requests}",
-  "type": "sum",
-  "aggregationTemporality": 2,
-  "isMonotonic": true,
-  "dataPoints": [
-    {
-      "attributes": [
-        {
-          "key": "http.route",
-          "value": {"stringValue": "/api/users"}
-        },
-        {
-          "key": "http.status_code",
-          "value": {"intValue": "200"}
-        }
-      ],
-      "startTimeUnixNano": "1544712660000000000",
-      "timeUnixNano": "1544712660300000000",
-      "value": 42
-    }
-  ]
+  "sum": {
+    "dataPoints": [
+      {
+        "attributes": [
+          {"key": "http.route", "value": {"stringValue": "/api/users"}},
+          {"key": "http.status_code", "value": {"intValue": "200"}}
+        ],
+        "startTimeUnixNano": "1544712660000000000",
+        "timeUnixNano": "1544712660300000000",
+        "asInt": "42"
+      }
+    ],
+    "aggregationTemporality": 2,
+    "isMonotonic": true
+  }
 }
-```
-
-**Kafka Headers** (resource attributes):
-```
-service.name: my-service
-service.version: 1.0.0
 ```
 
 #### Log Format (Single Log Record)
 
 ```json
 {
+  "resource": {
+    "attributes": [
+      {"key": "service.name", "value": {"stringValue": "my-service"}},
+      {"key": "service.version", "value": {"stringValue": "1.0.0"}}
+    ]
+  },
+  "resourceSchemaUrl": "https://opentelemetry.io/schemas/1.24.0",
+  "scope": {
+    "name": "my-logger",
+    "version": "1.0.0"
+  },
+  "scopeSchemaUrl": "",
   "timeUnixNano": "1544712660300000000",
   "observedTimeUnixNano": "1544712660300100000",
   "severityNumber": 9,
@@ -129,36 +152,24 @@ service.version: 1.0.0
     "stringValue": "User login successful"
   },
   "attributes": [
-    {
-      "key": "user.id",
-      "value": {"stringValue": "user123"}
-    },
-    {
-      "key": "login.attempts",
-      "value": {"intValue": "1"}
-    }
+    {"key": "user.id", "value": {"stringValue": "user123"}},
+    {"key": "login.attempts", "value": {"intValue": "1"}}
   ],
-  "traceId": "4bf92f3577b34da6a3ce929d0e0e4736",
-  "spanId": "00f067aa0ba902b7",
+  "traceId": "S/kvNXezTaajzpKdDg5HNg==",
+  "spanId": "APBnqguqkLc=",
   "flags": 1
 }
 ```
 
-**Kafka Headers** (resource attributes):
-```
-service.name: my-service
-service.version: 1.0.0
-```
-
 ### Protobuf Format
 
-When using `SerializationFormatProtobuf`, data is serialized using the official [OpenTelemetry Protocol (OTLP)](https://github.com/open-telemetry/opentelemetry-proto) protobuf definitions:
+When using `SerializationFormatProtobuf`, data is serialized using the custom protobuf definitions in `./proto`:
 
-- **Traces**: `opentelemetry.proto.trace.v1.ResourceSpans` (one span per record)
-- **Metrics**: `opentelemetry.proto.metrics.v1.ResourceMetrics` (one metric per record)
-- **Logs**: `opentelemetry.proto.logs.v1.ResourceLogs` (one log per record)
+- **Traces**: `redpanda.otel.v1.Span` (one span per record)
+- **Metrics**: `redpanda.otel.v1.Metric` (one metric per record)
+- **Logs**: `redpanda.otel.v1.LogRecord` (one log per record)
 
-The protobuf format follows the exact same structure as defined in the OTLP specification, making it compatible with any OTLP-compliant consumer. **Note**: In protobuf format, resource attributes are included in the message body (not in Kafka headers) to maintain full OTLP compliance.
+The protobuf format is OTLP-compatible and includes resource and scope information directly in each message. The binary encoding is more compact than JSON and can be decoded using the proto files in the `./proto` directory.
 
 ## Installation
 
@@ -363,7 +374,7 @@ exporter, err := exporter.NewTraceExporter(
 
 ### With Resource Attributes
 
-Add resource attributes to identify your service:
+Resource attributes are automatically included from the OpenTelemetry SDK. Configure them when creating your tracer/meter/logger provider:
 
 ```go
 import (
@@ -379,11 +390,14 @@ res, err := resource.New(ctx,
     ),
 )
 
-exporter, err := exporter.NewTraceExporter(
-    exporter.WithBrokers("localhost:9092"),
-    exporter.WithResource(res),
+// Resource attributes are passed through the SDK provider
+tracerProvider := sdktrace.NewTracerProvider(
+    sdktrace.WithBatcher(exporter),
+    sdktrace.WithResource(res),  // <-- Resource configured here
 )
 ```
+
+The exporter automatically extracts resource and scope information from each span/metric/log and includes it in the exported message.
 
 ## Example Usage
 
@@ -459,7 +473,6 @@ All exporters use functional options pattern:
 | `WithTopic(topic string)` | Kafka topic name | `"otel-traces"`, `"otel-metrics"`, or `"otel-logs"` depending on exporter type |
 | `WithClientID(clientID string)` | Kafka client identifier | `"otel-kafka-exporter"` |
 | `WithTimeout(timeout time.Duration)` | Export operation timeout | `30s` |
-| `WithResource(resource *resource.Resource)` | OpenTelemetry resource | `nil` |
 | `WithSerializationFormat(format SerializationFormat)` | Format: JSON, Protobuf, SchemaRegistryJSON, or SchemaRegistryProtobuf | `SerializationFormatJSON` |
 | `WithSchemaRegistryURL(url string)` | Schema Registry URL (required for SR formats) | `""` |
 | `WithSchemaSubject(subject string)` | Schema subject name override (defaults to topic name) | `""` (uses topic name) |
