@@ -154,18 +154,6 @@ type RoleID string
 // PrincipalID is a unique identifier that describes a principal.
 type PrincipalID string
 
-// UserPrincipal returns a PrincipalID for an individual user.
-//
-// The userID should generally be the email claim within the JWT.
-func UserPrincipal(userID string) PrincipalID {
-	return PrincipalID("user:" + userID)
-}
-
-// GroupPrincipal returns a PrincipalID for a group.
-func GroupPrincipal(groupID string) PrincipalID {
-	return PrincipalID("group:" + groupID)
-}
-
 // PermissionName is the string name of the permission.
 type PermissionName string
 
