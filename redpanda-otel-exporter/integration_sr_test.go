@@ -14,10 +14,11 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/trace"
-	tracepb "go.opentelemetry.io/proto/otlp/trace/v1"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/testing/protocmp"
 	"google.golang.org/protobuf/types/dynamicpb"
+
+	pb "github.com/redpanda-data/common-go/redpanda-otel-exporter/proto"
 )
 
 // TestTraceExporter_SchemaRegistryProtobuf_EndToEnd tests complete flow:
@@ -35,8 +36,6 @@ func TestTraceExporter_SchemaRegistryProtobuf_EndToEnd(t *testing.T) {
 	exporter, err := NewTraceExporter(
 		WithTopic(topicName),
 		WithBrokers(brokers),
-		WithClientID("test-trace-exporter-sr-proto-e2e"),
-		WithResource(res),
 		WithSerializationFormat(SerializationFormatSchemaRegistryProtobuf),
 		WithSchemaRegistryURL(schemaRegistryURL),
 	)
@@ -129,7 +128,7 @@ func TestTraceExporter_SchemaRegistryProtobuf_EndToEnd(t *testing.T) {
 	t.Logf("Message indexes: %v", messageIndexes)
 
 	// Unmarshal using the actual compiled proto (what we encode with)
-	var spanActual tracepb.Span
+	var spanActual pb.Span
 	err = proto.Unmarshal(payload, &spanActual)
 	require.NoError(t, err, "failed to unmarshal with compiled proto")
 
@@ -138,11 +137,11 @@ func TestTraceExporter_SchemaRegistryProtobuf_EndToEnd(t *testing.T) {
 
 	// Convert dynamic proto to the same type for comparison
 	// This validates that the schema in schemas.go matches the actual wire format
-	spanFromDynamic := &tracepb.Span{}
+	spanFromDynamic := &pb.Span{}
 	dynamicBytes, err := proto.Marshal(spanDynamic)
 	require.NoError(t, err, "failed to marshal dynamic proto")
 	err = proto.Unmarshal(dynamicBytes, spanFromDynamic)
-	require.NoError(t, err, "failed to unmarshal dynamic bytes to tracepb.Span")
+	require.NoError(t, err, "failed to unmarshal dynamic bytes to pb.Span")
 
 	// Compare the two spans - they should be identical
 	// This proves that otlpTraceProtoSchema correctly represents the wire format
@@ -157,15 +156,23 @@ func TestTraceExporter_SchemaRegistryProtobuf_EndToEnd(t *testing.T) {
 	assert.NotEmpty(t, spanActual.Attributes, "attributes should not be empty")
 	assert.Len(t, spanActual.Events, 1, "expected one event")
 
-	// Verify resource attributes in headers
-	require.NotEmpty(t, record.Headers, "headers should not be empty")
-	headerMap := make(map[string]string)
-	for _, h := range record.Headers {
-		headerMap[h.Key] = string(h.Value)
+	// Verify resource attributes are embedded in the protobuf message
+	require.NotNil(t, spanActual.Resource, "resource should be embedded in span")
+	require.NotEmpty(t, spanActual.Resource.Attributes, "resource attributes should not be empty")
+
+	// Find specific resource attributes
+	resourceAttrs := make(map[string]string)
+	for _, attr := range spanActual.Resource.Attributes {
+		if attr.Value.GetStringValue() != "" {
+			resourceAttrs[attr.Key] = attr.Value.GetStringValue()
+		}
 	}
-	assert.Equal(t, "test-service", headerMap["service.name"], "service.name header mismatch")
-	assert.Equal(t, "1.0.0", headerMap["service.version"], "service.version header mismatch")
-	assert.Equal(t, "test", headerMap["environment"], "environment header mismatch")
+	assert.Equal(t, "test-service", resourceAttrs["service.name"], "service.name attribute mismatch")
+	assert.Equal(t, "1.0.0", resourceAttrs["service.version"], "service.version attribute mismatch")
+	assert.Equal(t, "test", resourceAttrs["environment"], "environment attribute mismatch")
+
+	// Verify scope is also embedded
+	require.NotNil(t, spanActual.Scope, "scope should be embedded in span")
 
 	t.Log("Successfully validated end-to-end Schema Registry protobuf encoding:")
 	t.Logf("  - Schema ID: %d", schemaID)
@@ -173,7 +180,8 @@ func TestTraceExporter_SchemaRegistryProtobuf_EndToEnd(t *testing.T) {
 	t.Logf("  - Span: %s", spanActual.Name)
 	t.Logf("  - Attributes: %d", len(spanActual.Attributes))
 	t.Logf("  - Events: %d", len(spanActual.Events))
-	t.Logf("  - Resource headers: %d", len(record.Headers))
+	t.Logf("  - Resource attributes: %d", len(spanActual.Resource.Attributes))
+	t.Logf("  - Scope: %s", spanActual.Scope.Name)
 	t.Log("  - Schema wire format validated: compiled proto == dynamic proto from schema")
 }
 
@@ -189,8 +197,6 @@ func TestTraceExporter_SchemaRegistryProtobuf_MultipleSpans(t *testing.T) {
 	exporter, err := NewTraceExporter(
 		WithTopic(topicName),
 		WithBrokers(brokers),
-		WithClientID("test-trace-exporter-sr-proto-multi"),
-		WithResource(res),
 		WithSerializationFormat(SerializationFormatSchemaRegistryProtobuf),
 		WithSchemaRegistryURL(schemaRegistryURL),
 	)
@@ -208,7 +214,7 @@ func TestTraceExporter_SchemaRegistryProtobuf_MultipleSpans(t *testing.T) {
 
 	// Create multiple spans
 	spanCount := 5
-	for i := 0; i < spanCount; i++ {
+	for i := range spanCount {
 		_, span := tracer.Start(ctx, "multi-span-test",
 			trace.WithAttributes(
 				attribute.Int("span.index", i),
@@ -270,7 +276,7 @@ func TestTraceExporter_SchemaRegistryProtobuf_MultipleSpans(t *testing.T) {
 		assert.Equal(t, 0, messageIndexes[0], "message index should be 0")
 
 		// Unmarshal protobuf
-		var spanProto tracepb.Span
+		var spanProto pb.Span
 		err = proto.Unmarshal(payload, &spanProto)
 		require.NoError(t, err, "failed to unmarshal span %d", idx)
 
@@ -290,7 +296,7 @@ func TestTraceExporter_SchemaRegistryProtobuf_MultipleSpans(t *testing.T) {
 
 	// Verify we got all indices
 	assert.Len(t, spanIndices, spanCount, "should have all unique span indices")
-	for i := 0; i < spanCount; i++ {
+	for i := range spanCount {
 		assert.True(t, spanIndices[i], "missing span index %d", i)
 	}
 
@@ -303,10 +309,12 @@ func unmarshalWithSchema(ctx context.Context, t *testing.T, payload []byte) prot
 	t.Helper()
 
 	// Compile the schema string into file descriptors
+	// Include both trace.proto and common.proto since trace.proto imports common.proto
 	compiler := protocompile.Compiler{
 		Resolver: &protocompile.SourceResolver{
 			Accessor: protocompile.SourceAccessorFromMap(map[string]string{
-				"trace.proto": otlpTraceProtoSchema,
+				"trace.proto":  otlpTraceProtoSchema,
+				"common.proto": otlpCommonProtoSchema,
 			}),
 		},
 	}

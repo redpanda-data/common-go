@@ -7,14 +7,14 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/log"
+	"go.opentelemetry.io/otel/sdk/instrumentation"
 	sdklog "go.opentelemetry.io/otel/sdk/log"
 	"go.opentelemetry.io/otel/sdk/metric/metricdata"
+	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/trace"
-	commonpb "go.opentelemetry.io/proto/otlp/common/v1"
-	logspb "go.opentelemetry.io/proto/otlp/logs/v1"
-	metricspb "go.opentelemetry.io/proto/otlp/metrics/v1"
-	tracepb "go.opentelemetry.io/proto/otlp/trace/v1"
+
+	pb "github.com/redpanda-data/common-go/redpanda-otel-exporter/proto"
 )
 
 // int64ToUint64 safely converts an int64 to uint64.
@@ -40,64 +40,94 @@ func intToInt32(v int) int32 {
 }
 
 // attributeToProto converts an attribute.KeyValue to OTLP protobuf format
-func attributeToProto(attr attribute.KeyValue) *commonpb.KeyValue {
-	return &commonpb.KeyValue{
+func attributesToProto(attr []attribute.KeyValue) []*pb.KeyValue {
+	protos := make([]*pb.KeyValue, len(attr))
+	for i, a := range attr {
+		protos[i] = attributeToProto(a)
+	}
+	return protos
+}
+
+// attributeToProto converts an attribute.KeyValue to OTLP protobuf format
+func attributeToProto(attr attribute.KeyValue) *pb.KeyValue {
+	return &pb.KeyValue{
 		Key:   string(attr.Key),
 		Value: attributeValueToProto(attr.Value),
 	}
 }
 
 // attributeValueToProto converts an attribute.Value to OTLP protobuf format
-func attributeValueToProto(v attribute.Value) *commonpb.AnyValue {
+func attributeValueToProto(v attribute.Value) *pb.AnyValue {
 	switch v.Type() {
 	case attribute.BOOL:
-		return &commonpb.AnyValue{Value: &commonpb.AnyValue_BoolValue{BoolValue: v.AsBool()}}
+		return &pb.AnyValue{Value: &pb.AnyValue_BoolValue{BoolValue: v.AsBool()}}
 	case attribute.INT64:
-		return &commonpb.AnyValue{Value: &commonpb.AnyValue_IntValue{IntValue: v.AsInt64()}}
+		return &pb.AnyValue{Value: &pb.AnyValue_IntValue{IntValue: v.AsInt64()}}
 	case attribute.FLOAT64:
-		return &commonpb.AnyValue{Value: &commonpb.AnyValue_DoubleValue{DoubleValue: v.AsFloat64()}}
+		return &pb.AnyValue{Value: &pb.AnyValue_DoubleValue{DoubleValue: v.AsFloat64()}}
 	case attribute.BOOLSLICE:
 		slice := v.AsBoolSlice()
-		values := make([]*commonpb.AnyValue, len(slice))
+		values := make([]*pb.AnyValue, len(slice))
 		for i, item := range slice {
-			values[i] = &commonpb.AnyValue{Value: &commonpb.AnyValue_BoolValue{BoolValue: item}}
+			values[i] = &pb.AnyValue{Value: &pb.AnyValue_BoolValue{BoolValue: item}}
 		}
-		return &commonpb.AnyValue{Value: &commonpb.AnyValue_ArrayValue{ArrayValue: &commonpb.ArrayValue{Values: values}}}
+		return &pb.AnyValue{Value: &pb.AnyValue_ArrayValue{ArrayValue: &pb.ArrayValue{Values: values}}}
 	case attribute.INT64SLICE:
 		slice := v.AsInt64Slice()
-		values := make([]*commonpb.AnyValue, len(slice))
+		values := make([]*pb.AnyValue, len(slice))
 		for i, item := range slice {
-			values[i] = &commonpb.AnyValue{Value: &commonpb.AnyValue_IntValue{IntValue: item}}
+			values[i] = &pb.AnyValue{Value: &pb.AnyValue_IntValue{IntValue: item}}
 		}
-		return &commonpb.AnyValue{Value: &commonpb.AnyValue_ArrayValue{ArrayValue: &commonpb.ArrayValue{Values: values}}}
+		return &pb.AnyValue{Value: &pb.AnyValue_ArrayValue{ArrayValue: &pb.ArrayValue{Values: values}}}
 	case attribute.FLOAT64SLICE:
 		slice := v.AsFloat64Slice()
-		values := make([]*commonpb.AnyValue, len(slice))
+		values := make([]*pb.AnyValue, len(slice))
 		for i, item := range slice {
-			values[i] = &commonpb.AnyValue{Value: &commonpb.AnyValue_DoubleValue{DoubleValue: item}}
+			values[i] = &pb.AnyValue{Value: &pb.AnyValue_DoubleValue{DoubleValue: item}}
 		}
-		return &commonpb.AnyValue{Value: &commonpb.AnyValue_ArrayValue{ArrayValue: &commonpb.ArrayValue{Values: values}}}
+		return &pb.AnyValue{Value: &pb.AnyValue_ArrayValue{ArrayValue: &pb.ArrayValue{Values: values}}}
 	case attribute.STRINGSLICE:
 		slice := v.AsStringSlice()
-		values := make([]*commonpb.AnyValue, len(slice))
+		values := make([]*pb.AnyValue, len(slice))
 		for i, item := range slice {
-			values[i] = &commonpb.AnyValue{Value: &commonpb.AnyValue_StringValue{StringValue: item}}
+			values[i] = &pb.AnyValue{Value: &pb.AnyValue_StringValue{StringValue: item}}
 		}
-		return &commonpb.AnyValue{Value: &commonpb.AnyValue_ArrayValue{ArrayValue: &commonpb.ArrayValue{Values: values}}}
+		return &pb.AnyValue{Value: &pb.AnyValue_ArrayValue{ArrayValue: &pb.ArrayValue{Values: values}}}
 	default:
 		// Handles attribute.STRING and any other unknown types by converting to string
-		return &commonpb.AnyValue{Value: &commonpb.AnyValue_StringValue{StringValue: v.AsString()}}
+		return &pb.AnyValue{Value: &pb.AnyValue_StringValue{StringValue: v.AsString()}}
+	}
+}
+
+func resourceToProto(r *resource.Resource) *pb.Resource {
+	if r == nil {
+		return nil
+	}
+	return &pb.Resource{
+		Attributes: attributesToProto(r.Attributes()),
+	}
+}
+
+func instrumentationScopeToProto(s instrumentation.Scope) *pb.InstrumentationScope {
+	return &pb.InstrumentationScope{
+		Name:       s.Name,
+		Version:    s.Version,
+		Attributes: attributesToProto(s.Attributes.ToSlice()),
 	}
 }
 
 // spanToProto converts a ReadOnlySpan to OTLP protobuf format
-func spanToProto(span sdktrace.ReadOnlySpan) *tracepb.Span {
+func spanToProto(span sdktrace.ReadOnlySpan) *pb.Span {
 	sc := span.SpanContext()
 
 	traceID := sc.TraceID()
 	spanID := sc.SpanID()
 
-	pbSpan := &tracepb.Span{
+	pbSpan := &pb.Span{
+		Resource:          resourceToProto(span.Resource()),
+		ResourceSchemaUrl: span.Resource().SchemaURL(),
+		Scope:             instrumentationScopeToProto(span.InstrumentationScope()),
+		ScopeSchemaUrl:    span.InstrumentationScope().SchemaURL,
 		TraceId:           traceID[:],
 		SpanId:            spanID[:],
 		Name:              span.Name(),
@@ -116,19 +146,19 @@ func spanToProto(span sdktrace.ReadOnlySpan) *tracepb.Span {
 
 	// Add attributes
 	attrs := span.Attributes()
-	pbSpan.Attributes = make([]*commonpb.KeyValue, len(attrs))
+	pbSpan.Attributes = make([]*pb.KeyValue, len(attrs))
 	for i, attr := range attrs {
 		pbSpan.Attributes[i] = attributeToProto(attr)
 	}
 
 	// Add events
 	events := span.Events()
-	pbSpan.Events = make([]*tracepb.Span_Event, len(events))
+	pbSpan.Events = make([]*pb.Span_Event, len(events))
 	for i, event := range events {
-		pbEvent := &tracepb.Span_Event{
+		pbEvent := &pb.Span_Event{
 			TimeUnixNano: int64ToUint64(event.Time.UnixNano()),
 			Name:         event.Name,
-			Attributes:   make([]*commonpb.KeyValue, len(event.Attributes)),
+			Attributes:   make([]*pb.KeyValue, len(event.Attributes)),
 		}
 		for j, attr := range event.Attributes {
 			pbEvent.Attributes[j] = attributeToProto(attr)
@@ -138,15 +168,15 @@ func spanToProto(span sdktrace.ReadOnlySpan) *tracepb.Span {
 
 	// Add links
 	links := span.Links()
-	pbSpan.Links = make([]*tracepb.Span_Link, len(links))
+	pbSpan.Links = make([]*pb.Span_Link, len(links))
 	for i, link := range links {
 		linkTraceID := link.SpanContext.TraceID()
 		linkSpanID := link.SpanContext.SpanID()
-		pbLink := &tracepb.Span_Link{
+		pbLink := &pb.Span_Link{
 			TraceId:    linkTraceID[:],
 			SpanId:     linkSpanID[:],
 			TraceState: link.SpanContext.TraceState().String(),
-			Attributes: make([]*commonpb.KeyValue, len(link.Attributes)),
+			Attributes: make([]*pb.KeyValue, len(link.Attributes)),
 		}
 		for j, attr := range link.Attributes {
 			pbLink.Attributes[j] = attributeToProto(attr)
@@ -158,47 +188,51 @@ func spanToProto(span sdktrace.ReadOnlySpan) *tracepb.Span {
 }
 
 // spanKindToProto converts span kind to protobuf format
-func spanKindToProto(kind trace.SpanKind) tracepb.Span_SpanKind {
+func spanKindToProto(kind trace.SpanKind) pb.Span_SpanKind {
 	switch kind {
 	case trace.SpanKindInternal:
-		return tracepb.Span_SPAN_KIND_INTERNAL
+		return pb.Span_SPAN_KIND_INTERNAL
 	case trace.SpanKindServer:
-		return tracepb.Span_SPAN_KIND_SERVER
+		return pb.Span_SPAN_KIND_SERVER
 	case trace.SpanKindClient:
-		return tracepb.Span_SPAN_KIND_CLIENT
+		return pb.Span_SPAN_KIND_CLIENT
 	case trace.SpanKindProducer:
-		return tracepb.Span_SPAN_KIND_PRODUCER
+		return pb.Span_SPAN_KIND_PRODUCER
 	case trace.SpanKindConsumer:
-		return tracepb.Span_SPAN_KIND_CONSUMER
+		return pb.Span_SPAN_KIND_CONSUMER
 	default:
-		return tracepb.Span_SPAN_KIND_UNSPECIFIED
+		return pb.Span_SPAN_KIND_UNSPECIFIED
 	}
 }
 
 // spanStatusToProto converts span status to protobuf format
-func spanStatusToProto(status sdktrace.Status) *tracepb.Status {
-	pbStatus := &tracepb.Status{
+func spanStatusToProto(status sdktrace.Status) *pb.Status {
+	pbStatus := &pb.Status{
 		Message: status.Description,
 	}
 
 	switch status.Code {
 	case codes.Ok:
-		pbStatus.Code = tracepb.Status_STATUS_CODE_OK
+		pbStatus.Code = pb.Status_STATUS_CODE_OK
 	case codes.Error:
-		pbStatus.Code = tracepb.Status_STATUS_CODE_ERROR
+		pbStatus.Code = pb.Status_STATUS_CODE_ERROR
 	default:
-		pbStatus.Code = tracepb.Status_STATUS_CODE_UNSET
+		pbStatus.Code = pb.Status_STATUS_CODE_UNSET
 	}
 
 	return pbStatus
 }
 
 // logRecordToProto converts a log record to OTLP protobuf format
-func logRecordToProto(record sdklog.Record) *logspb.LogRecord {
-	pbLog := &logspb.LogRecord{
+func logRecordToProto(record sdklog.Record) *pb.LogRecord {
+	pbLog := &pb.LogRecord{
+		Resource:             resourceToProto(record.Resource()),
+		ResourceSchemaUrl:    record.Resource().SchemaURL(),
+		Scope:                instrumentationScopeToProto(record.InstrumentationScope()),
+		ScopeSchemaUrl:       record.InstrumentationScope().SchemaURL,
 		TimeUnixNano:         int64ToUint64(record.Timestamp().UnixNano()),
 		ObservedTimeUnixNano: int64ToUint64(record.ObservedTimestamp().UnixNano()),
-		SeverityNumber:       logspb.SeverityNumber(intToInt32(int(record.Severity()))),
+		SeverityNumber:       pb.SeverityNumber(intToInt32(int(record.Severity()))),
 		SeverityText:         record.SeverityText(),
 		Body:                 logBodyToProto(record.Body()),
 	}
@@ -215,7 +249,7 @@ func logRecordToProto(record sdklog.Record) *logspb.LogRecord {
 	pbLog.Flags = uint32(record.TraceFlags())
 
 	// Add attributes
-	attrs := make([]*commonpb.KeyValue, 0)
+	attrs := make([]*pb.KeyValue, 0)
 	record.WalkAttributes(func(kv log.KeyValue) bool {
 		attrs = append(attrs, logAttributeToProto(kv))
 		return true
@@ -226,127 +260,131 @@ func logRecordToProto(record sdklog.Record) *logspb.LogRecord {
 }
 
 // logBodyToProto converts log body to protobuf format
-func logBodyToProto(body any) *commonpb.AnyValue {
+func logBodyToProto(body any) *pb.AnyValue {
 	if body == nil {
 		return nil
 	}
 	// For simplicity, convert to string
-	return &commonpb.AnyValue{
-		Value: &commonpb.AnyValue_StringValue{
+	return &pb.AnyValue{
+		Value: &pb.AnyValue_StringValue{
 			StringValue: fmt.Sprint(body),
 		},
 	}
 }
 
 // logAttributeToProto converts a log.KeyValue to OTLP protobuf format
-func logAttributeToProto(kv log.KeyValue) *commonpb.KeyValue {
-	return &commonpb.KeyValue{
+func logAttributeToProto(kv log.KeyValue) *pb.KeyValue {
+	return &pb.KeyValue{
 		Key:   kv.Key,
 		Value: logValueToProto(kv.Value),
 	}
 }
 
 // logValueToProto converts a log.Value to OTLP protobuf format
-func logValueToProto(v log.Value) *commonpb.AnyValue {
+func logValueToProto(v log.Value) *pb.AnyValue {
 	switch v.Kind() {
 	case log.KindEmpty:
-		return &commonpb.AnyValue{}
+		return &pb.AnyValue{}
 	case log.KindBool:
-		return &commonpb.AnyValue{Value: &commonpb.AnyValue_BoolValue{BoolValue: v.AsBool()}}
+		return &pb.AnyValue{Value: &pb.AnyValue_BoolValue{BoolValue: v.AsBool()}}
 	case log.KindFloat64:
-		return &commonpb.AnyValue{Value: &commonpb.AnyValue_DoubleValue{DoubleValue: v.AsFloat64()}}
+		return &pb.AnyValue{Value: &pb.AnyValue_DoubleValue{DoubleValue: v.AsFloat64()}}
 	case log.KindInt64:
-		return &commonpb.AnyValue{Value: &commonpb.AnyValue_IntValue{IntValue: v.AsInt64()}}
+		return &pb.AnyValue{Value: &pb.AnyValue_IntValue{IntValue: v.AsInt64()}}
 	case log.KindBytes:
-		return &commonpb.AnyValue{Value: &commonpb.AnyValue_BytesValue{BytesValue: v.AsBytes()}}
+		return &pb.AnyValue{Value: &pb.AnyValue_BytesValue{BytesValue: v.AsBytes()}}
 	case log.KindSlice:
 		slice := v.AsSlice()
-		values := make([]*commonpb.AnyValue, len(slice))
+		values := make([]*pb.AnyValue, len(slice))
 		for i, item := range slice {
 			values[i] = logValueToProto(item)
 		}
-		return &commonpb.AnyValue{Value: &commonpb.AnyValue_ArrayValue{ArrayValue: &commonpb.ArrayValue{Values: values}}}
+		return &pb.AnyValue{Value: &pb.AnyValue_ArrayValue{ArrayValue: &pb.ArrayValue{Values: values}}}
 	case log.KindMap:
 		kvs := v.AsMap()
-		pairs := make([]*commonpb.KeyValue, len(kvs))
+		pairs := make([]*pb.KeyValue, len(kvs))
 		for i, kv := range kvs {
 			pairs[i] = logAttributeToProto(kv)
 		}
-		return &commonpb.AnyValue{Value: &commonpb.AnyValue_KvlistValue{KvlistValue: &commonpb.KeyValueList{Values: pairs}}}
+		return &pb.AnyValue{Value: &pb.AnyValue_KvlistValue{KvlistValue: &pb.KeyValueList{Values: pairs}}}
 	default:
 		// Handles log.KindString and any other unknown types by converting to string
-		return &commonpb.AnyValue{Value: &commonpb.AnyValue_StringValue{StringValue: v.AsString()}}
+		return &pb.AnyValue{Value: &pb.AnyValue_StringValue{StringValue: v.AsString()}}
 	}
 }
 
 // metricToProto converts an OpenTelemetry metric to OTLP protobuf format
-func metricToProto(m metricdata.Metrics) *metricspb.Metric {
-	pbMetric := &metricspb.Metric{
-		Name:        m.Name,
-		Description: m.Description,
-		Unit:        m.Unit,
+func metricToProto(m metricdata.Metrics, s instrumentation.Scope, r *resource.Resource) *pb.Metric {
+	pbMetric := &pb.Metric{
+		Resource:          resourceToProto(r),
+		ResourceSchemaUrl: r.SchemaURL(),
+		Scope:             instrumentationScopeToProto(s),
+		ScopeSchemaUrl:    s.SchemaURL,
+		Name:              m.Name,
+		Description:       m.Description,
+		Unit:              m.Unit,
 	}
 
 	switch data := m.Data.(type) {
 	case metricdata.Gauge[int64]:
-		pbMetric.Data = &metricspb.Metric_Gauge{
-			Gauge: &metricspb.Gauge{
+		pbMetric.Data = &pb.Metric_Gauge{
+			Gauge: &pb.Gauge{
 				DataPoints: numberDataPointsToProto(data.DataPoints),
 			},
 		}
 	case metricdata.Gauge[float64]:
-		pbMetric.Data = &metricspb.Metric_Gauge{
-			Gauge: &metricspb.Gauge{
+		pbMetric.Data = &pb.Metric_Gauge{
+			Gauge: &pb.Gauge{
 				DataPoints: numberDataPointsToProto(data.DataPoints),
 			},
 		}
 	case metricdata.Sum[int64]:
-		pbMetric.Data = &metricspb.Metric_Sum{
-			Sum: &metricspb.Sum{
+		pbMetric.Data = &pb.Metric_Sum{
+			Sum: &pb.Sum{
 				AggregationTemporality: aggregationTemporalityToProto(data.Temporality),
 				IsMonotonic:            data.IsMonotonic,
 				DataPoints:             numberDataPointsToProto(data.DataPoints),
 			},
 		}
 	case metricdata.Sum[float64]:
-		pbMetric.Data = &metricspb.Metric_Sum{
-			Sum: &metricspb.Sum{
+		pbMetric.Data = &pb.Metric_Sum{
+			Sum: &pb.Sum{
 				AggregationTemporality: aggregationTemporalityToProto(data.Temporality),
 				IsMonotonic:            data.IsMonotonic,
 				DataPoints:             numberDataPointsToProto(data.DataPoints),
 			},
 		}
 	case metricdata.Histogram[int64]:
-		pbMetric.Data = &metricspb.Metric_Histogram{
-			Histogram: &metricspb.Histogram{
+		pbMetric.Data = &pb.Metric_Histogram{
+			Histogram: &pb.Histogram{
 				AggregationTemporality: aggregationTemporalityToProto(data.Temporality),
 				DataPoints:             histogramDataPointsToProto(data.DataPoints),
 			},
 		}
 	case metricdata.Histogram[float64]:
-		pbMetric.Data = &metricspb.Metric_Histogram{
-			Histogram: &metricspb.Histogram{
+		pbMetric.Data = &pb.Metric_Histogram{
+			Histogram: &pb.Histogram{
 				AggregationTemporality: aggregationTemporalityToProto(data.Temporality),
 				DataPoints:             histogramDataPointsToProto(data.DataPoints),
 			},
 		}
 	case metricdata.ExponentialHistogram[int64]:
-		pbMetric.Data = &metricspb.Metric_ExponentialHistogram{
-			ExponentialHistogram: &metricspb.ExponentialHistogram{
+		pbMetric.Data = &pb.Metric_ExponentialHistogram{
+			ExponentialHistogram: &pb.ExponentialHistogram{
 				AggregationTemporality: aggregationTemporalityToProto(data.Temporality),
 				DataPoints:             exponentialHistogramDataPointsToProto(data.DataPoints),
 			},
 		}
 	case metricdata.ExponentialHistogram[float64]:
-		pbMetric.Data = &metricspb.Metric_ExponentialHistogram{
-			ExponentialHistogram: &metricspb.ExponentialHistogram{
+		pbMetric.Data = &pb.Metric_ExponentialHistogram{
+			ExponentialHistogram: &pb.ExponentialHistogram{
 				AggregationTemporality: aggregationTemporalityToProto(data.Temporality),
 				DataPoints:             exponentialHistogramDataPointsToProto(data.DataPoints),
 			},
 		}
 	case metricdata.Summary:
-		pbMetric.Data = &metricspb.Metric_Summary{
-			Summary: &metricspb.Summary{
+		pbMetric.Data = &pb.Metric_Summary{
+			Summary: &pb.Summary{
 				DataPoints: summaryDataPointsToProto(data.DataPoints),
 			},
 		}
@@ -356,22 +394,22 @@ func metricToProto(m metricdata.Metrics) *metricspb.Metric {
 }
 
 // aggregationTemporalityToProto converts temporality to protobuf format
-func aggregationTemporalityToProto(temporality metricdata.Temporality) metricspb.AggregationTemporality {
+func aggregationTemporalityToProto(temporality metricdata.Temporality) pb.AggregationTemporality {
 	switch temporality {
 	case metricdata.CumulativeTemporality:
-		return metricspb.AggregationTemporality_AGGREGATION_TEMPORALITY_CUMULATIVE
+		return pb.AggregationTemporality_AGGREGATION_TEMPORALITY_CUMULATIVE
 	case metricdata.DeltaTemporality:
-		return metricspb.AggregationTemporality_AGGREGATION_TEMPORALITY_DELTA
+		return pb.AggregationTemporality_AGGREGATION_TEMPORALITY_DELTA
 	default:
-		return metricspb.AggregationTemporality_AGGREGATION_TEMPORALITY_UNSPECIFIED
+		return pb.AggregationTemporality_AGGREGATION_TEMPORALITY_UNSPECIFIED
 	}
 }
 
 // numberDataPointsToProto converts number data points to protobuf format
-func numberDataPointsToProto[N int64 | float64](points []metricdata.DataPoint[N]) []*metricspb.NumberDataPoint {
-	pbPoints := make([]*metricspb.NumberDataPoint, len(points))
+func numberDataPointsToProto[N int64 | float64](points []metricdata.DataPoint[N]) []*pb.NumberDataPoint {
+	pbPoints := make([]*pb.NumberDataPoint, len(points))
 	for i, dp := range points {
-		pbPoint := &metricspb.NumberDataPoint{
+		pbPoint := &pb.NumberDataPoint{
 			StartTimeUnixNano: int64ToUint64(dp.StartTime.UnixNano()),
 			TimeUnixNano:      int64ToUint64(dp.Time.UnixNano()),
 			Exemplars:         exemplarsToProto(dp.Exemplars),
@@ -379,7 +417,7 @@ func numberDataPointsToProto[N int64 | float64](points []metricdata.DataPoint[N]
 
 		// Convert attributes
 		attrs := dp.Attributes.ToSlice()
-		pbPoint.Attributes = make([]*commonpb.KeyValue, len(attrs))
+		pbPoint.Attributes = make([]*pb.KeyValue, len(attrs))
 		for j, attr := range attrs {
 			pbPoint.Attributes[j] = attributeToProto(attr)
 		}
@@ -387,9 +425,9 @@ func numberDataPointsToProto[N int64 | float64](points []metricdata.DataPoint[N]
 		// Set value based on type
 		switch v := any(dp.Value).(type) {
 		case int64:
-			pbPoint.Value = &metricspb.NumberDataPoint_AsInt{AsInt: v}
+			pbPoint.Value = &pb.NumberDataPoint_AsInt{AsInt: v}
 		case float64:
-			pbPoint.Value = &metricspb.NumberDataPoint_AsDouble{AsDouble: v}
+			pbPoint.Value = &pb.NumberDataPoint_AsDouble{AsDouble: v}
 		}
 
 		pbPoints[i] = pbPoint
@@ -398,10 +436,10 @@ func numberDataPointsToProto[N int64 | float64](points []metricdata.DataPoint[N]
 }
 
 // histogramDataPointsToProto converts histogram data points to protobuf format
-func histogramDataPointsToProto[N int64 | float64](points []metricdata.HistogramDataPoint[N]) []*metricspb.HistogramDataPoint {
-	pbPoints := make([]*metricspb.HistogramDataPoint, len(points))
+func histogramDataPointsToProto[N int64 | float64](points []metricdata.HistogramDataPoint[N]) []*pb.HistogramDataPoint {
+	pbPoints := make([]*pb.HistogramDataPoint, len(points))
 	for i, dp := range points {
-		pbPoint := &metricspb.HistogramDataPoint{
+		pbPoint := &pb.HistogramDataPoint{
 			StartTimeUnixNano: int64ToUint64(dp.StartTime.UnixNano()),
 			TimeUnixNano:      int64ToUint64(dp.Time.UnixNano()),
 			Count:             dp.Count,
@@ -444,7 +482,7 @@ func histogramDataPointsToProto[N int64 | float64](points []metricdata.Histogram
 
 		// Convert attributes
 		attrs := dp.Attributes.ToSlice()
-		pbPoint.Attributes = make([]*commonpb.KeyValue, len(attrs))
+		pbPoint.Attributes = make([]*pb.KeyValue, len(attrs))
 		for j, attr := range attrs {
 			pbPoint.Attributes[j] = attributeToProto(attr)
 		}
@@ -455,21 +493,21 @@ func histogramDataPointsToProto[N int64 | float64](points []metricdata.Histogram
 }
 
 // exponentialHistogramDataPointsToProto converts exponential histogram data points to protobuf format
-func exponentialHistogramDataPointsToProto[N int64 | float64](points []metricdata.ExponentialHistogramDataPoint[N]) []*metricspb.ExponentialHistogramDataPoint {
-	pbPoints := make([]*metricspb.ExponentialHistogramDataPoint, len(points))
+func exponentialHistogramDataPointsToProto[N int64 | float64](points []metricdata.ExponentialHistogramDataPoint[N]) []*pb.ExponentialHistogramDataPoint {
+	pbPoints := make([]*pb.ExponentialHistogramDataPoint, len(points))
 	for i, dp := range points {
-		pbPoint := &metricspb.ExponentialHistogramDataPoint{
+		pbPoint := &pb.ExponentialHistogramDataPoint{
 			StartTimeUnixNano: int64ToUint64(dp.StartTime.UnixNano()),
 			TimeUnixNano:      int64ToUint64(dp.Time.UnixNano()),
 			Count:             dp.Count,
 			Scale:             dp.Scale,
 			ZeroCount:         dp.ZeroCount,
 			Exemplars:         exemplarsToProto(dp.Exemplars),
-			Positive: &metricspb.ExponentialHistogramDataPoint_Buckets{
+			Positive: &pb.ExponentialHistogramDataPoint_Buckets{
 				Offset:       dp.PositiveBucket.Offset,
 				BucketCounts: dp.PositiveBucket.Counts,
 			},
-			Negative: &metricspb.ExponentialHistogramDataPoint_Buckets{
+			Negative: &pb.ExponentialHistogramDataPoint_Buckets{
 				Offset:       dp.NegativeBucket.Offset,
 				BucketCounts: dp.NegativeBucket.Counts,
 			},
@@ -513,7 +551,7 @@ func exponentialHistogramDataPointsToProto[N int64 | float64](points []metricdat
 
 		// Convert attributes
 		attrs := dp.Attributes.ToSlice()
-		pbPoint.Attributes = make([]*commonpb.KeyValue, len(attrs))
+		pbPoint.Attributes = make([]*pb.KeyValue, len(attrs))
 		for j, attr := range attrs {
 			pbPoint.Attributes[j] = attributeToProto(attr)
 		}
@@ -524,10 +562,10 @@ func exponentialHistogramDataPointsToProto[N int64 | float64](points []metricdat
 }
 
 // summaryDataPointsToProto converts summary data points to protobuf format
-func summaryDataPointsToProto(points []metricdata.SummaryDataPoint) []*metricspb.SummaryDataPoint {
-	pbPoints := make([]*metricspb.SummaryDataPoint, len(points))
+func summaryDataPointsToProto(points []metricdata.SummaryDataPoint) []*pb.SummaryDataPoint {
+	pbPoints := make([]*pb.SummaryDataPoint, len(points))
 	for i, dp := range points {
-		pbPoint := &metricspb.SummaryDataPoint{
+		pbPoint := &pb.SummaryDataPoint{
 			StartTimeUnixNano: int64ToUint64(dp.StartTime.UnixNano()),
 			TimeUnixNano:      int64ToUint64(dp.Time.UnixNano()),
 			Count:             dp.Count,
@@ -535,9 +573,9 @@ func summaryDataPointsToProto(points []metricdata.SummaryDataPoint) []*metricspb
 		}
 
 		// Convert quantile values
-		pbPoint.QuantileValues = make([]*metricspb.SummaryDataPoint_ValueAtQuantile, len(dp.QuantileValues))
+		pbPoint.QuantileValues = make([]*pb.SummaryDataPoint_ValueAtQuantile, len(dp.QuantileValues))
 		for j, qv := range dp.QuantileValues {
-			pbPoint.QuantileValues[j] = &metricspb.SummaryDataPoint_ValueAtQuantile{
+			pbPoint.QuantileValues[j] = &pb.SummaryDataPoint_ValueAtQuantile{
 				Quantile: qv.Quantile,
 				Value:    qv.Value,
 			}
@@ -545,7 +583,7 @@ func summaryDataPointsToProto(points []metricdata.SummaryDataPoint) []*metricspb
 
 		// Convert attributes
 		attrs := dp.Attributes.ToSlice()
-		pbPoint.Attributes = make([]*commonpb.KeyValue, len(attrs))
+		pbPoint.Attributes = make([]*pb.KeyValue, len(attrs))
 		for j, attr := range attrs {
 			pbPoint.Attributes[j] = attributeToProto(attr)
 		}
@@ -556,23 +594,23 @@ func summaryDataPointsToProto(points []metricdata.SummaryDataPoint) []*metricspb
 }
 
 // exemplarsToProto converts exemplars to protobuf format
-func exemplarsToProto[N int64 | float64](exemplars []metricdata.Exemplar[N]) []*metricspb.Exemplar {
+func exemplarsToProto[N int64 | float64](exemplars []metricdata.Exemplar[N]) []*pb.Exemplar {
 	if len(exemplars) == 0 {
 		return nil
 	}
 
-	pbExemplars := make([]*metricspb.Exemplar, len(exemplars))
+	pbExemplars := make([]*pb.Exemplar, len(exemplars))
 	for i, ex := range exemplars {
-		pbEx := &metricspb.Exemplar{
+		pbEx := &pb.Exemplar{
 			TimeUnixNano: int64ToUint64(ex.Time.UnixNano()),
 		}
 
 		// Set value based on type
 		switch v := any(ex.Value).(type) {
 		case int64:
-			pbEx.Value = &metricspb.Exemplar_AsInt{AsInt: v}
+			pbEx.Value = &pb.Exemplar_AsInt{AsInt: v}
 		case float64:
-			pbEx.Value = &metricspb.Exemplar_AsDouble{AsDouble: v}
+			pbEx.Value = &pb.Exemplar_AsDouble{AsDouble: v}
 		}
 
 		// Add trace context if present
@@ -584,7 +622,7 @@ func exemplarsToProto[N int64 | float64](exemplars []metricdata.Exemplar[N]) []*
 		}
 
 		// Convert filtered attributes
-		pbEx.FilteredAttributes = make([]*commonpb.KeyValue, len(ex.FilteredAttributes))
+		pbEx.FilteredAttributes = make([]*pb.KeyValue, len(ex.FilteredAttributes))
 		for j, attr := range ex.FilteredAttributes {
 			pbEx.FilteredAttributes[j] = attributeToProto(attr)
 		}

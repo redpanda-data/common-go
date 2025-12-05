@@ -2,7 +2,6 @@ package redpandaotelexporter
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"sync"
@@ -12,8 +11,7 @@ import (
 	"github.com/twmb/franz-go/pkg/kerr"
 	"github.com/twmb/franz-go/pkg/kgo"
 	"github.com/twmb/franz-go/pkg/sr"
-	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/sdk/resource"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -30,6 +28,24 @@ const (
 	// SerializationFormatSchemaRegistryProtobuf uses Protocol Buffers encoding with Schema Registry serdes format
 	SerializationFormatSchemaRegistryProtobuf
 )
+
+func (f SerializationFormat) isJSON() bool {
+	switch f {
+	case SerializationFormatJSON, SerializationFormatSchemaRegistryJSON:
+		return true
+	default:
+		return false
+	}
+}
+
+func (f SerializationFormat) usesSerdes() bool {
+	switch f {
+	case SerializationFormatSchemaRegistryProtobuf, SerializationFormatSchemaRegistryJSON:
+		return true
+	default:
+		return false
+	}
+}
 
 // String returns the string representation of the serialization format
 func (f SerializationFormat) String() string {
@@ -51,12 +67,11 @@ func (f SerializationFormat) String() string {
 type config struct {
 	brokers             []string
 	topic               string
-	clientID            string
 	timeout             time.Duration
-	resource            *resource.Resource
 	serializationFormat SerializationFormat
-	schemaRegistryURL   string         // Schema Registry URL for serdes format
-	schemaSubject       string         // Optional schema subject override (defaults to topic naming strategy)
+	schemaRegistryURL   string // Schema Registry URL for serdes format
+	schemaSubject       string
+	commonSchemaSubject string
 	schemaRegistryOpts  []sr.ClientOpt // Additional Schema Registry client options
 	kafkaOptions        []kgo.Opt
 }
@@ -78,24 +93,10 @@ func WithTopic(topic string) Option {
 	}
 }
 
-// WithClientID sets the Kafka client ID (default: "otel-kafka-exporter")
-func WithClientID(clientID string) Option {
-	return func(c *config) {
-		c.clientID = clientID
-	}
-}
-
 // WithTimeout sets the timeout for export operations (default: 30s)
 func WithTimeout(timeout time.Duration) Option {
 	return func(c *config) {
 		c.timeout = timeout
-	}
-}
-
-// WithResource sets the OpenTelemetry resource
-func WithResource(resource *resource.Resource) Option {
-	return func(c *config) {
-		c.resource = resource
 	}
 }
 
@@ -120,6 +121,13 @@ func WithSchemaSubject(subject string) Option {
 	}
 }
 
+// WithCommonSchemaSubject sets the schema subject when using protobuf (overrides the default of topic naming strategy plus -common suffix)
+func WithCommonSchemaSubject(subject string) Option {
+	return func(c *config) {
+		c.commonSchemaSubject = subject
+	}
+}
+
 // WithSchemaRegistryOptions sets additional franz-go Schema Registry client options
 // Use this for authentication, TLS, and other Schema Registry client configuration
 func WithSchemaRegistryOptions(opts ...sr.ClientOpt) Option {
@@ -139,8 +147,8 @@ func WithKafkaOptions(opts ...kgo.Opt) Option {
 type Exporter struct {
 	config         config
 	client         *kgo.Client
-	schemaRegistry *sr.Client     // Schema Registry client (nil if not using SR format)
-	schemaIDCache  map[string]int // Cache of schema IDs by subject name
+	schemaRegistry *sr.Client // Schema Registry client (optional if not using SR format)
+	schemaCache    map[string]sr.SubjectSchema
 	mu             sync.RWMutex
 	closed         bool
 }
@@ -177,13 +185,19 @@ func (e *Exporter) ensureTopicExists(ctx context.Context) error {
 func newExporter(defaultTopic string, opts ...Option) (*Exporter, error) {
 	cfg := config{
 		topic:               defaultTopic,
-		clientID:            "otel-kafka-exporter",
 		timeout:             30 * time.Second,
 		serializationFormat: SerializationFormatJSON,
 	}
 
 	for _, opt := range opts {
 		opt(&cfg)
+	}
+
+	if cfg.schemaSubject == "" {
+		cfg.schemaSubject = cfg.topic + "-value"
+	}
+	if cfg.commonSchemaSubject == "" {
+		cfg.commonSchemaSubject = cfg.topic + "-common"
 	}
 
 	if len(cfg.brokers) == 0 {
@@ -204,7 +218,7 @@ func newExporter(defaultTopic string, opts ...Option) (*Exporter, error) {
 	// Base options for the Kafka client
 	kafkaOpts := []kgo.Opt{
 		kgo.SeedBrokers(cfg.brokers...),
-		kgo.ClientID(cfg.clientID),
+		kgo.ClientID("otel-redpanda-exporter"),
 		kgo.ProducerBatchMaxBytes(1000000), // 1MB
 		kgo.ProducerLinger(100 * time.Millisecond),
 		kgo.RequestTimeoutOverhead(5 * time.Second),
@@ -239,7 +253,7 @@ func newExporter(defaultTopic string, opts ...Option) (*Exporter, error) {
 		config:         cfg,
 		client:         client,
 		schemaRegistry: srClient,
-		schemaIDCache:  make(map[string]int),
+		schemaCache:    make(map[string]sr.SubjectSchema),
 	}
 	// Create topic if it doesn't exist
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -307,66 +321,12 @@ func (e *Exporter) produceBatch(ctx context.Context, records []*kgo.Record) erro
 	return nil
 }
 
-// attributeValue converts an attribute.Value to OTLP JSON AnyValue format
-// Per OTLP spec, values must be wrapped in typed fields like stringValue, intValue, etc.
-func attributeValue(v attribute.Value) map[string]any {
-	switch v.Type() {
-	case attribute.BOOL:
-		return map[string]any{"boolValue": v.AsBool()}
-	case attribute.INT64:
-		return map[string]any{"intValue": fmt.Sprintf("%d", v.AsInt64())}
-	case attribute.FLOAT64:
-		return map[string]any{"doubleValue": v.AsFloat64()}
-	case attribute.BOOLSLICE:
-		bools := v.AsBoolSlice()
-		arrayValues := make([]map[string]any, len(bools))
-		for i, b := range bools {
-			arrayValues[i] = map[string]any{"boolValue": b}
-		}
-		return map[string]any{"arrayValue": map[string]any{"values": arrayValues}}
-	case attribute.INT64SLICE:
-		ints := v.AsInt64Slice()
-		arrayValues := make([]map[string]any, len(ints))
-		for i, n := range ints {
-			arrayValues[i] = map[string]any{"intValue": fmt.Sprintf("%d", n)}
-		}
-		return map[string]any{"arrayValue": map[string]any{"values": arrayValues}}
-	case attribute.FLOAT64SLICE:
-		floats := v.AsFloat64Slice()
-		arrayValues := make([]map[string]any, len(floats))
-		for i, f := range floats {
-			arrayValues[i] = map[string]any{"doubleValue": f}
-		}
-		return map[string]any{"arrayValue": map[string]any{"values": arrayValues}}
-	case attribute.STRINGSLICE:
-		strings := v.AsStringSlice()
-		arrayValues := make([]map[string]any, len(strings))
-		for i, s := range strings {
-			arrayValues[i] = map[string]any{"stringValue": s}
-		}
-		return map[string]any{"arrayValue": map[string]any{"values": arrayValues}}
-	default:
-		// Handles attribute.STRING and any other unknown types by converting to string
-		return map[string]any{"stringValue": v.AsString()}
-	}
-}
-
-// attributesToArray converts a slice of attributes to an array of {key, value} objects
-// This follows the OTLP JSON encoding where attributes are represented as an array
-func attributesToArray(attrs []attribute.KeyValue) []map[string]any {
-	result := make([]map[string]any, len(attrs))
-	for i, attr := range attrs {
-		result[i] = map[string]any{
-			"key":   string(attr.Key),
-			"value": attributeValue(attr.Value),
-		}
-	}
-	return result
-}
-
 // marshalJSON is a helper to marshal data to JSON
-func marshalJSON(v any) ([]byte, error) {
-	data, err := json.Marshal(v)
+func marshalJSON(msg proto.Message) ([]byte, error) {
+	data, err := protojson.MarshalOptions{
+		UseProtoNames:  true, // Align with our snake case preferences
+		UseEnumNumbers: true, // Closer to the official OTEL JSON format
+	}.Marshal(msg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal to JSON: %w", err)
 	}
@@ -382,113 +342,171 @@ func marshalProtobuf(msg proto.Message) ([]byte, error) {
 	return data, nil
 }
 
-// getSubjectName returns the schema subject name to use.
-// If schemaSubject is configured, it uses that.
-// Otherwise, it returns "{topic}-value" following Confluent Schema Registry naming convention.
-func (e *Exporter) getSubjectName() string {
-	if e.config.schemaSubject != "" {
-		return e.config.schemaSubject
-	}
-	return e.config.topic + "-value"
-}
-
 // registerSchema registers a schema with Schema Registry and returns the schema ID.
 // The schema ID is cached to avoid repeated registrations.
 // This function can be called even when not using Schema Registry serdes format,
 // to register schemas for governance/documentation purposes.
-func (e *Exporter) registerSchema(ctx context.Context, subject string, schema sr.Schema) (int, error) {
+func (e *Exporter) registerSchema(ctx context.Context, subject string, schema sr.Schema) (sr.SubjectSchema, error) {
 	if e.schemaRegistry == nil {
-		return 0, errors.New("schema registry client not initialized")
+		return sr.SubjectSchema{}, errors.New("schema registry client not initialized")
 	}
 
 	// Check cache first (schema IDs are immutable)
 	e.mu.RLock()
-	cachedID, found := e.schemaIDCache[subject]
+	subjectSchema, found := e.schemaCache[subject]
 	e.mu.RUnlock()
 
 	if found {
 		// Use cached schema ID
-		return cachedID, nil
+		return subjectSchema, nil
 	}
 
 	// Register or get existing schema
 	// CreateSchema is idempotent - if the schema already exists with the same content, it returns the existing schema
 	subjectSchema, err := e.schemaRegistry.CreateSchema(ctx, subject, schema)
 	if err != nil {
-		return 0, fmt.Errorf("failed to register schema for subject %s: %w", subject, err)
+		return sr.SubjectSchema{}, fmt.Errorf("failed to register schema for subject %s: %w", subject, err)
 	}
-
-	schemaID := subjectSchema.ID
 
 	// Cache the schema ID (schema IDs are immutable)
 	e.mu.Lock()
-	e.schemaIDCache[subject] = schemaID
+	e.schemaCache[subject] = subjectSchema
 	e.mu.Unlock()
 
-	return schemaID, nil
+	return subjectSchema, nil
 }
 
 // encodeWithSchemaRegistry encodes data with Schema Registry serdes format
 // This function registers the schema (if not already registered) and prepends the wire format header
 func (e *Exporter) encodeWithSchemaRegistry(ctx context.Context, data []byte, subject string, schema sr.Schema) ([]byte, error) {
-	// Register schema and get ID
-	schemaID, err := e.registerSchema(ctx, subject, schema)
+	s, err := e.registerSchema(ctx, subject, schema)
 	if err != nil {
 		return nil, err
 	}
-
 	// Use ConfluentHeader to encode with Schema Registry wire format:
 	// For JSON: [magic_byte][schema_id][data]
 	// For Protobuf: [magic_byte][schema_id][message_indexes][data]
 	var header sr.ConfluentHeader
-
 	// For protobuf, we need to include message indexes
 	// For a top-level message, this is [0]
 	var index []int
 	if schema.Type == sr.TypeProtobuf {
 		index = []int{0}
 	}
-
-	// AppendEncode adds the Confluent wire format header and appends the data
-	result, err := header.AppendEncode(nil, schemaID, index)
+	result, err := header.AppendEncode(nil, s.ID, index)
 	if err != nil {
 		return nil, fmt.Errorf("failed to encode schema registry header: %w", err)
 	}
-
-	// Append the actual data
 	result = append(result, data...)
-
 	return result, nil
 }
 
-// resourceToHeaders converts resource attributes to Kafka record headers
-func resourceToHeaders(r *resource.Resource) []kgo.RecordHeader {
-	if r == nil {
-		return nil
-	}
+type signalRecord struct {
+	key     []byte
+	payload proto.Message
+}
 
-	attrs := r.Attributes()
-	headers := make([]kgo.RecordHeader, 0, len(attrs))
-	for _, attr := range attrs {
-		// Convert attribute value to string for header
-		var value string
-		switch attr.Value.Type() {
-		case attribute.BOOL:
-			value = fmt.Sprintf("%t", attr.Value.AsBool())
-		case attribute.INT64:
-			value = fmt.Sprintf("%d", attr.Value.AsInt64())
-		case attribute.FLOAT64:
-			value = fmt.Sprintf("%f", attr.Value.AsFloat64())
-		default:
-			// Handles attribute.STRING and any other types by converting to string
-			value = attr.Value.AsString()
+func (e *Exporter) export(
+	ctx context.Context,
+	signals []signalRecord,
+	protoSchema string,
+	jsonSchema string,
+) error {
+	if e.config.serializationFormat.usesSerdes() {
+		return e.exportSerdes(ctx, signals, protoSchema, jsonSchema)
+	}
+	return e.exportPlain(ctx, signals, protoSchema, jsonSchema)
+}
+
+func (e *Exporter) exportPlain(
+	ctx context.Context,
+	signals []signalRecord,
+	protoSchema string,
+	jsonSchema string,
+) error {
+	// Best effort register schemas in non-serdes mode.
+	if e.schemaRegistry != nil {
+		if e.config.serializationFormat.isJSON() {
+			schema := sr.Schema{
+				Schema: jsonSchema,
+				Type:   sr.TypeJSON,
+			}
+			_, _ = e.registerSchema(ctx, e.config.schemaSubject, schema)
+		} else {
+			schema := sr.Schema{
+				Schema: otlpCommonProtoSchema,
+				Type:   sr.TypeProtobuf,
+			}
+			s, err := e.registerSchema(ctx, e.config.commonSchemaSubject, schema)
+			if err != nil {
+				schema = sr.Schema{
+					Schema: protoSchema,
+					Type:   sr.TypeProtobuf,
+					References: []sr.SchemaReference{
+						{Name: "common.proto", Version: s.Version, Subject: s.Subject},
+					},
+				}
+				_, _ = e.registerSchema(ctx, e.config.schemaSubject, schema)
+			}
 		}
-
-		headers = append(headers, kgo.RecordHeader{
-			Key:   string(attr.Key),
-			Value: []byte(value),
-		})
 	}
+	marshal := marshalProtobuf
+	if e.config.serializationFormat.isJSON() {
+		marshal = marshalJSON
+	}
+	records := make([]*kgo.Record, len(signals))
+	for i, signal := range signals {
+		value, err := marshal(signal.payload)
+		if err != nil {
+			return err
+		}
+		records[i] = &kgo.Record{Key: signal.key, Value: value, Topic: e.config.topic}
+	}
+	return e.produceBatch(ctx, records)
+}
 
-	return headers
+func (e *Exporter) exportSerdes(
+	ctx context.Context,
+	signals []signalRecord,
+	protoSchema string,
+	jsonSchema string,
+) error {
+	var marshal func(msg proto.Message) ([]byte, error)
+	var schema sr.Schema
+	if e.config.serializationFormat.isJSON() {
+		marshal = marshalJSON
+		schema = sr.Schema{
+			Schema: jsonSchema,
+			Type:   sr.TypeJSON,
+		}
+	} else {
+		marshal = marshalProtobuf
+		s, err := e.registerSchema(ctx, e.config.commonSchemaSubject, sr.Schema{
+			Schema: otlpCommonProtoSchema,
+			Type:   sr.TypeProtobuf,
+		})
+		if err != nil {
+			return err
+		}
+		schema = sr.Schema{
+			Schema: protoSchema,
+			Type:   sr.TypeProtobuf,
+			References: []sr.SchemaReference{
+				{Name: "common.proto", Version: s.Version, Subject: s.Subject},
+			},
+		}
+	}
+	records := make([]*kgo.Record, len(signals))
+	for i, signal := range signals {
+		value, err := marshal(signal.payload)
+		if err != nil {
+			return err
+		}
+		value, err = e.encodeWithSchemaRegistry(ctx, value, e.config.schemaSubject, schema)
+		if err != nil {
+			return err
+		}
+		records[i] = &kgo.Record{Key: signal.key, Value: value, Topic: e.config.topic}
+	}
+	return e.produceBatch(ctx, records)
 }

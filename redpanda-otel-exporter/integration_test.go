@@ -2,9 +2,9 @@ package redpandaotelexporter
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"flag"
-	"regexp"
 	"testing"
 	"time"
 
@@ -14,6 +14,7 @@ import (
 	"github.com/twmb/franz-go/pkg/kgo"
 	"github.com/twmb/franz-go/pkg/sr"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 	otellog "go.opentelemetry.io/otel/log"
 	"go.opentelemetry.io/otel/metric"
 	sdklog "go.opentelemetry.io/otel/sdk/log"
@@ -22,22 +23,14 @@ import (
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.24.0"
 	"go.opentelemetry.io/otel/trace"
-	logspb "go.opentelemetry.io/proto/otlp/logs/v1"
-	metricspb "go.opentelemetry.io/proto/otlp/metrics/v1"
-	tracepb "go.opentelemetry.io/proto/otlp/trace/v1"
 	"google.golang.org/protobuf/proto"
+
+	pb "github.com/redpanda-data/common-go/redpanda-otel-exporter/proto"
 )
 
-var (
-	// hexRegex32 matches exactly 32 hexadecimal characters (trace ID)
-	hexRegex32 = regexp.MustCompile("^[0-9a-fA-F]{32}$")
-	// hexRegex16 matches exactly 16 hexadecimal characters (span ID)
-	hexRegex16 = regexp.MustCompile("^[0-9a-fA-F]{16}$")
-
-	// useLocalBroker allows using a local Redpanda instance at localhost:9092 instead of testcontainers
-	// Usage: go test -local-broker
-	useLocalBroker = flag.Bool("local-broker", false, "use local Redpanda at localhost:9092 instead of testcontainers")
-)
+// useLocalBroker allows using a local Redpanda instance at localhost:9092 instead of testcontainers
+// Usage: go test -local-broker
+var useLocalBroker = flag.Bool("local-broker", false, "use local Redpanda at localhost:9092 instead of testcontainers")
 
 // setupRedpanda starts a Redpanda container for testing or uses a local instance
 func setupRedpanda(t *testing.T) string {
@@ -126,20 +119,14 @@ func consumeRecords(t *testing.T, brokers, topic string) []*kgo.Record {
 }
 
 // assertHexEncoded validates that a string is properly hex-encoded using regex
-func assertHexEncoded(t *testing.T, value string, expectedLen int, fieldName string) {
+// assertBase64Encoded validates that a value is a valid base64 string with expected decoded byte length
+func assertBase64Encoded(t *testing.T, value string, expectedByteLen int, fieldName string) {
 	t.Helper()
 
-	var pattern *regexp.Regexp
-	switch expectedLen {
-	case 32:
-		pattern = hexRegex32
-	case 16:
-		pattern = hexRegex16
-	default:
-		t.Fatalf("unsupported hex length: %d", expectedLen)
-	}
-
-	assert.Regexp(t, pattern, value, "%s should be %d hex characters", fieldName, expectedLen)
+	// Decode base64
+	decoded, err := base64.StdEncoding.DecodeString(value)
+	require.NoError(t, err, "%s should be valid base64", fieldName)
+	assert.Len(t, decoded, expectedByteLen, "%s decoded length mismatch", fieldName)
 }
 
 // TestTraceExporter_JSON tests trace exporter with JSON serialization
@@ -153,8 +140,6 @@ func TestTraceExporter_JSON(t *testing.T) {
 	exporter, err := NewTraceExporter(
 		WithTopic("test-traces-json"),
 		WithBrokers(brokers),
-		WithClientID("test-trace-exporter"),
-		WithResource(res),
 		WithSerializationFormat(SerializationFormatJSON),
 	)
 	require.NoError(t, err, "failed to create trace exporter")
@@ -175,6 +160,7 @@ func TestTraceExporter_JSON(t *testing.T) {
 		),
 	)
 	span.AddEvent("test-event")
+	span.SetStatus(codes.Ok, "it works!")
 	span.End()
 
 	// Force flush
@@ -193,15 +179,15 @@ func TestTraceExporter_JSON(t *testing.T) {
 	// Verify basic fields
 	assert.Equal(t, "test-operation", spanData["name"], "span name mismatch")
 
-	// Verify traceId is hex encoded string (32 hex chars) - OTLP spec compliance
-	traceID, ok := spanData["traceId"].(string)
+	// Verify traceId is base64 encoded (16 bytes) - protojson encodes bytes as base64
+	traceID, ok := spanData["trace_id"].(string)
 	require.True(t, ok, "traceId not found or not a string")
-	assertHexEncoded(t, traceID, 32, "traceId")
+	assertBase64Encoded(t, traceID, 16, "trace_id")
 
-	// Verify spanId is hex encoded string (16 hex chars) - OTLP spec compliance
-	spanID, ok := spanData["spanId"].(string)
+	// Verify spanId is base64 encoded (8 bytes) - protojson encodes bytes as base64
+	spanID, ok := spanData["span_id"].(string)
 	require.True(t, ok, "spanId not found or not a string")
-	assertHexEncoded(t, spanID, 16, "spanId")
+	assertBase64Encoded(t, spanID, 8, "span_id")
 
 	// Verify kind - OTLP JSON spec requires numeric values for enums
 	kind, ok := spanData["kind"].(float64)
@@ -216,9 +202,7 @@ func TestTraceExporter_JSON(t *testing.T) {
 
 	statusCode, ok := status["code"].(float64)
 	require.True(t, ok, "status.code not found or not a number (got type %T), OTLP spec requires integer enum", status["code"])
-	// Status codes: UNSET=0, OK=1, ERROR=2
-	assert.GreaterOrEqual(t, statusCode, 0.0, "status.code value out of range")
-	assert.LessOrEqual(t, statusCode, 2.0, "status.code value out of range")
+	assert.Equal(t, 1.0, statusCode, "status.code should be OK (1)")
 
 	// Verify attributes - OTLP JSON spec requires array of {key, value} objects
 	// where value is an AnyValue with typed fields like stringValue, intValue, etc.
@@ -239,12 +223,12 @@ func TestTraceExporter_JSON(t *testing.T) {
 	}
 
 	// Verify string attribute
-	stringValue, ok := attrMap["test.key"]["stringValue"].(string)
+	stringValue, ok := attrMap["test.key"]["string_value"].(string)
 	require.True(t, ok, "test.key stringValue not found")
 	assert.Equal(t, "test.value", stringValue, "string attribute mismatch")
 
 	// Verify int attribute (stored as string per OTLP spec)
-	intValue, ok := attrMap["test.count"]["intValue"].(string)
+	intValue, ok := attrMap["test.count"]["int_value"].(string)
 	require.True(t, ok, "test.count intValue not found")
 	assert.Equal(t, "42", intValue, "numeric attribute mismatch")
 }
@@ -260,8 +244,6 @@ func TestTraceExporter_Protobuf(t *testing.T) {
 	exporter, err := NewTraceExporter(
 		WithTopic("test-traces-protobuf"),
 		WithBrokers(brokers),
-		WithClientID("test-trace-exporter-pb"),
-		WithResource(res),
 		WithSerializationFormat(SerializationFormatProtobuf),
 	)
 	require.NoError(t, err, "failed to create trace exporter")
@@ -291,24 +273,28 @@ func TestTraceExporter_Protobuf(t *testing.T) {
 	require.NotEmpty(t, records, "no message found in topic")
 
 	// Parse protobuf
-	var protoSpan tracepb.Span
+	var protoSpan pb.Span
 	err = proto.Unmarshal(records[0].Value, &protoSpan)
 	require.NoError(t, err, "failed to unmarshal protobuf")
 
 	// Verify span
 	assert.Equal(t, "test-protobuf-operation", protoSpan.Name, "span name mismatch")
 
-	// Verify resource attributes are in headers (not in the protobuf body)
-	require.NotEmpty(t, records[0].Headers, "no headers found")
-	hasServiceName := false
-	for _, header := range records[0].Headers {
-		if header.Key == "service.name" {
-			hasServiceName = true
-			assert.Equal(t, "test-service", string(header.Value), "service.name mismatch")
-			break
+	// Verify resource attributes are embedded in the protobuf message
+	require.NotNil(t, protoSpan.Resource, "resource should be embedded in span")
+	require.NotEmpty(t, protoSpan.Resource.Attributes, "resource attributes should not be empty")
+
+	// Find service.name in resource attributes
+	resourceAttrs := make(map[string]string)
+	for _, attr := range protoSpan.Resource.Attributes {
+		if attr.Value.GetStringValue() != "" {
+			resourceAttrs[attr.Key] = attr.Value.GetStringValue()
 		}
 	}
-	assert.True(t, hasServiceName, "service.name header not found")
+	assert.Equal(t, "test-service", resourceAttrs["service.name"], "service.name attribute mismatch")
+
+	// Verify scope is also embedded
+	require.NotNil(t, protoSpan.Scope, "scope should be embedded in span")
 }
 
 // TestMetricExporter tests metric exporter
@@ -322,8 +308,6 @@ func TestMetricExporter(t *testing.T) {
 	exporter, err := NewMetricExporter(
 		WithTopic("test-metrics"),
 		WithBrokers(brokers),
-		WithClientID("test-metric-exporter"),
-		WithResource(res),
 		WithSerializationFormat(SerializationFormatJSON),
 	)
 	require.NoError(t, err, "failed to create metric exporter")
@@ -368,8 +352,6 @@ func TestMetricExporter_Protobuf(t *testing.T) {
 	exporter, err := NewMetricExporter(
 		WithTopic("test-metrics-protobuf"),
 		WithBrokers(brokers),
-		WithClientID("test-metric-exporter-pb"),
-		WithResource(res),
 		WithSerializationFormat(SerializationFormatProtobuf),
 	)
 	require.NoError(t, err, "failed to create metric exporter")
@@ -403,24 +385,28 @@ func TestMetricExporter_Protobuf(t *testing.T) {
 	t.Logf("Found protobuf metric message of size %d bytes", len(records[0].Value))
 
 	// Parse protobuf
-	var protoMetric metricspb.Metric
+	var protoMetric pb.Metric
 	err = proto.Unmarshal(records[0].Value, &protoMetric)
 	require.NoError(t, err, "failed to unmarshal protobuf")
 
 	// Verify metric
 	assert.Equal(t, "test.counter.pb", protoMetric.Name, "metric name mismatch")
 
-	// Verify resource attributes are in headers (not in the protobuf body)
-	require.NotEmpty(t, records[0].Headers, "no headers found")
-	hasServiceName := false
-	for _, header := range records[0].Headers {
-		if header.Key == "service.name" {
-			hasServiceName = true
-			assert.Equal(t, "test-service", string(header.Value), "service.name mismatch")
-			break
+	// Verify resource attributes are embedded in the protobuf message
+	require.NotNil(t, protoMetric.Resource, "resource should be embedded in metric")
+	require.NotEmpty(t, protoMetric.Resource.Attributes, "resource attributes should not be empty")
+
+	// Find service.name in resource attributes
+	resourceAttrs := make(map[string]string)
+	for _, attr := range protoMetric.Resource.Attributes {
+		if attr.Value.GetStringValue() != "" {
+			resourceAttrs[attr.Key] = attr.Value.GetStringValue()
 		}
 	}
-	assert.True(t, hasServiceName, "service.name header not found")
+	assert.Equal(t, "test-service", resourceAttrs["service.name"], "service.name attribute mismatch")
+
+	// Verify scope is also embedded
+	require.NotNil(t, protoMetric.Scope, "scope should be embedded in metric")
 }
 
 // TestLogExporter tests log exporter
@@ -434,8 +420,6 @@ func TestLogExporter(t *testing.T) {
 	exporter, err := NewLogExporter(
 		WithTopic("test-logs"),
 		WithBrokers(brokers),
-		WithClientID("test-log-exporter"),
-		WithResource(res),
 		WithSerializationFormat(SerializationFormatJSON),
 	)
 	require.NoError(t, err, "failed to create log exporter")
@@ -475,7 +459,7 @@ func TestLogExporter(t *testing.T) {
 	// Verify body - OTLP JSON spec requires AnyValue typed structure
 	body, ok := logData["body"].(map[string]any)
 	require.True(t, ok, "body is not an AnyValue object")
-	bodyValue, ok := body["stringValue"].(string)
+	bodyValue, ok := body["string_value"].(string)
 	require.True(t, ok, "body stringValue not found")
 	assert.Equal(t, "test log message", bodyValue, "log body mismatch")
 }
@@ -491,8 +475,6 @@ func TestLogExporter_Protobuf(t *testing.T) {
 	exporter, err := NewLogExporter(
 		WithTopic("test-logs-protobuf"),
 		WithBrokers(brokers),
-		WithClientID("test-log-exporter-pb"),
-		WithResource(res),
 		WithSerializationFormat(SerializationFormatProtobuf),
 	)
 	require.NoError(t, err, "failed to create log exporter")
@@ -527,24 +509,28 @@ func TestLogExporter_Protobuf(t *testing.T) {
 	t.Logf("Found protobuf log message of size %d bytes", len(records[0].Value))
 
 	// Parse protobuf
-	var protoLog logspb.LogRecord
+	var protoLog pb.LogRecord
 	err = proto.Unmarshal(records[0].Value, &protoLog)
 	require.NoError(t, err, "failed to unmarshal protobuf")
 
 	// Verify log record
-	assert.Equal(t, logspb.SeverityNumber_SEVERITY_NUMBER_WARN, protoLog.SeverityNumber, "severity mismatch")
+	assert.Equal(t, pb.SeverityNumber_SEVERITY_NUMBER_WARN, protoLog.SeverityNumber, "severity mismatch")
 
-	// Verify resource attributes are in headers (not in the protobuf body)
-	require.NotEmpty(t, records[0].Headers, "no headers found")
-	hasServiceName := false
-	for _, header := range records[0].Headers {
-		if header.Key == "service.name" {
-			hasServiceName = true
-			assert.Equal(t, "test-service", string(header.Value), "service.name mismatch")
-			break
+	// Verify resource attributes are embedded in the protobuf message
+	require.NotNil(t, protoLog.Resource, "resource should be embedded in log")
+	require.NotEmpty(t, protoLog.Resource.Attributes, "resource attributes should not be empty")
+
+	// Find service.name in resource attributes
+	resourceAttrs := make(map[string]string)
+	for _, attr := range protoLog.Resource.Attributes {
+		if attr.Value.GetStringValue() != "" {
+			resourceAttrs[attr.Key] = attr.Value.GetStringValue()
 		}
 	}
-	assert.True(t, hasServiceName, "service.name header not found")
+	assert.Equal(t, "test-service", resourceAttrs["service.name"], "service.name attribute mismatch")
+
+	// Verify scope is also embedded
+	require.NotNil(t, protoLog.Scope, "scope should be embedded in log")
 }
 
 // setupRedpandaWithSchemaRegistry starts a Redpanda container with Schema Registry enabled
@@ -593,8 +579,6 @@ func TestTraceExporter_SchemaRegistryJSON(t *testing.T) {
 	exporter, err := NewTraceExporter(
 		WithTopic(topicName),
 		WithBrokers(brokers),
-		WithClientID("test-trace-exporter-sr-json"),
-		WithResource(res),
 		WithSerializationFormat(SerializationFormatSchemaRegistryJSON),
 		WithSchemaRegistryURL(schemaRegistryURL),
 	)
@@ -660,8 +644,6 @@ func TestTraceExporter_SchemaRegistryProtobuf(t *testing.T) {
 	exporter, err := NewTraceExporter(
 		WithTopic(topicName),
 		WithBrokers(brokers),
-		WithClientID("test-trace-exporter-sr-pb"),
-		WithResource(res),
 		WithSerializationFormat(SerializationFormatSchemaRegistryProtobuf),
 		WithSchemaRegistryURL(schemaRegistryURL),
 	)
@@ -712,7 +694,7 @@ func TestTraceExporter_SchemaRegistryProtobuf(t *testing.T) {
 	assert.Equal(t, 0, messageIndexes[0], "message index should be 0 for top-level message")
 
 	// Decode the protobuf payload
-	var spanProto tracepb.Span
+	var spanProto pb.Span
 	err = proto.Unmarshal(payload, &spanProto)
 	require.NoError(t, err, "failed to unmarshal protobuf payload")
 
