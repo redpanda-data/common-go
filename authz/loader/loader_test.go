@@ -19,7 +19,6 @@ import (
 	"path/filepath"
 	"reflect"
 	"testing"
-	"time"
 
 	"github.com/redpanda-data/common-go/authz"
 )
@@ -34,10 +33,10 @@ const policyOne = `roles:
     permissions:
       - read
 bindings:
-  - role_id: admin
+  - role: admin
     principal: user:alice@acme.com
     scope: organization/acme
-  - role_id: viewer
+  - role: viewer
     principal: user:bob@acme.com
     scope: organization/acme/dataplane/prod
 `
@@ -52,13 +51,13 @@ const policyTwo = `roles:
     permissions:
       - read
 bindings:
-  - role_id: admin
+  - role: admin
     principal: user:alice@acme.com
     scope: organization/acme
-  - role_id: viewer
+  - role: viewer
     principal: user:bob@acme.com
     scope: organization/acme/dataplane/prod
-  - role_id: viewer
+  - role: viewer
     principal: user:joe@acme.com
     scope: organization/acme
 `
@@ -78,22 +77,22 @@ var expectedPolicyOne authz.Policy = authz.Policy{
 	},
 	Bindings: []authz.RoleBinding{
 		{
-			RoleID:    "admin",
+			Role:      "admin",
 			Principal: "user:alice@acme.com",
 			Scope:     "organization/acme",
 		},
 		{
-			RoleID:    "viewer",
+			Role:      "viewer",
 			Principal: "user:bob@acme.com",
 			Scope:     "organization/acme/dataplane/prod",
 		},
 	},
 }
 
-var expectedPolicyTwo *authz.Policy = &authz.Policy{
+var expectedPolicyTwo authz.Policy = authz.Policy{
 	Roles: expectedPolicyOne.Roles,
 	Bindings: append(expectedPolicyOne.Bindings, authz.RoleBinding{
-		RoleID:    "viewer",
+		Role:      "viewer",
 		Principal: "user:joe@acme.com",
 		Scope:     "organization/acme",
 	}),
@@ -108,7 +107,7 @@ func TestFileLoader(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to load policy: %v", err)
 	}
-	if reflect.DeepEqual(actual, expectedPolicyOne) {
+	if !reflect.DeepEqual(actual, expectedPolicyOne) {
 		t.Errorf("expected %v, want %v", actual, expectedPolicyOne)
 	}
 }
@@ -133,17 +132,13 @@ func TestFileWatcher(t *testing.T) {
 		t.Fatalf("failed to watch file: %v", err)
 	}
 	defer unwatch()
-	if reflect.DeepEqual(policy, expectedPolicyOne) {
+	if !reflect.DeepEqual(policy, expectedPolicyOne) {
 		t.Errorf("expected %v, want %v", policy, expectedPolicyOne)
 	}
 	tmpPath := filepath.Join(dir, "rbac_policy.tmp.yaml")
 	if err := os.WriteFile(tmpPath, []byte(policyTwo), 0o644); err != nil {
 		t.Fatalf("failed to write file: %v", err)
 	}
-	// HACK: There is no way to ensure the goroutine that watches the files has kicked off yet,
-	// because it's happening in the background, so just add a sleep here to ensure we don't miss
-	// anything.
-	time.Sleep(5 * time.Millisecond)
 	if err := os.Rename(tmpPath, path); err != nil {
 		t.Fatalf("failed to rename file: %v", err)
 	}
@@ -152,7 +147,7 @@ func TestFileWatcher(t *testing.T) {
 	case <-t.Context().Done():
 		t.Error("test timed out")
 	}
-	if reflect.DeepEqual(policy, expectedPolicyTwo) {
+	if !reflect.DeepEqual(policy, expectedPolicyTwo) {
 		t.Errorf("expected %v, want %v", policy, expectedPolicyTwo)
 	}
 }

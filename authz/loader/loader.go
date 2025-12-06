@@ -26,30 +26,30 @@ import (
 )
 
 // LoadPolicyFromFile loads a Policy from a YAML file using koanf.
-func LoadPolicyFromFile(path string) (*authz.Policy, error) {
+func LoadPolicyFromFile(path string) (authz.Policy, error) {
 	k := koanf.New(".")
 	if err := k.Load(file.Provider(path), yaml.Parser()); err != nil {
-		return nil, fmt.Errorf("failed to load policy file %s: %w", path, err)
+		return authz.Policy{}, fmt.Errorf("failed to load policy file %s: %w", path, err)
 	}
 	var policy authz.Policy
 	if err := k.Unmarshal("", &policy); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal policy: %w", err)
+		return authz.Policy{}, fmt.Errorf("failed to unmarshal policy: %w", err)
 	}
 
-	return &policy, nil
+	return policy, nil
 }
 
 // LoadPolicyFromBytes loads a Policy from YAML bytes using koanf.
-func LoadPolicyFromBytes(data []byte) (*authz.Policy, error) {
+func LoadPolicyFromBytes(data []byte) (authz.Policy, error) {
 	k := koanf.New(".")
 	if err := k.Load(rawbytes.Provider(data), yaml.Parser()); err != nil {
-		return nil, fmt.Errorf("failed to load policy data: %w", err)
+		return authz.Policy{}, fmt.Errorf("failed to load policy data: %w", err)
 	}
 	var policy authz.Policy
 	if err := k.Unmarshal("", &policy); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal policy: %w", err)
+		return authz.Policy{}, fmt.Errorf("failed to unmarshal policy: %w", err)
 	}
-	return &policy, nil
+	return policy, nil
 }
 
 // PolicyCallback is called when a policy is loaded or reloaded.
@@ -58,6 +58,22 @@ type PolicyCallback func(policy authz.Policy, err error)
 
 // PolicyUnwatch stops watching the policy file for changes.
 type PolicyUnwatch func() error
+
+// InitializeWatchError is the error when watching the policy file is unable to be
+// initialized.
+type InitializeWatchError struct {
+	Err error
+}
+
+// Error implements the error interface for InitializeWatchError.
+func (e *InitializeWatchError) Error() string {
+	return fmt.Sprintf("unable to initialize watch: %v", e.Err)
+}
+
+// Unwrap returns the wrapped error, allowing errors.Is and errors.As to work.
+func (e *InitializeWatchError) Unwrap() error {
+	return e.Err
+}
 
 // WatchPolicyFile watches a YAML policy file for changes and calls the callback
 // when the file is modified. This is particularly useful for Kubernetes ConfigMap
@@ -92,20 +108,9 @@ func WatchPolicyFile(path string, callback PolicyCallback) (authz.Policy, Policy
 		}
 		callback(policy, nil)
 	}
-	done := make(chan struct{})
-	// TODO: Make it impossible to drop events between the initial load and updates
-	// right now we can't "wait" for the Watch to start so there is a small window
-	// when updates could be dropped.
-	go func() {
-		defer close(done)
-		err := fp.Watch(watchFunc)
-		if err != nil {
-			callback(authz.Policy{}, fmt.Errorf("failed to watch policy for changes: %w", err))
-		}
-	}()
-	return policy, func() error {
-		err := fp.Unwatch()
-		<-done
-		return err
-	}, nil
+	err := fp.Watch(watchFunc)
+	if err != nil {
+		return authz.Policy{}, nil, &InitializeWatchError{err}
+	}
+	return policy, fp.Unwatch, nil
 }

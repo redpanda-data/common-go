@@ -62,7 +62,7 @@ func (r *ResourcePolicy) SubResourceAuthorizer(t ResourceType, id ResourceID, pe
 func (r *ResourcePolicy) buildChecker(scope ResourceName, perm PermissionName) *resourceChecker {
 	checker := &resourceChecker{principals: map[PrincipalID]struct{}{}}
 	for _, binding := range r.bindingsByScope[scope] {
-		role, ok := r.roleByID[binding.RoleID]
+		role, ok := r.roleByID[binding.Role]
 		if !ok {
 			// Skip bindings with missing roles during runtime checks
 			continue
@@ -126,8 +126,8 @@ func NewResourcePolicy(
 	bindingsByScope := map[ResourceName][]RoleBinding{}
 	for _, binding := range p.Bindings {
 		// Validate that the role exists
-		if _, ok := roleByID[binding.RoleID]; !ok {
-			return &ResourcePolicy{}, fmt.Errorf("missing role %q for binding", binding.RoleID)
+		if _, ok := roleByID[binding.Role]; !ok {
+			return &ResourcePolicy{}, fmt.Errorf("missing role %q for binding", binding.Role)
 		}
 		bindings := bindingsByScope[binding.Scope]
 		bindingsByScope[binding.Scope] = append(bindings, binding)
@@ -148,7 +148,7 @@ func NewResourcePolicy(
 		for current != "" {
 			// Add principals from this scope to the accumulated checker
 			for _, binding := range bindingsByScope[current] {
-				role, ok := roleByID[binding.RoleID]
+				role, ok := roleByID[binding.Role]
 				if !ok {
 					continue
 				}
