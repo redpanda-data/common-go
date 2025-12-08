@@ -74,6 +74,29 @@ func (a *azSecretsManager) CheckSecretExists(ctx context.Context, key string) bo
 	return err == nil && len(page.Value) > 0
 }
 
+func (a *azSecretsManager) GetSecretLabels(ctx context.Context, key string) (map[string]string, bool) {
+	key = sanitize(key)
+	pager := a.client.NewListSecretVersionsPager(key, nil)
+	if !pager.More() {
+		return nil, false
+	}
+
+	page, err := pager.NextPage(ctx)
+	if err != nil || len(page.Value) == 0 {
+		return nil, false
+	}
+
+	// Get the latest version's properties (first item should be the latest)
+	secretProps := page.Value[0]
+	labels := make(map[string]string)
+	for k, v := range secretProps.Tags {
+		if v != nil {
+			labels[k] = *v
+		}
+	}
+	return labels, true
+}
+
 // CreateSecret creates a new secret.
 func (a *azSecretsManager) CreateSecret(ctx context.Context, key string, value string, tags map[string]string) error {
 	key = sanitize(key)
