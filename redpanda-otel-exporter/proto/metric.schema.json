@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://redpanda.com/schemas/otel/v1/Metric",
+  "title": "Metric",
+  "description": "Defines a Metric which has one or more timeseries",
+  "type": "object",
+  "properties": {
+    "resource": {
+      "type": "object",
+      "properties": {
+        "attributes": {"type": "array"},
+        "dropped_attributes_count": {"type": "integer", "minimum": 0}
+      }
+    },
+    "resource_schema_url": {"type": "string"},
+    "scope": {
+      "type": "object",
+      "properties": {
+        "name": {"type": "string"},
+        "version": {"type": "string"},
+        "attributes": {"type": "array"},
+        "dropped_attributes_count": {"type": "integer", "minimum": 0}
+      }
+    },
+    "scope_schema_url": {"type": "string"},
+    "name": {"type": "string"},
+    "description": {"type": "string"},
+    "unit": {"type": "string"},
+    "gauge": {
+      "type": "object",
+      "properties": {
+        "data_points": {"type": "array"}
+      }
+    },
+    "sum": {
+      "type": "object",
+      "properties": {
+        "data_points": {"type": "array"},
+        "aggregation_temporality": {"type": "integer", "enum": [0, 1, 2]},
+        "is_monotonic": {"type": "boolean"}
+      }
+    },
+    "histogram": {
+      "type": "object",
+      "properties": {
+        "data_points": {"type": "array"},
+        "aggregation_temporality": {"type": "integer", "enum": [0, 1, 2]}
+      }
+    },
+    "exponential_histogram": {
+      "type": "object",
+      "properties": {
+        "data_points": {"type": "array"},
+        "aggregation_temporality": {"type": "integer", "enum": [0, 1, 2]}
+      }
+    },
+    "summary": {
+      "type": "object",
+      "properties": {
+        "data_points": {"type": "array"}
+      }
+    },
+    "metadata": {"type": "array"}
+  }
+}
