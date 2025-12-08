@@ -49,8 +49,6 @@ func Example() {
 	// Initialize trace exporter
 	traceExporter, err := exporter.NewTraceExporter(
 		exporter.WithBrokers(brokers...),
-		exporter.WithClientID("example-trace-exporter"),
-		exporter.WithResource(res),
 		exporter.WithSerializationFormat(serializationFormat),
 	)
 	if err != nil {
@@ -78,8 +76,6 @@ func Example() {
 	// Initialize metric exporter
 	metricExporter, err := exporter.NewMetricExporter(
 		exporter.WithBrokers(brokers...),
-		exporter.WithClientID("example-metric-exporter"),
-		exporter.WithResource(res),
 		exporter.WithSerializationFormat(serializationFormat),
 	)
 	if err != nil {
@@ -107,8 +103,6 @@ func Example() {
 	// Initialize log exporter
 	logExporter, err := exporter.NewLogExporter(
 		exporter.WithBrokers(brokers...),
-		exporter.WithClientID("example-log-exporter"),
-		exporter.WithResource(res),
 		exporter.WithSerializationFormat(serializationFormat),
 	)
 	if err != nil {
