@@ -65,6 +65,26 @@ func (a *awsSecretsManager) CheckSecretExists(ctx context.Context, key string) b
 	return err == nil
 }
 
+func (a *awsSecretsManager) GetSecretLabels(ctx context.Context, key string) (map[string]string, bool) {
+	secret, err := a.client.DescribeSecret(ctx, &secretsmanager.DescribeSecretInput{
+		SecretId: &key,
+	})
+	if err != nil {
+		return nil, false
+	}
+	return convert(secret), true
+}
+
+func convert(secret *secretsmanager.DescribeSecretOutput) map[string]string {
+	labels := make(map[string]string)
+	for _, tag := range secret.Tags {
+		if tag.Key != nil && tag.Value != nil {
+			labels[*tag.Key] = *tag.Value
+		}
+	}
+	return labels
+}
+
 func (a *awsSecretsManager) CreateSecret(ctx context.Context, key string, value string, tags map[string]string) error {
 	mergedTags := a.mergeTags(tags)
 

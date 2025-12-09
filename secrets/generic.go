@@ -28,6 +28,8 @@ import (
 type SecretAPI interface {
 	GetSecretValue(ctx context.Context, key string) (string, bool)
 	CheckSecretExists(ctx context.Context, key string) bool
+	// GetSecretLabels gets the secret labels.
+	GetSecretLabels(context.Context, string) (map[string]string, bool)
 	// CreateSecret creates a new secret with the provided tags.
 	// Global tags will overwrite any provided tags with the same keys.
 	CreateSecret(ctx context.Context, key string, value string, tags map[string]string) error
@@ -73,6 +75,16 @@ func (s *secretProvider) CheckSecretExists(ctx context.Context, key string) bool
 	}
 
 	return s.SecretAPI.CheckSecretExists(ctx, secretName)
+}
+
+// GetSecretLabels gets the secret labels.
+func (s *secretProvider) GetSecretLabels(ctx context.Context, key string) (map[string]string, bool) {
+	secretName, _, ok := s.trimPrefixAndSplit(key)
+	if !ok {
+		return nil, false
+	}
+
+	return s.SecretAPI.GetSecretLabels(ctx, secretName)
 }
 
 // CreateSecret creates a new secret.
