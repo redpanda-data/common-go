@@ -165,7 +165,7 @@ type Role struct {
 
 // RoleBinding is what associates a principal with a role in the permissions model.
 type RoleBinding struct {
-	RoleID    RoleID      `json:"role_id" yaml:"role_id" mapstructure:"role_id"`
+	Role      RoleID      `json:"role" yaml:"role" mapstructure:"role"`
 	Principal PrincipalID `json:"principal" yaml:"principal" mapstructure:"principal"`
 	// Scope is the level at which the role is bound, which allows the permission
 	// to be granted to this resource as well as all sub-resources.

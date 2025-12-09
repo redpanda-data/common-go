@@ -38,12 +38,12 @@ func Example() {
 		},
 		Bindings: []authz.RoleBinding{
 			{
-				RoleID:    "mcp.admin",
+				Role:      "mcp.admin",
 				Principal: "user:alice",
 				Scope:     "organization/acme/resourcegroup/foo/dataplane/bar",
 			},
 			{
-				RoleID:    "mcp.user",
+				Role:      "mcp.user",
 				Principal: "user:bob",
 				Scope:     "organization/acme/resourcegroup/foo/dataplane/bar/mcpserver/qux",
 			},
@@ -95,17 +95,17 @@ func TestCompileAuthorizer(t *testing.T) {
 		},
 		Bindings: []authz.RoleBinding{
 			{
-				RoleID:    "admin",
+				Role:      "admin",
 				Principal: "user:alice",
 				Scope:     "organization/acme",
 			},
 			{
-				RoleID:    "editor",
+				Role:      "editor",
 				Principal: "user:bob",
 				Scope:     "organization/acme/resourcegroup/foo",
 			},
 			{
-				RoleID:    "viewer",
+				Role:      "viewer",
 				Principal: "user:charlie",
 				Scope:     "organization/acme/resourcegroup/foo/dataplane/bar",
 			},
@@ -202,7 +202,7 @@ func TestCompileAuthorizer_MissingRole(t *testing.T) {
 		},
 		Bindings: []authz.RoleBinding{
 			{
-				RoleID:    "nonexistent",
+				Role:      "nonexistent",
 				Principal: "user:alice",
 				Scope:     "organization/acme",
 			},
@@ -229,12 +229,12 @@ func TestCompileAuthorizer_MultipleBindings(t *testing.T) {
 		},
 		Bindings: []authz.RoleBinding{
 			{
-				RoleID:    "role1",
+				Role:      "role1",
 				Principal: "user:alice",
 				Scope:     "organization/acme",
 			},
 			{
-				RoleID:    "role2",
+				Role:      "role2",
 				Principal: "user:alice",
 				Scope:     "organization/acme/resourcegroup/foo",
 			},
@@ -262,7 +262,7 @@ func TestUnknownPermission(t *testing.T) {
 		},
 		Bindings: []authz.RoleBinding{
 			{
-				RoleID:    "admin",
+				Role:      "admin",
 				Principal: "user:alice",
 				Scope:     "organization/acme",
 			},
@@ -308,12 +308,12 @@ func TestSubResourceAuthorizer(t *testing.T) {
 		},
 		Bindings: []authz.RoleBinding{
 			{
-				RoleID:    "dataplane.admin",
+				Role:      "dataplane.admin",
 				Principal: "user:alice",
 				Scope:     "organization/acme/resourcegroup/foo/dataplane/bar",
 			},
 			{
-				RoleID:    "mcpserver.user",
+				Role:      "mcpserver.user",
 				Principal: "user:bob",
 				Scope:     "organization/acme/resourcegroup/foo/dataplane/bar/mcpserver/qux",
 			},
@@ -393,7 +393,7 @@ func setupLargeScalePolicy() authz.Policy {
 	}
 	for i := range 100000 {
 		bindings[i] = authz.RoleBinding{
-			RoleID:    authz.RoleID(fmt.Sprintf("role_%d", i%1000)),
+			Role:      authz.RoleID(fmt.Sprintf("role_%d", i%1000)),
 			Principal: authz.PrincipalID(fmt.Sprintf("user:%d", i)),
 			Scope:     scopes[i%len(scopes)],
 		}
