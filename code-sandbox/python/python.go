@@ -12,21 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package javascript provides a convenient wrapper for creating JavaScript interpreters
-// with an embedded QuickJS WebAssembly runtime.
+// Package python provides a convenient wrapper for creating Python interpreters
+// with an embedded RustPython WebAssembly runtime.
 //
-// This package embeds the compiled QuickJS WASM binary at build time, eliminating the
+// This package embeds the compiled RustPython WASM binary at build time, eliminating the
 // need to distribute or load the WASM file separately. It provides a simple API to
-// create JavaScript interpreters that can be used to run sandboxed JavaScript code.
+// create Python interpreters that can be used to run sandboxed Python code.
 //
 // # Usage
 //
 // This is the recommended entry point for most users:
 //
-//	import "github.com/redpanda-data/common-go/code-sandbox/javascript"
+//	import "github.com/redpanda-data/common-go/code-sandbox/python"
 //
-//	// Create an interpreter with embedded QuickJS WASM
-//	interp, err := javascript.NewInterpreter(ctx)
+//	// Create an interpreter with embedded RustPython WASM
+//	interp, err := python.NewInterpreter(ctx)
 //	if err != nil {
 //	    log.Fatal(err)
 //	}
@@ -39,12 +39,12 @@
 //	}
 //	defer sandbox.Close(ctx)
 //
-//	// Execute JavaScript code
+//	// Execute Python code
 //	result, err := sandbox.Eval(ctx, `2 + 2`)
 //
-// The embedded WASM binary is compiled from QuickJS using the build script
-// in this directory (build-quickjs.sh).
-package javascript
+// The embedded WASM binary is compiled from RustPython using the build script
+// in this directory (build-python.sh).
+package python
 
 import (
 	"bytes"
@@ -56,20 +56,21 @@ import (
 	codesandbox "github.com/redpanda-data/common-go/code-sandbox"
 )
 
-// quickjsWasmBinary contains the compiled QuickJS WebAssembly module.
-// This binary is embedded at build time from the quickjs.wasm file in this directory.
+// pythonWasmBinary contains the compiled RustPython WebAssembly module.
+// This binary is embedded at build time from the python.wasm.gz file in this directory.
 // The WASM module includes:
-//   - QuickJS JavaScript engine (https://bellard.org/quickjs/)
-//   - C wrapper for Go↔JavaScript bridge (qjs_runtime.c)
-//   - WASI stubs for minimal system interface support
+//   - RustPython interpreter (https://github.com/RustPython/RustPython)
+//   - Rust wrapper for Go↔Python bridge (src/lib.rs)
+//   - JSON serialization/deserialization for PyObject↔JSON conversion
+//   - WASI support for minimal system interface
 //
-// The binary is compiled using Zig and optimized for size with LTO and dead code elimination.
-// See build-quickjs.sh for the complete build process.
+// The binary is compiled using Rust with full optimizations (LTO, codegen-units=1, opt-level=3).
+// See build-python.sh and Cargo.toml for the complete build configuration.
 //
-//go:embed quickjs.wasm.gz
-var compressedQuickjsWasmBinary []byte
+//go:embed python.wasm.gz
+var compressedPythonWasmBinary []byte
 
-// NewInterpreter creates a new JavaScript interpreter using the embedded QuickJS WASM binary.
+// NewInterpreter creates a new Python interpreter using the embedded RustPython WASM binary.
 //
 // This is a convenience wrapper around codesandbox.NewInterpreter that uses the embedded
 // WASM binary, eliminating the need to load the binary from disk or manage its distribution.
@@ -86,7 +87,7 @@ var compressedQuickjsWasmBinary []byte
 //
 // Example:
 //
-//	interp, err := javascript.NewInterpreter(ctx)
+//	interp, err := python.NewInterpreter(ctx)
 //	if err != nil {
 //	    return err
 //	}
@@ -97,7 +98,7 @@ var compressedQuickjsWasmBinary []byte
 //	sandbox2, _ := codesandbox.NewSandbox(ctx, interp)
 func NewInterpreter(ctx context.Context) (codesandbox.Interpreter, error) {
 	wasmBin, err := func() ([]byte, error) {
-		rdr, err := gzip.NewReader(bytes.NewReader(compressedQuickjsWasmBinary))
+		rdr, err := gzip.NewReader(bytes.NewReader(compressedPythonWasmBinary))
 		if err != nil {
 			return nil, err
 		}

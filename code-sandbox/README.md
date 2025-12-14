@@ -7,10 +7,11 @@ A secure, multi-language code execution environment for Go using WebAssembly.
 Code Sandbox provides a safe, isolated environment for running untrusted code within Go applications. Built on [wazero](https://wazero.io/) (a pure Go WebAssembly runtime), it supports multiple language runtimes compiled to WASM, offering strong isolation guarantees without requiring CGO or native dependencies.
 
 - **JavaScript** - Via [QuickJS](https://bellard.org/quickjs/) (ES2020 support)
+- **Python** - Via [RustPython](https://rustpython.github.io/) (Python 3.10+ compatible)
 
 ### Key Features
 
-- **Multi-Language Support** - Run JavaScript (with Python and more coming soon) in isolated sandboxes
+- **Multi-Language Support** - Run JavaScript and Python in isolated sandboxes
 - **Memory Isolation** - Sandboxed code runs in WebAssembly linear memory, completely isolated from Go memory
 - **Resource Limits** - Configurable memory and CPU time limits prevent resource exhaustion
 - **Bidirectional Communication** - JSON-based data exchange between Go and sandboxed languages
@@ -56,6 +57,7 @@ The implementation consists of three layers:
 │    Language Runtime (WASM)          │
 │                                     │
 │  JavaScript: QuickJS (ES2020)       │
+│  Python: RustPython (3.10+)         │
 └─────────────────────────────────────┘
 ```
 
@@ -93,7 +95,7 @@ go get github.com/redpanda-data/common-go/code-sandbox
 
 ### JavaScript Example
 
-The following example demonstrates JavaScript execution. Similar patterns will apply for Python and other languages.
+The following example demonstrates JavaScript execution. Similar patterns apply to Python and other languages.
 
 ```go
 package main
@@ -146,62 +148,138 @@ func main() {
 }
 ```
 
+### Python Example
+
+```go
+package main
+
+import (
+    "context"
+    "encoding/json"
+    "fmt"
+    "log"
+    "time"
+
+    "github.com/redpanda-data/common-go/code-sandbox"
+    "github.com/redpanda-data/common-go/code-sandbox/python"
+)
+
+func main() {
+    ctx := context.Background()
+
+    // Create an interpreter (compile WASM once)
+    interp, err := python.NewInterpreter(ctx)
+    if err != nil {
+        log.Fatal(err)
+    }
+    defer interp.Close(ctx)
+
+    // Create a sandbox with limits
+    sandbox, err := codesandbox.NewSandbox(ctx, interp,
+        codesandbox.WithMaxMemory(10*1024*1024),  // 10MB limit
+        codesandbox.WithMaxRuntime(5*time.Second)) // 5 second timeout
+    if err != nil {
+        log.Fatal(err)
+    }
+    defer sandbox.Close(ctx)
+
+    // Execute Python code
+    result, err := sandbox.Eval(ctx, `
+def fibonacci(n):
+    if n <= 1:
+        return n
+    return fibonacci(n - 1) + fibonacci(n - 2)
+
+fibonacci(10)
+    `)
+    if err != nil {
+        log.Fatal(err)
+    }
+
+    var num int
+    json.Unmarshal(result, &num)
+    fmt.Println("Result:", num) // Output: Result: 55
+}
+```
+
 ## Usage Guide
 
-The following usage guide uses JavaScript as the example language. The same patterns will apply when Python and other language runtimes are added.
+The following usage guide uses JavaScript as the primary example. The same patterns apply to Python and other language runtimes.
 
 ### Creating Interpreters and Sandboxes
 
 **Best Practice:** Create one `Interpreter` and reuse it to create multiple `Sandbox` instances.
 
 ```go
-// Create interpreter once (expensive - compiles WASM)
-interp, err := javascript.NewInterpreter(ctx)
+// JavaScript example
+jsInterp, err := javascript.NewInterpreter(ctx)
 if err != nil {
     return err
 }
-defer interp.Close(ctx)
+defer jsInterp.Close(ctx)
 
-// Create many sandboxes (cheap - uses compiled modules)
-sandbox1, _ := codesandbox.NewSandbox(ctx, interp)
-sandbox2, _ := codesandbox.NewSandbox(ctx, interp)
-sandbox3, _ := codesandbox.NewSandbox(ctx, interp)
+// Python example
+pyInterp, err := python.NewInterpreter(ctx)
+if err != nil {
+    return err
+}
+defer pyInterp.Close(ctx)
+
+// Create many sandboxes from each interpreter (cheap - uses compiled modules)
+jsSandbox1, _ := codesandbox.NewSandbox(ctx, jsInterp)
+jsSandbox2, _ := codesandbox.NewSandbox(ctx, jsInterp)
+
+pySandbox1, _ := codesandbox.NewSandbox(ctx, pyInterp)
+pySandbox2, _ := codesandbox.NewSandbox(ctx, pyInterp)
 ```
 
-Each sandbox is completely isolated with its own JavaScript global scope and state.
+Each sandbox is completely isolated with its own language runtime state and global scope.
 
-### Executing JavaScript
+### Executing Code
 
-Use `Eval()` to execute JavaScript code and receive JSON results:
+Use `Eval()` to execute code and receive JSON results. Examples shown for both JavaScript and Python:
 
 ```go
-// Simple expressions
-result, _ := sandbox.Eval(ctx, `2 + 2`)
+// JavaScript examples
+result, _ := jsSandbox.Eval(ctx, `2 + 2`)
 // result: json.RawMessage containing 4
 
-// Objects
-result, _ = sandbox.Eval(ctx, `({name: "Alice", age: 30})`)
+result, _ = jsSandbox.Eval(ctx, `({name: "Alice", age: 30})`)
 // result: json.RawMessage containing {"name":"Alice","age":30}
 
-// Arrays
-result, _ = sandbox.Eval(ctx, `[1, 2, 3].map(x => x * 2)`)
+result, _ = jsSandbox.Eval(ctx, `[1, 2, 3].map(x => x * 2)`)
 // result: json.RawMessage containing [2,4,6]
 
-// Multi-line scripts
-result, _ = sandbox.Eval(ctx, `
+result, _ = jsSandbox.Eval(ctx, `
     const data = [1, 2, 3, 4, 5];
     const sum = data.reduce((a, b) => a + b, 0);
     const avg = sum / data.length;
     avg
 `)
 // result: json.RawMessage containing 3
+
+// Python examples
+result, _ = pySandbox.Eval(ctx, `2 + 2`)
+// result: json.RawMessage containing 4
+
+result, _ = pySandbox.Eval(ctx, `{"name": "Alice", "age": 30}`)
+// result: json.RawMessage containing {"name":"Alice","age":30}
+
+result, _ = pySandbox.Eval(ctx, `[x * 2 for x in [1, 2, 3]]`)
+// result: json.RawMessage containing [2,4,6]
+
+result, _ = pySandbox.Eval(ctx, `
+data = [1, 2, 3, 4, 5]
+sum(data) / len(data)
+`)
+// result: json.RawMessage containing 3.0
 ```
 
 The result of the last expression is automatically serialized to JSON and returned.
 
-### Binding Go Functions to JavaScript
+### Binding Go Functions
 
-Expose Go functions to JavaScript using `Bind()`:
+Expose Go functions to sandboxed code using `Bind()`. Examples for both JavaScript and Python:
 
 ```go
 // Simple function
@@ -214,7 +292,8 @@ sandbox.Bind(ctx, "add", func(data json.RawMessage) (json.RawMessage, error) {
     return json.Marshal(result)
 })
 
-// JavaScript can now call: add([5, 7]) // Returns 12
+// JavaScript: add([5, 7]) // Returns 12
+// Python: add([5, 7])     // Returns 12
 
 // Complex function with structs
 type User struct {
@@ -233,7 +312,8 @@ sandbox.Bind(ctx, "getUser", func(data json.RawMessage) (json.RawMessage, error)
 })
 
 // JavaScript: const user = getUser("user-123")
-// Returns: {id: "user-123", name: "Alice"}
+// Python: user = getUser("user-123")
+// Both return: {"id": "user-123", "name": "Alice"}
 ```
 
 ### Configuration Options
@@ -271,14 +351,18 @@ By default, time is frozen (deterministic) for reproducible testing:
 ```go
 // Deterministic time (default)
 sandbox, _ := codesandbox.NewSandbox(ctx, interp)
+
+// JavaScript: Date.now() always returns the same value
 result, _ := sandbox.Eval(ctx, `Date.now()`)
-// Always returns the same value
+
+// Python: time.time() always returns the same value
+result, _ = sandbox.Eval(ctx, `import time; time.time()`)
 
 // Real wall-clock time
 sandbox, _ := codesandbox.NewSandbox(ctx, interp,
     codesandbox.WithRealtime())
-result, _ = sandbox.Eval(ctx, `Date.now()`)
-// Returns actual current timestamp
+
+// Both JavaScript Date.now() and Python time.time() return actual current time
 ```
 
 #### Combining Options
@@ -296,13 +380,13 @@ sandbox, err := codesandbox.NewSandbox(ctx, interp,
 
 ### Isolation Guarantees
 
-1. **Memory Isolation** - JavaScript cannot access Go heap memory. All data exchange goes through explicit JSON serialization.
+1. **Memory Isolation** - Sandboxed code cannot access Go heap memory. All data exchange goes through explicit JSON serialization.
 
 2. **CPU Limits** - Context cancellation can terminate execution. Use `WithMaxRuntime()` to enforce time limits.
 
 3. **Memory Limits** - `WithMaxMemory()` prevents the sandbox from exhausting system memory.
 
-4. **No Direct I/O** - JavaScript has no access to:
+4. **No Direct I/O** - Sandboxed code has no access to:
    - Filesystem
    - Network sockets
    - Environment variables
@@ -342,7 +426,7 @@ sandbox.Bind(ctx, "query", func(data json.RawMessage) (json.RawMessage, error) {
     return json.Marshal(result)
 })
 
-// 4. Handle JavaScript errors gracefully
+// 4. Handle sandboxed code errors gracefully
 result, err := sandbox.Eval(ctx, userCode)
 if err != nil {
     // Log error without exposing sensitive details
@@ -383,7 +467,11 @@ type Callback func(json.RawMessage) (json.RawMessage, error)
 
 #### `javascript.NewInterpreter(ctx) (Interpreter, error)`
 
-Creates a new interpreter with embedded QuickJS WASM binary.
+Creates a new JavaScript interpreter with embedded QuickJS WASM binary.
+
+#### `python.NewInterpreter(ctx) (Interpreter, error)`
+
+Creates a new Python interpreter with embedded RustPython WASM binary.
 
 #### `codesandbox.NewSandbox(ctx, interp, opts...) (Sandbox, error)`
 
@@ -397,9 +485,9 @@ Creates a new isolated sandbox from an interpreter.
 
 ## Building from Source
 
-### JavaScript Runtime
+### Language Runtimes
 
-The QuickJS WASM binary is pre-compiled and embedded in the `javascript` package. To rebuild it:
+Pre-compiled WASM binaries for JavaScript (QuickJS) and Python (RustPython) are embedded in their respective packages. To rebuild them:
 
 ### Prerequisites
 
@@ -417,6 +505,7 @@ brew install zig
 
 ### Build Steps
 
+**JavaScript (QuickJS):**
 ```bash
 cd javascript
 ./build-quickjs.sh
@@ -427,13 +516,23 @@ This script:
 2. Compiles QuickJS and the C wrapper (`qjs_runtime.c`) to WASM
 3. Links with WASI stubs
 4. Optimizes with LTO and dead code elimination
-5. Outputs `quickjs.wasm` (~1.5MB)
+5. Outputs `quickjs.wasm` (~1.5MB, gzipped to ~400KB)
 
-The build process uses Zig's WASM target with:
-- Optimization level: `-O2`
-- Link-Time Optimization (LTO)
-- Dead code elimination
-- Symbol stripping for minimal size
+The build uses Zig's WASM target with optimization level `-O2`, LTO, and dead code elimination.
+
+**Python (RustPython):**
+```bash
+cd python
+./build-python.sh
+```
+
+This script:
+1. Compiles the Rust wrapper (`src/lib.rs`) linking RustPython
+2. Uses Rust's wasm32-wasi target with full optimizations
+3. Strips symbols and optimizes for size
+4. Outputs `python.wasm` (~3MB, gzipped to ~800KB)
+
+The build uses Cargo with `opt-level=3`, `lto=true`, and `codegen-units=1` for maximum optimization.
 
 ### Benchmarks
 
@@ -457,7 +556,11 @@ Typical performance characteristics:
 - **No async/await** - QuickJS doesn't support async JavaScript
 - **Limited built-ins** - Only basic JavaScript globals available (no DOM, fetch, etc.)
 
-*Note: Different language runtimes (Python, etc.) will have their own characteristics and limitations.*
+### Python-Specific (RustPython)
+- **Python Version** - Supports Python 3.10+ syntax (RustPython target)
+- **Standard library** - Limited to core built-ins compiled into WASM
+- **No C extensions** - Cannot load native Python extensions (NumPy, etc.)
+- **Import restrictions** - Only modules compiled into the WASM binary are available
 
 ## Examples
 
@@ -548,6 +651,7 @@ This project is part of the Redpanda Data common-go repository. For contribution
 ## Credits
 
 - **QuickJS** - Fabrice Bellard (https://bellard.org/quickjs/)
+- **RustPython** - RustPython Team (https://rustpython.github.io/)
 - **wazero** - Tetrate Labs (https://wazero.io/)
 
 ## Related Projects
