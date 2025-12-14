@@ -28,8 +28,7 @@ import (
 func BenchmarkJavaScriptNewInterpreter(b *testing.B) {
 	ctx := context.Background()
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		interp, err := javascript.NewInterpreter(ctx)
 		if err != nil {
 			b.Fatal(err)
@@ -42,8 +41,7 @@ func BenchmarkJavaScriptNewInterpreter(b *testing.B) {
 func BenchmarkPythonNewInterpreter(b *testing.B) {
 	ctx := context.Background()
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		interp, err := python.NewInterpreter(ctx)
 		if err != nil {
 			b.Fatal(err)
@@ -62,8 +60,7 @@ func BenchmarkJavaScriptNewSandbox(b *testing.B) {
 	}
 	defer interp.Close(ctx)
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		sandbox, err := codesandbox.NewSandbox(ctx, interp)
 		if err != nil {
 			b.Fatal(err)
@@ -121,7 +118,7 @@ func BenchmarkJavaScriptEval(b *testing.B) {
 			B: make([]float64, 1000),
 		}
 
-		for i := 0; i < 1000; i++ {
+		for i := range 1000 {
 			vectors.A[i] = float64(i)
 			vectors.B[i] = float64(i * 2)
 		}
@@ -144,8 +141,7 @@ func BenchmarkJavaScriptEval(b *testing.B) {
 		})()
 	`
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		_, err := sandbox.Eval(ctx, script)
 		if err != nil {
 			b.Fatal(err)
@@ -182,7 +178,7 @@ func BenchmarkPythonEval(b *testing.B) {
 			B: make([]float64, 1000),
 		}
 
-		for i := 0; i < 1000; i++ {
+		for i := range 1000 {
 			vectors.A[i] = float64(i)
 			vectors.B[i] = float64(i * 2)
 		}
@@ -196,8 +192,7 @@ func BenchmarkPythonEval(b *testing.B) {
 	// Python code that computes dot product
 	script := `(lambda v: sum(a * b for a, b in zip(v["a"], v["b"])))(getVectors(None))`
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		_, err := sandbox.Eval(ctx, script)
 		if err != nil {
 			b.Fatal(err)

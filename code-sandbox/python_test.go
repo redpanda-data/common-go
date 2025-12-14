@@ -355,3 +355,204 @@ func TestPythonNoneValue(t *testing.T) {
 
 	require.JSONEq(t, "null", string(result))
 }
+
+// TestPythonReset tests that Reset clears runtime state but preserves bound functions
+func TestPythonReset(t *testing.T) {
+	ctx := context.Background()
+
+	interp, err := python.NewInterpreter(ctx)
+	require.NoError(t, err, "Failed to create interpreter")
+	defer interp.Close(ctx)
+
+	sandbox, err := codesandbox.NewSandbox(ctx, interp)
+	require.NoError(t, err, "Failed to create sandbox")
+	defer sandbox.Close(ctx)
+
+	// Bind a Go function before reset
+	err = sandbox.Bind(ctx, "double", func(data json.RawMessage) (json.RawMessage, error) {
+		var num int
+		if err := json.Unmarshal(data, &num); err != nil {
+			return nil, err
+		}
+		return json.Marshal(num * 2)
+	})
+	require.NoError(t, err, "Failed to bind function")
+
+	// Use bound function in first execution
+	result, err := sandbox.Eval(ctx, `double(21) + double(21)`)
+	require.NoError(t, err, "First eval failed")
+
+	var firstResult int
+	err = json.Unmarshal(result, &firstResult)
+	require.NoError(t, err, "Failed to unmarshal first result")
+	require.Equal(t, 84, firstResult) // double(21) + double(21) = 42 + 42 = 84
+
+	// Reset the sandbox
+	err = sandbox.Reset(ctx)
+	require.NoError(t, err, "Reset failed")
+
+	// Bound function should still work after reset
+	result, err = sandbox.Eval(ctx, `double(10)`)
+	require.NoError(t, err, "Eval after reset failed")
+
+	var secondResult int
+	err = json.Unmarshal(result, &secondResult)
+	require.NoError(t, err, "Failed to unmarshal second result")
+	require.Equal(t, 20, secondResult)
+}
+
+// TestPythonResetMultipleTimes tests that Reset can be called multiple times
+func TestPythonResetMultipleTimes(t *testing.T) {
+	ctx := context.Background()
+
+	interp, err := python.NewInterpreter(ctx)
+	require.NoError(t, err, "Failed to create interpreter")
+	defer interp.Close(ctx)
+
+	sandbox, err := codesandbox.NewSandbox(ctx, interp)
+	require.NoError(t, err, "Failed to create sandbox")
+	defer sandbox.Close(ctx)
+
+	// Bind a counter function that increments each time
+	counter := 0
+	err = sandbox.Bind(ctx, "increment_counter", func(data json.RawMessage) (json.RawMessage, error) {
+		counter++
+		return json.Marshal(counter)
+	})
+	require.NoError(t, err, "Failed to bind function")
+
+	// Run three separate executions with resets in between
+	for i := 1; i <= 3; i++ {
+		result, err := sandbox.Eval(ctx, `increment_counter(None)`)
+		require.NoError(t, err, "Eval %d failed", i)
+
+		var count int
+		err = json.Unmarshal(result, &count)
+		require.NoError(t, err, "Failed to unmarshal result %d", i)
+		require.Equal(t, i, count, "Counter should be %d", i)
+
+		err = sandbox.Reset(ctx)
+		require.NoError(t, err, "Reset %d failed", i)
+	}
+
+	// Bound function should still work after multiple resets
+	result, err := sandbox.Eval(ctx, `increment_counter(None)`)
+	require.NoError(t, err, "Final eval failed")
+
+	var finalCount int
+	err = json.Unmarshal(result, &finalCount)
+	require.NoError(t, err, "Failed to unmarshal final result")
+	require.Equal(t, 4, finalCount, "Counter should be 4 after all iterations")
+}
+
+// TestPythonResetBasic tests basic reset functionality
+func TestPythonResetBasic(t *testing.T) {
+	ctx := context.Background()
+
+	interp, err := python.NewInterpreter(ctx)
+	require.NoError(t, err, "Failed to create interpreter")
+	defer interp.Close(ctx)
+
+	sandbox, err := codesandbox.NewSandbox(ctx, interp)
+	require.NoError(t, err, "Failed to create sandbox")
+	defer sandbox.Close(ctx)
+
+	// Test basic evaluation
+	result, err := sandbox.Eval(ctx, `"hello"`)
+	require.NoError(t, err, "First eval failed")
+	require.JSONEq(t, `"hello"`, string(result))
+
+	// Reset should succeed
+	err = sandbox.Reset(ctx)
+	require.NoError(t, err, "Reset failed")
+
+	// Evaluation should still work after reset
+	result, err = sandbox.Eval(ctx, `"world"`)
+	require.NoError(t, err, "Eval after reset failed")
+	require.JSONEq(t, `"world"`, string(result))
+}
+
+// TestPythonResetWithRebind tests binding new functions after reset
+func TestPythonResetWithRebind(t *testing.T) {
+	ctx := context.Background()
+
+	interp, err := python.NewInterpreter(ctx)
+	require.NoError(t, err, "Failed to create interpreter")
+	defer interp.Close(ctx)
+
+	sandbox, err := codesandbox.NewSandbox(ctx, interp)
+	require.NoError(t, err, "Failed to create sandbox")
+	defer sandbox.Close(ctx)
+
+	// Bind first function
+	err = sandbox.Bind(ctx, "func1", func(data json.RawMessage) (json.RawMessage, error) {
+		return json.Marshal("first")
+	})
+	require.NoError(t, err, "Failed to bind first function")
+
+	result, err := sandbox.Eval(ctx, `func1(None)`)
+	require.NoError(t, err, "First eval failed")
+	require.JSONEq(t, `"first"`, string(result))
+
+	// Reset
+	err = sandbox.Reset(ctx)
+	require.NoError(t, err, "Reset failed")
+
+	// First function should still work
+	result, err = sandbox.Eval(ctx, `func1(None)`)
+	require.NoError(t, err, "Eval after reset failed")
+	require.JSONEq(t, `"first"`, string(result))
+
+	// Bind second function
+	err = sandbox.Bind(ctx, "func2", func(data json.RawMessage) (json.RawMessage, error) {
+		return json.Marshal("second")
+	})
+	require.NoError(t, err, "Failed to bind second function")
+
+	// Both functions should work
+	result, err = sandbox.Eval(ctx, `func1(None) + " " + func2(None)`)
+	require.NoError(t, err, "Eval with both functions failed")
+	require.JSONEq(t, `"first second"`, string(result))
+}
+
+// TestPythonResetPreservesBoundFunctions tests that bound functions work after reset
+func TestPythonResetPreservesBoundFunctions(t *testing.T) {
+	ctx := context.Background()
+
+	interp, err := python.NewInterpreter(ctx)
+	require.NoError(t, err, "Failed to create interpreter")
+	defer interp.Close(ctx)
+
+	sandbox, err := codesandbox.NewSandbox(ctx, interp)
+	require.NoError(t, err, "Failed to create sandbox")
+	defer sandbox.Close(ctx)
+
+	// Bind a test function
+	err = sandbox.Bind(ctx, "get_value", func(data json.RawMessage) (json.RawMessage, error) {
+		return json.Marshal(100)
+	})
+	require.NoError(t, err, "Failed to bind function")
+
+	// Call bound function
+	result, err := sandbox.Eval(ctx, `get_value(None)`)
+	require.NoError(t, err, "First eval failed")
+
+	var firstVal int
+	err = json.Unmarshal(result, &firstVal)
+	require.NoError(t, err, "Failed to unmarshal result")
+	require.Equal(t, 100, firstVal)
+
+	// Reset
+	err = sandbox.Reset(ctx)
+	require.NoError(t, err, "Reset failed")
+
+	// Bound function should still work
+	result, err = sandbox.Eval(ctx, `get_value(None)`)
+	require.NoError(t, err, "Second eval failed")
+
+	var secondVal int
+	err = json.Unmarshal(result, &secondVal)
+	require.NoError(t, err, "Failed to unmarshal second result")
+	require.Equal(t, 100, secondVal)
+}
+

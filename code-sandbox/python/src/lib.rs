@@ -99,7 +99,7 @@ unsafe extern "C" {
 #[unsafe(no_mangle)]
 pub extern "C" fn runtime_init() -> *mut PythonRuntime {
     let runtime = Box::new(PythonRuntime {
-        interpreter: vm::Interpreter::with_init(Default::default(), |vm| {
+        interpreter: vm::Interpreter::with_init(Default::default(), |_vm| {
             // TODO: embed the stdlib to give full access
             // vm.add_native_modules(rustpython_stdlib::get_module_inits());
         }),
@@ -216,15 +216,14 @@ pub extern "C" fn runtime_eval(
         }
 
         // Compile and execute the script
-        let code_obj = vm
-            .compile(script_str, vm::compiler::Mode::Eval, "<eval>".to_string())
-            .map_err(|err| {
-                let syntax_err = vm.new_syntax_error(&err, Some(script_str));
-                let mut msg = String::new();
-                vm.write_exception(&mut msg, &syntax_err).unwrap();
-                anyhow!(msg)
-            })?;
-
+        let syntax = vm::compiler::parser::parse_module(script_str)?.into_syntax();
+        let source_file = vm::compiler::core::SourceFileBuilder::new("<exec>", script_str).finish();
+        let code_obj = vm::compiler::codegen::compile::compile_program_single(
+            &syntax,
+            source_file,
+            vm.compile_opts(),
+        )
+        .map(|code| vm.ctx.new_code(code))?;
         let result = vm.run_code_obj(code_obj, scope).map_err(|e| {
             let mut msg = String::new();
             vm.write_exception(&mut msg, &e).unwrap();
