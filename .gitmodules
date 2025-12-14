@@ -1,0 +1,3 @@
+[submodule "code-sandbox/javascript/quickjs"]
+	path = code-sandbox/javascript/quickjs
+	url = https://github.com/bellard/quickjs.git
