@@ -21,9 +21,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/redpanda-data/common-go/code-sandbox"
-	"github.com/redpanda-data/common-go/code-sandbox/javascript"
 	"github.com/stretchr/testify/require"
+
+	codesandbox "github.com/redpanda-data/common-go/code-sandbox"
+	"github.com/redpanda-data/common-go/code-sandbox/javascript"
 )
 
 // TestBasicEval tests basic JavaScript evaluation
@@ -179,7 +180,7 @@ func TestBindFunctionError(t *testing.T) {
 	defer sandbox.Close(ctx)
 
 	// Bind a function that returns an error
-	err = sandbox.Bind(ctx, "failing", func(data json.RawMessage) (json.RawMessage, error) {
+	err = sandbox.Bind(ctx, "failing", func(_ json.RawMessage) (json.RawMessage, error) {
 		return nil, errors.New("intentional error")
 	})
 	require.NoError(t, err, "Failed to bind function")

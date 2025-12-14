@@ -15,8 +15,8 @@
 // Package codesandbox provides a secure code execution environment using WebAssembly.
 //
 // This package enables running untrusted code in isolated sandboxes powered by language
-// runtimes compiled to WebAssembly. Currently supports JavaScript via QuickJS, with planned
-// support for Python and other languages. The sandbox provides:
+// runtimes compiled to WebAssembly. Currently supports JavaScript via QuickJS and Python
+// via RustPython. The sandbox provides:
 //
 //   - Memory isolation through WebAssembly linear memory
 //   - Configurable memory and CPU time limits
@@ -30,14 +30,14 @@
 //
 //  1. Go Host Layer - This package provides the Go API
 //  2. WASM Runtime Layer - wazero executes the WASM module in a sandbox
-//  3. Language Runtime - Language interpreter/VM compiled to WASM (e.g., QuickJS for JavaScript)
+//  3. Language Runtime - Language interpreter/VM compiled to WASM (QuickJS for JavaScript, RustPython for Python)
 //
 // Communication between Go and the sandboxed language uses JSON as the universal data format.
 // Go functions can be bound to the runtime, and code can be evaluated with results returned to Go.
 //
 // # Basic Usage
 //
-// JavaScript Example (currently supported):
+// JavaScript Example:
 //
 //	// Create an interpreter (compile WASM once, reuse for multiple sandboxes)
 //	interp, err := javascript.NewInterpreter(ctx)
@@ -70,11 +70,42 @@
 //	}
 //	fmt.Println(string(result)) // Output: 42
 //
+// Python Example:
+//
+//	// Create a Python interpreter
+//	interp, err := python.NewInterpreter(ctx)
+//	if err != nil {
+//	    return err
+//	}
+//	defer interp.Close(ctx)
+//
+//	// Create a sandbox
+//	sandbox, err := codesandbox.NewSandbox(ctx, interp)
+//	if err != nil {
+//	    return err
+//	}
+//	defer sandbox.Close(ctx)
+//
+//	// Bind a Go function to Python
+//	sandbox.Bind(ctx, "multiply", func(data json.RawMessage) (json.RawMessage, error) {
+//	    var nums []int
+//	    json.Unmarshal(data, &nums)
+//	    result := nums[0] * nums[1]
+//	    return json.Marshal(result)
+//	})
+//
+//	// Execute Python code
+//	result, err := sandbox.Eval(ctx, `multiply([6, 7])`)
+//	if err != nil {
+//	    return err
+//	}
+//	fmt.Println(string(result)) // Output: 42
+//
 // # Security and Isolation
 //
 // The sandbox provides strong isolation guarantees:
 //
-//   - JavaScript cannot access Go memory directly
+//   - Sandboxed code cannot access Go memory directly
 //   - Memory limits prevent resource exhaustion
 //   - Context cancellation can terminate runaway scripts
 //   - No filesystem or network access by default
@@ -269,8 +300,9 @@ func WithMaxRuntime(d time.Duration) SandboxOpt {
 // WithRealtime enables real wall-clock time in the sandbox.
 // By default, time is deterministic (frozen), which is useful for testing.
 // When real-time is enabled, time-related functions in the sandboxed code
-// (e.g., Date.now() in JavaScript, time.time() in Python) will return actual
-// wall-clock time.
+// will return actual wall-clock time:
+//   - JavaScript: Date.now()
+//   - Python: time.time()
 //
 // Default: Deterministic (frozen) time
 //
@@ -299,16 +331,19 @@ var _ Sandbox = (*impl)(nil)
 //   - Sandbox: A new sandbox instance ready for code execution
 //   - error: Any error that occurred during initialization
 //
-// Example (JavaScript):
+// Example:
 //
-//	interp, _ := javascript.NewInterpreter(ctx)
-//	sandbox, err := codesandbox.NewSandbox(ctx, interp,
+//	// JavaScript
+//	jsInterp, _ := javascript.NewInterpreter(ctx)
+//	jsSandbox, err := codesandbox.NewSandbox(ctx, jsInterp,
 //	    codesandbox.WithMaxMemory(10*1024*1024),
 //	    codesandbox.WithMaxRuntime(5*time.Second))
-//	if err != nil {
-//	    log.Fatal(err)
-//	}
-//	defer sandbox.Close(ctx)
+//
+//	// Python
+//	pyInterp, _ := python.NewInterpreter(ctx)
+//	pySandbox, err := codesandbox.NewSandbox(ctx, pyInterp,
+//	    codesandbox.WithMaxMemory(10*1024*1024),
+//	    codesandbox.WithMaxRuntime(5*time.Second))
 //
 // The sandbox must be closed when no longer needed to release WASM runtime resources.
 func NewSandbox(ctx context.Context, i Interpreter, opts ...SandboxOpt) (Sandbox, error) {
@@ -363,7 +398,7 @@ func (i *impl) Bind(ctx context.Context, name string, cb Callback) error {
 	if err != nil {
 		return err
 	}
-	defer i.freeString(ctx, ptr)
+	defer i.freeString(ctx, ptr, uint32(len(name)))
 
 	results, err := i.mod.ExportedFunction("runtime_bind_function").
 		Call(ctx, i.handle, api.EncodeU32(ptr))
@@ -382,7 +417,7 @@ func (i *impl) Eval(ctx context.Context, script string) (json.RawMessage, error)
 	if err != nil {
 		return nil, err
 	}
-	defer i.freeString(ctx, scriptPtr)
+	defer i.freeString(ctx, scriptPtr, uint32(len(script)))
 
 	// Allocate space for output pointer
 	outputPtrPtr, err := i.mod.ExportedFunction("runtime_malloc_memory").
@@ -392,7 +427,7 @@ func (i *impl) Eval(ctx context.Context, script string) (json.RawMessage, error)
 	}
 	outputPtrAddr := api.DecodeU32(outputPtrPtr[0])
 	defer i.mod.ExportedFunction("runtime_free_memory").
-		Call(ctx, i.handle, api.EncodeU32(outputPtrAddr))
+		Call(ctx, i.handle, api.EncodeU32(outputPtrAddr), api.EncodeU32(4))
 
 	results, err := i.mod.ExportedFunction("runtime_eval").
 		Call(ctx, i.handle, api.EncodeU32(scriptPtr), api.EncodeU32(outputPtrAddr))
@@ -410,15 +445,16 @@ func (i *impl) Eval(ctx context.Context, script string) (json.RawMessage, error)
 	if !ok || outputPtr == 0 {
 		return nil, errors.New("evaluation error: failed to read output")
 	}
-	defer i.freeString(ctx, outputPtr)
 
 	if resultLen < 0 {
+		defer i.freeString(ctx, outputPtr, uint32(-resultLen))
 		data, err := i.readStrView(outputPtr)
 		if err != nil {
 			return nil, err
 		}
 		return nil, errors.New(string(data))
 	}
+	defer i.freeString(ctx, outputPtr, uint32(resultLen))
 	data, err := i.readStrView(outputPtr)
 	if err != nil {
 		return nil, err
@@ -474,12 +510,12 @@ func (i *impl) copyString(ctx context.Context, str string) (uint32, error) {
 
 // freeString releases memory previously allocated in WASM linear memory.
 // Safe to call with a zero pointer (no-op).
-func (i *impl) freeString(ctx context.Context, ptr uint32) error {
+func (i *impl) freeString(ctx context.Context, ptr uint32, len uint32) error {
 	if ptr == 0 {
 		return nil
 	}
 	_, err := i.mod.ExportedFunction("runtime_free_memory").
-		Call(ctx, i.handle, api.EncodeU32(ptr))
+		Call(ctx, i.handle, api.EncodeU32(ptr), api.EncodeU32(len+1))
 	return err
 }
 
@@ -490,7 +526,7 @@ func (i *impl) freeString(ctx context.Context, ptr uint32) error {
 // Fields:
 //   - wasip1Mod: Compiled WASI preview1 module for system interface support
 //   - hostMod: Compiled host module providing the host_call bridge function
-//   - mod: Compiled QuickJS JavaScript engine WASM module
+//   - mod: Compiled language runtime WASM module (QuickJS for JavaScript, RustPython for Python)
 //   - cache: Compilation cache for performance optimization
 //   - cfg: Runtime configuration shared by all sandboxes created from this interpreter
 type precompiledInterpreter struct {
@@ -536,8 +572,8 @@ func (p *precompiledInterpreter) wasip1Module() wazero.CompiledModule {
 // NewInterpreter creates a new interpreter by compiling the provided language runtime WASM binary.
 //
 // This function performs the expensive one-time compilation of a language runtime (e.g., QuickJS
-// for JavaScript, Python, etc.) and sets up the host function bridge. The resulting Interpreter
-// can be reused to create multiple Sandbox instances efficiently.
+// for JavaScript, RustPython for Python) and sets up the host function bridge. The resulting
+// Interpreter can be reused to create multiple Sandbox instances efficiently.
 //
 // The compilation process includes:
 //  1. Setting up a compilation cache for faster subsequent instantiations
@@ -566,8 +602,9 @@ func (p *precompiledInterpreter) wasip1Module() wazero.CompiledModule {
 //	sandbox1, _ := codesandbox.NewSandbox(ctx, interp)
 //	sandbox2, _ := codesandbox.NewSandbox(ctx, interp)
 //
-// For convenience, use language-specific packages like javascript.NewInterpreter() or
-// python.NewInterpreter() which embed the WASM binary.
+// For most use cases, use language-specific packages that embed the WASM binary:
+//   - javascript.NewInterpreter() for JavaScript (QuickJS)
+//   - python.NewInterpreter() for Python (RustPython)
 func NewInterpreter(ctx context.Context, wasmBinary []byte) (Interpreter, error) {
 	cache := wazero.NewCompilationCache()
 	rtCfg := wazero.NewRuntimeConfig().
@@ -592,7 +629,11 @@ func NewInterpreter(ctx context.Context, wasmBinary []byte) (Interpreter, error)
 				functionID := api.DecodeI32(stack[0])
 				jsonPayloadPtr := api.DecodeU32(stack[1])
 				outputPtrPtr := api.DecodeU32(stack[2])
-				impl := ctx.Value(implKey).(*impl)
+				impl, ok := ctx.Value(implKey).(*impl)
+				if !ok {
+					stack[0] = 0
+					return
+				}
 				writeOutput := func(data []byte, isError bool) int32 {
 					ptr, err := impl.copyString(ctx, unsafe.String(&data[0], len(data)))
 					if err != nil {
@@ -687,8 +728,8 @@ func validateABI(mod wazero.CompiledModule) error {
 			results: []api.ValueType{i32},      // returns pointer
 		},
 		"runtime_free_memory": {
-			params:  []api.ValueType{i32, i32}, // (handle, ptr)
-			results: []api.ValueType{},         // void
+			params:  []api.ValueType{i32, i32, i32}, // (handle, ptr, size)
+			results: []api.ValueType{},              // void
 		},
 	}
 

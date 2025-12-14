@@ -247,7 +247,8 @@ int runtime_bind_function(QJSRuntime *runtime, const char *name) {
  *
  * Returns:
  *   - Positive: success, output contains JSON result, return value is length
- *   - Negative: failure, output contains error string, absolute value is error length
+ *   - Negative: failure, output contains error string, absolute value is error
+ * length
  *   - Zero: invalid parameters or memory allocation failure
  *
  * Example results:
@@ -355,6 +356,6 @@ WASM_EXPORT void *runtime_malloc_memory(QJSRuntime *runtime, size_t amt) {
   return js_malloc_rt(runtime->rt, amt);
 }
 
-WASM_EXPORT void runtime_free_memory(QJSRuntime *runtime, void *ptr) {
+WASM_EXPORT void runtime_free_memory(QJSRuntime *runtime, void *ptr, size_t _) {
   js_free_rt(runtime->rt, ptr);
 }
