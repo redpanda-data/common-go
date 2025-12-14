@@ -206,6 +206,31 @@ type Sandbox interface {
 	// The context can be used to cancel execution if the script exceeds time limits.
 	Eval(ctx context.Context, script string) (json.RawMessage, error)
 
+	// Reset clears the sandbox state and reinitializes the runtime to a fresh state.
+	//
+	// This method provides a faster alternative to closing and creating a new sandbox when you
+	// need to run multiple isolated code executions sequentially. Reset:
+	//   - Closes the current module instance and reinitializes it
+	//   - Clears all runtime state (variables, function definitions, etc.)
+	//   - Preserves bound Go functions (callbacks remain available)
+	//   - Reuses the compiled modules and runtime (faster than NewSandbox)
+	//
+	// Use Reset when:
+	//   - Running multiple independent scripts that shouldn't share state
+	//   - Implementing a sandbox pool for sequential reuse
+	//   - You want to keep bound functions but clear runtime state
+	//
+	// Example:
+	//   sandbox.Eval(ctx, "x = 42")  // Define variable
+	//   sandbox.Reset(ctx)           // Clear state
+	//   sandbox.Eval(ctx, "x")       // Error: x is undefined
+	//
+	// Note: Reset is significantly faster than Close + NewSandbox because it reuses
+	// the compiled WASM modules and runtime instance.
+	//
+	// If this function returns an error, [Sandbox.Close] must be still be called.
+	Reset(ctx context.Context) error
+
 	// Close releases all resources associated with the sandbox.
 	// After calling Close, no further operations can be performed on this sandbox.
 	// It is safe to call Close multiple times.
@@ -236,21 +261,29 @@ type Interpreter interface {
 	Close(ctx context.Context) error
 }
 
+// boundCallback holds a callback function and its name for re-binding after Reset
+type boundCallback struct {
+	name     string
+	callback Callback
+}
+
 // impl is the concrete implementation of the Sandbox interface.
 // It manages the WASM runtime, modules, and the bridge between Go and the sandboxed language.
 //
 // Fields:
 //   - rt: The wazero runtime instance that executes WASM code
-//   - hostMod: The instantiated host module providing the host_call function
-//   - mod: The instantiated language runtime WASM module
+//   - compiledMod: The compiled language runtime WASM module (for re-instantiation during Reset)
+//   - currentMod: The current instantiated language runtime WASM module
+//   - modConfig: The module configuration used for instantiation (preserved for Reset)
 //   - handle: Opaque pointer to the runtime structure in WASM memory
-//   - callbacks: Map of function IDs to Go callback functions for host calls
+//   - callbacks: Map of function IDs to bound callbacks (includes name for re-binding during Reset)
 type impl struct {
-	rt        wazero.Runtime
-	hostMod   api.Module
-	mod       api.Module
-	handle    uint64
-	callbacks map[int32]Callback
+	rt          wazero.Runtime
+	compiledMod wazero.CompiledModule
+	currentMod  api.Module
+	modConfig   wazero.ModuleConfig
+	handle      uint64
+	callbacks   map[int32]boundCallback
 }
 
 // implCfg holds the configuration options for creating a sandbox.
@@ -364,12 +397,11 @@ func NewSandbox(ctx context.Context, i Interpreter, opts ...SandboxOpt) (Sandbox
 			return now.Unix(), int32(now.Nanosecond())
 		}, sys.ClockResolution(time.Millisecond.Nanoseconds()))
 	}
-	hostMod, err := rt.InstantiateModule(ctx, i.hostModule(), mCfg)
-	if err != nil {
+	if _, err := rt.InstantiateModule(ctx, i.hostModule(), mCfg); err != nil {
 		_ = rt.Close(ctx)
 		return nil, err
 	}
-	if _, err = rt.InstantiateModule(ctx, i.wasip1Module(), mCfg); err != nil {
+	if _, err := rt.InstantiateModule(ctx, i.wasip1Module(), mCfg); err != nil {
 		_ = rt.Close(ctx)
 		return nil, err
 	}
@@ -385,10 +417,11 @@ func NewSandbox(ctx context.Context, i Interpreter, opts ...SandboxOpt) (Sandbox
 	}
 	return &impl{
 		rt,
-		hostMod,
+		i.module(),
 		mod,
+		mCfg,
 		results[0],
-		make(map[int32]Callback, 5),
+		make(map[int32]boundCallback, 5),
 	}, nil
 }
 
@@ -400,13 +433,16 @@ func (i *impl) Bind(ctx context.Context, name string, cb Callback) error {
 	}
 	defer i.freeString(ctx, ptr, uint32(len(name)))
 
-	results, err := i.mod.ExportedFunction("runtime_bind_function").
+	results, err := i.currentMod.ExportedFunction("runtime_bind_function").
 		Call(ctx, i.handle, api.EncodeU32(ptr))
 	if err != nil {
 		return err
 	}
 	handle := api.DecodeI32(results[0])
-	i.callbacks[handle] = cb
+	i.callbacks[handle] = boundCallback{
+		name:     name,
+		callback: cb,
+	}
 	return nil
 }
 
@@ -420,16 +456,16 @@ func (i *impl) Eval(ctx context.Context, script string) (json.RawMessage, error)
 	defer i.freeString(ctx, scriptPtr, uint32(len(script)))
 
 	// Allocate space for output pointer
-	outputPtrPtr, err := i.mod.ExportedFunction("runtime_malloc_memory").
+	outputPtrPtr, err := i.currentMod.ExportedFunction("runtime_malloc_memory").
 		Call(ctx, i.handle, api.EncodeU32(4)) // 4 bytes for pointer
 	if err != nil {
 		return nil, err
 	}
 	outputPtrAddr := api.DecodeU32(outputPtrPtr[0])
-	defer i.mod.ExportedFunction("runtime_free_memory").
+	defer i.currentMod.ExportedFunction("runtime_free_memory").
 		Call(ctx, i.handle, api.EncodeU32(outputPtrAddr), api.EncodeU32(4))
 
-	results, err := i.mod.ExportedFunction("runtime_eval").
+	results, err := i.currentMod.ExportedFunction("runtime_eval").
 		Call(ctx, i.handle, api.EncodeU32(scriptPtr), api.EncodeU32(outputPtrAddr))
 	if err != nil {
 		return nil, err
@@ -441,7 +477,7 @@ func (i *impl) Eval(ctx context.Context, script string) (json.RawMessage, error)
 	}
 
 	// Read output pointer
-	outputPtr, ok := i.mod.Memory().ReadUint32Le(outputPtrAddr)
+	outputPtr, ok := i.currentMod.Memory().ReadUint32Le(outputPtrAddr)
 	if !ok || outputPtr == 0 {
 		return nil, errors.New("evaluation error: failed to read output")
 	}
@@ -462,6 +498,36 @@ func (i *impl) Eval(ctx context.Context, script string) (json.RawMessage, error)
 	return bytes.Clone(data), nil
 }
 
+// Reset implements Sandbox.
+func (i *impl) Reset(ctx context.Context) error {
+	// Save bound functions before reset
+	oldCallbacks := i.callbacks
+
+	if err := i.currentMod.Close(ctx); err != nil {
+		return err
+	}
+	mod, err := i.rt.InstantiateModule(ctx, i.compiledMod, i.modConfig)
+	if err != nil {
+		return err
+	}
+	results, err := mod.ExportedFunction("runtime_init").Call(ctx)
+	if err != nil {
+		return err
+	}
+	i.currentMod = mod
+	i.handle = results[0]
+
+	// Clear and re-bind all functions
+	i.callbacks = make(map[int32]boundCallback, len(oldCallbacks))
+	for _, boundCb := range oldCallbacks {
+		if err := i.Bind(ctx, boundCb.name, boundCb.callback); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 // Close implements Sandbox.
 func (i *impl) Close(ctx context.Context) error {
 	return i.rt.Close(ctx)
@@ -470,7 +536,7 @@ func (i *impl) Close(ctx context.Context) error {
 // readStrView reads a null-terminated C string from WASM memory at the given pointer.
 // It searches for the null terminator and returns the string bytes without the terminator.
 func (i *impl) readStrView(ptr uint32) ([]byte, error) {
-	mem := i.mod.Memory()
+	mem := i.currentMod.Memory()
 	size := mem.Size()
 	if size == 0 {
 		size = math.MaxUint32
@@ -491,18 +557,18 @@ func (i *impl) readStrView(ptr uint32) ([]byte, error) {
 // The caller is responsible for freeing the memory using freeString.
 func (i *impl) copyString(ctx context.Context, str string) (uint32, error) {
 	// Allocate len(str) + 1 for null terminator
-	results, err := i.mod.ExportedFunction("runtime_malloc_memory").
+	results, err := i.currentMod.ExportedFunction("runtime_malloc_memory").
 		Call(ctx, i.handle, api.EncodeU32(uint32(len(str)+1)))
 	if err != nil {
 		return 0, err
 	}
 	ptr := api.DecodeU32(results[0])
 	// Write the string
-	if ptr == 0 || !i.mod.Memory().WriteString(ptr, str) {
+	if ptr == 0 || !i.currentMod.Memory().WriteString(ptr, str) {
 		return 0, errors.New("out of memory error")
 	}
 	// Write null terminator
-	if !i.mod.Memory().WriteByte(ptr+uint32(len(str)), 0) {
+	if !i.currentMod.Memory().WriteByte(ptr+uint32(len(str)), 0) {
 		return 0, errors.New("out of memory error")
 	}
 	return ptr, nil
@@ -514,7 +580,7 @@ func (i *impl) freeString(ctx context.Context, ptr uint32, len uint32) error {
 	if ptr == 0 {
 		return nil
 	}
-	_, err := i.mod.ExportedFunction("runtime_free_memory").
+	_, err := i.currentMod.ExportedFunction("runtime_free_memory").
 		Call(ctx, i.handle, api.EncodeU32(ptr), api.EncodeU32(len+1))
 	return err
 }
@@ -650,7 +716,7 @@ func NewInterpreter(ctx context.Context, wasmBinary []byte) (Interpreter, error)
 					return length
 				}
 
-				cb, ok := impl.callbacks[functionID]
+				boundCb, ok := impl.callbacks[functionID]
 				if !ok {
 					stack[0] = api.EncodeI32(writeOutput([]byte("callback not found"), true))
 					return
@@ -662,7 +728,7 @@ func NewInterpreter(ctx context.Context, wasmBinary []byte) (Interpreter, error)
 					return
 				}
 
-				result, err := cb(json.RawMessage(data))
+				result, err := boundCb.callback(json.RawMessage(data))
 				if err != nil {
 					stack[0] = api.EncodeI32(writeOutput([]byte(err.Error()), true))
 					return

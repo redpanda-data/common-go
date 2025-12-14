@@ -376,6 +376,46 @@ sandbox, err := codesandbox.NewSandbox(ctx, interp,
     codesandbox.WithRealtime())
 ```
 
+### Resetting Sandboxes
+
+When you need to run multiple isolated scripts sequentially, `Reset()` provides a faster alternative to creating new sandboxes:
+
+```go
+sandbox, _ := codesandbox.NewSandbox(ctx, interp)
+defer sandbox.Close(ctx)
+
+// Bind a Go function (persists across resets)
+sandbox.Bind(ctx, "log", func(data json.RawMessage) (json.RawMessage, error) {
+    fmt.Println("Log:", string(data))
+    return json.Marshal(nil)
+})
+
+// Run first script
+sandbox.Eval(ctx, `
+    const x = 42;
+    log("First script");
+`)
+
+// Reset clears all runtime state
+sandbox.Reset(ctx)
+
+// Variable 'x' is no longer defined, but 'log' function is still available
+result, err := sandbox.Eval(ctx, `
+    log("Second script");
+    // x is undefined here
+`)
+```
+
+**Key behaviors:**
+- **Runtime state cleared** - Variables, function definitions, and execution state are reset
+- **Bound functions preserved** - Go functions bound via `Bind()` remain available
+- **Performance advantage** - Significantly faster than `Close()` + `NewSandbox()` because it reuses compiled modules
+
+**Use cases:**
+- Running user scripts in a queue where each needs isolation
+- Implementing a sandbox pool for high-throughput scenarios
+- Testing multiple scripts with the same bound functions
+
 ## Security and Isolation
 
 ### Isolation Guarantees
@@ -445,6 +485,7 @@ if err != nil {
 type Sandbox interface {
     Bind(ctx context.Context, name string, cb Callback) error
     Eval(ctx context.Context, script string) (json.RawMessage, error)
+    Reset(ctx context.Context) error
     Close(ctx context.Context) error
 }
 ```

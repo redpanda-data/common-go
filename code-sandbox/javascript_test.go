@@ -294,6 +294,175 @@ func TestJavaScriptError(t *testing.T) {
 	require.Error(t, err, "Expected error from undefined variable")
 }
 
+// TestJavaScriptReset tests that Reset clears runtime state but preserves bound functions
+func TestJavaScriptReset(t *testing.T) {
+	ctx := context.Background()
+
+	interp, err := javascript.NewInterpreter(ctx)
+	require.NoError(t, err, "Failed to create interpreter")
+	defer interp.Close(ctx)
+
+	sandbox, err := codesandbox.NewSandbox(ctx, interp)
+	require.NoError(t, err, "Failed to create sandbox")
+	defer sandbox.Close(ctx)
+
+	// Bind a Go function before reset
+	err = sandbox.Bind(ctx, "double", func(data json.RawMessage) (json.RawMessage, error) {
+		var num int
+		if err := json.Unmarshal(data, &num); err != nil {
+			return nil, err
+		}
+		return json.Marshal(num * 2)
+	})
+	require.NoError(t, err, "Failed to bind function")
+
+	// Set a variable in the first execution
+	result, err := sandbox.Eval(ctx, `
+		var x = 42;
+		var y = double(21);
+		x + y
+	`)
+	require.NoError(t, err, "First eval failed")
+
+	var firstResult int
+	err = json.Unmarshal(result, &firstResult)
+	require.NoError(t, err, "Failed to unmarshal first result")
+	require.Equal(t, 84, firstResult) // 42 + double(21) = 42 + 42 = 84
+
+	// Reset the sandbox
+	err = sandbox.Reset(ctx)
+	require.NoError(t, err, "Reset failed")
+
+	// Variable 'x' should be undefined, but 'double' function should still work
+	_, err = sandbox.Eval(ctx, `x`)
+	require.Error(t, err, "Expected error accessing undefined variable after reset")
+
+	// Bound function should still work
+	result, err = sandbox.Eval(ctx, `double(10)`)
+	require.NoError(t, err, "Eval after reset failed")
+
+	var secondResult int
+	err = json.Unmarshal(result, &secondResult)
+	require.NoError(t, err, "Failed to unmarshal second result")
+	require.Equal(t, 20, secondResult)
+}
+
+// TestJavaScriptResetMultipleTimes tests that Reset can be called multiple times
+func TestJavaScriptResetMultipleTimes(t *testing.T) {
+	ctx := context.Background()
+
+	interp, err := javascript.NewInterpreter(ctx)
+	require.NoError(t, err, "Failed to create interpreter")
+	defer interp.Close(ctx)
+
+	sandbox, err := codesandbox.NewSandbox(ctx, interp)
+	require.NoError(t, err, "Failed to create sandbox")
+	defer sandbox.Close(ctx)
+
+	// Bind a counter function that increments each time
+	counter := 0
+	err = sandbox.Bind(ctx, "incrementCounter", func(data json.RawMessage) (json.RawMessage, error) {
+		counter++
+		return json.Marshal(counter)
+	})
+	require.NoError(t, err, "Failed to bind function")
+
+	// Run three separate executions with resets in between
+	for i := 1; i <= 3; i++ {
+		result, err := sandbox.Eval(ctx, `
+			var localVar = `+string(rune('0'+i))+`;
+			incrementCounter()
+		`)
+		require.NoError(t, err, "Eval %d failed", i)
+
+		var count int
+		err = json.Unmarshal(result, &count)
+		require.NoError(t, err, "Failed to unmarshal result %d", i)
+		require.Equal(t, i, count, "Counter should be %d", i)
+
+		err = sandbox.Reset(ctx)
+		require.NoError(t, err, "Reset %d failed", i)
+	}
+
+	// After resets, localVar should be undefined
+	_, err = sandbox.Eval(ctx, `localVar`)
+	require.Error(t, err, "Expected error accessing localVar after resets")
+}
+
+// TestJavaScriptResetFunctionDefinitions tests that function definitions are cleared
+func TestJavaScriptResetFunctionDefinitions(t *testing.T) {
+	ctx := context.Background()
+
+	interp, err := javascript.NewInterpreter(ctx)
+	require.NoError(t, err, "Failed to create interpreter")
+	defer interp.Close(ctx)
+
+	sandbox, err := codesandbox.NewSandbox(ctx, interp)
+	require.NoError(t, err, "Failed to create sandbox")
+	defer sandbox.Close(ctx)
+
+	// Define a function
+	result, err := sandbox.Eval(ctx, `
+		function myFunc() {
+			return "hello";
+		}
+		myFunc()
+	`)
+	require.NoError(t, err, "First eval failed")
+	require.JSONEq(t, `"hello"`, string(result))
+
+	// Reset
+	err = sandbox.Reset(ctx)
+	require.NoError(t, err, "Reset failed")
+
+	// Function should no longer exist
+	_, err = sandbox.Eval(ctx, `myFunc()`)
+	require.Error(t, err, "Expected error calling undefined function after reset")
+}
+
+// TestJavaScriptResetWithRebind tests binding new functions after reset
+func TestJavaScriptResetWithRebind(t *testing.T) {
+	ctx := context.Background()
+
+	interp, err := javascript.NewInterpreter(ctx)
+	require.NoError(t, err, "Failed to create interpreter")
+	defer interp.Close(ctx)
+
+	sandbox, err := codesandbox.NewSandbox(ctx, interp)
+	require.NoError(t, err, "Failed to create sandbox")
+	defer sandbox.Close(ctx)
+
+	// Bind first function
+	err = sandbox.Bind(ctx, "func1", func(data json.RawMessage) (json.RawMessage, error) {
+		return json.Marshal("first")
+	})
+	require.NoError(t, err, "Failed to bind first function")
+
+	result, err := sandbox.Eval(ctx, `func1()`)
+	require.NoError(t, err, "First eval failed")
+	require.JSONEq(t, `"first"`, string(result))
+
+	// Reset
+	err = sandbox.Reset(ctx)
+	require.NoError(t, err, "Reset failed")
+
+	// First function should still work
+	result, err = sandbox.Eval(ctx, `func1()`)
+	require.NoError(t, err, "Eval after reset failed")
+	require.JSONEq(t, `"first"`, string(result))
+
+	// Bind second function
+	err = sandbox.Bind(ctx, "func2", func(data json.RawMessage) (json.RawMessage, error) {
+		return json.Marshal("second")
+	})
+	require.NoError(t, err, "Failed to bind second function")
+
+	// Both functions should work
+	result, err = sandbox.Eval(ctx, `func1() + " " + func2()`)
+	require.NoError(t, err, "Eval with both functions failed")
+	require.JSONEq(t, `"first second"`, string(result))
+}
+
 // Helper function to convert values to JSON strings for comparison
 func toJSON(v any) string {
 	data, _ := json.Marshal(v)
