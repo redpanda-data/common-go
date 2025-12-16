@@ -312,7 +312,7 @@ func unmarshalWithSchema(ctx context.Context, t *testing.T, payload []byte) prot
 	compiler := protocompile.Compiler{
 		Resolver: &protocompile.SourceResolver{
 			Accessor: protocompile.SourceAccessorFromMap(map[string]string{
-				"trace.proto":                       otlpTraceProtoSchema,
+				"trace.proto":                   otlpTraceProtoSchema,
 				"redpanda/otel/v1/common.proto": otlpCommonProtoSchema,
 			}),
 		},
