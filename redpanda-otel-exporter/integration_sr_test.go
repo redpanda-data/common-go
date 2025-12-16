@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	pb "buf.build/gen/go/redpandadata/otel/protocolbuffers/go/redpanda/otel/v1"
 	"github.com/bufbuild/protocompile"
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
@@ -17,8 +18,6 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/testing/protocmp"
 	"google.golang.org/protobuf/types/dynamicpb"
-
-	pb "buf.build/gen/go/redpandadata/otel/protocolbuffers/go/redpanda/otel/v1"
 )
 
 // TestTraceExporter_SchemaRegistryProtobuf_EndToEnd tests complete flow:

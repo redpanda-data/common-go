@@ -4,9 +4,8 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/google/jsonschema-go/jsonschema"
-
 	proto "buf.build/gen/go/redpandadata/otel/protocolbuffers/go/redpanda/otel/v1"
+	"github.com/google/jsonschema-go/jsonschema"
 )
 
 func TestTraceJSONSchemaMatchesProtojson(t *testing.T) {
