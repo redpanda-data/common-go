@@ -6,7 +6,7 @@ import (
 
 	"github.com/google/jsonschema-go/jsonschema"
 
-	"github.com/redpanda-data/common-go/redpanda-otel-exporter/proto"
+	proto "buf.build/gen/go/redpandadata/otel/protocolbuffers/go"
 )
 
 func TestTraceJSONSchemaMatchesProtojson(t *testing.T) {
