@@ -16,7 +16,7 @@ syntax = "proto3";
 
 package redpanda.otel.v1;
 
-option go_package = "github.com/redpanda-data/common-go/redpanda-otel-exporter/proto";
+option go_package = "buf.build/gen/go/redpandadata/otel/protocolbuffers/go/redpanda/otel/v1;otelv1";
 
 import "common.proto";
 
