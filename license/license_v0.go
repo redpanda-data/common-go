@@ -14,11 +14,19 @@ import (
 	"time"
 )
 
+// V0LicenseType is a type from a V0 license, represented by an integer
+// enum.
 type V0LicenseType int
 
 const (
+	// V0LicenseTypeOpenSource describes an open source license, currently a virtual
+	// license type as it represents no license at all.
 	V0LicenseTypeOpenSource V0LicenseType = iota - 1
+	// V0LicenseTypeFreeTrial represents a trial license automatically initialized
+	// when a cluster is initialized without an enterprise license.
 	V0LicenseTypeFreeTrial
+	// V0LicenseTypeEnterprise represents an enterprise license, whether expired or
+	// currently valid.
 	V0LicenseTypeEnterprise
 )
 
@@ -28,18 +36,13 @@ var (
 		V0LicenseTypeEnterprise: "enterprise",
 		V0LicenseTypeFreeTrial:  "free trial",
 	}
-	stringsToLicenseTypeV0 = map[string]V0LicenseType{}
-	OpenSourceLicense      = &V0RedpandaLicense{
+	// OpenSourceLicense is the fallback license for when a license
+	// cannot be parsed or validated.
+	OpenSourceLicense = &V0RedpandaLicense{
 		Type:   V0LicenseTypeOpenSource,
 		Expiry: time.Now().Add(time.Hour * 24 * 365 * 10).Unix(),
 	}
 )
-
-func init() {
-	for license, description := range licenseTypeStringsV0 {
-		stringsToLicenseTypeV0[description] = license
-	}
-}
 
 func (t V0LicenseType) String() string {
 	if description, ok := licenseTypeStringsV0[t]; ok {
@@ -47,14 +50,6 @@ func (t V0LicenseType) String() string {
 	}
 	// default to open source license
 	return licenseTypeStringsV0[V0LicenseTypeOpenSource]
-}
-
-func V0LicenseTypeFromString(desc string) V0LicenseType {
-	if license, ok := stringsToLicenseTypeV0[desc]; ok {
-		return license
-	}
-	// default to open source license
-	return V0LicenseTypeOpenSource
 }
 
 // V0RedpandaLicense is the payload that will be decoded from a license file.

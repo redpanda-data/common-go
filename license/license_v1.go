@@ -14,21 +14,33 @@ import (
 	"time"
 )
 
+// Product is a product for which a license is valid.
 type Product string
 
 const (
 	// add known products here, though we do no validaiton that
 	// the license only contains product references of these types
+
+	// ProductConnect represents the connect product.
 	ProductConnect Product = "CONNECT"
 )
 
-// in v1 licenses we have a string
+// LicenseType is the type for a v1 license represented by a string.
+// In v1 licenses we have a few "well known" license types, but it
+// is structured as a string for ease of expansion in the future without
+// having to be a strongly-typed enum.
 type LicenseType string
 
 const (
+	// LicenseTypeOpenSource describes an open source license, currently a virtual
+	// license type as it represents no license at all.
 	LicenseTypeOpenSource LicenseType = "open_source"
+	// LicenseTypeEnterprise represents an enterprise license, whether expired or
+	// currently valid.
 	LicenseTypeEnterprise LicenseType = "enterprise"
-	LicenseTypeFreeTrial  LicenseType = "free_trial"
+	// LicenseTypeFreeTrial represents a trial license automatically initialized
+	// when a cluster is initialized without an enterprise license.
+	LicenseTypeFreeTrial LicenseType = "free_trial"
 )
 
 // V1RedpandaLicense is the payload that will be decoded from a license file.
