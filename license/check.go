@@ -15,6 +15,7 @@ import (
 	"crypto/rsa"
 	"crypto/sha256"
 	"crypto/x509"
+	_ "embed"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
@@ -22,8 +23,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-
-	_ "embed"
 )
 
 var (
@@ -38,6 +37,8 @@ type checker struct {
 	publicKey []byte
 }
 
+// RedpandaLicense is a generic interface for different versions of Redpanda license
+// formats with methods for checking license validity.
 type RedpandaLicense interface {
 	AllowsEnterpriseFeatures() bool
 	CheckExpiry() error
@@ -127,13 +128,16 @@ func (c *checker) parseLicense(license []byte) (RedpandaLicense, error) {
 	default:
 		return OpenSourceLicense, fmt.Errorf("invalid license version: %d", partialLicense.Version)
 	}
-
 }
 
+// ReadLicense reads a license from disk and returns the parsed result of either
+// a v0 or v1-formatted license.
 func ReadLicense(file string) (RedpandaLicense, error) {
 	return defaultChecker.readLicense(file)
 }
 
+// ParseLicense parses a license from raw bytes and returns the parsed result of either
+// a v0 or v1-formatted license.
 func ParseLicense(license []byte) (RedpandaLicense, error) {
 	return defaultChecker.parseLicense(license)
 }
