@@ -49,6 +49,8 @@ This exporter uses custom protobuf definitions located in the `./proto` director
 
 These schemas include resource and scope information directly in each message, enabling one-signal-per-record export pattern.
 
+**Note**: These protobuf schemas are published to the Buf Schema Registry at [buf.build/redpandadata/otel](https://buf.build/redpandadata/otel) as package `redpanda.otel.v1`. Updates to the schemas must be manually pushed to BSR using `buf push`.
+
 ### JSON Format Examples
 
 The JSON format is generated using `protojson.Marshal()` from the protobuf messages, ensuring consistency between JSON and binary formats:
