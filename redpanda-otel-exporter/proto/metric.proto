@@ -18,7 +18,7 @@ package redpanda.otel.v1;
 
 option go_package = "buf.build/gen/go/redpandadata/otel/protocolbuffers/go/redpanda/otel/v1;otelv1";
 
-import "common.proto";
+import "redpanda/otel/v1/common.proto";
 
 // Defines a Metric which has one or more timeseries.  The following is a
 // brief summary of the Metric data model.  For more details, see:
