@@ -3,7 +3,7 @@ module github.com/redpanda-data/common-go/redpanda-otel-exporter
 go 1.24.0
 
 require (
-	buf.build/gen/go/redpandadata/otel/protocolbuffers/go v1.36.11-20251216135857-f7f7cf5c7936.1
+	buf.build/gen/go/redpandadata/otel/protocolbuffers/go v1.36.11-20251216164002-58c749b888d8.1
 	github.com/bufbuild/protocompile v0.14.1
 	github.com/google/go-cmp v0.7.0
 	github.com/google/jsonschema-go v0.3.0
