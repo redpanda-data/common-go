@@ -2,11 +2,24 @@ version: v2
 modules:
   - path: proto
     name: buf.build/redpandadata/common
+    includes:
+      - proto/redpanda/api
+    lint:
+      except:
+        - PACKAGE_DIRECTORY_MATCH
+  - path: proto
+    name: buf.build/redpandadata/otel
+    includes:
+      - proto/redpanda/otel
+    lint:
+      except:
+        - PACKAGE_DIRECTORY_MATCH
+        - ENUM_ZERO_VALUE_SUFFIX
 deps:
   - buf.build/googleapis/googleapis
 lint:
   use:
-    - DEFAULT
+    - STANDARD
 breaking:
   use:
     - FILE
