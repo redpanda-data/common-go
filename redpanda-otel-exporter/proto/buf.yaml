@@ -1,9 +1,13 @@
 version: v2
 modules:
   - path: .
+    name: buf.build/redpandadata/otel
 lint:
   use:
     - STANDARD
+  except:
+    - PACKAGE_DIRECTORY_MATCH
+    - ENUM_ZERO_VALUE_SUFFIX
 breaking:
   use:
     - FILE
