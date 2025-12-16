@@ -25,7 +25,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/protobuf/proto"
 
-	pb "github.com/redpanda-data/common-go/redpanda-otel-exporter/proto"
+	pb "buf.build/gen/go/redpandadata/otel/protocolbuffers/go"
 )
 
 // useLocalBroker allows using a local Redpanda instance at localhost:9092 instead of testcontainers

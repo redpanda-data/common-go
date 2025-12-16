@@ -14,7 +14,7 @@ import (
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/trace"
 
-	pb "github.com/redpanda-data/common-go/redpanda-otel-exporter/proto"
+	pb "buf.build/gen/go/redpandadata/otel/protocolbuffers/go"
 )
 
 // int64ToUint64 safely converts an int64 to uint64.

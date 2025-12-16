@@ -18,7 +18,7 @@ import (
 	"google.golang.org/protobuf/testing/protocmp"
 	"google.golang.org/protobuf/types/dynamicpb"
 
-	pb "github.com/redpanda-data/common-go/redpanda-otel-exporter/proto"
+	pb "buf.build/gen/go/redpandadata/otel/protocolbuffers/go"
 )
 
 // TestTraceExporter_SchemaRegistryProtobuf_EndToEnd tests complete flow:
