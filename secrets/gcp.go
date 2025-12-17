@@ -124,6 +124,16 @@ func (g *gcpSecretsManager) CheckSecretExists(ctx context.Context, key string) b
 	return err == nil
 }
 
+func (g *gcpSecretsManager) GetSecretLabels(ctx context.Context, key string) (map[string]string, bool) {
+	secret, err := g.client.GetSecret(ctx, &secretmanagerpb.GetSecretRequest{
+		Name: g.getSecretID(key),
+	})
+	if err != nil {
+		return nil, false
+	}
+	return secret.Labels, true
+}
+
 func (g *gcpSecretsManager) CreateSecret(ctx context.Context, key string, value string, tags map[string]string) error {
 	secretID := g.getSecretID(key)
 	mergedTags := g.mergeTags(tags)

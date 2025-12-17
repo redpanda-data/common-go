@@ -132,6 +132,11 @@ func (f *fakeSecretManager) CheckSecretExists(_ context.Context, key string) boo
 	return ok
 }
 
+func (f *fakeSecretManager) GetSecretLabels(_ context.Context, key string) (map[string]string, bool) {
+	_, ok := f.secrets[key]
+	return map[string]string{}, ok
+}
+
 func (f *fakeSecretManager) CreateSecret(_ context.Context, key string, value string, tags map[string]string) error {
 	if f.secrets == nil {
 		f.secrets = make(map[string]string)
@@ -421,6 +426,11 @@ func (f *fakeSecretManagerWithGlobalTags) GetSecretValue(_ context.Context, key 
 func (f *fakeSecretManagerWithGlobalTags) CheckSecretExists(_ context.Context, key string) bool {
 	_, ok := f.secrets[key]
 	return ok
+}
+
+func (f *fakeSecretManagerWithGlobalTags) GetSecretLabels(_ context.Context, key string) (map[string]string, bool) {
+	_, ok := f.secrets[key]
+	return map[string]string{}, ok
 }
 
 func (f *fakeSecretManagerWithGlobalTags) CreateSecret(_ context.Context, key string, value string, tags map[string]string) error {
