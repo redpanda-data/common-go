@@ -17,8 +17,7 @@ import (
 
 // RecoveryRequestParams represents the request body schema for the automated recovery API endpoint.
 type RecoveryRequestParams struct {
-	RetentionBytes *int `json:"retention_bytes,omitempty"`
-	RetentionMs    *int `json:"retention_ms,omitempty"`
+	UUID string `json:"cluster_uuid_override,omitempty"`
 }
 
 // RecoveryStartResponse is the response for StartAutomatedRecovery.
@@ -82,11 +81,15 @@ type (
 )
 
 // StartAutomatedRecovery starts the automated recovery process by sending a request to the automated recovery API endpoint.
-func (a *AdminAPI) StartAutomatedRecovery(ctx context.Context) (RecoveryStartResponse, error) {
-	requestParams := &RecoveryRequestParams{}
+func (a *AdminAPI) StartAutomatedRecovery(ctx context.Context, uuid string) (RecoveryStartResponse, error) {
+	var requestBody any
+	if uuid != "" {
+		requestBody = &RecoveryRequestParams{
+			UUID: uuid,
+		}
+	}
 	var response RecoveryStartResponse
-
-	return response, a.sendToLeader(ctx, http.MethodPost, "/v1/cloud_storage/automated_recovery", requestParams, &response)
+	return response, a.sendToLeader(ctx, http.MethodPost, "/v1/cloud_storage/automated_recovery", requestBody, &response)
 }
 
 // PollAutomatedRecoveryStatus polls the automated recovery status API endpoint to retrieve the latest status of the recovery process.

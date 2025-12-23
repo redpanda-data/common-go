@@ -12,6 +12,7 @@ package rpadmin
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -21,9 +22,10 @@ import (
 
 func TestStartAutomatedRecovery(t *testing.T) {
 	type testCase struct {
-		name   string
-		testFn func(t *testing.T) http.HandlerFunc
-		exp    RecoveryStartResponse
+		name         string
+		uuidOverride string
+		testFn       func(t *testing.T) http.HandlerFunc
+		exp          RecoveryStartResponse
 	}
 
 	successfulStartResponse := RecoveryStartResponse{
@@ -38,7 +40,7 @@ func TestStartAutomatedRecovery(t *testing.T) {
 		client, err := NewAdminAPI([]string{server.URL}, new(NopAuth), nil)
 		assert.NoError(t, err)
 
-		response, err := client.StartAutomatedRecovery(context.Background())
+		response, err := client.StartAutomatedRecovery(context.Background(), test.uuidOverride)
 
 		assert.NoError(t, err)
 		assert.Equal(t, test.exp, response)
@@ -46,7 +48,8 @@ func TestStartAutomatedRecovery(t *testing.T) {
 
 	tests := []testCase{
 		{
-			name: "should call the correct endpoint",
+			name:         "should call the correct endpoint",
+			uuidOverride: "",
 			testFn: func(t *testing.T) http.HandlerFunc {
 				return func(w http.ResponseWriter, r *http.Request) {
 					assert.Equal(t, "/v1/cloud_storage/automated_recovery", r.URL.Path)
@@ -59,10 +62,52 @@ func TestStartAutomatedRecovery(t *testing.T) {
 			exp: successfulStartResponse,
 		},
 		{
-			name: "should have content-type application-json",
+			name:         "should have content-type application-json",
+			uuidOverride: "",
 			testFn: func(t *testing.T) http.HandlerFunc {
 				return func(w http.ResponseWriter, r *http.Request) {
 					assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
+					w.WriteHeader(http.StatusOK)
+					resp, err := json.Marshal(successfulStartResponse)
+					assert.NoError(t, err)
+					w.Write(resp)
+				}
+			},
+			exp: successfulStartResponse,
+		},
+		{
+			name:         "should send no body when uuid is not set",
+			uuidOverride: "",
+			testFn: func(t *testing.T) http.HandlerFunc {
+				return func(w http.ResponseWriter, r *http.Request) {
+					body, err := io.ReadAll(r.Body)
+					assert.NoError(t, err)
+
+					// When uuid is empty, no body should be sent
+					assert.Empty(t, body, "request body should be empty when uuid is not provided")
+
+					w.WriteHeader(http.StatusOK)
+					resp, err := json.Marshal(successfulStartResponse)
+					assert.NoError(t, err)
+					w.Write(resp)
+				}
+			},
+			exp: successfulStartResponse,
+		},
+		{
+			name:         "should send uuid when provided",
+			uuidOverride: "9cfeb2f5-44b6-4ea9-a98e-6b041c5fa7b1",
+			testFn: func(t *testing.T) http.HandlerFunc {
+				return func(w http.ResponseWriter, r *http.Request) {
+					body, err := io.ReadAll(r.Body)
+					assert.NoError(t, err)
+
+					var requestBody RecoveryRequestParams
+					err = json.Unmarshal(body, &requestBody)
+					assert.NoError(t, err)
+
+					assert.Equal(t, "9cfeb2f5-44b6-4ea9-a98e-6b041c5fa7b1", requestBody.UUID, "cluster_uuid_override should match the provided uuid")
+
 					w.WriteHeader(http.StatusOK)
 					resp, err := json.Marshal(successfulStartResponse)
 					assert.NoError(t, err)
