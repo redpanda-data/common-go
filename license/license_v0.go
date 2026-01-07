@@ -10,7 +10,6 @@
 package license
 
 import (
-	"fmt"
 	"time"
 )
 
@@ -70,7 +69,7 @@ type V0RedpandaLicense struct {
 // AllowsEnterpriseFeatures returns true if license type allows enterprise features.
 func (r *V0RedpandaLicense) AllowsEnterpriseFeatures() bool {
 	// first check our expiration time
-	if r.CheckExpiry() != nil {
+	if CheckExpiration(r.Expires()) != nil {
 		return false
 	}
 
@@ -79,12 +78,12 @@ func (r *V0RedpandaLicense) AllowsEnterpriseFeatures() bool {
 	return r.Type == V0LicenseTypeEnterprise || r.Type == V0LicenseTypeFreeTrial
 }
 
-// CheckExpiry returns nil if the license is still valid (not expired). Otherwise,
-// it will return an error that provides context when the license expired.
-func (r *V0RedpandaLicense) CheckExpiry() error {
-	expires := time.Unix(r.Expiry, 0)
-	if expires.Before(time.Now().UTC()) {
-		return fmt.Errorf("license expired on %q", expires.Format(time.RFC3339))
-	}
-	return nil
+// Expires returns the underlying expiration time of the license.
+func (r *V0RedpandaLicense) Expires() time.Time {
+	return time.Unix(r.Expiry, 0)
+}
+
+// IncludesProduct returns whether or not the license is valid for the given product.
+func (r *V0RedpandaLicense) IncludesProduct(_ Product) bool {
+	return true
 }

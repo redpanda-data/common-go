@@ -23,6 +23,18 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"time"
+)
+
+// Product is a product for which a license is valid.
+type Product string
+
+const (
+	// add known products here, though we do no validaiton that
+	// the license only contains product references of these types
+
+	// ProductConnect represents the connect product.
+	ProductConnect Product = "CONNECT"
 )
 
 var (
@@ -30,6 +42,9 @@ var (
 	licensePublicKeyPem []byte
 	defaultChecker      = &checker{
 		publicKey: licensePublicKeyPem,
+	}
+	AllProducts = []Product{
+		ProductConnect,
 	}
 )
 
@@ -41,7 +56,8 @@ type checker struct {
 // formats with methods for checking license validity.
 type RedpandaLicense interface {
 	AllowsEnterpriseFeatures() bool
-	CheckExpiry() error
+	Expires() time.Time
+	IncludesProduct(product Product) bool
 }
 
 type licenseVersion struct {
@@ -140,4 +156,13 @@ func ReadLicense(file string) (RedpandaLicense, error) {
 // a v0 or v1-formatted license.
 func ParseLicense(license []byte) (RedpandaLicense, error) {
 	return defaultChecker.parseLicense(license)
+}
+
+// CheckExppiration returns nil if the expiration timestamp is still valid (not expired). Otherwise,
+// it will return an error that provides context when the license expired.
+func CheckExpiration(expires time.Time) error {
+	if expires.Before(time.Now().UTC()) {
+		return fmt.Errorf("license expired on %q", expires.Format(time.RFC3339))
+	}
+	return nil
 }

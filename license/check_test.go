@@ -19,6 +19,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"encoding/pem"
+	"slices"
 	"testing"
 	"time"
 
@@ -107,6 +108,9 @@ func TestV0Licenses(t *testing.T) {
 			require.NoError(t, err)
 
 			require.Equal(t, test.IsEnterprise, parsed.AllowsEnterpriseFeatures())
+			for _, product := range AllProducts {
+				require.True(t, parsed.IncludesProduct(product))
+			}
 		})
 	}
 }
@@ -154,6 +158,7 @@ func TestV1Licenses(t *testing.T) {
 				Organization: "meow",
 				Type:         LicenseTypeEnterprise,
 				Expiry:       time.Now().Add(time.Hour).Unix(),
+				Products:     []Product{ProductConnect},
 			},
 			IsEnterprise: true,
 		},
@@ -166,6 +171,13 @@ func TestV1Licenses(t *testing.T) {
 			require.NoError(t, err)
 
 			require.Equal(t, test.IsEnterprise, parsed.AllowsEnterpriseFeatures())
+			for _, product := range AllProducts {
+				if slices.Contains(test.License.Products, product) {
+					require.True(t, parsed.IncludesProduct(product))
+				} else {
+					require.False(t, parsed.IncludesProduct(product))
+				}
+			}
 		})
 	}
 }

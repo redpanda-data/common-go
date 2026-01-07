@@ -10,19 +10,8 @@
 package license
 
 import (
-	"fmt"
+	"slices"
 	"time"
-)
-
-// Product is a product for which a license is valid.
-type Product string
-
-const (
-	// add known products here, though we do no validaiton that
-	// the license only contains product references of these types
-
-	// ProductConnect represents the connect product.
-	ProductConnect Product = "CONNECT"
 )
 
 // LicenseType is the type for a v1 license represented by a string.
@@ -64,7 +53,7 @@ type V1RedpandaLicense struct {
 // AllowsEnterpriseFeatures returns true if license type allows enterprise features.
 func (r *V1RedpandaLicense) AllowsEnterpriseFeatures() bool {
 	// first check our expiration time
-	if r.CheckExpiry() != nil {
+	if CheckExpiration(r.Expires()) != nil {
 		return false
 	}
 
@@ -73,12 +62,12 @@ func (r *V1RedpandaLicense) AllowsEnterpriseFeatures() bool {
 	return r.Type == LicenseTypeEnterprise || r.Type == LicenseTypeFreeTrial
 }
 
-// CheckExpiry returns nil if the license is still valid (not expired). Otherwise,
-// it will return an error that provides context when the license expired.
-func (r *V1RedpandaLicense) CheckExpiry() error {
-	expires := time.Unix(r.Expiry, 0)
-	if expires.Before(time.Now().UTC()) {
-		return fmt.Errorf("license expired on %q", expires.Format(time.RFC3339))
-	}
-	return nil
+// Expires returns the underlying expiration time of the license.
+func (r *V1RedpandaLicense) Expires() time.Time {
+	return time.Unix(r.Expiry, 0)
+}
+
+// IncludesProduct returns whether or not the license is valid for the given product.
+func (r *V1RedpandaLicense) IncludesProduct(product Product) bool {
+	return slices.Contains(r.Products, product)
 }
