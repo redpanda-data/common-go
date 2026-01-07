@@ -84,6 +84,6 @@ func (r *V0RedpandaLicense) Expires() time.Time {
 }
 
 // IncludesProduct returns whether or not the license is valid for the given product.
-func (r *V0RedpandaLicense) IncludesProduct(_ Product) bool {
+func (*V0RedpandaLicense) IncludesProduct(_ Product) bool {
 	return true
 }

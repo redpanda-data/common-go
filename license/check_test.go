@@ -26,7 +26,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func createLicense(t *testing.T, license any) ([]byte, []byte) {
+func createLicense(t *testing.T, license any) (keyBytes []byte, licenseBytes []byte) {
 	t.Helper()
 
 	licenseBytes, err := json.Marshal(license)

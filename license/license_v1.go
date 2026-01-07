@@ -18,7 +18,7 @@ import (
 // In v1 licenses we have a few "well known" license types, but it
 // is structured as a string for ease of expansion in the future without
 // having to be a strongly-typed enum.
-type LicenseType string
+type LicenseType string //nolint:revive // stuttering is ok for explicitness here
 
 const (
 	// LicenseTypeOpenSource describes an open source license, currently a virtual

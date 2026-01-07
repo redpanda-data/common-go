@@ -43,6 +43,8 @@ var (
 	defaultChecker      = &checker{
 		publicKey: licensePublicKeyPem,
 	}
+
+	// AllProducts is a list of all known products.
 	AllProducts = []Product{
 		ProductConnect,
 	}
@@ -65,7 +67,7 @@ type licenseVersion struct {
 }
 
 func (c *checker) readLicense(file string) (RedpandaLicense, error) {
-	licenseFileContents, err := os.ReadFile(file)
+	licenseFileContents, err := os.ReadFile(file) //nolint:gosec // user's responsibility for security of passed file here
 	if err != nil {
 		return nil, fmt.Errorf("failed to read license file: %w", err)
 	}
@@ -158,7 +160,7 @@ func ParseLicense(license []byte) (RedpandaLicense, error) {
 	return defaultChecker.parseLicense(license)
 }
 
-// CheckExppiration returns nil if the expiration timestamp is still valid (not expired). Otherwise,
+// CheckExpiration returns nil if the expiration timestamp is still valid (not expired). Otherwise,
 // it will return an error that provides context when the license expired.
 func CheckExpiration(expires time.Time) error {
 	if expires.Before(time.Now().UTC()) {
