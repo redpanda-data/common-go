@@ -1,0 +1,43 @@
+licenses: ["BSL", "RCL", "Apache"]
+matches:
+  - extension: .go
+    type: go
+    directory: api
+    license: BSL
+  - extension: .go
+    type: go
+    directory: authz
+    license: Apache
+  - extension: .go
+    type: go
+    directory: kvstore
+    license: Apache
+  - extension: .go
+    type: go
+    directory: net
+    license: Apache
+  - extension: .go
+    type: go
+    directory: proto
+    license: BSL
+  - extension: .go
+    type: go
+    directory: redpanda-otel-exporter
+    license: Apache
+  - extension: .go
+    type: go
+    directory: rpadmin
+    license: BSL
+  - extension: .go
+    type: go
+    directory: rpsr
+    license: BSL
+  - extension: .go
+    type: go
+    directory: secrets
+    license: Apache
+  - extension: .go
+    type: go
+    directory: licenseupdater
+    license: Apache
+license_directory: ../licenses
