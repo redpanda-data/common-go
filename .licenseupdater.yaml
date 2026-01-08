@@ -1,4 +1,6 @@
 licenses: ["BSL", "RCL", "Apache"]
+ignore:
+  - directory: licenseupdater/testdata
 matches:
   - extension: .go
     type: go
