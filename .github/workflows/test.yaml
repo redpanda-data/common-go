@@ -24,7 +24,7 @@ jobs:
         with:
           go-version: 'stable'
       - name: Install setup-envtest for kube package
-        run: go install sigs.k8s.io/controller-runtime/tools/setup-envtest@v0.22.4
+        run: go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
       - name: Run tests (${{ matrix.dir }})
         run: go test ./...
         working-directory: ${{ matrix.dir }}
