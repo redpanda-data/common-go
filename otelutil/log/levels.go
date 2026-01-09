@@ -1,0 +1,119 @@
+// Copyright 2026 Redpanda Data, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package log
+
+import (
+	otellog "go.opentelemetry.io/otel/log"
+)
+
+// These are for convenience when doing log.V(...) to log at a particular level.
+const (
+	// Verbose is the level at which all logs will be shown, only set this level
+	// if you want to output with the most verbose of any logs
+	VerboseLevel = 4
+	// Timing shows any additional logs related to timing, one level above trace
+	// logs
+	TimingLevel = 3
+	// Trace is for detailed execution flow
+	TraceLevel = 2
+	// Debug is used when information is helpful, but not necessary normally
+	DebugLevel = 1
+	// Info is the default log level
+	InfoLevel = 0
+)
+
+type TypedLevel struct {
+	Name      string
+	LogrLevel int
+	OTELLevel otellog.Severity
+}
+
+var (
+	levelStrings map[string]TypedLevel
+	levelOTEL    map[otellog.Severity]TypedLevel
+	levelLogr    map[int]TypedLevel
+	DefaultLevel = TypedLevel{
+		Name:      "info",
+		LogrLevel: InfoLevel,
+		OTELLevel: otellog.SeverityInfo,
+	}
+	CatchAllLevel = TypedLevel{
+		Name:      "verbose",
+		LogrLevel: VerboseLevel,
+		OTELLevel: otellog.SeverityTrace3,
+	}
+	levels = []TypedLevel{
+		CatchAllLevel,
+		{
+			Name:      "timing",
+			LogrLevel: TimingLevel,
+			OTELLevel: otellog.SeverityTrace2,
+		},
+		{
+			Name:      "trace",
+			LogrLevel: TraceLevel,
+			OTELLevel: otellog.SeverityTrace,
+		},
+		{
+			Name:      "debug",
+			LogrLevel: DebugLevel,
+			OTELLevel: otellog.SeverityDebug,
+		},
+		DefaultLevel,
+	}
+)
+
+func init() {
+	levelStrings = make(map[string]TypedLevel)
+	levelOTEL = make(map[otellog.Severity]TypedLevel)
+	levelLogr = make(map[int]TypedLevel)
+
+	for _, level := range levels {
+		levelStrings[level.Name] = level
+		levelOTEL[level.OTELLevel] = level
+		levelLogr[level.LogrLevel] = level
+	}
+}
+
+func LevelFromString(level string) TypedLevel {
+	if l, ok := levelStrings[level]; ok {
+		return l
+	}
+	return levelStrings[CatchAllLevel.Name]
+}
+
+func LevelFromLogr(level int) TypedLevel {
+	if l, ok := levelLogr[level]; ok {
+		return l
+	}
+	return levelLogr[CatchAllLevel.LogrLevel]
+}
+
+func LevelFromOTEL(level otellog.Severity) TypedLevel {
+	if l, ok := levelOTEL[level]; ok {
+		return l
+	}
+	return levelOTEL[CatchAllLevel.OTELLevel]
+}
+
+func shouldLog(loggerLevel, messageLevel TypedLevel) bool {
+	// we always use the logr representation to compare since it
+	// assumes we're always increasing
+	return loggerLevel.LogrLevel >= messageLevel.LogrLevel
+}
+
+func shouldLogOTEL(loggerLevel, messageLevel otellog.Severity) bool {
+	return shouldLog(LevelFromOTEL(loggerLevel), LevelFromOTEL(messageLevel))
+}
