@@ -11,8 +11,21 @@ vars:
 includes:
   install: taskfiles/install.yaml
   proto: taskfiles/proto.yaml
+  build: taskfiles/build.yaml
 
 tasks:
+  update-licenses:
+    desc: Update all license headers
+    deps: ['build:licenseupdater']
+    cmds:
+      - '{{ .BUILD_ROOT }}/bin/licenseupdater'
+
+  check-licenses:
+    desc: Check that all license headers are up-to-date
+    deps: ['build:licenseupdater']
+    cmds:
+      - '{{ .BUILD_ROOT }}/bin/licenseupdater -check'
+
   lint:
     desc: Lint all Go code
     deps: ['install:golangci-lint']

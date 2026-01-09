@@ -1,4 +1,5 @@
 licenses: ["BSL", "RCL", "Apache"]
+license_directory: licenses
 ignore:
   - directory: licenseupdater/testdata
 matches:
@@ -9,7 +10,7 @@ matches:
   - extension: .go
     type: go
     directory: authz
-    license: Apache
+    license: BSL
   - extension: .go
     type: go
     directory: kvstore
@@ -25,7 +26,7 @@ matches:
   - extension: .go
     type: go
     directory: redpanda-otel-exporter
-    license: Apache
+    license: BSL
   - extension: .go
     type: go
     directory: rpadmin
@@ -40,6 +41,43 @@ matches:
     license: Apache
   - extension: .go
     type: go
+    directory: license
+    license: RCL
+  - extension: .go
+    type: go
     directory: licenseupdater
     license: Apache
-license_directory: ../licenses
+files:
+  - name: api/LICENSE
+    license: BSL
+    full: true
+  - name: authz/LICENSE
+    license: BSL
+    full: true
+  - name: kvstore/LICENSE
+    license: Apache
+    full: true
+  - name: net/LICENSE
+    license: Apache
+    full: true
+  - name: proto/LICENSE
+    license: BSL
+    full: true
+  - name: redpanda-otel-exporter/LICENSE
+    license: BSL
+    full: true
+  - name: rpadmin/LICENSE
+    license: BSL
+    full: true
+  - name: rpsr/LICENSE
+    license: BSL
+    full: true
+  - name: secrets/LICENSE
+    license: Apache
+    full: true
+  - name: license/LICENSE
+    license: RCL
+    full: true
+  - name: licenseupdater/LICENSE
+    license: Apache
+    full: true

@@ -1,16 +1,10 @@
 // Copyright 2026 Redpanda Data, Inc.
 //
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
+// Licensed as a Redpanda Enterprise file under the Redpanda Community
+// License (the "License"); you may not use this file except in compliance with
+// the License. You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// https://github.com/redpanda-data/redpanda/blob/master/licenses/rcl.md
 
 package main
 
@@ -34,6 +28,7 @@ type staticFile struct {
 	Name      string    `yaml:"name"`
 	License   string    `yaml:"license"`
 	Type      string    `yaml:"type"`
+	Full      bool      `yaml:"full"`
 	Delimiter delimiter `yaml:"delimiter"`
 }
 
@@ -334,9 +329,26 @@ func (c *config) writeTopLevelLicense() error {
 func (c *config) writeStaticFiles() error {
 	for _, f := range c.Files {
 		var buf bytes.Buffer
-		template := getHeaderLicenseTemplate(f.License)
-		if err := template.ExecuteTemplate(&buf, headerName(f.License), licenseTemplateData); err != nil {
+		var template *template.Template
+		var templateName string
+
+		if f.Full {
+			template = getLicenseTemplate(f.License)
+			templateName = fullName(f.License)
+		} else {
+			template = getHeaderLicenseTemplate(f.License)
+			templateName = headerName(f.License)
+		}
+
+		if err := template.ExecuteTemplate(&buf, templateName, licenseTemplateData); err != nil {
 			return err
+		}
+
+		if f.Full {
+			if err := writer.Write(f.Name, buf.Bytes(), 0o644); err != nil {
+				return err
+			}
+			continue
 		}
 
 		err := writeLicenseHeader(
