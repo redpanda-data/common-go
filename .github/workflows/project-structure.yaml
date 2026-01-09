@@ -1,0 +1,29 @@
+name: "Project Structure Checks"
+
+on:
+  push:
+    branches:
+      - main
+  pull_request: {}
+
+permissions:
+  contents: read
+
+jobs:
+  fmt:
+    name: Project Structure Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: 'stable'
+      - name: Install Task
+        uses: arduino/setup-task@v2
+        with:
+          version: 3.x
+          # Heavy usage of the action can result in workflow run failures caused by rate limiting.
+          # GitHub provides a more generous allowance for Authenticated API requests.
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Run Project Structure Checks
+        run: task check-project-meta

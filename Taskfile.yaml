@@ -20,6 +20,24 @@ tasks:
     cmds:
       - '{{ .BUILD_ROOT }}/bin/licenseupdater'
 
+  check-project-meta:
+    desc: Check project metadata files (licenses, README, etc)
+    cmds:
+      - for: { var: MODULES }
+        task: check-project-meta:dir
+        vars:
+         DIRECTORY: '{{.ITEM}}'
+
+  check-project-meta:dir:
+    label: check-project-meta:dir {{ .DIRECTORY }}
+    desc: Check project metadata files (licenses, README, etc) in the provided directory
+    vars:
+      DIRECTORY: '{{ .DIRECTORY }}'
+    dir: '{{.DIRECTORY}}'
+    cmds:
+      - '[[ -f "README.md" ]] || (echo "README.md is missing in {{ .DIRECTORY }}" && exit 1)'
+      - '[[ -f "LICENSE" ]] || (echo "LICENSE is missing in {{ .DIRECTORY }}" && exit 1)'
+
   lint:
     desc: Lint all Go code
     deps: ['install:golangci-lint']
