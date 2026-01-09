@@ -9,6 +9,10 @@ matches:
     license: Apache
   - extension: .go
     type: go
+    directory: goldenfile
+    license: Apache
+  - extension: .go
+    type: go
     directory: api
     license: BSL
   - extension: .go
@@ -93,5 +97,8 @@ files:
     license: Apache
     full: true
   - name: alias/LICENSE
+    license: Apache
+    full: true
+  - name: goldenfile/LICENSE
     license: Apache
     full: true
