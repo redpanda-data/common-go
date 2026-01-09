@@ -11,8 +11,15 @@ vars:
 includes:
   install: taskfiles/install.yaml
   proto: taskfiles/proto.yaml
+  build: taskfiles/build.yaml
 
 tasks:
+  update-licenses:
+    desc: Update all license headers
+    deps: ['build:licenseupdater']
+    cmds:
+      - '{{ .BUILD_ROOT }}/bin/licenseupdater'
+
   lint:
     desc: Lint all Go code
     deps: ['install:golangci-lint']
@@ -34,7 +41,9 @@ tasks:
 
   fmt:
     desc: Run all formatters
+    deps: ['build:licenseupdater']
     cmds:
+      - '{{ .BUILD_ROOT }}/bin/licenseupdater'
       - for: { var: MODULES }
         task: fmt:dir
         vars:

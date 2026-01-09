@@ -1,0 +1,83 @@
+licenses: ["BSL", "RCL", "Apache"]
+license_directory: licenses
+ignore:
+  - directory: licenseupdater/testdata
+matches:
+  - extension: .go
+    type: go
+    directory: api
+    license: BSL
+  - extension: .go
+    type: go
+    directory: authz
+    license: BSL
+  - extension: .go
+    type: go
+    directory: kvstore
+    license: Apache
+  - extension: .go
+    type: go
+    directory: net
+    license: Apache
+  - extension: .go
+    type: go
+    directory: proto
+    license: BSL
+  - extension: .go
+    type: go
+    directory: redpanda-otel-exporter
+    license: BSL
+  - extension: .go
+    type: go
+    directory: rpadmin
+    license: BSL
+  - extension: .go
+    type: go
+    directory: rpsr
+    license: BSL
+  - extension: .go
+    type: go
+    directory: secrets
+    license: Apache
+  - extension: .go
+    type: go
+    directory: license
+    license: RCL
+  - extension: .go
+    type: go
+    directory: licenseupdater
+    license: Apache
+files:
+  - name: api/LICENSE
+    license: BSL
+    full: true
+  - name: authz/LICENSE
+    license: BSL
+    full: true
+  - name: kvstore/LICENSE
+    license: Apache
+    full: true
+  - name: net/LICENSE
+    license: Apache
+    full: true
+  - name: proto/LICENSE
+    license: BSL
+    full: true
+  - name: redpanda-otel-exporter/LICENSE
+    license: BSL
+    full: true
+  - name: rpadmin/LICENSE
+    license: BSL
+    full: true
+  - name: rpsr/LICENSE
+    license: BSL
+    full: true
+  - name: secrets/LICENSE
+    license: Apache
+    full: true
+  - name: license/LICENSE
+    license: RCL
+    full: true
+  - name: licenseupdater/LICENSE
+    license: Apache
+    full: true

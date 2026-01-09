@@ -1,0 +1,31 @@
+version: '3'
+
+tasks:
+  licenseupdater:
+    desc: Build the licenseupdater binary
+    cmds:
+      - task: go:build
+        vars: { DIR: licenseupdater }
+
+  go:build:
+    internal: true
+    run: when_changed
+    label: "go:build:{{ .DIR }}"
+    var:
+      DIR: ""
+      PACKAGE: '{{default .TARGET "."}}'
+    requires:
+      vars: [DIR]
+    cmds:
+    - go build -C {{ .DIR }} -o ../build/bin/{{ .DIR }} {{ .PACKAGE }}
+    status:
+    # NB: Task's globbing is finicky and tracking all possible go files is
+    # prone to error. Instead, rely on go build's caching. Cache status must be
+    # reflected through `status` in order to not re-fire dependent tasks (e.g.
+    # gotohelm invocations)
+    # `go build -n` reports all commands to build without running them. When a
+    # rebuild is required, the final lines will contain: 'mv $WORK/<somepath> < -o flag >'.
+    # Negating the output of grep effectively indicates if go thinks a rebuild
+    # is required. Command must be encased in "s as the negation operator (!)
+    # is otherwise consumed during YAML parsing.
+    - "! go build -C {{ .DIR }} -n -o ../build/bin/{{ .DIR }} {{ .PACKAGE }} 2>&1 | grep 'mv $WORK'"
