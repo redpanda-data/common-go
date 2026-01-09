@@ -17,12 +17,14 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        dir: [api, rpadmin, secrets, net, rpsr, redpanda-otel-exporter, authz, kvstore, license, licenseupdater]
+        dir: [api, rpadmin, secrets, net, rpsr, redpanda-otel-exporter, authz, kvstore, license, licenseupdater, kube]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
           go-version: 'stable'
+      - name: Install setup-envtest for kube package
+        run: go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
       - name: Run tests (${{ matrix.dir }})
         run: go test ./...
         working-directory: ${{ matrix.dir }}
