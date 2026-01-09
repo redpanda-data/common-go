@@ -9,6 +9,18 @@ matches:
     license: Apache
   - extension: .go
     type: go
+    directory: otelutil
+    license: Apache
+  - extension: .go
+    type: go
+    directory: rp-controller-gen
+    license: Apache
+  - extension: .go
+    type: go
+    directory: rp-controller-utils
+    license: Apache
+  - extension: .go
+    type: go
     directory: goldenfile
     license: Apache
   - extension: .go
@@ -100,5 +112,14 @@ files:
     license: Apache
     full: true
   - name: goldenfile/LICENSE
+    license: Apache
+    full: true
+  - name: rp-controller-utils/LICENSE
+    license: Apache
+    full: true
+  - name: rp-controller-gen/LICENSE
+    license: Apache
+    full: true
+  - name: otelutil/LICENSE
     license: Apache
     full: true

@@ -12,6 +12,9 @@ All packages contain their own licensing information and README about how they a
 | Project | License |
 |---------|---------|
 | [alias](./alias) | Apache |
+| [otelutil](./otelutil) | Apache |
+| [rp-controller-gen](./rp-controller-gen) | Apache |
+| [rp-controller-utils](./rp-controller-utils) | Apache |
 | [goldenfile](./goldenfile) | Apache |
 | [api](./api) | BSL |
 | [authz](./authz) | BSL |
