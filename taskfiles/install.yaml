@@ -27,6 +27,16 @@ tasks:
       - '[ -f ''{{ .BUILD_ROOT }}/bin'' ] || command -v {{ .BUILD_ROOT }}/bin/go/golangci-lint >/dev/null 2>&1'
       - '[[ $({{ .BUILD_ROOT }}/bin/go/golangci-lint --version) == *"version {{ .GO_LINT_VERSION }} built"* ]]'
 
+  gomplate:
+    desc: Installs https://github.com/hairyhenderson/gomplate
+    run: once
+    deps:
+      - go
+    cmds:
+      - '{{.PATH_PREFIX}} go install github.com/hairyhenderson/gomplate/v4/cmd/gomplate@latest'
+    status:
+      - '[ -f ''{{ .BUILD_ROOT }}/bin/go'' ] || command -v {{ .BUILD_ROOT }}/bin/go/gomplate >/dev/null 2>&1'
+
   goimports:
     desc: Installs https://pkg.go.dev/golang.org/x/tools/cmd/goimports
     run: once

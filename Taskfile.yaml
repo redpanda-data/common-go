@@ -14,12 +14,6 @@ includes:
   build: taskfiles/build.yaml
 
 tasks:
-  update-licenses:
-    desc: Update all license headers
-    deps: ['build:licenseupdater']
-    cmds:
-      - '{{ .BUILD_ROOT }}/bin/licenseupdater'
-
   check-project-meta:
     desc: Check project metadata files (licenses, README, etc)
     cmds:
@@ -59,9 +53,10 @@ tasks:
 
   fmt:
     desc: Run all formatters
-    deps: ['build:licenseupdater']
+    deps: ['build:licenseupdater', 'install:gomplate']
     cmds:
       - '{{ .BUILD_ROOT }}/bin/licenseupdater'
+      - '{{ .BUILD_ROOT }}/bin/go/gomplate -d licenses=.licenseupdater.yaml -f README.md.tmpl > README.md'
       - for: { var: MODULES }
         task: fmt:dir
         vars:
