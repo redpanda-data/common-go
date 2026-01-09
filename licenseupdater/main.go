@@ -58,7 +58,7 @@ func init() {
 func dieOnError(err error) {
 	if err != nil {
 		log.Printf("error processing files: %v", err)
-		os.Exit(1)
+		os.Exit(1) //nolint:revive // this intentionally exits
 	}
 }
 

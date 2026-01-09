@@ -43,10 +43,8 @@ func (m *staticFile) initializeAndValidate() error {
 
 	if m.License == "" {
 		errs = append(errs, errors.New("must specify a license type for every match"))
-	} else {
-		if !hasHeaderLicense(m.License) {
-			errs = append(errs, fmt.Errorf("invalid license: %q", m.License))
-		}
+	} else if !hasHeaderLicense(m.License) {
+		errs = append(errs, fmt.Errorf("invalid license: %q", m.License))
 	}
 
 	return errors.Join(errs...)
@@ -79,6 +77,7 @@ func (m *match) getDelimiter() delimiter {
 	return m.Delimiter
 }
 
+//nolint:cyclop // complexity is ok for initialization and validation
 func (m *match) initializeAndValidate(checkLicense bool) error {
 	errs := []error{}
 
@@ -198,7 +197,7 @@ type config struct {
 }
 
 func loadConfig(path string) (*config, error) {
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(path) //nolint:gosec // user's responsibility for security of passed file here
 	if err != nil {
 		return nil, err
 	}
@@ -247,10 +246,8 @@ func (c *config) initializeAndValidate() error {
 				errs = append(errs, fmt.Errorf("invalid license: %q", license))
 			}
 		}
-	} else {
-		if !hasLicense(c.TopLevelLicense) {
-			errs = append(errs, fmt.Errorf("invalid license: %q", c.TopLevelLicense))
-		}
+	} else if !hasLicense(c.TopLevelLicense) {
+		errs = append(errs, fmt.Errorf("invalid license: %q", c.TopLevelLicense))
 	}
 
 	for _, match := range c.Matches {
@@ -274,7 +271,7 @@ func (c *config) initializeAndValidate() error {
 	return errors.Join(errs...)
 }
 
-func (c *config) matchFile(path string) (bool, bool, delimiter, string) {
+func (c *config) matchFile(path string) (matched bool, short bool, delimiter delimiter, license string) {
 	for _, match := range c.Ignore {
 		if match.doMatch(path) {
 			return false, false, emptyDelimiter, ""
@@ -294,7 +291,7 @@ func (c *config) walk(ch chan<- *matchedFile) error {
 	defer close(ch)
 	return filepath.Walk(c.getPath(), func(path string, fi os.FileInfo, err error) error {
 		if err != nil {
-			return nil
+			return err
 		}
 		if fi.IsDir() {
 			return nil
@@ -319,11 +316,7 @@ func (c *config) writeTopLevelLicense() error {
 		return err
 	}
 
-	if err := writer.Write("LICENSE", buf.Bytes(), 0o644); err != nil {
-		return err
-	}
-
-	return nil
+	return writer.Write("LICENSE", buf.Bytes(), 0o644)
 }
 
 func (c *config) writeStaticFiles() error {

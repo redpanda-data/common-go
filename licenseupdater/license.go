@@ -18,6 +18,7 @@ import (
 	"unicode"
 )
 
+//nolint:gocognit,cyclop // complexity is ok for this function
 func writeLicenseHeader(licenseTemplate *template.Template, templateName string, delimiter delimiter, emptyLine bool, path string, mode os.FileMode, data []byte) error {
 	var buf bytes.Buffer
 	if err := licenseTemplate.ExecuteTemplate(&buf, templateName, licenseTemplateData); err != nil {

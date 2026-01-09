@@ -20,7 +20,7 @@ type fsWriter struct {
 }
 
 func (f *fsWriter) Write(name string, data []byte, perm fs.FileMode) error {
-	name = name + f.suffix
+	name += f.suffix
 
 	if f.write {
 		return os.WriteFile(name, data, perm)

@@ -44,7 +44,7 @@ func diffChecker() *checkDiffs {
 }
 
 func (c *checkDiffs) diff(path string, newData []byte) error {
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(path) //nolint:gosec // user's responsibility for security of passed file here
 	if err != nil {
 		return err
 	}
