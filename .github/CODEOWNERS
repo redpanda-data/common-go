@@ -1,0 +1,12 @@
+/net/ @sago2k8
+/license/ @andrewstucki
+/proto/ @birdayz @weeco
+/redpanda-otel-exporter/ @birdayz @weeco @rockwotj
+/secrets/ @tomasz-sadura
+/rpadmin/ @andrewstucki @r-vasquez
+/rpsr/ @r-vasquez
+/kvstore/ @birdayz
+/api/ @sago2k8 @weeco
+/kube/ @andrewstucki @RafalKorepta @chrisseto
+/authz/ @rockwotj
+/licenseupdater/ @andrewstucki

@@ -21,16 +21,24 @@ tasks:
         task: check-project-meta:dir
         vars:
          DIRECTORY: '{{.ITEM}}'
+      #  Specal snowflake proto directory
+      - task: check-project-meta:dir
+        vars:
+          DIRECTORY: 'proto'
 
   check-project-meta:dir:
     label: check-project-meta:dir {{ .DIRECTORY }}
     desc: Check project metadata files (licenses, README, etc) in the provided directory
     vars:
       DIRECTORY: '{{ .DIRECTORY }}'
+      BASE:
+        sh: 'basename {{ .DIRECTORY }}'
     dir: '{{.DIRECTORY}}'
     cmds:
-      - '[[ -f "README.md" ]] || (echo "README.md is missing in {{ .DIRECTORY }}" && exit 1)'
-      - '[[ -f "LICENSE" ]] || (echo "LICENSE is missing in {{ .DIRECTORY }}" && exit 1)'
+      - '[[ -f "README.md" ]] || (echo "README.md is missing in \"{{ .BASE }}\"" && exit 1)'
+      - '[[ -f "LICENSE" ]] || (echo "LICENSE is missing in \"{{ .BASE }}\"" && exit 1)'
+      - 'cat ../.licenseupdater.yaml | grep "directory: {{ .BASE }}" >/dev/null 2>&1 || (echo "License information for \"{{ .BASE }}\" is missing in .licenseupdater.yaml" && exit 1)'
+      - 'cat ../.github/CODEOWNERS | grep "/{{ .BASE }}/" >/dev/null 2>&1 || (echo "CODEOWNERS entry for \"/{{ .BASE }}/\" is missing in .github/CODEOWNERS" && exit 1)'
 
   lint:
     desc: Lint all Go code
