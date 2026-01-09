@@ -11,15 +11,6 @@ All packages contain their own licensing information and README about how they a
 
 | Project | License |
 |---------|---------|
-| [api](./api) | BSL |
-| [authz](./authz) | BSL |
-| [kvstore](./kvstore) | Apache |
-| [net](./net) | Apache |
-| [proto](./proto) | BSL |
-| [redpanda-otel-exporter](./redpanda-otel-exporter) | BSL |
-| [rpadmin](./rpadmin) | BSL |
-| [rpsr](./rpsr) | BSL |
-| [secrets](./secrets) | Apache |
-| [license](./license) | RCL |
-| [licenseupdater](./licenseupdater) | Apache |
-| [kube](./kube) | Apache |
+{{- range (datasource "licenses").matches }}
+| [{{ .directory }}](./{{ .directory }}) | {{ .license }} |
+{{- end }}
