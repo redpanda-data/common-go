@@ -5,6 +5,10 @@ ignore:
 matches:
   - extension: .go
     type: go
+    directory: alias
+    license: Apache
+  - extension: .go
+    type: go
     directory: api
     license: BSL
   - extension: .go
@@ -86,5 +90,8 @@ files:
     license: Apache
     full: true
   - name: kube/LICENSE
+    license: Apache
+    full: true
+  - name: alias/LICENSE
     license: Apache
     full: true

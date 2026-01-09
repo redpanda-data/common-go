@@ -11,6 +11,7 @@ All packages contain their own licensing information and README about how they a
 
 | Project | License |
 |---------|---------|
+| [alias](./alias) | Apache |
 | [api](./api) | BSL |
 | [authz](./authz) | BSL |
 | [kvstore](./kvstore) | Apache |
