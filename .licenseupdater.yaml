@@ -47,6 +47,10 @@ matches:
     type: go
     directory: licenseupdater
     license: Apache
+  - extension: .go
+    type: go
+    directory: kube
+    license: Apache
 files:
   - name: api/LICENSE
     license: BSL
@@ -79,5 +83,8 @@ files:
     license: RCL
     full: true
   - name: licenseupdater/LICENSE
+    license: Apache
+    full: true
+  - name: kube/LICENSE
     license: Apache
     full: true
