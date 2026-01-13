@@ -99,9 +99,10 @@ client, _ := kv.NewClient(ctx, "accounts", storage,
     kv.WithBrokers("localhost:9092"),
 )
 
-accounts := kv.NewResourceClient[*pb.Account](client, kv.Proto(func() *pb.Account {
+serde, _ := kv.Proto(func() *pb.Account {
     return &pb.Account{}
-}))
+})
+accounts := kv.NewResourceClient[*pb.Account](client, serde)
 
 accounts.Put(ctx, []byte("acct:1"), &pb.Account{Name: "Acme Corp"})
 account, _ := accounts.Get(ctx, []byte("acct:1"))
