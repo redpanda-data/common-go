@@ -9,6 +9,7 @@ require (
 	github.com/testcontainers/testcontainers-go/modules/redpanda v0.40.0
 	github.com/twmb/franz-go v1.20.4
 	github.com/twmb/franz-go/pkg/kadm v1.17.1
+	github.com/twmb/franz-go/pkg/sr v1.6.0
 	google.golang.org/protobuf v1.36.10
 )
 
