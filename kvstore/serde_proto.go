@@ -38,7 +38,8 @@ type schemaRegistryConfig struct {
 type ProtoOption func(*protoConfig)
 
 type protoConfig struct {
-	sr *schemaRegistryConfig
+	sr  *schemaRegistryConfig
+	err error
 }
 
 // Proto returns a protobuf serde for type T.
@@ -46,24 +47,28 @@ type protoConfig struct {
 //
 // Example basic usage:
 //
-//	serde := kvstore.Proto(func() *pb.MyMessage { return &pb.MyMessage{} })
+//	serde, err := kvstore.Proto(func() *pb.MyMessage { return &pb.MyMessage{} })
 //
 // Example with Schema Registry:
 //
-//	serde := kvstore.Proto(
+//	serde, err := kvstore.Proto(
 //	    func() *pb.MyMessage { return &pb.MyMessage{} },
 //	    kvstore.WithSchemaRegistry(srClient, "topic-value", protoSchema),
 //	)
-func Proto[T proto.Message](factory func() T, opts ...ProtoOption) Serde[T] {
+func Proto[T proto.Message](factory func() T, opts ...ProtoOption) (Serde[T], error) {
 	cfg := &protoConfig{}
 	for _, opt := range opts {
 		opt(cfg)
 	}
 
+	if cfg.err != nil {
+		return nil, cfg.err
+	}
+
 	return &ProtoSerde[T]{
 		new: factory,
 		sr:  cfg.sr,
-	}
+	}, nil
 }
 
 // Serialize marshals the protobuf message.
@@ -116,7 +121,7 @@ func (s *ProtoSerde[T]) Deserialize(b []byte) (T, error) {
 //
 // Example:
 //
-//	serde := kvstore.Proto(
+//	serde, err := kvstore.Proto(
 //	    func() *pb.MyMessage { return &pb.MyMessage{} },
 //	    kvstore.WithSchemaRegistry(srClient, "topic-value", protoSchema),
 //	)
@@ -143,7 +148,9 @@ func WithSchemaRegistry(
 
 	result, err := srClient.CreateSchema(ctx, subject, schema)
 	if err != nil {
-		panic(fmt.Sprintf("schema registration for subject %s: %v", subject, err))
+		return func(c *protoConfig) {
+			c.err = fmt.Errorf("schema registration for subject %s: %w", subject, err)
+		}
 	}
 
 	return func(c *protoConfig) {
@@ -219,6 +226,6 @@ func NewSchemaRegistrySerde[T proto.Message](
 	schemaContent string,
 	factory func() T,
 	opts ...SchemaRegistryOption,
-) Serde[T] {
+) (Serde[T], error) {
 	return Proto(factory, WithSchemaRegistry(srClient, subject, schemaContent, opts...))
 }
