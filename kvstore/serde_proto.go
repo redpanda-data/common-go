@@ -16,7 +16,6 @@ package kvstore
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
@@ -26,20 +25,20 @@ import (
 
 // ProtoSerde serializes values as protobuf, optionally with Schema Registry wire format.
 type ProtoSerde[T proto.Message] struct {
-	new func() T
-	sr  *schemaRegistryConfig
-}
-
-type schemaRegistryConfig struct {
-	schemaID int
+	new   func() T
+	serde *sr.Serde
 }
 
 // ProtoOption configures a ProtoSerde.
 type ProtoOption func(*protoConfig)
 
 type protoConfig struct {
-	sr  *schemaRegistryConfig
-	err error
+	srConfig *srSerdeConfig
+	err      error
+}
+
+type srSerdeConfig struct {
+	schemaID int
 }
 
 // Proto returns a protobuf serde for type T.
@@ -65,47 +64,65 @@ func Proto[T proto.Message](factory func() T, opts ...ProtoOption) (Serde[T], er
 		return nil, cfg.err
 	}
 
+	var serde *sr.Serde
+	if cfg.srConfig != nil {
+		// Create sr.Serde with the factory for proper type instantiation
+		serde = sr.NewSerde()
+		serde.Register(
+			cfg.srConfig.schemaID,
+			factory(), // Pass concrete type instance
+			sr.GenerateFn(func() any {
+				return factory() // Tell sr.Serde how to create new instances
+			}),
+			sr.EncodeFn(func(v any) ([]byte, error) {
+				return proto.Marshal(v.(proto.Message))
+			}),
+			sr.DecodeFn(func(b []byte, v any) error {
+				return proto.Unmarshal(b, v.(proto.Message))
+			}),
+			sr.Index(0), // Protobuf message index
+		)
+	}
+
 	return &ProtoSerde[T]{
-		new: factory,
-		sr:  cfg.sr,
+		new:   factory,
+		serde: serde,
 	}, nil
 }
 
 // Serialize marshals the protobuf message.
 // If Schema Registry is configured, wraps with Confluent wire format.
 func (s *ProtoSerde[T]) Serialize(v T) ([]byte, error) {
-	data, err := proto.Marshal(v)
-	if err != nil {
-		return nil, err
+	// If Schema Registry configured, use serde which handles wire format
+	if s.serde != nil {
+		return s.serde.Encode(v)
 	}
 
-	// If Schema Registry configured, wrap with wire format
-	if s.sr != nil {
-		return encodeWithSchemaRegistry(s.sr, data)
-	}
-
-	return data, nil
+	// Plain protobuf without Schema Registry
+	return proto.Marshal(v)
 }
 
 // Deserialize unmarshals protobuf bytes to the message.
 // If Schema Registry is configured, decodes Confluent wire format first.
 func (s *ProtoSerde[T]) Deserialize(b []byte) (T, error) {
-	var payload []byte
-	var err error
-
-	// If Schema Registry configured, decode wire format
-	if s.sr != nil {
-		payload, err = decodeFromSchemaRegistry(b)
+	// If Schema Registry configured, use serde which handles wire format
+	if s.serde != nil {
+		v, err := s.serde.DecodeNew(b)
 		if err != nil {
 			var zero T
 			return zero, err
 		}
-	} else {
-		payload = b
+		result, ok := v.(T)
+		if !ok {
+			var zero T
+			return zero, fmt.Errorf("decoded value is not of expected type %T", zero)
+		}
+		return result, nil
 	}
 
+	// Plain protobuf without Schema Registry
 	v := s.new()
-	err = proto.Unmarshal(payload, v)
+	err := proto.Unmarshal(b, v)
 	return v, err
 }
 
@@ -153,8 +170,9 @@ func WithSchemaRegistry(
 		}
 	}
 
+	// Store the schema ID config for sr.Serde creation in Proto()
 	return func(c *protoConfig) {
-		c.sr = &schemaRegistryConfig{
+		c.srConfig = &srSerdeConfig{
 			schemaID: result.ID,
 		}
 	}
@@ -178,44 +196,6 @@ func WithSchemaReferences(refs []sr.SchemaReference) SchemaRegistryOption {
 	return func(c *srConfig) {
 		c.refs = refs
 	}
-}
-
-// encodeWithSchemaRegistry wraps protobuf data with Confluent wire format.
-//
-// Wire format: [magic_byte=0x00][schema_id:4bytes][message_indexes][data]
-func encodeWithSchemaRegistry(cfg *schemaRegistryConfig, data []byte) ([]byte, error) {
-	var header sr.ConfluentHeader
-	result, err := header.AppendEncode(nil, cfg.schemaID, []int{0})
-	if err != nil {
-		return nil, fmt.Errorf("wire format encode: %w", err)
-	}
-
-	return append(result, data...), nil
-}
-
-// decodeFromSchemaRegistry extracts protobuf payload from Confluent wire format.
-func decodeFromSchemaRegistry(b []byte) ([]byte, error) {
-	if len(b) == 0 {
-		return nil, errors.New("empty data")
-	}
-
-	var header sr.ConfluentHeader
-
-	// Decode schema ID
-	schemaID, remaining, err := header.DecodeID(b)
-	if err != nil {
-		return nil, fmt.Errorf("wire format decode schema ID: %w", err)
-	}
-
-	_ = schemaID // Available for validation if needed
-
-	// Decode message indexes (for protobuf)
-	_, payload, err := header.DecodeIndex(remaining, 10)
-	if err != nil {
-		return nil, fmt.Errorf("wire format decode indexes: %w", err)
-	}
-
-	return payload, nil
 }
 
 // NewSchemaRegistrySerde creates a protobuf serde with Schema Registry support.
