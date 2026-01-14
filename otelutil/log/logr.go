@@ -45,9 +45,9 @@ func NewOTELLogrSink(name string, options ...log.LoggerOption) *LogSink {
 
 // LogSink is a [logr.LogSink] that sends all logging records it receives to
 // OpenTelemetry. See package documentation for how conversions are made.
-type LogSink struct {
+type LogSink struct { //nolint:revive // stuttering name is fine
 	// Ensure forward compatibility by explicitly making this not comparable.
-	noCmp [0]func() //nolint: unused  // This is indeed used.
+	noCmp [0]func() //nolint:unused  // This is indeed used.
 
 	name          string
 	provider      log.LoggerProvider
@@ -55,7 +55,7 @@ type LogSink struct {
 	useTimestamps bool
 	opts          []log.LoggerOption
 	attr          []log.KeyValue
-	ctx           context.Context
+	ctx           context.Context //nolint:containedCtx // context is fine here
 }
 
 // Compile-time check *Handler implements logr.LogSink.
@@ -118,7 +118,7 @@ func (l *LogSink) Info(level int, msg string, keysAndValues ...any) {
 
 // Init receives optional information about the logr library this
 // implementation does not use it.
-func (l *LogSink) Init(logr.RuntimeInfo) {
+func (*LogSink) Init(logr.RuntimeInfo) {
 	// We don't need to do anything here.
 	// CallDepth is used to calculate the caller's PC.
 	// PC is dropped as part of the conversion to the OpenTelemetry log.Record.
@@ -186,7 +186,7 @@ type stringer interface {
 }
 
 // convertValue converts various types to log.Value.
-func convertValue(v any) log.Value {
+func convertValue(v any) log.Value { //nolint:gocyclo,cyclop // complexity is fine
 	// Handling the most common types without reflect is a small perf win.
 	switch val := v.(type) {
 	case bool:
@@ -242,7 +242,7 @@ func convertValue(v any) log.Value {
 		return log.Value{}
 	}
 	val := reflect.ValueOf(v)
-	switch t.Kind() {
+	switch t.Kind() { //nolint:exhaustive // other branches are handled above
 	case reflect.Struct:
 		return log.StringValue(fmt.Sprintf("%+v", v))
 	case reflect.Slice, reflect.Array:

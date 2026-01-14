@@ -16,6 +16,7 @@ package deprecations
 
 import (
 	_ "embed"
+	"errors"
 	"fmt"
 	"go/ast"
 	"os"
@@ -27,6 +28,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// DeprecationPrefix is the field name prefix used to identify deprecated
+// fields when scanning Go structs for deprecations.
 const DeprecationPrefix = "Deprecated"
 
 var (
@@ -44,6 +47,8 @@ func init() {
 	testGenerator = template.Must(template.New("tests").Funcs(helpers).Parse(testTemplate))
 }
 
+// DeprecationConfig configures how deprecation tests are discovered and
+// generated.
 type DeprecationConfig struct {
 	Directory   string
 	PackageName string
@@ -64,13 +69,15 @@ type objSpec struct {
 }
 
 // Debugf emits debug output when the config's Verbose flag is set.
-func (c DeprecationConfig) Debugf(format string, a ...interface{}) {
+func (c DeprecationConfig) Debugf(format string, a ...any) {
 	if !c.Verbose {
 		return
 	}
 	fmt.Fprintf(os.Stderr, format, a...)
 }
 
+// Cmd returns a cobra command that generates tests for deprecated API
+// fields based on the provided directory and package configuration.
 func Cmd() *cobra.Command {
 	var config DeprecationConfig
 
@@ -78,7 +85,7 @@ func Cmd() *cobra.Command {
 		Use:     "deprecations",
 		Short:   "Generate tests for deprecated API fields",
 		Example: "gen deprecations --directory ./api/example/v1alpha2",
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(*cobra.Command, []string) error {
 			return Render(config)
 		},
 	}
@@ -91,6 +98,8 @@ func Cmd() *cobra.Command {
 	return cmd
 }
 
+// Render scans the configured directory for types with deprecated fields and
+// writes generated test code to the configured OutputFile.
 func Render(config DeprecationConfig) error {
 	dir := config.Directory
 
@@ -100,7 +109,7 @@ func Render(config DeprecationConfig) error {
 	}
 
 	if config.PackageName == "" {
-		return fmt.Errorf("could not determine package name")
+		return errors.New("could not determine package name")
 	}
 
 	parser := NewParser(config)
@@ -115,7 +124,7 @@ func Render(config DeprecationConfig) error {
 	}
 
 	outPath := filepath.Join(dir, config.OutputFile)
-	if err := os.WriteFile(outPath, contents, 0o644); err != nil {
+	if err := os.WriteFile(outPath, contents, 0o644); err != nil { //nolint:gosec // file permissions are correct
 		return fmt.Errorf("failed to write output file: %w", err)
 	}
 

@@ -201,7 +201,7 @@ func (p *printerFormat) Comment() string {
 		field = "message"
 	}
 	return fmt.Sprintf(
-		`// +kubebuilder:printcolumn:name="%s",type="string",JSONPath=".status.conditions[?(@.type==\"%s\")].%s",description="%s"`,
+		`// +kubebuilder:printcolumn:name=%q,type="string",JSONPath=".status.conditions[?(@.type==\"%s\")].%s",description=%q`,
 		p.Name, p.condition.Name, field, p.Description,
 	)
 }
@@ -365,7 +365,7 @@ func (r *reasonType) GoName() string {
 	return fmt.Sprintf("%s%sReason%s", r.kind, r.condition.Name, r.Name)
 }
 
-func (r *reasonType) DefaultValue() string {
+func (*reasonType) DefaultValue() string {
 	return "False"
 }
 

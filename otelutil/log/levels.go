@@ -34,6 +34,8 @@ const (
 	InfoLevel = 0
 )
 
+// TypedLevel represents a logging level across different logging backends
+// (slog/logr and OTEL severity).
 type TypedLevel struct {
 	Name      string
 	LogrLevel int
@@ -44,11 +46,14 @@ var (
 	levelStrings map[string]TypedLevel
 	levelOTEL    map[otellog.Severity]TypedLevel
 	levelLogr    map[int]TypedLevel
+	// DefaultLevel is the package's default logging level.
 	DefaultLevel = TypedLevel{
 		Name:      "info",
 		LogrLevel: InfoLevel,
 		OTELLevel: otellog.SeverityInfo,
 	}
+	// CatchAllLevel is the logging level that anything outside
+	// of our defined logging levels gets logged as.
 	CatchAllLevel = TypedLevel{
 		Name:      "verbose",
 		LogrLevel: VerboseLevel,
@@ -87,6 +92,8 @@ func init() {
 	}
 }
 
+// LevelFromString returns the TypedLevel for the named level or the catch-all
+// when no match is found.
 func LevelFromString(level string) TypedLevel {
 	if l, ok := levelStrings[level]; ok {
 		return l
@@ -94,6 +101,8 @@ func LevelFromString(level string) TypedLevel {
 	return levelStrings[CatchAllLevel.Name]
 }
 
+// LevelFromLogr returns the TypedLevel corresponding to a logr verbosity
+// integer.
 func LevelFromLogr(level int) TypedLevel {
 	if l, ok := levelLogr[level]; ok {
 		return l
@@ -101,6 +110,7 @@ func LevelFromLogr(level int) TypedLevel {
 	return levelLogr[CatchAllLevel.LogrLevel]
 }
 
+// LevelFromOTEL returns the TypedLevel corresponding to an OTEL severity.
 func LevelFromOTEL(level otellog.Severity) TypedLevel {
 	if l, ok := levelOTEL[level]; ok {
 		return l

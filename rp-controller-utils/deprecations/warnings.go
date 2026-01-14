@@ -23,6 +23,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// DeprecatedPrefix is the prefix for any deprecated field
 const DeprecatedPrefix = "Deprecated"
 
 // FindDeprecatedFieldWarnings inspects an arbitrary `client.Object` and returns a
@@ -59,7 +60,7 @@ func FindDeprecatedFieldWarnings(obj client.Object) []string {
 	return deprecations
 }
 
-func deprecatedFields(value reflect.Value, reflectType reflect.Type, path string, visited map[uintptr]struct{}) []string {
+func deprecatedFields(value reflect.Value, reflectType reflect.Type, path string, visited map[uintptr]struct{}) []string { //nolint:gocognit,cyclop // complexity is fine
 	out := make([]string, 0)
 
 	for value.Kind() == reflect.Pointer || value.Kind() == reflect.Interface {
@@ -100,9 +101,8 @@ func deprecatedFields(value reflect.Value, reflectType reflect.Type, path string
 			case reflect.Struct:
 				out = append(out, deprecatedFields(fieldValue, fieldValue.Type(), nextPath, visited)...)
 			case reflect.Pointer, reflect.Interface:
-				if fieldValue.IsNil() {
-					// the pointer is nil, so we don't need to traverse since that's the 0 value
-				} else {
+				if !fieldValue.IsNil() {
+					// if true, the pointer is nil, so we don't need to traverse since that's the 0 value
 					out = append(out, deprecatedFields(fieldValue, fieldValue.Type(), nextPath, visited)...)
 				}
 			case reflect.Slice, reflect.Array:
@@ -121,6 +121,7 @@ func deprecatedFields(value reflect.Value, reflectType reflect.Type, path string
 						out = append(out, deprecatedFields(value, value.Type(), nextPath, visited)...)
 					}
 				}
+			default:
 			}
 		}
 	}
@@ -185,8 +186,6 @@ func getNextPath(field reflect.StructField, path string) string {
 	switch tag {
 	case "-":
 		return nextPath(field.Name)
-	case "":
-		return nextPath(tag)
 	default:
 		return nextPath(tag)
 	}

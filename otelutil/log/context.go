@@ -24,6 +24,8 @@ type contextFreeSink struct {
 	logr.LogSink
 }
 
+// ContextFree returns a logr.LogSink that filters out any context.Context
+// key/value pairs so the sink can be used without carrying context values.
 func ContextFree(sink logr.LogSink) logr.LogSink {
 	return &contextFreeSink{
 		LogSink: sink,

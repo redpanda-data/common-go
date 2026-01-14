@@ -17,7 +17,7 @@ package main
 import (
 	"github.com/spf13/cobra"
 
-	deprecations "github.com/redpanda-data/common-go/rp-controller-gen/deprecation-tests"
+	"github.com/redpanda-data/common-go/rp-controller-gen/deprecations"
 	"github.com/redpanda-data/common-go/rp-controller-gen/status"
 )
 

@@ -162,6 +162,8 @@ func (c *config) options() (loggerOptions []sdklog.LoggerProviderOption, metricO
 	return loggerOptions, metricOptions, tracerOptions, nil
 }
 
+// Option customizes the behavior of [Setup]. Options are applied in order
+// when calling Setup.
 type Option func(c config) config
 
 // WithServiceName sets the OTEL service name for logs, traces, and metrics.

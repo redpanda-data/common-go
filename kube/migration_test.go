@@ -30,7 +30,6 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -78,9 +77,9 @@ var (
 )
 
 type myKindV1 struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Value             string `json:"value"`
+	metav1.TypeMeta   `json:",inline"`            //nolint:revive // test code
+	metav1.ObjectMeta `json:"metadata,omitempty"` //nolint:revive // test code
+	Value             string                      `json:"value"`
 }
 
 func (m *myKindV1) DeepCopyObject() runtime.Object {
@@ -99,9 +98,9 @@ func (m *myKindV1) ToV2() *myKindV2 {
 }
 
 type myKindV2 struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Value             bool `json:"value"`
+	metav1.TypeMeta   `json:",inline"`            //nolint:revive // test code
+	metav1.ObjectMeta `json:"metadata,omitempty"` //nolint:revive // test code
+	Value             bool                        `json:"value"`
 }
 
 func (m *myKindV2) DeepCopyObject() runtime.Object {
@@ -124,14 +123,14 @@ func (m *myKindV2) ToV1() *myKindV1 {
 func (*myKindV2) Hub() {}
 
 func (m *myKindV1) ConvertTo(dstRaw conversion.Hub) error {
-	dst := dstRaw.(*myKindV2)
+	dst := dstRaw.(*myKindV2) //nolint:revive // test file, we know what this is
 	dst.ObjectMeta = m.ToV2().ObjectMeta
 	dst.Value = m.ToV2().Value
 	return nil
 }
 
 func (m *myKindV1) ConvertFrom(srcRaw conversion.Hub) error {
-	src := srcRaw.(*myKindV2)
+	src := srcRaw.(*myKindV2) //nolint:revive // test file, we know what this is
 	m.ObjectMeta = src.ToV1().ObjectMeta
 	m.Value = src.ToV1().Value
 	return nil
@@ -141,7 +140,7 @@ func setupCRD(t *testing.T, c *kube.Ctl) {
 	t.Helper()
 
 	crd := &apiextensionsv1.CustomResourceDefinition{
-		ObjectMeta: v1.ObjectMeta{Name: testCRDName},
+		ObjectMeta: metav1.ObjectMeta{Name: testCRDName},
 		Spec: apiextensionsv1.CustomResourceDefinitionSpec{
 			Group: testPackage,
 			Names: apiextensionsv1.CustomResourceDefinitionNames{
@@ -175,7 +174,7 @@ func setupCRD(t *testing.T, c *kube.Ctl) {
 
 	if err := wait.PollUntilContextTimeout(t.Context(), 500*time.Millisecond, 15*time.Second, true, func(ctx context.Context) (bool, error) {
 		if err := c.Get(ctx, types.NamespacedName{Name: testCRDName}, crd); err != nil {
-			return false, nil
+			return false, err
 		}
 		for _, cond := range crd.Status.Conditions {
 			if cond.Type == apiextensionsv1.Established && cond.Status == apiextensionsv1.ConditionTrue {
@@ -249,7 +248,7 @@ func createCR(t *testing.T, c *kube.Ctl, gvk schema.GroupVersionKind, nn types.N
 	t.Helper()
 
 	// ensure namespace exists
-	ns := &corev1.Namespace{ObjectMeta: v1.ObjectMeta{Name: nn.Namespace}}
+	ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: nn.Namespace}}
 	if err := c.Create(t.Context(), ns); err != nil && !errors.IsAlreadyExists(err) {
 		t.Fatalf("create namespace: %v", err)
 	}
@@ -292,7 +291,7 @@ func fetchCRs(t *testing.T, c *kube.Ctl, gvk schema.GroupVersionKind) []unstruct
 	return got.Items
 }
 
-func TestMigrate(t *testing.T) {
+func TestMigrate(t *testing.T) { //nolint:cyclop // complexity is fine
 	scheme := runtime.NewScheme()
 	if err := apiextensionsv1.AddToScheme(scheme); err != nil {
 		t.Fatalf("add apiextensions to scheme: %v", err)
@@ -389,7 +388,7 @@ func TestMigrate(t *testing.T) {
 	}
 	// v1 --> v2
 	for _, cr := range fetchCRs(t, ctl, latestGVK) {
-		if cr.Object["value"] != true {
+		if cr.Object["value"] != true { //nolint:revive // we want the explicit boolean check
 			t.Fatalf("object %q value does not match: actual %v(%T) - expected true(bool)", cr.GetName(), cr.Object["value"], cr.Object["value"])
 		}
 	}
@@ -412,7 +411,7 @@ func TestMigrate(t *testing.T) {
 	}, true)
 }
 
-func TestMigrateManifest(t *testing.T) {
+func TestMigrateManifest(t *testing.T) { //nolint:gocognit // test is fine
 	scheme := runtime.NewScheme()
 	if err := apiextensionsv1.AddToScheme(scheme); err != nil {
 		t.Fatalf("add apiextensions to scheme: %v", err)
@@ -447,7 +446,7 @@ func TestMigrateManifest(t *testing.T) {
 				}
 				defer fixtureFile.Close()
 
-				actual, err := kube.MigrateManifest(t.Context(), scheme, fixtureFile, testGK)
+				actual, err := kube.MigrateManifest(scheme, fixtureFile, testGK)
 				if err != nil {
 					t.Fatalf("error migrating file %q: %v", fixture, err)
 				}

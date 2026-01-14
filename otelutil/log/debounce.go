@@ -22,7 +22,7 @@ import (
 )
 
 // ErrorStringDebouncer returns a debouncer function that debounces based on the error string
-func ErrorStringDebouncer(err error, msg string, keysAndValues ...any) (string, bool) {
+func ErrorStringDebouncer(err error, _ string, _ ...any) (string, bool) {
 	if err == nil {
 		// always let errors that are nil go through
 		return "", false

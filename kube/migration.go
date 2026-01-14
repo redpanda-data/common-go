@@ -37,7 +37,7 @@ import (
 
 // MigrateManifest runs conversion routines associated with the conversion.Hub of the given GroupKind and registered
 // in the provided runtime.Schema, returning the equivalent manifest, but with migrated resources.
-func MigrateManifest(ctx context.Context, scheme *runtime.Scheme, r io.Reader, gk schema.GroupKind) ([]byte, error) {
+func MigrateManifest(scheme *runtime.Scheme, r io.Reader, gk schema.GroupKind) ([]byte, error) { //nolint:gocognit,cyclop // complexity is fine
 	var hub schema.GroupVersionKind
 	convertibles := []schema.GroupVersionKind{}
 	hasHub := false
@@ -73,7 +73,7 @@ func MigrateManifest(ctx context.Context, scheme *runtime.Scheme, r io.Reader, g
 	i := 0
 	for {
 		doc, err := reader.Read()
-		if err == io.EOF {
+		if errors.Is(err, io.EOF) {
 			break
 		}
 		if err != nil {
@@ -106,8 +106,8 @@ func MigrateManifest(ctx context.Context, scheme *runtime.Scheme, r io.Reader, g
 		if err != nil {
 			return nil, err
 		}
-		converter := obj.(conversion.Convertible)
-		convertedObject := hubObject.(conversion.Hub)
+		converter := obj.(conversion.Convertible)     //nolint:revive // this was already checked above
+		convertedObject := hubObject.(conversion.Hub) //nolint:revive // this was already checked above
 		if err := converter.ConvertTo(convertedObject); err != nil {
 			return nil, err
 		}

@@ -23,10 +23,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
+// Info logs a non-error message using the logger stored in ctx. Additional
+// key/value pairs are forwarded to the underlying logger.
 func Info(ctx context.Context, msg string, keysAndValues ...any) {
 	FromContext(ctx).Info(msg, keysAndValues...)
 }
 
+// Error logs an error with message and additional key/value pairs using the
+// logger stored in ctx.
 func Error(ctx context.Context, err error, msg string, keysAndValues ...any) {
 	FromContext(ctx).Error(err, msg, keysAndValues...)
 }
@@ -65,12 +69,15 @@ type MultiSink struct {
 
 var _ logr.LogSink = &MultiSink{}
 
+// Init calls Init on all underlying sinks.
 func (s *MultiSink) Init(info logr.RuntimeInfo) {
 	for _, sink := range s.Sinks {
 		sink.Init(info)
 	}
 }
 
+// Enabled returns true if any delegated sink is enabled at the provided
+// verbosity level.
 func (s *MultiSink) Enabled(level int) bool {
 	for _, sink := range s.Sinks {
 		if sink.Enabled(level) {
@@ -80,6 +87,7 @@ func (s *MultiSink) Enabled(level int) bool {
 	return false
 }
 
+// Info forwards an informational log message to all enabled delegated sinks.
 func (s *MultiSink) Info(level int, msg string, keysAndValues ...any) {
 	for _, sink := range s.Sinks {
 		if sink.Enabled(level) {
@@ -88,12 +96,15 @@ func (s *MultiSink) Info(level int, msg string, keysAndValues ...any) {
 	}
 }
 
+// Error forwards an error log message to all delegated sinks.
 func (s *MultiSink) Error(err error, msg string, keysAndValues ...any) {
 	for _, sink := range s.Sinks {
 		sink.Error(err, msg, keysAndValues...)
 	}
 }
 
+// WithValues returns a new MultiSink where each delegated sink has been
+// decorated with the provided key/value pairs.
 func (s *MultiSink) WithValues(keysAndValues ...any) logr.LogSink {
 	sinks := make([]logr.LogSink, len(s.Sinks))
 	for i, sink := range s.Sinks {
@@ -102,6 +113,8 @@ func (s *MultiSink) WithValues(keysAndValues ...any) logr.LogSink {
 	return &MultiSink{Sinks: sinks}
 }
 
+// WithName returns a new MultiSink where each delegated sink has its name
+// appended with the provided value.
 func (s *MultiSink) WithName(name string) logr.LogSink {
 	sinks := make([]logr.LogSink, len(s.Sinks))
 	for i, sink := range s.Sinks {

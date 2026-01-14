@@ -28,8 +28,13 @@ import (
 	"github.com/redpanda-data/common-go/otelutil/log"
 )
 
+// WithAttributes is a convenience alias to [trace.WithAttributes]. It is
+// provided so callers can add attributes to span start options without
+// importing the tracing package directly.
 var WithAttributes = trace.WithAttributes
 
+// Start starts a new span using a tracer named by the caller's package and
+// returns a new context containing that span along with the started span.
 func Start(ctx context.Context, name string, options ...trace.SpanStartOption) (context.Context, trace.Span) {
 	return otel.GetTracerProvider().Tracer(callerPackage(0)).Start(ctx, name, options...)
 }
@@ -53,6 +58,9 @@ func EndSpan(span trace.Span, err error, options ...trace.SpanEndOption) {
 	span.End(options...)
 }
 
+// TestingT defines the minimal subset of the testing.T interface required by
+// [Test]. It is used so we can accept either *testing.T or compatible test
+// harnesses.
 type TestingT interface {
 	Name() string
 	Helper()

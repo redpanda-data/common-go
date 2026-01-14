@@ -153,7 +153,7 @@ func findStructByFieldNames(structs map[string]*ast.StructType, names []string) 
 	return ""
 }
 
-func extractPoorlyNamedDeprecatedFields(files []*ast.File, structs map[string]*ast.StructType) map[string][]string {
+func extractPoorlyNamedDeprecatedFields(files []*ast.File, structs map[string]*ast.StructType) map[string][]string { //nolint:gocognit,cyclop // complexity is fine
 	result := make(map[string][]string)
 
 	// Map to track fields with Deprecated prefix (these we already handle)
@@ -321,17 +321,21 @@ func extractFieldType(st *ast.StructType, fname string) (typeName string, isPtr 
 		return "", false
 	}
 
-	if star, ok := f.Type.(*ast.StarExpr); ok {
+	switch t := f.Type.(type) {
+	case *ast.StarExpr:
 		isPtr = true
-		if id, ok := star.X.(*ast.Ident); ok {
-			typeName = id.Name
-		} else if sel, ok := star.X.(*ast.SelectorExpr); ok {
-			typeName = sel.Sel.Name
+		switch n := t.X.(type) {
+		case *ast.Ident:
+			typeName = n.Name
+		case *ast.SelectorExpr:
+			typeName = n.Sel.Name
+		default:
 		}
-	} else if id, ok := f.Type.(*ast.Ident); ok {
-		typeName = id.Name
-	} else if sel, ok := f.Type.(*ast.SelectorExpr); ok {
-		typeName = sel.Sel.Name
+	case *ast.Ident:
+		typeName = t.Name
+	case *ast.SelectorExpr:
+		typeName = t.Sel.Name
+	default:
 	}
 	return typeName, isPtr
 }
