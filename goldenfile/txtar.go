@@ -30,12 +30,13 @@ import (
 	"golang.org/x/tools/txtar"
 )
 
-var update = flag.Bool("update-golden", false, "if true, golden assertions will update the expected file instead of performing an assertion")
+// UpdateFlag is the flag used to update golden files, it can be overwritten by packages importing it.
+var UpdateFlag = flag.Bool("update-golden", false, "if true, golden assertions will update the expected file instead of performing an assertion")
 
 // Update returns value of the -update-golden CLI flag. A value of true indicates that
 // computed files should be updated instead of asserted against.
 func Update() bool {
-	return *update
+	return *UpdateFlag
 }
 
 // Writer wraps a [testing.T] to implement [io.Writer] by utilizing
@@ -49,12 +50,17 @@ func (w Writer) Write(p []byte) (int, error) {
 	return len(p), nil
 }
 
+// GoldenAssertion is the type of assertion to make, YAML, JSON, Text, or Bytes based
 type GoldenAssertion int
 
 const (
+	// YAML is a yaml-based golden assertion.
 	YAML GoldenAssertion = iota
+	// JSON is a json-based golden assertion.
 	JSON
+	// Text is a text-based golden assertion.
 	Text
+	// Bytes is a bytes-based golden assertion.
 	Bytes
 )
 
@@ -108,21 +114,23 @@ func assertGolden(t *testing.T, assertionType GoldenAssertion, path string, expe
 // that `actual`, a serialized YAML document, is equal to the one at `path`. If
 // `-update` has been passed to `go test`, `actual` will be written to `path`.
 func AssertGolden(t *testing.T, assertionType GoldenAssertion, path string, actual []byte) {
-	expected, err := os.ReadFile(path)
+	expected, err := os.ReadFile(path) //nolint:gosec // security of file is up to caller
 	if !os.IsNotExist(err) {
 		require.NoError(t, err)
 	}
 
-	assertGolden(t, assertionType, path, expected, actual, func(s string, b []byte) error {
-		return os.WriteFile(path, actual, 0o644)
+	assertGolden(t, assertionType, path, expected, actual, func(_ string, _ []byte) error {
+		return os.WriteFile(path, actual, 0o644) //nolint:gosec // file permissions are fine for test
 	})
 }
 
+// TxTarGolden is a wrapper around a txtar archive used as a golden file.
 type TxTarGolden struct {
 	mu      sync.Mutex
 	archive *txtar.Archive
 }
 
+// NewTxTar initializes a golden file txtar archive.
 func NewTxTar(t *testing.T, path string) *TxTarGolden {
 	archive, err := txtar.ParseFile(path)
 	if os.IsNotExist(err) {
@@ -150,7 +158,7 @@ func (g *TxTarGolden) update(path string) error {
 		return strings.Compare(a.Name, b.Name)
 	})
 
-	return os.WriteFile(path, txtar.Format(g.archive), 0o644)
+	return os.WriteFile(path, txtar.Format(g.archive), 0o644) //nolint:gosec // file permissions are fine for test
 }
 
 func (g *TxTarGolden) getFile(path string) *txtar.File {
@@ -169,12 +177,13 @@ func (g *TxTarGolden) getFile(path string) *txtar.File {
 	return &g.archive.Files[len(g.archive.Files)-1]
 }
 
+// AssertGolden does an assertion on a golden file.
 func (g *TxTarGolden) AssertGolden(t *testing.T, assertionType GoldenAssertion, path string, actual []byte) {
 	t.Helper()
 
 	file := g.getFile(path)
 
-	assertGolden(t, assertionType, path, file.Data, actual, func(s string, b []byte) error {
+	assertGolden(t, assertionType, path, file.Data, actual, func(_ string, b []byte) error {
 		file.Data = b
 		return nil
 	})

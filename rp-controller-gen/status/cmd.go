@@ -16,21 +16,21 @@ package status
 
 import (
 	"log"
-	"os"
 
 	"github.com/spf13/cobra"
 )
 
+// Cmd returns a cobra command that generates Go types and tests from
+// statuses definition files based on the provided configuration.
 func Cmd() *cobra.Command {
 	var config StatusConfig
 
 	cmd := &cobra.Command{
 		Use:     "status",
 		Example: "status --base-package github.com/some/repo [--statuses-file ./path/to/statuses.yaml]",
-		Run: func(cmd *cobra.Command, args []string) {
+		Run: func(*cobra.Command, []string) {
 			if err := Render(config); err != nil {
-				log.Fatal(err)
-				os.Exit(1)
+				log.Fatal(err) //nolint:revive // exiting is intended
 			}
 		},
 	}

@@ -56,7 +56,7 @@ func TestSyncer(t *testing.T) {
 
 	// This namespace with hold our test resources and act as the "owner" of
 	// them.
-	ns, err := kube.Create[corev1.Namespace](t.Context(), ctl, corev1.Namespace{
+	ns, err := kube.Create(t.Context(), ctl, corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "test-",
 			Labels: map[string]string{

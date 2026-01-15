@@ -60,7 +60,7 @@ func ConditionApplyConfigs(existing []metav1.Condition, generation int64, condit
 	return configurations
 }
 
-func conditionToConfig(generation int64, now metav1.Time, condition metav1.Condition) *applymetav1.ConditionApplyConfiguration { //nolint:gocritic // passing a Condition without a pointer reference is fine here
+func conditionToConfig(generation int64, now metav1.Time, condition metav1.Condition) *applymetav1.ConditionApplyConfiguration {
 	return applymetav1.Condition().
 		WithType(condition.Type).
 		WithStatus(condition.Status).

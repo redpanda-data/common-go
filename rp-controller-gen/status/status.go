@@ -69,7 +69,9 @@ func init() {
 	statusTestGenerator = template.Must(template.New("statusTests").Funcs(helpers).Parse(statusTestsTemplate))
 }
 
-type StatusConfig struct {
+// StatusConfig configures how status types and tests are generated from a
+// statuses definition file.
+type StatusConfig struct { //nolint:revive // stuttering is fine
 	StatusesFile    string
 	Package         string
 	BasePackage     string
@@ -78,7 +80,9 @@ type StatusConfig struct {
 	Outputs         StatusConfigOutputs
 }
 
-type StatusConfigOutputs struct {
+// StatusConfigOutputs holds filenames and directory information for generated
+// status files and tests.
+type StatusConfigOutputs struct { //nolint:revive // stuttering is fine
 	Directory      string
 	StatusFile     string
 	StatusTestFile string
@@ -91,6 +95,8 @@ type templateInfo struct {
 	Statuses []*status
 }
 
+// Render reads statuses definitions from the configured file and writes
+// generated status types and tests to the configured outputs.
 func Render(config StatusConfig) error {
 	statuses, err := decode(config.StatusesFile)
 	if err != nil {
@@ -117,7 +123,7 @@ func Render(config StatusConfig) error {
 func decode(name string) ([]*status, error) {
 	var into []*status
 
-	file, err := os.OpenFile(name, os.O_RDONLY, 0)
+	file, err := os.OpenFile(name, os.O_RDONLY, 0) //nolint:gosec // user responsibility
 	if err != nil {
 		return nil, err
 	}
@@ -127,7 +133,7 @@ func decode(name string) ([]*status, error) {
 		return nil, err
 	}
 	decoder := yaml.NewYAMLOrJSONDecoder(file, int(stat.Size()))
-	if err = decoder.Decode(&into); err != nil {
+	if err := decoder.Decode(&into); err != nil {
 		return nil, err
 	}
 
@@ -138,11 +144,7 @@ func render(info *templateInfo, outputs StatusConfigOutputs) error {
 	if err := renderAndWrite(outputs.Directory, outputs.StatusFile, info, renderStatusFile); err != nil {
 		return err
 	}
-	if err := renderAndWrite(outputs.Directory, outputs.StatusTestFile, info, renderStatusTestFile); err != nil {
-		return err
-	}
-
-	return nil
+	return renderAndWrite(outputs.Directory, outputs.StatusTestFile, info, renderStatusTestFile)
 }
 
 func renderAndWrite(directory, file string, info *templateInfo, renderFn func(info *templateInfo) ([]byte, error)) error {
@@ -164,7 +166,7 @@ func renderAndWrite(directory, file string, info *templateInfo, renderFn func(in
 		return err
 	}
 
-	if err := os.WriteFile(filepath.Join(directory, file), formatted, 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(directory, file), formatted, 0o644); err != nil { //nolint:gosec // file permissions are correct
 		return err
 	}
 	return nil
@@ -186,7 +188,7 @@ func renderStatusTestFile(info *templateInfo) ([]byte, error) {
 	return buffer.Bytes(), nil
 }
 
-func rewriteAPIComments(statuses []*status, config StatusConfig) error {
+func rewriteAPIComments(statuses []*status, config StatusConfig) error { //nolint:gocognit // complexity is fine
 	collectedStructs := map[string]map[string]*status{}
 	for i, s := range statuses {
 		for _, structPath := range s.AppliesTo {
@@ -241,7 +243,7 @@ func rewriteAPIComments(statuses []*status, config StatusConfig) error {
 					return err
 				}
 
-				if err := os.WriteFile(filepath.Join(path, entry.Name()), data, 0o644); err != nil {
+				if err := os.WriteFile(filepath.Join(path, entry.Name()), data, 0o644); err != nil { //nolint:gosec // file permissions are correct
 					return err
 				}
 			}
@@ -251,7 +253,7 @@ func rewriteAPIComments(statuses []*status, config StatusConfig) error {
 	return nil
 }
 
-func replaceTombstones(r io.Reader, structs map[string]*status) ([]byte, error) {
+func replaceTombstones(r io.Reader, structs map[string]*status) ([]byte, error) { //nolint:gocognit,cyclop // complexity is fine
 	scanner := bufio.NewScanner(r)
 	var fileContents bytes.Buffer
 	lastStructure := ""
@@ -312,7 +314,7 @@ func replaceTombstones(r io.Reader, structs map[string]*status) ([]byte, error) 
 	return data, err
 }
 
-func tombstoneComments(node ast.Node, structs map[string]*status) bool {
+func tombstoneComments(node ast.Node, structs map[string]*status) bool { //nolint:gocognit,cyclop // complexity is fine
 	genDecl, ok := node.(*ast.GenDecl)
 	if !ok || genDecl.Tok != token.TYPE {
 		return false

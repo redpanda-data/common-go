@@ -29,6 +29,8 @@ import (
 	"github.com/redpanda-data/common-go/rp-controller-gen/internal"
 )
 
+// Parser analyzes Go source in the configured directory to find deprecated
+// fields and produce test code that asserts deprecation warnings.
 type Parser struct {
 	config          DeprecationConfig
 	structs         map[string]*ast.StructType
@@ -37,6 +39,7 @@ type Parser struct {
 	allDeprecations map[string][]fieldRef
 }
 
+// NewParser creates a new Parser with the provided configuration.
 func NewParser(config DeprecationConfig) *Parser {
 	return &Parser{
 		config:          config,
@@ -46,6 +49,8 @@ func NewParser(config DeprecationConfig) *Parser {
 	}
 }
 
+// Parse walks the configured directory and parses Go source files,
+// collecting struct type definitions for later deprecation analysis.
 func (p *Parser) Parse() error {
 	fset := token.NewFileSet()
 	matches, err := filepath.Glob(filepath.Join(p.config.Directory, "*.go"))
@@ -80,7 +85,7 @@ func (p *Parser) Parse() error {
 				continue
 			}
 			for _, spec := range gd.Specs {
-				ts := spec.(*ast.TypeSpec)
+				ts := spec.(*ast.TypeSpec) //nolint:revive // assertion is fine
 				st, ok := ts.Type.(*ast.StructType)
 				if !ok {
 					continue
@@ -93,6 +98,8 @@ func (p *Parser) Parse() error {
 	return nil
 }
 
+// Compile generates the test source for discovered deprecations and returns
+// the formatted file contents, or an error if generation fails.
 func (p *Parser) Compile() ([]byte, error) {
 	p.compileAllDeprecations()
 	p.compileDeprecatedCRDs()
@@ -128,20 +135,22 @@ func (p *Parser) compileAllDeprecations() {
 
 func (p *Parser) compileDeprecatedCRDs() {
 	for typeName, st := range p.structs {
-		if isCRDRoot(st) {
-			specField := findFieldByGoName(st, "Spec")
-			if specField == nil {
-				continue
-			}
-			specTypeName := typeNameOf(specField.Type)
-			if specTypeName == "" {
-				continue
-			}
-			refs := p.collectDeprecations(specTypeName, []string{"Spec"}, []string{jsonNameForField(specField)})
-			p.config.Debugf("[deprecations] CRD root %q returned %d deprecated fields\n", typeName, len(refs))
-			if len(refs) > 0 {
-				p.crdDeprecations[typeName] = refs
-			}
+		if !isCRDRoot(st) {
+			continue
+		}
+
+		specField := findFieldByGoName(st, "Spec")
+		if specField == nil {
+			continue
+		}
+		specTypeName := typeNameOf(specField.Type)
+		if specTypeName == "" {
+			continue
+		}
+		refs := p.collectDeprecations(specTypeName, []string{"Spec"}, []string{jsonNameForField(specField)})
+		p.config.Debugf("[deprecations] CRD root %q returned %d deprecated fields\n", typeName, len(refs))
+		if len(refs) > 0 {
+			p.crdDeprecations[typeName] = refs
 		}
 	}
 }
@@ -212,12 +221,14 @@ func (p *Parser) compileTODO() string {
 	}
 
 	var todoCommentLines []string
-	todoCommentLines = append(todoCommentLines, "// TODO: The following fields are documented as deprecated in the API comments")
-	todoCommentLines = append(todoCommentLines, "// but their Go field names do not use the `Deprecated` prefix. Consider")
-	todoCommentLines = append(todoCommentLines, "// renaming them (or adding wrapper fields with the Deprecated prefix) so the")
-	todoCommentLines = append(todoCommentLines, "// reflective deprecation detector can find them uniformly. Examples found in")
-	todoCommentLines = append(todoCommentLines, "// this package:")
-	todoCommentLines = append(todoCommentLines, "//")
+	todoCommentLines = append(todoCommentLines, []string{
+		"// TODO: The following fields are documented as deprecated in the API comments",
+		"// but their Go field names do not use the `Deprecated` prefix. Consider",
+		"// renaming them (or adding wrapper fields with the Deprecated prefix) so the",
+		"// reflective deprecation detector can find them uniformly. Examples found in",
+		"// this package:",
+		"//",
+	}...)
 
 	var crdNames []string
 	for crdName := range crdsWithPoorlyNamedFields {

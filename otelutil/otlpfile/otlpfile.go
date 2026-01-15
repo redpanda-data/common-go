@@ -38,11 +38,15 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
+// File represents a file-backed OTLP sink. It provides exporters for traces,
+// logs, and metrics that write OTLP JSON-lines to the named file.
 type File struct {
 	Path string
 	file *syncWriter
 }
 
+// Open opens or creates an OTLP JSON-lines file at the given path and returns
+// a [File] that can be used to create exporters writing to that file.
 func Open(path string) (*File, error) {
 	file, err := os.OpenFile(path, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o664) //nolint:gosec // This is a log file, we want everyone to have permissions.
 	if err != nil {
@@ -54,10 +58,12 @@ func Open(path string) (*File, error) {
 	}, nil
 }
 
+// Close closes the underlying file writer backing the File.
 func (f *File) Close() error {
 	return f.file.Close()
 }
 
+// SpanExporter returns an OTLP span exporter that writes spans to this file.
 func (f *File) SpanExporter() sdktrace.SpanExporter {
 	exporter, err := otlptrace.New(context.Background(), NewClient(f.file.AddWriter()))
 	if err != nil {
@@ -66,20 +72,25 @@ func (f *File) SpanExporter() sdktrace.SpanExporter {
 	return exporter
 }
 
+// LogExporter returns an OTLP log exporter that writes logs to this file.
 func (f *File) LogExporter() sdklog.Exporter {
 	return NewLogExporter(f.file.AddWriter())
 }
 
+// MetricExporter returns an OTLP metric exporter that writes metrics to this file.
 func (f *File) MetricExporter() sdkmetric.Exporter {
 	return NewMetricExporter(f.file.AddWriter())
 }
 
+// Client implements otlptrace.Client and serializes traces to the provided writer
+// in OTLP JSON-lines format.
 type Client struct {
 	writer       io.WriteCloser
 	jsonEncoder  ptrace.Marshaler
 	protoDecoder ptrace.Unmarshaler
 }
 
+// NewClient returns a Client that writes OTLP traces to the provided writer.
 func NewClient(writer io.WriteCloser) *Client {
 	return &Client{
 		writer:       writer,
@@ -90,10 +101,14 @@ func NewClient(writer io.WriteCloser) *Client {
 
 var _ otlptrace.Client = &Client{}
 
-func (c *Client) Start(ctx context.Context) error { return nil }
-func (c *Client) Stop(ctx context.Context) error  { return c.writer.Close() }
+// Start implements the tracing interface but does nothing.
+func (*Client) Start(_ context.Context) error { return nil }
 
-func (c *Client) UploadTraces(ctx context.Context, spans []*tracepb.ResourceSpans) error {
+// Stop closes the underlying span writer.
+func (c *Client) Stop(_ context.Context) error { return c.writer.Close() }
+
+// UploadTraces implements the tracing interface and writes the given spans to disk
+func (c *Client) UploadTraces(_ context.Context, spans []*tracepb.ResourceSpans) error {
 	// The OTLP file format is incompatible with the default JSON encoding of
 	// the tracepb package:
 	// - OTLP == camelCase vs tracepb == snake_case
@@ -138,12 +153,14 @@ func (c *Client) UploadTraces(ctx context.Context, spans []*tracepb.ResourceSpan
 	return nil
 }
 
+// LogExporter writes logs to an io.WriteCloser in OTLP JSON-lines format.
 type LogExporter struct {
 	writer       io.WriteCloser
 	jsonEncoder  plog.Marshaler
 	protoDecoder plog.Unmarshaler
 }
 
+// NewLogExporter returns a LogExporter that writes OTLP logs to writer.
 func NewLogExporter(writer io.WriteCloser) *LogExporter {
 	return &LogExporter{
 		writer:       writer,
@@ -154,10 +171,15 @@ func NewLogExporter(writer io.WriteCloser) *LogExporter {
 
 var _ sdklog.Exporter = &LogExporter{}
 
-func (e *LogExporter) ForceFlush(ctx context.Context) error { return nil }
-func (e *LogExporter) Shutdown(ctx context.Context) error   { return e.writer.Close() }
+// ForceFlush is a no-op for file-backed exporters.
+func (*LogExporter) ForceFlush(_ context.Context) error { return nil }
 
-func (e *LogExporter) Export(ctx context.Context, records []sdklog.Record) error {
+// Shutdown closes the underlying writer.
+func (e *LogExporter) Shutdown(_ context.Context) error { return e.writer.Close() }
+
+// Export writes the provided log records to the underlying writer encoded as
+// OTLP JSON lines.
+func (e *LogExporter) Export(_ context.Context, records []sdklog.Record) error {
 	resourceLogs := transformResourceLogs(records)
 
 	protobytes, err := proto.Marshal(&logspb.LogsData{ResourceLogs: resourceLogs})
@@ -228,6 +250,7 @@ func (w *syncWriter) Close() error {
 	return w.WriteCloser.Close()
 }
 
+// MetricExporter writes metrics to an io.WriteCloser in OTLP JSON-lines format.
 type MetricExporter struct {
 	writer       io.WriteCloser
 	jsonEncoder  pmetric.Marshaler
@@ -236,6 +259,8 @@ type MetricExporter struct {
 	aggregation  sdkmetric.AggregationSelector
 }
 
+// NewMetricExporter returns a MetricExporter that writes OTLP metrics to the
+// provided writer.
 func NewMetricExporter(writer io.WriteCloser) *MetricExporter {
 	return &MetricExporter{
 		writer:       writer,
@@ -248,18 +273,25 @@ func NewMetricExporter(writer io.WriteCloser) *MetricExporter {
 
 var _ sdkmetric.Exporter = &MetricExporter{}
 
+// Temporality returns the temporality selection for the instrument kind.
 func (e *MetricExporter) Temporality(k sdkmetric.InstrumentKind) metricdata.Temporality {
 	return e.temporality(k)
 }
 
+// Aggregation returns the aggregation selection for the instrument kind.
 func (e *MetricExporter) Aggregation(k sdkmetric.InstrumentKind) sdkmetric.Aggregation {
 	return e.aggregation(k)
 }
 
-func (e *MetricExporter) ForceFlush(ctx context.Context) error { return nil }
-func (e *MetricExporter) Shutdown(ctx context.Context) error   { return e.writer.Close() }
+// ForceFlush is a no-op for file-backed metric exporters.
+func (*MetricExporter) ForceFlush(_ context.Context) error { return nil }
 
-func (e *MetricExporter) Export(ctx context.Context, metrics *metricdata.ResourceMetrics) error {
+// Shutdown closes the underlying writer.
+func (e *MetricExporter) Shutdown(_ context.Context) error { return e.writer.Close() }
+
+// Export writes the provided ResourceMetrics to the underlying writer encoded
+// as OTLP JSON lines.
+func (e *MetricExporter) Export(_ context.Context, metrics *metricdata.ResourceMetrics) error {
 	resourceMetrics, err := transformResourceMetrics(metrics)
 	if err != nil {
 		return err

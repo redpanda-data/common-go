@@ -24,16 +24,21 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// PropagationOption configures how propagation information is injected or
+// extracted from Kubernetes object annotations.
 type PropagationOption interface {
 	Apply(*PropagationOptions)
 }
 
+// WithTextMapPropagator returns an option that sets the text map propagator
+// used for inject/extract operations.
 func WithTextMapPropagator(propagator propagation.TextMapPropagator) *PropagationOptions {
 	return &PropagationOptions{
 		TextMapPropagator: propagator,
 	}
 }
 
+// PropagationOptions holds configuration for how propagation is performed.
 type PropagationOptions struct {
 	TextMapPropagator propagation.TextMapPropagator
 }
@@ -50,6 +55,7 @@ func options(opts ...PropagationOption) PropagationOptions {
 	return defaults
 }
 
+// Apply applies the propogration options.
 func (o *PropagationOptions) Apply(to *PropagationOptions) {
 	if o.TextMapPropagator != nil {
 		to.TextMapPropagator = o.TextMapPropagator
@@ -81,7 +87,9 @@ func Extract(ctx context.Context, obj client.Object, opts ...PropagationOption) 
 	return options(opts...).TextMapPropagator.Extract(ctx, propagation.MapCarrier(obj.GetAnnotations()))
 }
 
-func NewClient(c client.Client, opts ...PropagationOption) *tracingClient {
+// NewClient returns a controller-runtime client wrapper that injects
+// propagation information into objects on write operations.
+func NewClient(c client.Client, opts ...PropagationOption) client.Client {
 	return &tracingClient{Client: c, options: options(opts...)}
 }
 

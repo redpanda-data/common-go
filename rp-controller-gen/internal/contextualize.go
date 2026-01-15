@@ -21,6 +21,10 @@ import (
 	"strings"
 )
 
+// ContextualizeFormatErrors returns a more helpful multi-line string for
+// formatting errors reported by go/format by extracting the nearby source
+// lines for each reported scanner error. If the provided error is not a
+// scanner.ErrorList this returns an empty string.
 func ContextualizeFormatErrors(data []byte, err error) string {
 	var serr scanner.ErrorList
 	if errors.As(err, &serr) {

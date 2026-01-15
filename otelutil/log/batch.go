@@ -21,16 +21,22 @@ import (
 	sdklog "go.opentelemetry.io/otel/sdk/log"
 )
 
-// BatchProcessoris a wrapper around an sdklog.BatchProcessor with level filtering support
+// BatchProcessor is a wrapper around an sdklog.BatchProcessor that
+// provides severity filtering for log messages emitted by the exporter.
 type BatchProcessor struct {
 	*sdklog.BatchProcessor
 	severity otellog.Severity
 }
 
-func (p *BatchProcessor) Enabled(ctx context.Context, param sdklog.EnabledParameters) bool {
+// Enabled implements the sdklog.BatchProcessor Enabled hook and returns true
+// only if the provided severity should be emitted according to the configured
+// level.
+func (p *BatchProcessor) Enabled(_ context.Context, param sdklog.EnabledParameters) bool {
 	return shouldLogOTEL(p.severity, param.Severity)
 }
 
+// NewBatchProcessor returns a new BatchProcessor that writes to exporter and
+// filters messages below the provided severity.
 func NewBatchProcessor(exporter sdklog.Exporter, severity otellog.Severity, opts ...sdklog.BatchProcessorOption) *BatchProcessor {
 	return &BatchProcessor{
 		BatchProcessor: sdklog.NewBatchProcessor(exporter, opts...),

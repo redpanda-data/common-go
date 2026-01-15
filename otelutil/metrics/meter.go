@@ -19,6 +19,8 @@ import (
 	"go.opentelemetry.io/otel/metric"
 )
 
+// Meter returns a named meter from the global meter provider. It is a small
+// convenience wrapper around otel.Meter.
 func Meter(name string, opts ...metric.MeterOption) metric.Meter {
 	return otel.Meter(name, opts...)
 }
