@@ -43,7 +43,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
@@ -296,8 +295,8 @@ func (cr *CertRotator) Start(ctx context.Context) (err error) {
 		return errors.New("nil reader")
 	}
 
-	logger := log.FromContext(ctx)
-	logger.Info("starting rotator")
+	logger := Logger(ctx).WithName(fmt.Sprintf("%s[Start]", cr.ControllerName))
+	logger.V(3).Info("starting rotator")
 
 	if !cr.reader.WaitForCacheSync(ctx) {
 		return errors.New("failed waiting for reader to sync")
@@ -320,7 +319,7 @@ tickerLoop:
 		select {
 		case <-ticker.C:
 			if _, err := cr.refreshCertIfNeeded(ctx); err != nil {
-				log.FromContext(ctx).Error(err, "error rotating certs")
+				logger.Error(err, "error rotating certs")
 			}
 		case <-ctx.Done():
 			break tickerLoop
@@ -353,9 +352,9 @@ func (cr *CertRotator) GetCertificate(_ *tls.ClientHelloInfo) (*tls.Certificate,
 // and if there's any error when rotating the CA or refreshing the certs.
 func (cr *CertRotator) refreshCertIfNeeded(ctx context.Context) (bool, error) {
 	var rotatedCA bool
-	logger := log.FromContext(ctx)
+	logger := Logger(ctx).WithName(fmt.Sprintf("%s[Refresh]", cr.ControllerName))
 
-	logger.Info("refreshing cert if needed")
+	logger.V(3).Info("refreshing cert if needed")
 
 	refreshFn := func() (bool, error) {
 		secret := &corev1.Secret{}
@@ -367,7 +366,7 @@ func (cr *CertRotator) refreshCertIfNeeded(ctx context.Context) (bool, error) {
 		defer func() {
 			artifacts, err := buildArtifactsFromSecret(secret)
 			if err == nil {
-				logger.Info("caching artifacts")
+				logger.V(3).Info("caching artifacts")
 				cr.currentCertificate.Store(artifacts)
 			}
 		}()
@@ -785,8 +784,8 @@ type webhookReconciler struct {
 // Reconcile reads that state of the cluster for a validatingwebhookconfiguration
 // object and makes sure the most recent CA cert is included.
 func (r *webhookReconciler) Reconcile(ctx context.Context, request reconcile.Request) (_ reconcile.Result, err error) {
-	logger := log.FromContext(ctx)
-	logger.Info("reconciling", "namespace", request.Namespace, "name", request.Name)
+	logger := Logger(ctx).WithName(fmt.Sprintf("%s[Reconcile]", r.rotator.ControllerName))
+	logger.V(3).Info("reconciling", "namespace", request.Namespace, "name", request.Name)
 
 	if request.NamespacedName != r.secretKey {
 		return reconcile.Result{}, nil
@@ -848,7 +847,7 @@ func (r *webhookReconciler) Reconcile(ctx context.Context, request reconcile.Req
 // by the returned error, but rather in the logged errors.
 func (r *webhookReconciler) ensureCerts(ctx context.Context, certPem []byte) error {
 	var anyError error
-	logger := log.FromContext(ctx)
+	logger := Logger(ctx).WithName(fmt.Sprintf("%s[EnsureCerts]", r.rotator.ControllerName))
 
 	for _, webhook := range r.webhooks {
 		gvk := webhook.gvk()
@@ -869,7 +868,7 @@ func (r *webhookReconciler) ensureCerts(ctx context.Context, certPem []byte) err
 			continue
 		}
 
-		log.Info("Ensuring CA cert", "name", webhook.Name, "gvk", gvk)
+		log.V(1).Info("Ensuring CA cert", "name", webhook.Name, "gvk", gvk)
 		if err := injectCert(r.url, r.service, updatedResource, certPem, webhook); err != nil {
 			log.Error(err, "Unable to inject cert to webhook.")
 			anyError = err
@@ -886,6 +885,8 @@ func (r *webhookReconciler) ensureCerts(ctx context.Context, certPem []byte) err
 }
 
 func (cr *CertRotator) ensureReady(ctx context.Context) {
+	logger := Logger(ctx).WithName(fmt.Sprintf("%s[Ready]", cr.ControllerName))
+
 	checkFn := func() (bool, error) {
 		return cr.wasCAInjected.Load(), nil
 	}
@@ -895,10 +896,10 @@ func (cr *CertRotator) ensureReady(ctx context.Context) {
 		Jitter:   1,
 		Steps:    10,
 	}, checkFn); err != nil {
-		log.FromContext(ctx).Error(err, "max retries for checking CA injection")
+		logger.Error(err, "max retries for checking CA injection")
 		close(cr.caNotInjected)
 		return
 	}
-	log.FromContext(ctx).Info("CA certs are injected to webhooks")
+	logger.V(1).Info("CA certs are injected to webhooks")
 	close(cr.isReady)
 }
