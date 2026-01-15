@@ -72,31 +72,31 @@ func NewEnv(t *testing.T, opts ...kube.Option) *kube.Ctl {
 	return ctl
 }
 
-// KubetestManagerOptions contains options for running
+// ManagerOptions contains options for running
 // components of a kubetest-initialized manager.
-type KubetestManagerOptions struct {
+type ManagerOptions struct {
 	rotatorConfig   *kube.CertRotatorConfig
 	registrationFns []func(ctrl.Manager) error
-	cancelContext   context.Context
+	cancelContext   context.Context //nolint:containedctx // this is intentional
 	stopped         chan struct{}
 }
 
-// KubeTestManagerOption is a function for specifying optional
+// ManagerOption is a function for specifying optional
 // parameters to a kubetest-initialized manager
-type KubeTestManagerOption func(*KubetestManagerOptions)
+type ManagerOption func(*ManagerOptions)
 
 // WithRotator adds in a certificate rotator meant for injecting
 // certificate information into webhooks.
-func WithRotator(config *kube.CertRotatorConfig) KubeTestManagerOption {
-	return func(o *KubetestManagerOptions) {
+func WithRotator(config *kube.CertRotatorConfig) ManagerOption {
+	return func(o *ManagerOptions) {
 		o.rotatorConfig = config
 	}
 }
 
 // WithRegisterFn allows for registering arbitrary runnables on the manager
 // before it starts.
-func WithRegisterFn(fn func(ctrl.Manager) error) KubeTestManagerOption {
-	return func(o *KubetestManagerOptions) {
+func WithRegisterFn(fn func(ctrl.Manager) error) ManagerOption {
+	return func(o *ManagerOptions) {
 		o.registrationFns = append(o.registrationFns, fn)
 	}
 }
@@ -104,15 +104,15 @@ func WithRegisterFn(fn func(ctrl.Manager) error) KubeTestManagerOption {
 // WithCancelation allows use to specify some controls about when to stop
 // the manager (and a channel to ensure it is stopped) to simulate things
 // like controller crashes.
-func WithCancelation(ctx context.Context, stopped chan struct{}) KubeTestManagerOption {
-	return func(o *KubetestManagerOptions) {
+func WithCancelation(ctx context.Context, stopped chan struct{}) ManagerOption {
+	return func(o *ManagerOptions) {
 		o.cancelContext = ctx
 		o.stopped = stopped
 	}
 }
 
 // RunManager runs a manager wired up to the given kube.Ctl instance.
-func RunManager(t *testing.T, ctl *kube.Ctl, opts ...KubeTestManagerOption) {
+func RunManager(t *testing.T, ctl *kube.Ctl, opts ...ManagerOption) {
 	t.Helper()
 
 	hooks := &envtest.WebhookInstallOptions{}
@@ -121,7 +121,7 @@ func RunManager(t *testing.T, ctl *kube.Ctl, opts ...KubeTestManagerOption) {
 	}
 	url := fmt.Sprintf("https://%s:%d/convert", hooks.LocalServingHost, hooks.LocalServingPort)
 
-	options := &KubetestManagerOptions{}
+	options := &ManagerOptions{}
 	for _, opt := range opts {
 		opt(options)
 	}

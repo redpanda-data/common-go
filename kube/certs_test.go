@@ -67,7 +67,7 @@ func ensureInjected(t *testing.T, ctl *kube.Ctl, crdName string) {
 	}
 }
 
-func TestCertRotator(t *testing.T) { //nolint:cyclop // complexity is fine, this is a test
+func TestCertRotator(t *testing.T) {
 	t.Parallel()
 
 	scheme := runtime.NewScheme()

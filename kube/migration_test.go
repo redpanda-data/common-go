@@ -278,7 +278,7 @@ func fetchCRs(t *testing.T, c *kube.Ctl, gvk schema.GroupVersionKind) []unstruct
 	return got.Items
 }
 
-func TestMigrate(t *testing.T) { //nolint:cyclop // complexity is fine
+func TestMigrate(t *testing.T) {
 	t.Parallel()
 
 	scheme := runtime.NewScheme()

@@ -134,6 +134,9 @@ func AddRotator(mgr manager.Manager, cr *CertRotator) error {
 			Scheme: mgr.GetScheme(),
 		},
 	})
+	if err != nil {
+		return fmt.Errorf("initializing client: %w", err)
+	}
 
 	cr.reader = cache
 	cr.writer = ctl
@@ -540,7 +543,7 @@ func buildArtifactsFromSecret(secret *corev1.Secret) (caArtifacts *certificateAr
 	return caArtifacts, certArtifacts, nil
 }
 
-func (cr *CertRotator) createCertificate(template, parent *x509.Certificate, signer *rsa.PrivateKey) (*certificateArtifacts, error) {
+func createCertificate(template, parent *x509.Certificate, signer *rsa.PrivateKey) (*certificateArtifacts, error) {
 	key, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
 		return nil, fmt.Errorf("generating key: %w", err)
@@ -569,7 +572,7 @@ func (cr *CertRotator) createCertificate(template, parent *x509.Certificate, sig
 }
 
 func (cr *CertRotator) createCA(begin, end time.Time) (*certificateArtifacts, error) {
-	return cr.createCertificate(&x509.Certificate{
+	return createCertificate(&x509.Certificate{
 		SerialNumber: big.NewInt(0),
 		Subject: pkix.Name{
 			CommonName:   cr.CAName,
@@ -604,7 +607,7 @@ func (cr *CertRotator) createSignedCert(ca *certificateArtifacts, begin, end tim
 		return nil, err
 	}
 
-	return cr.createCertificate(&x509.Certificate{
+	return createCertificate(&x509.Certificate{
 		SerialNumber: big.NewInt(1),
 		Subject: pkix.Name{
 			CommonName: cr.DNSName,
