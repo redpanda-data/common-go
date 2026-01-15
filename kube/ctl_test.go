@@ -29,8 +29,6 @@ import (
 )
 
 func TestCtl(t *testing.T) {
-	t.Parallel()
-
 	log.SetLogger(testr.New(t))
 
 	ctl := kubetest.NewEnv(t)

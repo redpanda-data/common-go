@@ -68,8 +68,6 @@ func ensureInjected(t *testing.T, ctl *kube.Ctl, crdName string) {
 }
 
 func TestCertRotator(t *testing.T) {
-	t.Parallel()
-
 	scheme := runtime.NewScheme()
 	if err := apiextensionsv1.AddToScheme(scheme); err != nil {
 		t.Fatalf("add apiextensions to scheme: %v", err)

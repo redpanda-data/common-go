@@ -39,8 +39,6 @@ import (
 )
 
 func TestSyncer(t *testing.T) {
-	t.Parallel()
-
 	log.SetLogger(testr.New(t))
 
 	// Notably:
