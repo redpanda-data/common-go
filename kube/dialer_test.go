@@ -40,6 +40,8 @@ import (
 )
 
 func TestDialer(t *testing.T) {
+	t.Parallel()
+
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
 
@@ -174,9 +176,11 @@ func TestDialer(t *testing.T) {
 		"http://name.service.default.svc.cluster.local.",
 	} {
 		t.Run(host, func(t *testing.T) {
+			t.Parallel()
+
 			// Test the pooling behavior of HTTPClient by making requests to
 			// the same hosts a few times.
-			for i := 0; i < 5; i++ {
+			for range 5 {
 				func() {
 					// Run in a closure so we have a context scoped to the life
 					// time of each request we make, which is distinct from the

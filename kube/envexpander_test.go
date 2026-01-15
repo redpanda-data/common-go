@@ -15,6 +15,7 @@
 package kube_test
 
 import (
+	"strconv"
 	"testing"
 
 	"github.com/go-logr/logr/testr"
@@ -30,6 +31,8 @@ import (
 )
 
 func TestEnvExpander(t *testing.T) {
+	t.Parallel()
+
 	log.SetLogger(testr.New(t))
 
 	ctl := kubetest.NewEnv(t)
@@ -100,17 +103,21 @@ func TestEnvExpander(t *testing.T) {
 		},
 	}
 
-	for _, tc := range cases {
-		expander := kube.EnvExpander{
-			Client:    c,
-			Namespace: "default",
-			Env:       tc.Env,
-			EnvFrom:   tc.EnvFrom,
-		}
+	for i, tc := range cases {
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			t.Parallel()
 
-		expanded, err := expander.Expand(t.Context(), tc.In)
-		assert.NoError(t, err)
+			expander := kube.EnvExpander{
+				Client:    c,
+				Namespace: "default",
+				Env:       tc.Env,
+				EnvFrom:   tc.EnvFrom,
+			}
 
-		assert.Equal(t, tc.Out, expanded)
+			expanded, err := expander.Expand(t.Context(), tc.In)
+			assert.NoError(t, err)
+
+			assert.Equal(t, tc.Out, expanded)
+		})
 	}
 }
