@@ -27,6 +27,8 @@ import (
 )
 
 func TestEncodeDecode(t *testing.T) {
+	t.Parallel()
+
 	objs := []kube.Object{
 		&corev1.Pod{Spec: corev1.PodSpec{DNSPolicy: corev1.DNSClusterFirst}},
 		&corev1.Service{Spec: corev1.ServiceSpec{ClusterIP: "127.0.0.1"}},

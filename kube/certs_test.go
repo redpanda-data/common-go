@@ -16,109 +16,28 @@ package kube_test
 
 import (
 	"context"
-	"crypto/tls"
 	"crypto/x509"
 	"encoding/pem"
-	"fmt"
 	"testing"
 	"time"
 
-	"github.com/go-logr/logr/testr"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/utils/ptr"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/envtest"
-	"sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	"github.com/redpanda-data/common-go/kube"
 	"github.com/redpanda-data/common-go/kube/kubetest"
 )
 
-func TestCertRotator(t *testing.T) { //nolint:cyclop // complexity is fine, this is a test
-	scheme := runtime.NewScheme()
-	if err := apiextensionsv1.AddToScheme(scheme); err != nil {
-		t.Fatalf("add apiextensions to scheme: %v", err)
-	}
-	if err := corev1.AddToScheme(scheme); err != nil {
-		t.Fatalf("add core to scheme: %v", err)
-	}
-
-	scheme.AddKnownTypeWithName(deprecatedGVK, &myKindV1{})
-
-	ctl := kubetest.NewEnv(t, kube.Options{
-		Options: client.Options{
-			Scheme: scheme,
-		},
-	})
-
-	setupCRD(t, ctl)
-
-	hooks := &envtest.WebhookInstallOptions{}
-	if err := hooks.PrepWithoutInstalling(); err != nil {
-		t.Fatalf("failed to prep webhooks: %v", err)
-	}
-
-	url := fmt.Sprintf("https://%s:%d/convert", hooks.LocalServingHost, hooks.LocalServingPort)
-	rotator := kube.NewCertRotator(kube.CertRotatorConfig{
-		SecretKey: types.NamespacedName{
-			Namespace: "default",
-			Name:      "certificate",
-		},
-		DNSName: "127.0.0.1",
-		Webhooks: []kube.WebhookInfo{{
-			Type:     kube.CRDConversion,
-			Name:     testCRDName,
-			Versions: []string{deprecatedVersion},
-		}},
-		URL: ptr.To(url),
-	})
-
-	logger := testr.New(t)
-
-	mgr, err := ctrl.NewManager(ctl.RestConfig(), ctrl.Options{
-		Scheme: scheme,
-		WebhookServer: webhook.NewServer(webhook.Options{
-			Host: hooks.LocalServingHost,
-			Port: hooks.LocalServingPort,
-			TLSOpts: []func(*tls.Config){func(config *tls.Config) {
-				config.GetCertificate = rotator.GetCertificate
-			}},
-		}),
-		BaseContext: func() context.Context {
-			return log.IntoContext(context.Background(), logger)
-		},
-	})
-	if err != nil {
-		t.Fatalf("unable to initialize manager: %v", err)
-	}
-
-	if err := kube.AddRotator(mgr, rotator); err != nil {
-		t.Fatalf("unable to add rotator: %v", err)
-	}
-
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	go func() {
-		if err := mgr.Start(ctx); err != nil {
-			t.Errorf("error running manager: %v", err)
-		}
-	}()
-
-	select {
-	case <-rotator.IsReady():
-	case <-time.After(10 * time.Second):
-		t.Fatal("rotator failed to become ready")
-	}
+func ensureInjected(t *testing.T, ctl *kube.Ctl, crdName string) {
+	t.Helper()
 
 	if err := wait.PollUntilContextTimeout(t.Context(), 500*time.Millisecond, 15*time.Second, true, func(ctx context.Context) (bool, error) {
 		var crd apiextensionsv1.CustomResourceDefinition
-		if err := ctl.Get(ctx, types.NamespacedName{Name: testCRDName}, &crd); err != nil {
+		if err := ctl.Get(ctx, types.NamespacedName{Name: crdName}, &crd); err != nil {
 			return false, err
 		}
 		conversion := crd.Spec.Conversion
@@ -127,7 +46,7 @@ func TestCertRotator(t *testing.T) { //nolint:cyclop // complexity is fine, this
 			return false, nil
 		}
 		clientConfig := conversion.Webhook.ClientConfig
-		hasConfigValues := clientConfig.URL != nil && *clientConfig.URL == url
+		hasConfigValues := clientConfig.URL != nil
 		if !hasConfigValues {
 			return false, nil
 		}
@@ -144,6 +63,42 @@ func TestCertRotator(t *testing.T) { //nolint:cyclop // complexity is fine, this
 
 		return true, nil
 	}); err != nil {
-		t.Fatalf("crd not established: %v", err)
+		t.Fatalf("crd not injected: %v", err)
 	}
+}
+
+func TestCertRotator(t *testing.T) { //nolint:cyclop // complexity is fine, this is a test
+	t.Parallel()
+
+	scheme := runtime.NewScheme()
+	if err := apiextensionsv1.AddToScheme(scheme); err != nil {
+		t.Fatalf("add apiextensions to scheme: %v", err)
+	}
+	if err := corev1.AddToScheme(scheme); err != nil {
+		t.Fatalf("add core to scheme: %v", err)
+	}
+
+	scheme.AddKnownTypeWithName(deprecatedGVK, &myKindV1{})
+	ctl := kubetest.NewEnv(t, kube.Options{
+		Options: client.Options{
+			Scheme: scheme,
+		},
+	})
+
+	setupCRD(t, ctl)
+
+	kubetest.RunManager(t, ctl, kubetest.WithRotator(&kube.CertRotatorConfig{
+		SecretKey: types.NamespacedName{
+			Namespace: "default",
+			Name:      "certificate",
+		},
+		Webhooks: []kube.WebhookInfo{{
+			Type:     kube.CRDConversion,
+			Name:     testCRDName,
+			Versions: []string{deprecatedVersion},
+		}},
+		ControllerName: t.Name(),
+	}))
+
+	ensureInjected(t, ctl, testCRDName)
 }
