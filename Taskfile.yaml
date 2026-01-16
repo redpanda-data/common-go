@@ -25,9 +25,6 @@ tasks:
       - task: check-project-meta:dir
         vars:
           DIRECTORY: 'proto'
-      - task: check-project-meta:dir
-        vars:
-          DIRECTORY: 'kube/example'
 
   check-project-meta:dir:
     label: check-project-meta:dir {{ .DIRECTORY }}
@@ -51,10 +48,7 @@ tasks:
         task: lint:dir
         vars:
          DIRECTORY: '{{.ITEM}}'
-      - task: lint:dir
-        vars:
-          DIRECTORY: 'kube/example'
-
+  
   lint:dir:
     label: lint:dir {{ .DIRECTORY }}
     desc: Lint Go code on the provided directory

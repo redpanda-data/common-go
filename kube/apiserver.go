@@ -36,6 +36,8 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
+// APIServerBuilder eases the construction of aggregate API servers run by
+// a controller-runtime Manager.
 type APIServerBuilder struct {
 	manager ctrl.Manager
 	address net.IP
@@ -44,6 +46,7 @@ type APIServerBuilder struct {
 	storage map[string]registryrest.Storage
 }
 
+// NewAPIServerManagedBy creates a new APIServerBuilder
 func NewAPIServerManagedBy(mgr ctrl.Manager) *APIServerBuilder {
 	return &APIServerBuilder{
 		manager: mgr,
@@ -53,22 +56,26 @@ func NewAPIServerManagedBy(mgr ctrl.Manager) *APIServerBuilder {
 	}
 }
 
+// WithBind allows for specifying the address and port that the server binds to.
 func (sb *APIServerBuilder) WithBind(address net.IP, port int) *APIServerBuilder {
 	sb.address = address
 	sb.port = port
 	return sb
 }
 
+// WithRotator allows for dynamic cert rotation for the api server.
 func (sb *APIServerBuilder) WithRotator(rotator *CertRotator) *APIServerBuilder {
 	sb.rotator = rotator
 	return sb
 }
 
+// WithStorage sets a custom storage provider for the given resource name.
 func (sb *APIServerBuilder) WithStorage(name string, storage registryrest.Storage) *APIServerBuilder {
 	sb.storage[name] = storage
 	return sb
 }
 
+// Complete initializes the aggregate APIServer and adds it as a leader-elected runnable to the given manager.
 func (sb *APIServerBuilder) Complete(groupVersion schema.GroupVersion, api common.GetOpenAPIDefinitions, title, version string) error {
 	scheme := sb.manager.GetScheme()
 	codecs := serializer.NewCodecFactory(scheme)
@@ -93,7 +100,7 @@ func (sb *APIServerBuilder) Complete(groupVersion schema.GroupVersion, api commo
 		serving.Cert = sb.rotator
 		serving.SNICerts = append(serving.SNICerts, sb.rotator)
 	}
-	serverConfig.Config.SecureServing = serving
+	serverConfig.SecureServing = serving
 	serverConfig.LoopbackClientConfig = loopbackConfig
 
 	serverConfig.OpenAPIConfig = genericapiserver.DefaultOpenAPIConfig(api, openapi.NewDefinitionNamer(scheme))
@@ -108,7 +115,7 @@ func (sb *APIServerBuilder) Complete(groupVersion schema.GroupVersion, api commo
 		featuregate.NewVersionedFeatureGate(utilversion.MustParse(version)),
 	)
 	utilruntime.Must(gate.AddVersioned(map[featuregate.Feature]featuregate.VersionedSpecs{}))
-	utilruntime.Must(compatibility.DefaultComponentGlobalsRegistry.SetEmulationVersionMapping(title, basecompatibility.DefaultKubeComponent, func(from *utilversion.Version) *utilversion.Version {
+	utilruntime.Must(compatibility.DefaultComponentGlobalsRegistry.SetEmulationVersionMapping(title, basecompatibility.DefaultKubeComponent, func(_ *utilversion.Version) *utilversion.Version {
 		return utilversion.MustParse(baseversion.DefaultKubeBinaryVersion)
 	}))
 	serverConfig.EffectiveVersion = compatibility.DefaultComponentGlobalsRegistry.EffectiveVersionFor(title)

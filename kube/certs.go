@@ -412,7 +412,8 @@ func (cr *CertRotator) refreshCert(ctx context.Context, secret *corev1.Secret, c
 	return cr.writeSecret(ctx, caArtifacts, certificateArtifacts, secret)
 }
 
-func (cr *CertRotator) CurrentCertKeyContent() ([]byte, []byte) {
+// CurrentCertKeyContent implements a dynamic cert rotation provider for APIServers.
+func (cr *CertRotator) CurrentCertKeyContent() (certPEM []byte, keyPEM []byte) {
 	cert, err := cr.getCurrentCertificate()
 	if err != nil {
 		return nil, nil
@@ -420,15 +421,18 @@ func (cr *CertRotator) CurrentCertKeyContent() ([]byte, []byte) {
 	return cert.CertPEM, cert.KeyPEM
 }
 
+// Name implements a dynamic cert rotation provider for APIServers.
 func (cr *CertRotator) Name() string {
 	return cr.ControllerName
 }
 
+// SNINames implements a dynamic cert rotation provider for APIServers.
 func (cr *CertRotator) SNINames() []string {
 	return []string{cr.DNSName}
 }
 
-func (cr *CertRotator) AddListener(dynamiccertificates.Listener) {}
+// AddListener implements a dynamic cert rotation provider for APIServers.
+func (*CertRotator) AddListener(dynamiccertificates.Listener) {}
 
 func injectCert(ctx context.Context, url *string, service *apiextensionsv1.ServiceReference, updatedResource *unstructured.Unstructured, certPem []byte, webhook WebhookInfo) error {
 	logger := Logger(ctx).WithName("CertRotator[Injector]")
