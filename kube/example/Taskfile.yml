@@ -1,0 +1,46 @@
+version: '3'
+
+run: once
+
+shopt: [globstar]
+
+vars:
+  SRC_DIR:
+    sh: 'realpath {{default "." .SRC_DIR}}'
+
+tasks:
+  generate:
+    cmds:
+      - |
+        controller-gen \
+          object:headerFile="boilerplate.go.txt" \
+          paths='./...' \
+          crd applyconfiguration webhook \
+          rbac:roleName=example \
+          output:crd:artifacts:config=crds \
+          output:rbac:artifacts:config=chart/templates \
+          output:applyconfiguration:artifacts:config=applyconfiguration
+      - mv api/cluster/v1/applyconfiguration/cluster/v1 api/cluster/v1/applyconfigurationout
+      - rm -rf api/cluster/v1/applyconfiguration
+      - mv api/cluster/v1/applyconfigurationout api/cluster/v1/applyconfiguration
+      - rm crds/resources.kube.redpanda.com_virtuals.yaml crds/_virtuals.yaml 
+      - "sed -i '' 's/name: example/name: {{ `{{` }} .Release.Name {{ `}}` }}/g' chart/templates/role.yaml"
+      - openapi-gen --output-dir api/resources/v1 --output-file zz_generated.openapi.go --output-pkg v1 ./api/resources/v1 k8s.io/apimachinery/pkg/apis/meta/v1 k8s.io/apimachinery/pkg/runtime k8s.io/apimachinery/pkg/version
+      - conversion-gen ./api/resources/v1 --output-file zz_generated.conversion.go
+
+  build:
+    cmds:
+      - CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -o manager
+      - docker build . --tag example.local:dev
+
+  dev:
+    cmds:
+      - helm uninstall example --namespace example || true
+      - kind load docker-image example.local:dev
+      - helm install example --namespace example --create-namespace ./chart
+
+  install-tools:
+    cmds:
+      - go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.20.0
+      - go install k8s.io/code-generator/cmd/conversion-gen@285401e6db04dead462fbc9860ade09fac2c58e7
+      - go install k8s.io/kube-openapi/cmd/openapi-gen@4e65d59e963e749fa7939999518f9e90682983c3

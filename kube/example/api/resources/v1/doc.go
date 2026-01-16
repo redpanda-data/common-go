@@ -1,0 +1,45 @@
+// Copyright 2026 Redpanda Data, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// Package v2 contains API Schema definitions for the redpanda v1 API group
+// +groupName=resources.kube.redpanda.com
+// +versionName=v1
+// +k8s:conversion-gen=github.com/redpanda-data/common-go/kube/example/api/resources
+package v1
+
+import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	runtime "k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+)
+
+var (
+	// GroupVersion is group version used to register these objects
+	GroupVersion = schema.GroupVersion{Group: "resources.kube.redpanda.com", Version: "v1"}
+
+	// SchemeBuilder is the scheme builder with scheme init functions to run for this API package
+	SchemeBuilder      runtime.SchemeBuilder
+	localSchemeBuilder = &SchemeBuilder
+
+	// AddToScheme adds the types in this group-version to the given scheme.
+	AddToScheme = localSchemeBuilder.AddToScheme
+)
+
+func init() {
+	localSchemeBuilder.Register(func(scheme *runtime.Scheme) error {
+		scheme.AddKnownTypes(GroupVersion, &Virtual{}, &VirtualList{})
+		metav1.AddToGroupVersion(scheme, GroupVersion)
+		return nil
+	})
+}

@@ -28,6 +28,8 @@ import (
 )
 
 func TestItems(t *testing.T) {
+	t.Parallel()
+
 	// Unlike other types, ServiceMonitorList's Items is []*T instead of []T.
 	// As we need to use reflection to get Items out, we need to be careful to
 	// not panic.

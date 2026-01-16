@@ -71,6 +71,10 @@ matches:
     type: go
     directory: kube
     license: Apache
+  - extension: .go
+    type: go
+    directory: kube/example
+    license: Apache
 files:
   - name: api/LICENSE
     license: BSL
@@ -121,5 +125,8 @@ files:
     license: Apache
     full: true
   - name: otelutil/LICENSE
+    license: Apache
+    full: true
+  - name: kube/example/LICENSE
     license: Apache
     full: true

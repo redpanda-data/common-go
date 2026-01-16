@@ -35,12 +35,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
-	"sigs.k8s.io/controller-runtime/pkg/envtest"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	"github.com/redpanda-data/common-go/kube"
 	"github.com/redpanda-data/common-go/kube/kubetest"
@@ -187,7 +184,7 @@ func setupCRD(t *testing.T, c *kube.Ctl) {
 	}
 }
 
-func updateCRD(t *testing.T, c *kube.Ctl, hooks *envtest.WebhookInstallOptions) {
+func updateCRD(t *testing.T, c *kube.Ctl) {
 	t.Helper()
 
 	var crd apiextensionsv1.CustomResourceDefinition
@@ -212,16 +209,6 @@ func updateCRD(t *testing.T, c *kube.Ctl, hooks *envtest.WebhookInstallOptions) 
 			},
 		},
 	})
-	crd.Spec.Conversion = &apiextensionsv1.CustomResourceConversion{
-		Strategy: apiextensionsv1.WebhookConverter,
-		Webhook: &apiextensionsv1.WebhookConversion{
-			ConversionReviewVersions: []string{deprecatedVersion, latestVersion},
-			ClientConfig: &apiextensionsv1.WebhookClientConfig{
-				URL:      ptr.To(fmt.Sprintf("https://%s:%d/convert", hooks.LocalServingHost, hooks.LocalServingPort)),
-				CABundle: hooks.LocalServingCAData,
-			},
-		},
-	}
 
 	if err := c.Update(t.Context(), &crd); err != nil {
 		t.Fatalf("update crd: %v", err)
@@ -291,7 +278,7 @@ func fetchCRs(t *testing.T, c *kube.Ctl, gvk schema.GroupVersionKind) []unstruct
 	return got.Items
 }
 
-func TestMigrate(t *testing.T) { //nolint:cyclop // complexity is fine
+func TestMigrate(t *testing.T) {
 	scheme := runtime.NewScheme()
 	if err := apiextensionsv1.AddToScheme(scheme); err != nil {
 		t.Fatalf("add apiextensions to scheme: %v", err)
@@ -324,34 +311,24 @@ func TestMigrate(t *testing.T) { //nolint:cyclop // complexity is fine
 		}
 	}
 
-	hooks := &envtest.WebhookInstallOptions{}
-	if err := hooks.PrepWithoutInstalling(); err != nil {
-		t.Fatalf("failed to prep webhooks: %v", err)
-	}
+	updateCRD(t, ctl)
 
-	updateCRD(t, ctl, hooks)
+	kubetest.RunManager(t, ctl, kubetest.WithRotator(&kube.CertRotatorConfig{
+		SecretKey: types.NamespacedName{
+			Namespace: "default",
+			Name:      "certificate",
+		},
+		Webhooks: []kube.WebhookInfo{{
+			Type:     kube.CRDConversion,
+			Name:     testCRDName,
+			Versions: []string{deprecatedVersion, latestVersion},
+		}},
+		ControllerName: t.Name(),
+	}), kubetest.WithRegisterFn(func(m ctrl.Manager) error {
+		return ctrl.NewWebhookManagedBy(m).For(&myKindV2{}).Complete()
+	}))
 
-	mgr, err := ctrl.NewManager(ctl.RestConfig(), ctrl.Options{
-		Scheme: scheme,
-		WebhookServer: webhook.NewServer(webhook.Options{
-			Host:    hooks.LocalServingHost,
-			Port:    hooks.LocalServingPort,
-			CertDir: hooks.LocalServingCertDir,
-		}),
-	})
-	if err != nil {
-		t.Fatalf("error setting up webhooks: %v", err)
-	}
-	if err := ctrl.NewWebhookManagedBy(mgr).For(&myKindV2{}).Complete(); err != nil {
-		t.Fatalf("error setting up webhooks: %v", err)
-	}
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	go func() {
-		if err := mgr.Start(ctx); err != nil {
-			t.Errorf("error running manager: %v", err)
-		}
-	}()
+	ensureInjected(t, ctl, testCRDName)
 
 	createCR(t, ctl, latestGVK, types.NamespacedName{
 		Namespace: "ns2",
@@ -412,6 +389,8 @@ func TestMigrate(t *testing.T) { //nolint:cyclop // complexity is fine
 }
 
 func TestMigrateManifest(t *testing.T) { //nolint:gocognit // test is fine
+	t.Parallel()
+
 	scheme := runtime.NewScheme()
 	if err := apiextensionsv1.AddToScheme(scheme); err != nil {
 		t.Fatalf("add apiextensions to scheme: %v", err)

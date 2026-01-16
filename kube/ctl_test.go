@@ -64,6 +64,8 @@ func TestCtl(t *testing.T) {
 	require.Len(t, cms.Items, 3)
 
 	t.Run("Apply", func(t *testing.T) {
+		t.Parallel()
+
 		s := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "conflict-me",
@@ -91,6 +93,8 @@ func TestCtl(t *testing.T) {
 	})
 
 	t.Run("Delete", func(t *testing.T) {
+		t.Parallel()
+
 		s := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "delete-me",

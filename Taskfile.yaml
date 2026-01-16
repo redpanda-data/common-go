@@ -48,7 +48,7 @@ tasks:
         task: lint:dir
         vars:
          DIRECTORY: '{{.ITEM}}'
-
+  
   lint:dir:
     label: lint:dir {{ .DIRECTORY }}
     desc: Lint Go code on the provided directory
@@ -69,6 +69,9 @@ tasks:
         task: fmt:dir
         vars:
           DIRECTORY: '{{.ITEM}}'
+      - task: fmt:dir
+        vars:
+          DIRECTORY: 'kube/example'
 
   fmt:dir:
     label: fmt:dir {{ .DIRECTORY }}
