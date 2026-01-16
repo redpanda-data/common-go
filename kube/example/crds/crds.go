@@ -72,8 +72,8 @@ func All() []*apiextensionsv1.CustomResourceDefinition {
 	return ret
 }
 
-func Example() *apiextensionsv1.CustomResourceDefinition {
-	return mustT(ByName("examples.example.kube.redpanda.com"))
+func Cluster() *apiextensionsv1.CustomResourceDefinition {
+	return mustT(ByName("clusters.cluster.kube.redpanda.com"))
 }
 
 func mustT[T any](r T, err error) T {

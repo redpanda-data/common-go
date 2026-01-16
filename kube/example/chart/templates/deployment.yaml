@@ -19,14 +19,12 @@ spec:
         - name: {{ .Chart.Name }}
           image: "example.local:dev"
           args:
-            - -hostname
-            - {{ .Release.Name }}.{{ .Release.Namespace }}.svc.cluster.local
             - -service
             - {{ .Release.Name }}
             - -namespace
             - {{ .Release.Namespace }}
           ports:
             - name: service
-              containerPort: 443
+              containerPort: 8443
             - name: webhook
               containerPort: 9443

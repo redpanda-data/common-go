@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"flag"
+	"fmt"
 	"log"
 	"os"
 
@@ -14,7 +15,6 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -24,7 +24,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
-	examplev1 "github.com/redpanda-data/common-go/kube/example/api/v1"
+	clusterv1 "github.com/redpanda-data/common-go/kube/example/api/cluster/v1"
+	"github.com/redpanda-data/common-go/kube/example/api/resources"
+	resourcesv1 "github.com/redpanda-data/common-go/kube/example/api/resources/v1"
 	"github.com/redpanda-data/common-go/kube/example/crds"
 )
 
@@ -34,11 +36,12 @@ func init() {
 	kube.SetContextLoggerFactory(func(ctx context.Context) logr.Logger {
 		return ctrl.LoggerFrom(ctx)
 	})
-	zaplogger, err := zap.NewProduction(zap.AddStacktrace(zapcore.ErrorLevel))
+	config := zap.NewProductionConfig()
+	config.Level = zap.NewAtomicLevelAt(zapcore.Level(-4))
+	zaplogger, err := config.Build(zap.AddStacktrace(zapcore.ErrorLevel))
 	if err != nil {
 		log.Fatal(err)
 	}
-
 	logger = zapr.NewLogger(zaplogger)
 	ctrl.SetLogger(logger)
 }
@@ -46,21 +49,19 @@ func init() {
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch
 // +kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions,verbs=get;list;watch;create;update;patch
 // +kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions/status,verbs=update;patch
-// +kubebuilder:rbac:groups=example.kube.redpanda.com,resources=examples,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=example.kube.redpanda.com,resources=examples/status,verbs=update;patch
-// +kubebuilder:rbac:groups=example.kube.redpanda.com,resources=examples/finalizers,verbs=update
+// +kubebuilder:rbac:groups=apiregistration.k8s.io,resources=apiservices,verbs=get;list;watch;create;update;patch
+// +kubebuilder:rbac:groups=apiregistration.k8s.io,resources=apiservices/status,verbs=update;patch
+// +kubebuilder:rbac:groups=cluster.kube.redpanda.com,resources=clusters,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=cluster.kube.redpanda.com,resources=clusters/status,verbs=update;patch
+// +kubebuilder:rbac:groups=cluster.kube.redpanda.com,resources=clusters/finalizers,verbs=update
 
 func main() {
-	var hostname, service, namespace string
-	flag.StringVar(&hostname, "hostname", "", "DNS host name for certificate")
+	var service, namespace string
 	flag.StringVar(&service, "service", "", "Service where this is deployed")
 	flag.StringVar(&namespace, "namespace", "", "Namespace where this is deployed")
 	flag.Parse()
 
 	var flagErr error
-	if hostname == "" {
-		flagErr = errors.Join(flagErr, errors.New("hostname must be specified"))
-	}
 	if service == "" {
 		flagErr = errors.Join(flagErr, errors.New("service must be specified"))
 	}
@@ -76,27 +77,32 @@ func main() {
 	ctx := ctrl.SetupSignalHandler()
 
 	rotator := kube.NewCertRotator(kube.CertRotatorConfig{
-		DNSName: hostname,
+		DNSName: fmt.Sprintf("%s.%s.svc", service, namespace),
 		SecretKey: types.NamespacedName{
-			Namespace: metav1.NamespaceDefault,
+			Namespace: namespace,
 			Name:      service + "-certificate",
 		},
 		Service: &apiextensionsv1.ServiceReference{
-			Namespace: metav1.NamespaceDefault,
+			Namespace: namespace,
 			Name:      service,
 			Path:      ptr.To("/convert"),
 		},
 		Webhooks: []kube.WebhookInfo{{
 			Type:     kube.CRDConversion,
-			Name:     "examples.example.kube.redpanda.com",
+			Name:     "clusters.cluster.kube.redpanda.com",
 			Versions: []string{"v1"},
+		}, {
+			Type: kube.APIService,
+			Name: "v1.resources.kube.redpanda.com",
 		}},
 	})
 
 	scheme := runtime.NewScheme()
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	utilruntime.Must(apiextensionsv1.AddToScheme(scheme))
-	utilruntime.Must(examplev1.AddToScheme(scheme))
+	utilruntime.Must(clusterv1.AddToScheme(scheme))
+	utilruntime.Must(resources.AddToScheme(scheme))
+	utilruntime.Must(resourcesv1.AddToScheme(scheme))
 
 	config := ctrl.GetConfigOrDie()
 	mgr, err := ctrl.NewManager(config, ctrl.Options{
@@ -128,13 +134,20 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err := ctrl.NewWebhookManagedBy(mgr).For(&examplev1.Example{}).Complete(); err != nil {
+	storage := resources.NewVirtualStorage(ctl)
+
+	if err := ctrl.NewWebhookManagedBy(mgr).For(&clusterv1.Cluster{}).Complete(); err != nil {
 		logger.Error(err, "setting up webhook")
 		os.Exit(1)
 	}
 
-	if err := ctrl.NewControllerManagedBy(mgr).For(&examplev1.Example{}).Complete(&reconciler{ctl: ctl}); err != nil {
+	if err := ctrl.NewControllerManagedBy(mgr).For(&clusterv1.Cluster{}).Complete(&reconciler{ctl: ctl, storage: storage}); err != nil {
 		logger.Error(err, "setting up reconciler")
+		os.Exit(1)
+	}
+
+	if err := kube.NewAPIServerManagedBy(mgr).WithRotator(rotator).WithStorage("virtuals", storage).Complete(resourcesv1.GroupVersion, resourcesv1.GetOpenAPIDefinitions, "Virtual", "1.0"); err != nil {
+		logger.Error(err, "setting up api server")
 		os.Exit(1)
 	}
 

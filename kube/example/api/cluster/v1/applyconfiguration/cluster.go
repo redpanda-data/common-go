@@ -3,40 +3,40 @@
 package v1
 
 import (
-	apiv1 "github.com/redpanda-data/common-go/kube/example/api/v1"
+	clusterv1 "github.com/redpanda-data/common-go/kube/example/api/cluster/v1"
 	apismetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	metav1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
-// ExampleApplyConfiguration represents a declarative configuration of the Example type for use
+// ClusterApplyConfiguration represents a declarative configuration of the Cluster type for use
 // with apply.
 //
-// Example is an example CRD
-type ExampleApplyConfiguration struct {
+// Cluster is a cluster CRD
+type ClusterApplyConfiguration struct {
 	metav1.TypeMetaApplyConfiguration    `json:",inline"`
 	*metav1.ObjectMetaApplyConfiguration `json:"metadata,omitempty"`
-	Spec                                 *apiv1.ExampleSpec               `json:"spec,omitempty"`
-	Status                               *ExampleStatusApplyConfiguration `json:"status,omitempty"`
+	Spec                                 *clusterv1.ClusterSpec           `json:"spec,omitempty"`
+	Status                               *ClusterStatusApplyConfiguration `json:"status,omitempty"`
 }
 
-// Example constructs a declarative configuration of the Example type for use with
+// Cluster constructs a declarative configuration of the Cluster type for use with
 // apply.
-func Example(name, namespace string) *ExampleApplyConfiguration {
-	b := &ExampleApplyConfiguration{}
+func Cluster(name, namespace string) *ClusterApplyConfiguration {
+	b := &ClusterApplyConfiguration{}
 	b.WithName(name)
 	b.WithNamespace(namespace)
-	b.WithKind("Example")
-	b.WithAPIVersion("example.kube.redpanda.com/v1")
+	b.WithKind("Cluster")
+	b.WithAPIVersion("cluster.kube.redpanda.com/v1")
 	return b
 }
 
-func (b ExampleApplyConfiguration) IsApplyConfiguration() {}
+func (b ClusterApplyConfiguration) IsApplyConfiguration() {}
 
 // WithKind sets the Kind field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Kind field is set to the value of the last call.
-func (b *ExampleApplyConfiguration) WithKind(value string) *ExampleApplyConfiguration {
+func (b *ClusterApplyConfiguration) WithKind(value string) *ClusterApplyConfiguration {
 	b.TypeMetaApplyConfiguration.Kind = &value
 	return b
 }
@@ -44,7 +44,7 @@ func (b *ExampleApplyConfiguration) WithKind(value string) *ExampleApplyConfigur
 // WithAPIVersion sets the APIVersion field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the APIVersion field is set to the value of the last call.
-func (b *ExampleApplyConfiguration) WithAPIVersion(value string) *ExampleApplyConfiguration {
+func (b *ClusterApplyConfiguration) WithAPIVersion(value string) *ClusterApplyConfiguration {
 	b.TypeMetaApplyConfiguration.APIVersion = &value
 	return b
 }
@@ -52,7 +52,7 @@ func (b *ExampleApplyConfiguration) WithAPIVersion(value string) *ExampleApplyCo
 // WithName sets the Name field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Name field is set to the value of the last call.
-func (b *ExampleApplyConfiguration) WithName(value string) *ExampleApplyConfiguration {
+func (b *ClusterApplyConfiguration) WithName(value string) *ClusterApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	b.ObjectMetaApplyConfiguration.Name = &value
 	return b
@@ -61,7 +61,7 @@ func (b *ExampleApplyConfiguration) WithName(value string) *ExampleApplyConfigur
 // WithGenerateName sets the GenerateName field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the GenerateName field is set to the value of the last call.
-func (b *ExampleApplyConfiguration) WithGenerateName(value string) *ExampleApplyConfiguration {
+func (b *ClusterApplyConfiguration) WithGenerateName(value string) *ClusterApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	b.ObjectMetaApplyConfiguration.GenerateName = &value
 	return b
@@ -70,7 +70,7 @@ func (b *ExampleApplyConfiguration) WithGenerateName(value string) *ExampleApply
 // WithNamespace sets the Namespace field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Namespace field is set to the value of the last call.
-func (b *ExampleApplyConfiguration) WithNamespace(value string) *ExampleApplyConfiguration {
+func (b *ClusterApplyConfiguration) WithNamespace(value string) *ClusterApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	b.ObjectMetaApplyConfiguration.Namespace = &value
 	return b
@@ -79,7 +79,7 @@ func (b *ExampleApplyConfiguration) WithNamespace(value string) *ExampleApplyCon
 // WithUID sets the UID field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the UID field is set to the value of the last call.
-func (b *ExampleApplyConfiguration) WithUID(value types.UID) *ExampleApplyConfiguration {
+func (b *ClusterApplyConfiguration) WithUID(value types.UID) *ClusterApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	b.ObjectMetaApplyConfiguration.UID = &value
 	return b
@@ -88,7 +88,7 @@ func (b *ExampleApplyConfiguration) WithUID(value types.UID) *ExampleApplyConfig
 // WithResourceVersion sets the ResourceVersion field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the ResourceVersion field is set to the value of the last call.
-func (b *ExampleApplyConfiguration) WithResourceVersion(value string) *ExampleApplyConfiguration {
+func (b *ClusterApplyConfiguration) WithResourceVersion(value string) *ClusterApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	b.ObjectMetaApplyConfiguration.ResourceVersion = &value
 	return b
@@ -97,7 +97,7 @@ func (b *ExampleApplyConfiguration) WithResourceVersion(value string) *ExampleAp
 // WithGeneration sets the Generation field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Generation field is set to the value of the last call.
-func (b *ExampleApplyConfiguration) WithGeneration(value int64) *ExampleApplyConfiguration {
+func (b *ClusterApplyConfiguration) WithGeneration(value int64) *ClusterApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	b.ObjectMetaApplyConfiguration.Generation = &value
 	return b
@@ -106,7 +106,7 @@ func (b *ExampleApplyConfiguration) WithGeneration(value int64) *ExampleApplyCon
 // WithCreationTimestamp sets the CreationTimestamp field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the CreationTimestamp field is set to the value of the last call.
-func (b *ExampleApplyConfiguration) WithCreationTimestamp(value apismetav1.Time) *ExampleApplyConfiguration {
+func (b *ClusterApplyConfiguration) WithCreationTimestamp(value apismetav1.Time) *ClusterApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	b.ObjectMetaApplyConfiguration.CreationTimestamp = &value
 	return b
@@ -115,7 +115,7 @@ func (b *ExampleApplyConfiguration) WithCreationTimestamp(value apismetav1.Time)
 // WithDeletionTimestamp sets the DeletionTimestamp field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the DeletionTimestamp field is set to the value of the last call.
-func (b *ExampleApplyConfiguration) WithDeletionTimestamp(value apismetav1.Time) *ExampleApplyConfiguration {
+func (b *ClusterApplyConfiguration) WithDeletionTimestamp(value apismetav1.Time) *ClusterApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	b.ObjectMetaApplyConfiguration.DeletionTimestamp = &value
 	return b
@@ -124,7 +124,7 @@ func (b *ExampleApplyConfiguration) WithDeletionTimestamp(value apismetav1.Time)
 // WithDeletionGracePeriodSeconds sets the DeletionGracePeriodSeconds field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the DeletionGracePeriodSeconds field is set to the value of the last call.
-func (b *ExampleApplyConfiguration) WithDeletionGracePeriodSeconds(value int64) *ExampleApplyConfiguration {
+func (b *ClusterApplyConfiguration) WithDeletionGracePeriodSeconds(value int64) *ClusterApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	b.ObjectMetaApplyConfiguration.DeletionGracePeriodSeconds = &value
 	return b
@@ -134,7 +134,7 @@ func (b *ExampleApplyConfiguration) WithDeletionGracePeriodSeconds(value int64) 
 // and returns the receiver, so that objects can be build by chaining "With" function invocations.
 // If called multiple times, the entries provided by each call will be put on the Labels field,
 // overwriting an existing map entries in Labels field with the same key.
-func (b *ExampleApplyConfiguration) WithLabels(entries map[string]string) *ExampleApplyConfiguration {
+func (b *ClusterApplyConfiguration) WithLabels(entries map[string]string) *ClusterApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	if b.ObjectMetaApplyConfiguration.Labels == nil && len(entries) > 0 {
 		b.ObjectMetaApplyConfiguration.Labels = make(map[string]string, len(entries))
@@ -149,7 +149,7 @@ func (b *ExampleApplyConfiguration) WithLabels(entries map[string]string) *Examp
 // and returns the receiver, so that objects can be build by chaining "With" function invocations.
 // If called multiple times, the entries provided by each call will be put on the Annotations field,
 // overwriting an existing map entries in Annotations field with the same key.
-func (b *ExampleApplyConfiguration) WithAnnotations(entries map[string]string) *ExampleApplyConfiguration {
+func (b *ClusterApplyConfiguration) WithAnnotations(entries map[string]string) *ClusterApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	if b.ObjectMetaApplyConfiguration.Annotations == nil && len(entries) > 0 {
 		b.ObjectMetaApplyConfiguration.Annotations = make(map[string]string, len(entries))
@@ -163,7 +163,7 @@ func (b *ExampleApplyConfiguration) WithAnnotations(entries map[string]string) *
 // WithOwnerReferences adds the given value to the OwnerReferences field in the declarative configuration
 // and returns the receiver, so that objects can be build by chaining "With" function invocations.
 // If called multiple times, values provided by each call will be appended to the OwnerReferences field.
-func (b *ExampleApplyConfiguration) WithOwnerReferences(values ...*metav1.OwnerReferenceApplyConfiguration) *ExampleApplyConfiguration {
+func (b *ClusterApplyConfiguration) WithOwnerReferences(values ...*metav1.OwnerReferenceApplyConfiguration) *ClusterApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	for i := range values {
 		if values[i] == nil {
@@ -177,7 +177,7 @@ func (b *ExampleApplyConfiguration) WithOwnerReferences(values ...*metav1.OwnerR
 // WithFinalizers adds the given value to the Finalizers field in the declarative configuration
 // and returns the receiver, so that objects can be build by chaining "With" function invocations.
 // If called multiple times, values provided by each call will be appended to the Finalizers field.
-func (b *ExampleApplyConfiguration) WithFinalizers(values ...string) *ExampleApplyConfiguration {
+func (b *ClusterApplyConfiguration) WithFinalizers(values ...string) *ClusterApplyConfiguration {
 	b.ensureObjectMetaApplyConfigurationExists()
 	for i := range values {
 		b.ObjectMetaApplyConfiguration.Finalizers = append(b.ObjectMetaApplyConfiguration.Finalizers, values[i])
@@ -185,7 +185,7 @@ func (b *ExampleApplyConfiguration) WithFinalizers(values ...string) *ExampleApp
 	return b
 }
 
-func (b *ExampleApplyConfiguration) ensureObjectMetaApplyConfigurationExists() {
+func (b *ClusterApplyConfiguration) ensureObjectMetaApplyConfigurationExists() {
 	if b.ObjectMetaApplyConfiguration == nil {
 		b.ObjectMetaApplyConfiguration = &metav1.ObjectMetaApplyConfiguration{}
 	}
@@ -194,7 +194,7 @@ func (b *ExampleApplyConfiguration) ensureObjectMetaApplyConfigurationExists() {
 // WithSpec sets the Spec field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Spec field is set to the value of the last call.
-func (b *ExampleApplyConfiguration) WithSpec(value apiv1.ExampleSpec) *ExampleApplyConfiguration {
+func (b *ClusterApplyConfiguration) WithSpec(value clusterv1.ClusterSpec) *ClusterApplyConfiguration {
 	b.Spec = &value
 	return b
 }
@@ -202,29 +202,29 @@ func (b *ExampleApplyConfiguration) WithSpec(value apiv1.ExampleSpec) *ExampleAp
 // WithStatus sets the Status field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Status field is set to the value of the last call.
-func (b *ExampleApplyConfiguration) WithStatus(value *ExampleStatusApplyConfiguration) *ExampleApplyConfiguration {
+func (b *ClusterApplyConfiguration) WithStatus(value *ClusterStatusApplyConfiguration) *ClusterApplyConfiguration {
 	b.Status = value
 	return b
 }
 
 // GetKind retrieves the value of the Kind field in the declarative configuration.
-func (b *ExampleApplyConfiguration) GetKind() *string {
+func (b *ClusterApplyConfiguration) GetKind() *string {
 	return b.TypeMetaApplyConfiguration.Kind
 }
 
 // GetAPIVersion retrieves the value of the APIVersion field in the declarative configuration.
-func (b *ExampleApplyConfiguration) GetAPIVersion() *string {
+func (b *ClusterApplyConfiguration) GetAPIVersion() *string {
 	return b.TypeMetaApplyConfiguration.APIVersion
 }
 
 // GetName retrieves the value of the Name field in the declarative configuration.
-func (b *ExampleApplyConfiguration) GetName() *string {
+func (b *ClusterApplyConfiguration) GetName() *string {
 	b.ensureObjectMetaApplyConfigurationExists()
 	return b.ObjectMetaApplyConfiguration.Name
 }
 
 // GetNamespace retrieves the value of the Namespace field in the declarative configuration.
-func (b *ExampleApplyConfiguration) GetNamespace() *string {
+func (b *ClusterApplyConfiguration) GetNamespace() *string {
 	b.ensureObjectMetaApplyConfigurationExists()
 	return b.ObjectMetaApplyConfiguration.Namespace
 }

@@ -5,13 +5,13 @@ metadata:
   labels:
     app: {{ .Release.Name }}
 spec:
-  clusterIP: None
+  type: ClusterIP
   selector:
     app: {{ .Release.Name }}
   ports:
     - name: server
       port: 443
-      targetPort: 443
+      targetPort: 8443
       protocol: TCP
     - name: webhook
       port: 9443

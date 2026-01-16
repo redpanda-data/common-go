@@ -4,20 +4,20 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.20.0
-  name: examples.example.kube.redpanda.com
+  name: clusters.cluster.kube.redpanda.com
 spec:
-  group: example.kube.redpanda.com
+  group: cluster.kube.redpanda.com
   names:
-    kind: Example
-    listKind: ExampleList
-    plural: examples
-    singular: example
+    kind: Cluster
+    listKind: ClusterList
+    plural: clusters
+    singular: cluster
   scope: Namespaced
   versions:
   - name: v1
     schema:
       openAPIV3Schema:
-        description: Example is an example CRD
+        description: Cluster is a cluster CRD
         properties:
           apiVersion:
             description: |-
@@ -37,10 +37,10 @@ spec:
           metadata:
             type: object
           spec:
-            description: ExampleSpec defines the desired state of an example.
+            description: ClusterSpec defines the desired state of a cluster.
             type: object
           status:
-            description: ExampleStatus is the status for an example
+            description: ClusterStatus is the status for a cluster
             properties:
               observedGeneration:
                 format: int64

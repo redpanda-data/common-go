@@ -23,6 +23,7 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/base64"
+	"encoding/json"
 	"encoding/pem"
 	"errors"
 	"fmt"
@@ -38,6 +39,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apiserver/pkg/server/dynamiccertificates"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -267,11 +269,35 @@ func (cr *CertRotator) Start(ctx context.Context) (err error) {
 
 	logger := Logger(ctx).WithName("CertRotator[Start]")
 
+	logger.V(3).Info("waiting for cache sync")
 	if !cr.reader.WaitForCacheSync(ctx) {
 		return errors.New("failed waiting for reader to sync")
 	}
 
-	if err := cr.refreshCertificates(ctx); err != nil {
+	refreshAndInject := func(ctx context.Context) error {
+		if err := cr.refreshCertificates(ctx); err != nil {
+			return err
+		}
+		ca, err := cr.getCurrentCA()
+		if err != nil {
+			if errors.Is(err, context.Canceled) {
+				return nil
+			}
+			logger.Error(err, "error loading CA")
+			return err
+		}
+		if err := cr.ensureCerts(ctx, ca.CertPEM); err != nil {
+			if errors.Is(err, context.Canceled) {
+				return nil
+			}
+			logger.Error(err, "error ensuring certificates injected")
+			return err
+		}
+		return nil
+	}
+
+	logger.V(3).Info("initial certificate refresh")
+	if err := refreshAndInject(ctx); err != nil {
 		return err
 	}
 
@@ -281,7 +307,7 @@ tickerLoop:
 	for {
 		select {
 		case <-ticker.C:
-			if err := cr.refreshCertificates(ctx); err != nil {
+			if err := refreshAndInject(ctx); err != nil {
 				logger.Error(err, "error rotating certs")
 			}
 		case <-ctx.Done():
@@ -360,9 +386,8 @@ func (cr *CertRotator) refreshCertificates(ctx context.Context) error {
 		if err := cr.refreshCert(ctx, secret, caArtifacts); err != nil {
 			return err
 		}
-		return cr.cacheArtifacts(secret)
 	}
-	return nil
+	return cr.cacheArtifacts(secret)
 }
 
 func (cr *CertRotator) refreshCA(ctx context.Context, secret *corev1.Secret) error {
@@ -387,13 +412,36 @@ func (cr *CertRotator) refreshCert(ctx context.Context, secret *corev1.Secret, c
 	return cr.writeSecret(ctx, caArtifacts, certificateArtifacts, secret)
 }
 
-func injectCert(url *string, service *apiextensionsv1.ServiceReference, updatedResource *unstructured.Unstructured, certPem []byte, webhook WebhookInfo) error {
+func (cr *CertRotator) CurrentCertKeyContent() ([]byte, []byte) {
+	cert, err := cr.getCurrentCertificate()
+	if err != nil {
+		return nil, nil
+	}
+	return cert.CertPEM, cert.KeyPEM
+}
+
+func (cr *CertRotator) Name() string {
+	return cr.ControllerName
+}
+
+func (cr *CertRotator) SNINames() []string {
+	return []string{cr.DNSName}
+}
+
+func (cr *CertRotator) AddListener(dynamiccertificates.Listener) {}
+
+func injectCert(ctx context.Context, url *string, service *apiextensionsv1.ServiceReference, updatedResource *unstructured.Unstructured, certPem []byte, webhook WebhookInfo) error {
+	logger := Logger(ctx).WithName("CertRotator[Injector]")
+
 	switch webhook.Type {
 	case Validating, Mutating:
+		logger.V(3).Info("injecting Webhook", "name", webhook.Name)
 		return injectCertToWebhook(url, service, updatedResource, certPem)
 	case CRDConversion:
+		logger.V(3).Info("injecting CRD", "name", webhook.Name)
 		return injectCertToConversionWebhook(webhook.Versions, url, service, updatedResource, certPem)
 	case APIService:
+		logger.V(3).Info("injecting APIService", "name", webhook.Name)
 		return injectCertToAPIService(updatedResource, service, certPem)
 	default:
 		return errors.New("incorrect webhook type")
@@ -428,7 +476,11 @@ func injectCertToAPIService(apiService *unstructured.Unstructured, service *apie
 		serviceReference.Path = nil
 		// nil out the port since it must be port 443
 		serviceReference.Port = nil
-		if err := unstructured.SetNestedField(apiService.Object, serviceReference, "spec", "service"); err != nil {
+		m, err := toMap(serviceReference)
+		if err != nil {
+			return err
+		}
+		if err := unstructured.SetNestedField(apiService.Object, m, "spec", "service"); err != nil {
 			return err
 		}
 	}
@@ -454,12 +506,16 @@ func injectCertToWebhook(url *string, service *apiextensionsv1.ServiceReference,
 		}
 
 		if url != nil {
-			if err := unstructured.SetNestedField(hook, "clientConfig", "url"); err != nil {
+			if err := unstructured.SetNestedField(hook, *url, "clientConfig", "url"); err != nil {
 				return err
 			}
 		}
 		if service != nil {
-			if err := unstructured.SetNestedField(hook, "clientConfig", "service"); err != nil {
+			m, err := toMap(service)
+			if err != nil {
+				return err
+			}
+			if err := unstructured.SetNestedField(hook, m, "clientConfig", "service"); err != nil {
 				return err
 			}
 		}
@@ -493,11 +549,27 @@ func injectCertToConversionWebhook(versions []string, url *string, service *apie
 		}
 	}
 	if service != nil {
-		if err := unstructured.SetNestedField(crd.Object, service, "spec", "conversion", "webhook", "clientConfig", "service"); err != nil {
+		m, err := toMap(service)
+		if err != nil {
+			return err
+		}
+		if err := unstructured.SetNestedField(crd.Object, m, "spec", "conversion", "webhook", "clientConfig", "service"); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+func toMap(v any) (map[string]any, error) {
+	d, err := json.Marshal(v)
+	if err != nil {
+		return nil, err
+	}
+	m := map[string]any{}
+	if err := json.Unmarshal(d, &m); err != nil {
+		return nil, err
+	}
+	return m, nil
 }
 
 func (cr *CertRotator) writeSecret(ctx context.Context, caArtifacts, certArtifacts *certificateArtifacts, secret *corev1.Secret) error {
@@ -675,7 +747,6 @@ func (cr *CertRotator) validServerCert(secret *corev1.Secret) bool {
 
 	valid, err := validCert(caCert, cert, key, cr.DNSName, []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth}, cr.lookaheadTime())
 	if err != nil {
-		fmt.Println(err)
 		return false
 	}
 	return valid
@@ -822,7 +893,7 @@ func (r *webhookReconciler) Reconcile(ctx context.Context, request reconcile.Req
 		logger.Error(err, "error loading CA")
 		return reconcile.Result{}, err
 	}
-	if err := r.ensureCerts(ctx, ca.CertPEM); err != nil {
+	if err := r.rotator.ensureCerts(ctx, ca.CertPEM); err != nil {
 		if errors.Is(err, context.Canceled) {
 			return reconcile.Result{}, nil
 		}
@@ -833,16 +904,16 @@ func (r *webhookReconciler) Reconcile(ctx context.Context, request reconcile.Req
 	return reconcile.Result{}, nil
 }
 
-func (r *webhookReconciler) ensureCerts(ctx context.Context, certPem []byte) error {
+func (cr *CertRotator) ensureCerts(ctx context.Context, certPem []byte) error {
 	var multierr error
 	logger := Logger(ctx).WithName("CertRotator[EnsureCerts]")
 
-	for _, webhook := range r.rotator.Webhooks {
+	for _, webhook := range cr.Webhooks {
 		gvk := webhook.gvk()
 		log := logger.WithValues("name", webhook.Name, "gvk", gvk)
 		updatedResource := &unstructured.Unstructured{}
 		updatedResource.SetGroupVersionKind(gvk)
-		if err := r.rotator.reader.Get(ctx, types.NamespacedName{Name: webhook.Name}, updatedResource); err != nil {
+		if err := cr.reader.Get(ctx, types.NamespacedName{Name: webhook.Name}, updatedResource); err != nil {
 			if apierrors.IsNotFound(err) {
 				log.Error(err, "Webhook not found. Unable to update certificate.")
 				continue
@@ -858,14 +929,14 @@ func (r *webhookReconciler) ensureCerts(ctx context.Context, certPem []byte) err
 			continue
 		}
 
-		if err := injectCert(r.rotator.URL, r.rotator.Service, updatedResource, certPem, webhook); err != nil {
+		if err := injectCert(ctx, cr.URL, cr.Service, updatedResource, certPem, webhook); err != nil {
 			if !errors.Is(err, context.Canceled) {
 				log.Error(err, "Unable to inject cert to webhook.")
 			}
 			multierr = errors.Join(multierr, err)
 			continue
 		}
-		if err := r.rotator.writer.Apply(ctx, updatedResource, client.FieldOwner(r.rotator.ControllerName), client.ForceOwnership); err != nil {
+		if err := cr.writer.Apply(ctx, updatedResource, client.FieldOwner(cr.ControllerName), client.ForceOwnership); err != nil {
 			if !errors.Is(err, context.Canceled) {
 				log.Error(err, "Error updating webhook with certificate")
 			}
