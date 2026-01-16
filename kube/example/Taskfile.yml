@@ -20,13 +20,20 @@ tasks:
           crd applyconfiguration webhook \
           rbac:roleName=example \
           output:crd:artifacts:config=crds \
-          output:rbac:artifacts:config=rbac \
+          output:rbac:artifacts:config=chart/templates \
           output:applyconfiguration:artifacts:config=applyconfiguration
       - mv api/v1/applyconfiguration/api/v1 api/v1/applyconfigurationout
       - rm -rf api/v1/applyconfiguration
       - mv api/v1/applyconfigurationout api/v1/applyconfiguration
+      - "sed -i '' 's/name: example/name: {{ `{{` }} .Release.Name {{ `}}` }}/g' chart/templates/role.yaml"
 
   build:
     cmds:
       - CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -o manager
       - docker build . --tag example.local:dev
+
+  dev:
+    cmds:
+      - helm uninstall example --namespace example || true
+      - kind load docker-image example.local:dev
+      - helm install example --namespace example --create-namespace ./chart

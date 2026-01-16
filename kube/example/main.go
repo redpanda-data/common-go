@@ -43,6 +43,13 @@ func init() {
 	ctrl.SetLogger(logger)
 }
 
+// +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch
+// +kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions,verbs=get;list;watch;create;update;patch
+// +kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions/status,verbs=update;patch
+// +kubebuilder:rbac:groups=example.kube.redpanda.com,resources=examples,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=example.kube.redpanda.com,resources=examples/status,verbs=update;patch
+// +kubebuilder:rbac:groups=example.kube.redpanda.com,resources=examples/finalizers,verbs=update
+
 func main() {
 	var hostname, service, namespace string
 	flag.StringVar(&hostname, "hostname", "", "DNS host name for certificate")
