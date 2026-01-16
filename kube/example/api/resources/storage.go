@@ -1,3 +1,17 @@
+// Copyright 2026 Redpanda Data, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package resources
 
 import (
@@ -9,8 +23,6 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/redpanda-data/common-go/kube"
-	clusterv1 "github.com/redpanda-data/common-go/kube/example/api/cluster/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metainternalversion "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -20,6 +32,9 @@ import (
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/redpanda-data/common-go/kube"
+	clusterv1 "github.com/redpanda-data/common-go/kube/example/api/cluster/v1"
 )
 
 type lockedStorage struct {
@@ -102,14 +117,16 @@ func NewVirtualStorage(ctl *kube.Ctl) *VirtualStorage {
 	}
 }
 
-var _ rest.Storage = (*VirtualStorage)(nil)
-var _ rest.Getter = (*VirtualStorage)(nil)
-var _ rest.Lister = (*VirtualStorage)(nil)
-var _ rest.Scoper = (*VirtualStorage)(nil)
-var _ rest.Creater = (*VirtualStorage)(nil)
-var _ rest.Updater = (*VirtualStorage)(nil)
-var _ rest.GracefulDeleter = (*VirtualStorage)(nil)
-var _ rest.SingularNameProvider = (*VirtualStorage)(nil)
+var (
+	_ rest.Storage              = (*VirtualStorage)(nil)
+	_ rest.Getter               = (*VirtualStorage)(nil)
+	_ rest.Lister               = (*VirtualStorage)(nil)
+	_ rest.Scoper               = (*VirtualStorage)(nil)
+	_ rest.Creater              = (*VirtualStorage)(nil)
+	_ rest.Updater              = (*VirtualStorage)(nil)
+	_ rest.GracefulDeleter      = (*VirtualStorage)(nil)
+	_ rest.SingularNameProvider = (*VirtualStorage)(nil)
+)
 
 func (s *VirtualStorage) Destroy() {}
 
