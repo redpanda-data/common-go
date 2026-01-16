@@ -1,0 +1,8 @@
+apiVersion: v2
+name: example
+description: Example chart
+type: application
+
+version: 1
+appVersion: v1
+kubeVersion: ">= 1.25.0-0"

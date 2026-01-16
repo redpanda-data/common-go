@@ -1,0 +1,32 @@
+version: '3'
+
+# if a task is referenced multiple times, only run it once
+run: once
+
+# configure bash to recursively expand **
+shopt: [globstar]
+
+vars:
+  SRC_DIR:
+    sh: 'realpath {{default "." .SRC_DIR}}'
+
+tasks:
+  generate:
+    cmds:
+      - |
+        controller-gen \
+          object:headerFile="boilerplate.go.txt" \
+          paths='./...' \
+          crd applyconfiguration webhook \
+          rbac:roleName=example \
+          output:crd:artifacts:config=crds \
+          output:rbac:artifacts:config=rbac \
+          output:applyconfiguration:artifacts:config=applyconfiguration
+      - mv api/v1/applyconfiguration/api/v1 api/v1/applyconfigurationout
+      - rm -rf api/v1/applyconfiguration
+      - mv api/v1/applyconfigurationout api/v1/applyconfiguration
+
+  build:
+    cmds:
+      - CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -o manager
+      - docker build . --tag example.local:dev

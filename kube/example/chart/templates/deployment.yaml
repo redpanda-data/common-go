@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}
+  labels:
+    app: {{ .Release.Name }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}
+    spec:
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "example.local:dev"
+          args:
+            - -hostname
+            - {{ .Release.Name }}.{{ .Release.Namespace }}.svc.cluster.local
+            - -service
+            - {{ .Release.Name }}
+            - -namespace
+            - {{ .Release.Namespace }}
+          ports:
+            - name: service
+              containerPort: 443
+            - name: webhook
+              containerPort: 9443
