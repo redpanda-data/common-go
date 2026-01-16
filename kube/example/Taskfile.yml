@@ -1,9 +1,7 @@
 version: '3'
 
-# if a task is referenced multiple times, only run it once
 run: once
 
-# configure bash to recursively expand **
 shopt: [globstar]
 
 vars:
@@ -40,3 +38,9 @@ tasks:
       - helm uninstall example --namespace example || true
       - kind load docker-image example.local:dev
       - helm install example --namespace example --create-namespace ./chart
+
+  install-tools:
+    cmds:
+      - go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.20.0
+      - go install k8s.io/code-generator/cmd/conversion-gen@285401e6db04dead462fbc9860ade09fac2c58e7
+      - go install k8s.io/kube-openapi/cmd/openapi-gen@4e65d59e963e749fa7939999518f9e90682983c3
