@@ -74,12 +74,15 @@ const (
 	Mutating
 	// CRDConversion indicates the webhook is a conversion webhook.
 	CRDConversion
+	// APIService indicates the webhook is an extension API server.
+	APIService
 )
 
 var gvks = map[WebhookType]schema.GroupVersionKind{
 	Validating:    {Group: "admissionregistration.k8s.io", Version: "v1", Kind: "ValidatingWebhookConfiguration"},
 	Mutating:      {Group: "admissionregistration.k8s.io", Version: "v1", Kind: "MutatingWebhookConfiguration"},
 	CRDConversion: {Group: "apiextensions.k8s.io", Version: "v1", Kind: "CustomResourceDefinition"},
+	APIService:    {Group: "apiregistration.k8s.io", Version: "v1", Kind: "APIService"},
 }
 
 type leaderElectedRunnable[T manager.Runnable] struct {
@@ -390,9 +393,47 @@ func injectCert(url *string, service *apiextensionsv1.ServiceReference, updatedR
 		return injectCertToWebhook(url, service, updatedResource, certPem)
 	case CRDConversion:
 		return injectCertToConversionWebhook(webhook.Versions, url, service, updatedResource, certPem)
+	case APIService:
+		return injectCertToAPIService(updatedResource, service, certPem)
 	default:
 		return errors.New("incorrect webhook type")
 	}
+}
+
+func ensureNestedField(obj map[string]any, fields ...string) error {
+	_, found, err := unstructured.NestedMap(obj, fields...)
+	if err != nil {
+		return err
+	}
+	if !found {
+		if err := unstructured.SetNestedField(obj, map[string]any{}, fields...); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func injectCertToAPIService(apiService *unstructured.Unstructured, service *apiextensionsv1.ServiceReference, certPem []byte) error {
+	_, found, err := unstructured.NestedMap(apiService.Object, "spec")
+	if err != nil {
+		return err
+	}
+	if !found {
+		return errors.New("`spec` field not found in APIService")
+	}
+
+	if service != nil {
+		serviceReference := service.DeepCopy()
+		// nil out the service path since the service reference doesn't have one
+		serviceReference.Path = nil
+		// nil out the port since it must be port 443
+		serviceReference.Port = nil
+		if err := unstructured.SetNestedField(apiService.Object, serviceReference, "spec", "service"); err != nil {
+			return err
+		}
+	}
+
+	return unstructured.SetNestedField(apiService.Object, base64.StdEncoding.EncodeToString(certPem), "spec", "caBundle")
 }
 
 func injectCertToWebhook(url *string, service *apiextensionsv1.ServiceReference, wh *unstructured.Unstructured, certPem []byte) error {
@@ -425,19 +466,6 @@ func injectCertToWebhook(url *string, service *apiextensionsv1.ServiceReference,
 		webhooks[i] = hook
 	}
 	return unstructured.SetNestedSlice(wh.Object, webhooks, "webhooks")
-}
-
-func ensureNestedField(obj map[string]any, fields ...string) error {
-	_, found, err := unstructured.NestedMap(obj, fields...)
-	if err != nil {
-		return err
-	}
-	if !found {
-		if err := unstructured.SetNestedField(obj, map[string]any{}, fields...); err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 func injectCertToConversionWebhook(versions []string, url *string, service *apiextensionsv1.ServiceReference, crd *unstructured.Unstructured, certPem []byte) error {
