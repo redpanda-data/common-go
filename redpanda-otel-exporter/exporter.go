@@ -204,9 +204,9 @@ func newExporter(defaultTopic string, opts ...Option) (*Exporter, error) {
 	}
 
 	if cfg.commonSchemaSubject == "" {
-		cfg.commonSchemaSubject = "redpanda-otel-common"
+		cfg.commonSchemaSubject = DefaultCommonSubject
 		if cfg.serializationFormat.isJSON() {
-			cfg.commonSchemaSubject += "-json"
+			cfg.commonSchemaSubject = DefaultCommonSubjectJSON
 		}
 	}
 
@@ -416,23 +416,25 @@ func (e *Exporter) signalSubject(msg proto.Message) string {
 		return e.config.schemaSubject
 	}
 
-	subj := ""
-	switch r := msg.(type) {
+	switch msg.(type) {
 	case *pb.Span:
-		subj = "redpanda-otel-traces"
+		if e.config.serializationFormat.isJSON() {
+			return DefaultTraceSubjectJSON
+		}
+		return DefaultTraceSubject
 	case *pb.LogRecord:
-		subj = "redpanda-otel-logs"
+		if e.config.serializationFormat.isJSON() {
+			return DefaultLogSubjectJSON
+		}
+		return DefaultLogSubject
 	case *pb.Metric:
-		subj = "redpanda-otel-metrics"
+		if e.config.serializationFormat.isJSON() {
+			return DefaultMetricSubjectJSON
+		}
+		return DefaultMetricSubject
 	default:
-		panic(fmt.Sprintf("unknown message type for schema subject: %T", r))
+		panic(fmt.Sprintf("unknown message type for schema subject: %T", msg))
 	}
-
-	if e.config.serializationFormat.isJSON() {
-		subj += "-json"
-	}
-
-	return subj
 }
 
 type signalRecord struct {
