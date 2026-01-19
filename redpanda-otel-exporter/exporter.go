@@ -16,6 +16,7 @@ import (
 	"sync"
 	"time"
 
+	pb "buf.build/gen/go/redpandadata/otel/protocolbuffers/go/redpanda/otel/v1"
 	"github.com/twmb/franz-go/pkg/kadm"
 	"github.com/twmb/franz-go/pkg/kerr"
 	"github.com/twmb/franz-go/pkg/kgo"
@@ -202,11 +203,11 @@ func newExporter(defaultTopic string, opts ...Option) (*Exporter, error) {
 		opt(&cfg)
 	}
 
-	if cfg.schemaSubject == "" {
-		cfg.schemaSubject = cfg.topic + "-value"
-	}
 	if cfg.commonSchemaSubject == "" {
-		cfg.commonSchemaSubject = cfg.topic + "-common"
+		cfg.commonSchemaSubject = "redpanda-otel-common"
+		if cfg.serializationFormat.isJSON() {
+			cfg.commonSchemaSubject += "-json"
+		}
 	}
 
 	if len(cfg.brokers) == 0 {
@@ -410,6 +411,30 @@ func (e *Exporter) encodeWithSchemaRegistry(ctx context.Context, data []byte, su
 	return result, nil
 }
 
+func (e *Exporter) signalSubject(msg proto.Message) string {
+	if e.config.schemaSubject != "" {
+		return e.config.schemaSubject
+	}
+
+	subj := ""
+	switch r := msg.(type) {
+	case *pb.Span:
+		subj = "redpanda-otel-traces"
+	case *pb.LogRecord:
+		subj = "redpanda-otel-logs"
+	case *pb.Metric:
+		subj = "redpanda-otel-metrics"
+	default:
+		panic(fmt.Sprintf("unknown message type for schema subject: %T", r))
+	}
+
+	if e.config.serializationFormat.isJSON() {
+		subj += "-json"
+	}
+
+	return subj
+}
+
 type signalRecord struct {
 	key     []byte
 	payload proto.Message
@@ -433,6 +458,10 @@ func (e *Exporter) exportPlain(
 	protoSchema string,
 	jsonSchema string,
 ) error {
+	if len(signals) == 0 {
+		return nil
+	}
+
 	// Best effort register schemas in non-serdes mode.
 	if e.schemaRegistry != nil {
 		if e.config.serializationFormat.isJSON() {
@@ -440,7 +469,7 @@ func (e *Exporter) exportPlain(
 				Schema: jsonSchema,
 				Type:   sr.TypeJSON,
 			}
-			_, _ = e.registerSchema(ctx, e.config.schemaSubject, schema)
+			_, _ = e.registerSchema(ctx, e.signalSubject(signals[0].payload), schema)
 		} else {
 			schema := sr.Schema{
 				Schema: otlpCommonProtoSchema,
@@ -455,7 +484,7 @@ func (e *Exporter) exportPlain(
 						{Name: "redpanda/otel/v1/common.proto", Version: s.Version, Subject: s.Subject},
 					},
 				}
-				_, _ = e.registerSchema(ctx, e.config.schemaSubject, schema)
+				_, _ = e.registerSchema(ctx, e.signalSubject(signals[0].payload), schema)
 			}
 		}
 	}
@@ -511,7 +540,7 @@ func (e *Exporter) exportSerdes(
 		if err != nil {
 			return err
 		}
-		value, err = e.encodeWithSchemaRegistry(ctx, value, e.config.schemaSubject, schema)
+		value, err = e.encodeWithSchemaRegistry(ctx, value, e.signalSubject(signal.payload), schema)
 		if err != nil {
 			return err
 		}
