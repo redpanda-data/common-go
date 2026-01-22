@@ -23,12 +23,12 @@ func TestResourceFullName_Name(t *testing.T) {
 	}{
 		{
 			name:     "full resource path",
-			resource: "organization/acme/resourcegroup/foo/dataplane/bar/mcpserver/qux",
+			resource: "organizations/acme/resourcegroups/foo/dataplanes/bar/mcpservers/qux",
 			want:     "qux",
 		},
 		{
 			name:     "short path",
-			resource: "organization/acme",
+			resource: "organizations/acme",
 			want:     "acme",
 		},
 		{
@@ -61,13 +61,13 @@ func TestResourceFullName_Type(t *testing.T) {
 	}{
 		{
 			name:     "full resource path",
-			resource: "organization/acme/resourcegroup/foo/dataplane/bar/mcpserver/qux",
-			want:     "mcpserver",
+			resource: "organizations/acme/resourcegroups/foo/dataplanes/bar/mcpservers/qux",
+			want:     "mcpservers",
 		},
 		{
 			name:     "short path",
-			resource: "organization/acme",
-			want:     "organization",
+			resource: "organizations/acme",
+			want:     "organizations",
 		},
 		{
 			name:     "single element",
@@ -99,17 +99,17 @@ func TestResourceFullName_Parent(t *testing.T) {
 	}{
 		{
 			name:     "full resource path",
-			resource: "organization/acme/resourcegroup/foo/dataplane/bar/mcpserver/qux",
-			want:     "organization/acme/resourcegroup/foo/dataplane/bar",
+			resource: "organizations/acme/resourcegroups/foo/dataplanes/bar/mcpservers/qux",
+			want:     "organizations/acme/resourcegroups/foo/dataplanes/bar",
 		},
 		{
 			name:     "short path",
-			resource: "organization/acme/resourcegroup/foo",
-			want:     "organization/acme",
+			resource: "organizations/acme/resourcegroups/foo",
+			want:     "organizations/acme",
 		},
 		{
 			name:     "minimal path",
-			resource: "organization/acme",
+			resource: "organizations/acme",
 			want:     "",
 		},
 		{
@@ -139,24 +139,24 @@ func TestResourceFullName_Child(t *testing.T) {
 	}{
 		{
 			name:         "add child to full path",
-			resource:     "organization/acme/resourcegroup/foo/dataplane/bar",
-			resourceType: "mcpserver",
+			resource:     "organizations/acme/resourcegroups/foo/dataplanes/bar",
+			resourceType: "mcpservers",
 			resourceName: "qux",
-			want:         "organization/acme/resourcegroup/foo/dataplane/bar/mcpserver/qux",
+			want:         "organizations/acme/resourcegroups/foo/dataplanes/bar/mcpservers/qux",
 		},
 		{
 			name:         "add child to short path",
-			resource:     "organization/acme",
-			resourceType: "resourcegroup",
+			resource:     "organizations/acme",
+			resourceType: "resourcegroups",
 			resourceName: "foo",
-			want:         "organization/acme/resourcegroup/foo",
+			want:         "organizations/acme/resourcegroups/foo",
 		},
 		{
 			name:         "add child to empty resource",
 			resource:     "",
-			resourceType: "organization",
+			resourceType: "organizations",
 			resourceName: "acme",
-			want:         "organization/acme",
+			want:         "organizations/acme",
 		},
 	}
 
@@ -180,57 +180,57 @@ func TestResourceName_Relative(t *testing.T) {
 	}{
 		{
 			name:      "deep resource with mid-level ancestor",
-			resource:  "organization/acme/resourcegroup/foo/dataplane/bar/mcpserver/qux",
-			ancestor:  "organization/acme/resourcegroup/foo",
-			wantName:  "dataplane/bar/mcpserver/qux",
+			resource:  "organizations/acme/resourcegroups/foo/dataplanes/bar/mcpservers/qux",
+			ancestor:  "organizations/acme/resourcegroups/foo",
+			wantName:  "dataplanes/bar/mcpservers/qux",
 			wantChild: true,
 		},
 		{
 			name:      "deep resource with top-level ancestor",
-			resource:  "organization/acme/resourcegroup/foo/dataplane/bar/mcpserver/qux",
-			ancestor:  "organization/acme",
-			wantName:  "resourcegroup/foo/dataplane/bar/mcpserver/qux",
+			resource:  "organizations/acme/resourcegroups/foo/dataplanes/bar/mcpservers/qux",
+			ancestor:  "organizations/acme",
+			wantName:  "resourcegroups/foo/dataplanes/bar/mcpservers/qux",
 			wantChild: true,
 		},
 		{
 			name:      "resource with immediate parent",
-			resource:  "organization/acme/resourcegroup/foo/dataplane/bar",
-			ancestor:  "organization/acme/resourcegroup/foo",
-			wantName:  "dataplane/bar",
+			resource:  "organizations/acme/resourcegroups/foo/dataplanes/bar",
+			ancestor:  "organizations/acme/resourcegroups/foo",
+			wantName:  "dataplanes/bar",
 			wantChild: true,
 		},
 		{
 			name:      "resource relative to root (empty ancestor)",
-			resource:  "organization/acme/resourcegroup/foo",
+			resource:  "organizations/acme/resourcegroups/foo",
 			ancestor:  "",
-			wantName:  "organization/acme/resourcegroup/foo",
+			wantName:  "organizations/acme/resourcegroups/foo",
 			wantChild: true,
 		},
 		{
 			name:      "resource relative to itself",
-			resource:  "organization/acme",
-			ancestor:  "organization/acme",
+			resource:  "organizations/acme",
+			ancestor:  "organizations/acme",
 			wantName:  "",
 			wantChild: true,
 		},
 		{
 			name:      "ancestor is not a prefix",
-			resource:  "organization/acme/resourcegroup/foo",
+			resource:  "organizations/acme/resourcegroups/foo",
 			ancestor:  "organization/other",
 			wantName:  "",
 			wantChild: false,
 		},
 		{
 			name:      "ancestor is longer than resource",
-			resource:  "organization/acme",
-			ancestor:  "organization/acme/resourcegroup/foo",
+			resource:  "organizations/acme",
+			ancestor:  "organizations/acme/resourcegroups/foo",
 			wantName:  "",
 			wantChild: false,
 		},
 		{
 			name:      "ancestor is similar but not matching prefix",
-			resource:  "organization/acme123",
-			ancestor:  "organization/acme",
+			resource:  "organizations/acme123",
+			ancestor:  "organizations/acme",
 			wantName:  "",
 			wantChild: false,
 		},
@@ -244,15 +244,15 @@ func TestResourceName_Relative(t *testing.T) {
 		{
 			name:      "empty resource with non-empty ancestor",
 			resource:  "",
-			ancestor:  "organization/acme",
+			ancestor:  "organizations/acme",
 			wantName:  "",
 			wantChild: false,
 		},
 		{
 			name:      "single level resource with empty ancestor",
-			resource:  "organization/acme",
+			resource:  "organizations/acme",
 			ancestor:  "",
-			wantName:  "organization/acme",
+			wantName:  "organizations/acme",
 			wantChild: true,
 		},
 	}

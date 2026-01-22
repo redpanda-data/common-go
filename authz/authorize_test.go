@@ -35,18 +35,18 @@ func Example() {
 			{
 				Role:      "mcp.admin",
 				Principal: "user:alice",
-				Scope:     "organization/acme/resourcegroup/foo/dataplane/bar",
+				Scope:     "organizations/acme/resourcegroups/foo/dataplanes/bar",
 			},
 			{
 				Role:      "mcp.user",
 				Principal: "user:bob",
-				Scope:     "organization/acme/resourcegroup/foo/dataplane/bar/mcpserver/qux",
+				Scope:     "organizations/acme/resourcegroups/foo/dataplanes/bar/mcpservers/qux",
 			},
 		},
 	}
 
 	// Create a resource policy for a specific resource with the permissions we need
-	resource := authz.ResourceName("organization/acme/resourcegroup/foo/dataplane/bar/mcpserver/qux")
+	resource := authz.ResourceName("organizations/acme/resourcegroups/foo/dataplanes/bar/mcpservers/qux")
 	resourcePolicy, err := authz.NewResourcePolicy(policy, resource, []authz.PermissionName{"tool_invoke"})
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
@@ -92,17 +92,17 @@ func TestCompileAuthorizer(t *testing.T) {
 			{
 				Role:      "admin",
 				Principal: "user:alice",
-				Scope:     "organization/acme",
+				Scope:     "organizations/acme",
 			},
 			{
 				Role:      "editor",
 				Principal: "user:bob",
-				Scope:     "organization/acme/resourcegroup/foo",
+				Scope:     "organizations/acme/resourcegroups/foo",
 			},
 			{
 				Role:      "viewer",
 				Principal: "user:charlie",
-				Scope:     "organization/acme/resourcegroup/foo/dataplane/bar",
+				Scope:     "organizations/acme/resourcegroups/foo/dataplanes/bar",
 			},
 		},
 	}
@@ -116,49 +116,49 @@ func TestCompileAuthorizer(t *testing.T) {
 	}{
 		{
 			name:       "admin at root has permission on deep resource",
-			resource:   "organization/acme/resourcegroup/foo/dataplane/bar/mcpserver/qux",
+			resource:   "organizations/acme/resourcegroups/foo/dataplanes/bar/mcpservers/qux",
 			permission: "delete",
 			principal:  "user:alice",
 			want:       true,
 		},
 		{
 			name:       "editor at mid-level has permission on deep resource",
-			resource:   "organization/acme/resourcegroup/foo/dataplane/bar/mcpserver/qux",
+			resource:   "organizations/acme/resourcegroups/foo/dataplanes/bar/mcpservers/qux",
 			permission: "write",
 			principal:  "user:bob",
 			want:       true,
 		},
 		{
 			name:       "viewer at leaf has permission on same resource",
-			resource:   "organization/acme/resourcegroup/foo/dataplane/bar",
+			resource:   "organizations/acme/resourcegroups/foo/dataplanes/bar",
 			permission: "read",
 			principal:  "user:charlie",
 			want:       true,
 		},
 		{
 			name:       "viewer does not have write permission",
-			resource:   "organization/acme/resourcegroup/foo/dataplane/bar",
+			resource:   "organizations/acme/resourcegroups/foo/dataplanes/bar",
 			permission: "write",
 			principal:  "user:charlie",
 			want:       false,
 		},
 		{
 			name:       "editor does not have delete permission",
-			resource:   "organization/acme/resourcegroup/foo/dataplane/bar",
+			resource:   "organizations/acme/resourcegroups/foo/dataplanes/bar",
 			permission: "delete",
 			principal:  "user:bob",
 			want:       false,
 		},
 		{
 			name:       "unknown principal has no permission",
-			resource:   "organization/acme/resourcegroup/foo/dataplane/bar",
+			resource:   "organizations/acme/resourcegroups/foo/dataplanes/bar",
 			permission: "read",
 			principal:  "user:unknown",
 			want:       false,
 		},
 		{
 			name:       "viewer permission does not propagate to parent",
-			resource:   "organization/acme/resourcegroup/foo",
+			resource:   "organizations/acme/resourcegroups/foo",
 			permission: "read",
 			principal:  "user:charlie",
 			want:       false,
@@ -199,12 +199,12 @@ func TestCompileAuthorizer_MissingRole(t *testing.T) {
 			{
 				Role:      "nonexistent",
 				Principal: "user:alice",
-				Scope:     "organization/acme",
+				Scope:     "organizations/acme",
 			},
 		},
 	}
 
-	_, err := authz.NewResourcePolicy(policy, "organization/acme", []authz.PermissionName{"read"})
+	_, err := authz.NewResourcePolicy(policy, "organizations/acme", []authz.PermissionName{"read"})
 	if err == nil {
 		t.Fatal("NewResourcePolicy() expected error for missing role, got nil")
 	}
@@ -226,17 +226,17 @@ func TestCompileAuthorizer_MultipleBindings(t *testing.T) {
 			{
 				Role:      "role1",
 				Principal: "user:alice",
-				Scope:     "organization/acme",
+				Scope:     "organizations/acme",
 			},
 			{
 				Role:      "role2",
 				Principal: "user:alice",
-				Scope:     "organization/acme/resourcegroup/foo",
+				Scope:     "organizations/acme/resourcegroups/foo",
 			},
 		},
 	}
 
-	resourcePolicy, err := authz.NewResourcePolicy(policy, "organization/acme/resourcegroup/foo", []authz.PermissionName{"write"})
+	resourcePolicy, err := authz.NewResourcePolicy(policy, "organizations/acme/resourcegroups/foo", []authz.PermissionName{"write"})
 	if err != nil {
 		t.Fatalf("NewResourcePolicy() error = %v", err)
 	}
@@ -259,13 +259,13 @@ func TestUnknownPermission(t *testing.T) {
 			{
 				Role:      "admin",
 				Principal: "user:alice",
-				Scope:     "organization/acme",
+				Scope:     "organizations/acme",
 			},
 		},
 	}
 
 	// Create policy with only "read" permission
-	resourcePolicy, err := authz.NewResourcePolicy(policy, "organization/acme", []authz.PermissionName{"read"})
+	resourcePolicy, err := authz.NewResourcePolicy(policy, "organizations/acme", []authz.PermissionName{"read"})
 	if err != nil {
 		t.Fatalf("NewResourcePolicy() error = %v", err)
 	}
@@ -305,18 +305,18 @@ func TestSubResourceAuthorizer(t *testing.T) {
 			{
 				Role:      "dataplane.admin",
 				Principal: "user:alice",
-				Scope:     "organization/acme/resourcegroup/foo/dataplane/bar",
+				Scope:     "organizations/acme/resourcegroups/foo/dataplanes/bar",
 			},
 			{
 				Role:      "mcpserver.user",
 				Principal: "user:bob",
-				Scope:     "organization/acme/resourcegroup/foo/dataplane/bar/mcpserver/qux",
+				Scope:     "organizations/acme/resourcegroups/foo/dataplanes/bar/mcpservers/qux",
 			},
 		},
 	}
 
 	// Create a resource policy for the dataplane with the permissions we need
-	dataplaneResource := authz.ResourceName("organization/acme/resourcegroup/foo/dataplane/bar")
+	dataplaneResource := authz.ResourceName("organizations/acme/resourcegroups/foo/dataplanes/bar")
 	resourcePolicy, err := authz.NewResourcePolicy(policy, dataplaneResource, []authz.PermissionName{"tool_invoke", "tool_list"})
 	if err != nil {
 		t.Fatalf("NewResourcePolicy() error = %v", err)
@@ -332,7 +332,7 @@ func TestSubResourceAuthorizer(t *testing.T) {
 	}
 
 	// Test sub-resource authorizer for an MCP server
-	mcpServerAuthorizer := resourcePolicy.SubResourceAuthorizer("mcpserver", "qux", "tool_invoke")
+	mcpServerAuthorizer := resourcePolicy.SubResourceAuthorizer("mcpservers", "qux", "tool_invoke")
 
 	// Alice has admin role at dataplane level, should inherit to MCP server
 	if !mcpServerAuthorizer.Check("user:alice") {
@@ -350,7 +350,7 @@ func TestSubResourceAuthorizer(t *testing.T) {
 	}
 
 	// Test sub-resource authorizer for a different MCP server
-	otherMcpServerAuthorizer := resourcePolicy.SubResourceAuthorizer("mcpserver", "other", "tool_invoke")
+	otherMcpServerAuthorizer := resourcePolicy.SubResourceAuthorizer("mcpservers", "other", "tool_invoke")
 
 	// Alice should still have access (inherited from dataplane)
 	if !otherMcpServerAuthorizer.Check("user:alice") {
@@ -381,10 +381,10 @@ func setupLargeScalePolicy() authz.Policy {
 	// Distribute them across different scopes and roles
 	bindings := make([]authz.RoleBinding, 100000)
 	scopes := []authz.ResourceName{
-		"organization/acme",
-		"organization/acme/resourcegroup/foo",
-		"organization/acme/resourcegroup/foo/dataplane/bar",
-		"organization/acme/resourcegroup/foo/dataplane/bar/mcpserver/qux",
+		"organizations/acme",
+		"organizations/acme/resourcegroups/foo",
+		"organizations/acme/resourcegroups/foo/dataplanes/bar",
+		"organizations/acme/resourcegroups/foo/dataplanes/bar/mcpservers/qux",
 	}
 	for i := range 100000 {
 		bindings[i] = authz.RoleBinding{
@@ -402,7 +402,7 @@ func setupLargeScalePolicy() authz.Policy {
 
 func Benchmark_1000Roles_100kPrincipals(b *testing.B) {
 	policy := setupLargeScalePolicy()
-	resource := authz.ResourceName("organization/acme/resourcegroup/foo/dataplane/bar/mcpserver/qux")
+	resource := authz.ResourceName("organizations/acme/resourcegroups/foo/dataplanes/bar/mcpservers/qux")
 	permission := authz.PermissionName("permission_42_5")
 	permissions := []authz.PermissionName{permission}
 
@@ -452,11 +452,11 @@ func Benchmark_1000Roles_100kPrincipals(b *testing.B) {
 	b.Run("SubResourceAuthorizer", func(b *testing.B) {
 		// Benchmark creating authorizer for a child resource
 		for b.Loop() {
-			_ = resourcePolicy.SubResourceAuthorizer("mcpserver", "child", permission)
+			_ = resourcePolicy.SubResourceAuthorizer("mcpservers", "child", permission)
 		}
 	})
 
-	subAuthorizer := resourcePolicy.SubResourceAuthorizer("mcpserver", "child", permission)
+	subAuthorizer := resourcePolicy.SubResourceAuthorizer("mcpservers", "child", permission)
 	b.Run("SubResourceAuthorizerCheck", func(b *testing.B) {
 		// Test checking various principals on sub-resource
 		testPrincipals := make([]authz.PrincipalID, 1000)
