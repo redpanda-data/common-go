@@ -40,7 +40,7 @@ policy := authz.Policy{
     },
     Bindings: []authz.RoleBinding{
         {
-            RoleID:    "admin",
+            Role:      "admin",
             Principal: "user:alice",
             Scope:     "organization/acme/dataplane/bar",
         },
