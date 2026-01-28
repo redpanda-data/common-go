@@ -30,10 +30,10 @@ const policyOne = `roles:
 bindings:
   - role: admin
     principal: user:alice@acme.com
-    scope: organization/acme
+    scope: organizations/acme
   - role: viewer
     principal: user:bob@acme.com
-    scope: organization/acme/dataplane/prod
+    scope: organizations/acme/dataplanes/prod
 `
 
 const policyTwo = `roles:
@@ -48,13 +48,13 @@ const policyTwo = `roles:
 bindings:
   - role: admin
     principal: user:alice@acme.com
-    scope: organization/acme
+    scope: organizations/acme
   - role: viewer
     principal: user:bob@acme.com
-    scope: organization/acme/dataplane/prod
+    scope: organizations/acme/dataplanes/prod
   - role: viewer
     principal: user:joe@acme.com
-    scope: organization/acme
+    scope: organizations/acme
 `
 
 var expectedPolicyOne authz.Policy = authz.Policy{
@@ -74,12 +74,12 @@ var expectedPolicyOne authz.Policy = authz.Policy{
 		{
 			Role:      "admin",
 			Principal: "user:alice@acme.com",
-			Scope:     "organization/acme",
+			Scope:     "organizations/acme",
 		},
 		{
 			Role:      "viewer",
 			Principal: "user:bob@acme.com",
-			Scope:     "organization/acme/dataplane/prod",
+			Scope:     "organizations/acme/dataplanes/prod",
 		},
 	},
 }
@@ -89,7 +89,7 @@ var expectedPolicyTwo authz.Policy = authz.Policy{
 	Bindings: append(expectedPolicyOne.Bindings, authz.RoleBinding{
 		Role:      "viewer",
 		Principal: "user:joe@acme.com",
-		Scope:     "organization/acme",
+		Scope:     "organizations/acme",
 	}),
 }
 

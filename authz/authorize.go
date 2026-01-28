@@ -75,14 +75,14 @@ func (r *ResourcePolicy) buildChecker(scope ResourceName, perm PermissionName) *
 // This function pre-computes all authorization data for the specified permissions,
 // making runtime authorization checks extremely fast (O(1) map lookups with zero allocations).
 //
-// For example, if a resource `org/acme/dataplane/bar/mcpserver/qux`
+// For example, if a resource `organizations/acme/dataplanes/bar/mcpservers/qux`
 // wanted to check `tool_invoke` and `tool_list` permissions:
 //
 //	func RunMCPServer() error {
 //	  // Pre-compile the policy with all permissions you'll need
 //	  resourcePolicy, err := authz.NewResourcePolicy(
 //	    MustLoadAuthzPolicy(),
-//	    "org/acme/dataplane/bar/mcpserver/qux",
+//	    "organizations/acme/dataplanes/bar/mcpservers/qux",
 //	    []authz.PermissionName{"tool_invoke", "tool_list"},
 //	  )
 //	  if err != nil {

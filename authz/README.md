@@ -8,7 +8,7 @@ This Go module provides a common abstraction for **Role-Based Access Control (RB
 
 1. **Hierarchical Resource Model**: Resources are organized in a hierarchical path structure following [AIP-122](https://aip.dev/122) standards:
    ```
-   organization/acme/resourcegroup/foo/dataplane/bar/mcpserver/myagenttools
+   organizations/acme/resourcegroups/foo/dataplanes/bar/mcpservers/myagenttools
    ```
 
 2. **Permission Inheritance**: Permissions granted at a parent resource level automatically apply to all child resources. For example, permissions on a dataplane apply to all MCP servers within it.
@@ -42,13 +42,13 @@ policy := authz.Policy{
         {
             Role:      "admin",
             Principal: "user:alice",
-            Scope:     "organization/acme/dataplane/bar",
+            Scope:     "organizations/acme/dataplanes/bar",
         },
     },
 }
 
 // Create a resource policy for your resource with the permissions you need
-resource := authz.ResourceName("organization/acme/dataplane/bar/mcpserver/qux")
+resource := authz.ResourceName("organizations/acme/dataplanes/bar/mcpservers/qux")
 resourcePolicy, err := authz.NewResourcePolicy(
     policy,
     resource,
@@ -68,7 +68,7 @@ if readAuthorizer.Check("user:alice") {
 }
 
 // For child resources or API servers with dynamic resources that are managed, use SubResourceAuthorizer
-childAuthorizer := resourcePolicy.SubResourceAuthorizer("tool", "mytool", "read")
+childAuthorizer := resourcePolicy.SubResourceAuthorizer("tools", "mytool", "read")
 if childAuthorizer.Check("user:alice") {
     // Alice has read permission on the child resource (inherited)
 }

@@ -18,7 +18,7 @@ import (
 //
 // For example, an MCP server inside the dataplane could have full name such as:
 //
-//	organization/acme/resourcegroup/foo/dataplane/bar/mcpserver/myagenttools
+//	organizations/acme/resourcegroups/foo/dataplanes/bar/mcpservers/myagenttools
 //
 // For more information see: https://aip.dev/122
 //
@@ -49,11 +49,11 @@ func (r ResourceName) Type() ResourceType {
 //
 // For example, an MCP server inside the dataplane could have full name such as:
 //
-//	organization/acme/resourcegroup/foo/dataplane/bar/mcpserver/myagenttools
+//	organizations/acme/resourcegroups/foo/dataplanes/bar/mcpservers/myagenttools
 //
 // It's parent would be:
 //
-//	organization/acme/resourcegroup/foo/dataplane/bar
+//	organizations/acme/resourcegroups/foo/dataplanes/bar
 func (r ResourceName) Parent() ResourceName {
 	if r == "" {
 		return ""
@@ -69,11 +69,11 @@ func (r ResourceName) Parent() ResourceName {
 //
 // For example, a dataplane could have full name such as:
 //
-//	organization/acme/resourcegroup/foo/dataplane/bar
+//	organizations/acme/resourcegroups/foo/dataplanes/bar
 //
-// It's [ResourceName.Child] for an `mcpserver` called `myagenttools` would be:
+// It's [ResourceName.Child] for an `mcpservers` called `myagenttools` would be:
 //
-//	organization/acme/resourcegroup/foo/dataplane/bar/mcpserver/myagenttools
+//	organizations/acme/resourcegroups/foo/dataplanes/bar/mcpservers/myagenttools
 func (r ResourceName) Child(t ResourceType, n ResourceID) ResourceName {
 	return ResourceName(path.Join(string(r), string(t), string(n)))
 }
@@ -83,15 +83,15 @@ func (r ResourceName) Child(t ResourceType, n ResourceID) ResourceName {
 //
 // For example, a resource r that is:
 //
-//	organization/acme/resourcegroup/foo/dataplane/bar
+//	organizations/acme/resourcegroups/foo/dataplanes/bar
 //
 // And an ancestor resource of:
 //
-//	organization/acme
+//	organizations/acme
 //
 // Will result in a relative name of:
 //
-//	resourcegroup/foo/dataplane/bar
+//	resourcegroups/foo/dataplanes/bar
 func (r ResourceName) Relative(ancestor ResourceName) (name ResourceName, isChild bool) {
 	if r == ancestor { // You are an ancestor of yourself
 		return "", true
@@ -115,7 +115,7 @@ func (r ResourceName) String() string {
 //
 // For example, if the [ResourceName] is
 //
-//	organization/acme/resourcegroup/foo/dataplane/bar/mcpserver/myagenttools
+//	organizations/acme/resourcegroups/foo/dataplanes/bar/mcpservers/myagenttools
 //
 // Then the [ResourceID] is `myagenttools`
 //
@@ -131,9 +131,9 @@ func (r ResourceID) String() string {
 //
 // For example, if the [ResourceName] is
 //
-//	organization/acme/resourcegroup/foo/dataplane/bar/mcpserver/myagenttools
+//	organizations/acme/resourcegroups/foo/dataplanes/bar/mcpservers/myagenttools
 //
-// Then the [ResourceType] is `mcpserver`
+// Then the [ResourceType] is `mcpservers`
 //
 // For more information see: aip.dev/122
 type ResourceType string
