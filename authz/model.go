@@ -149,6 +149,16 @@ type RoleID string
 // PrincipalID is a unique identifier that describes a principal.
 type PrincipalID string
 
+// UserPrincipal creates a PrincipalID for a user via email
+func UserPrincipal(email string) PrincipalID {
+	return PrincipalID("User:" + email)
+}
+
+// GroupPrincipal creates a PrincipalID for a group
+func GroupPrincipal(groupName string) PrincipalID {
+	return PrincipalID("Group:" + groupName)
+}
+
 // PermissionName is the string name of the permission.
 type PermissionName string
 
