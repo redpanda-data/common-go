@@ -2,9 +2,9 @@ syntax = "proto3";
 
 package redpanda.otel.v1;
 
-option go_package = "buf.build/gen/go/redpandadata/otel/protocolbuffers/go/redpanda/otel/v1;otelv1";
-
 import "redpanda/otel/v1/common.proto";
+
+option go_package = "buf.build/gen/go/redpandadata/otel/protocolbuffers/go/redpanda/otel/v1;otelv1";
 
 // A Span represents a single operation performed by a single component of the
 // system.
@@ -291,7 +291,7 @@ message Status {
     STATUS_CODE_OK = 1;
     // The Span contains an error.
     STATUS_CODE_ERROR = 2;
-  };
+  }
 
   // The status code.
   StatusCode code = 3;
