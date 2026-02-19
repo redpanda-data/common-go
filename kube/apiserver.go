@@ -115,7 +115,7 @@ func (sb *APIServerBuilder) Complete(groupVersion schema.GroupVersion, api commo
 		featuregate.NewVersionedFeatureGate(utilversion.MustParse(version)),
 	)
 	utilruntime.Must(gate.AddVersioned(map[featuregate.Feature]featuregate.VersionedSpecs{}))
-	utilruntime.Must(compatibility.DefaultComponentGlobalsRegistry.SetEmulationVersionMapping(title, basecompatibility.DefaultKubeComponent, func(_ *utilversion.Version) *utilversion.Version {
+	utilruntime.Must(compatibility.DefaultComponentGlobalsRegistry.SetVersionMapping(title, basecompatibility.DefaultKubeComponent, func(_ *utilversion.Version) *utilversion.Version {
 		return utilversion.MustParse(baseversion.DefaultKubeBinaryVersion)
 	}))
 	serverConfig.EffectiveVersion = compatibility.DefaultComponentGlobalsRegistry.EffectiveVersionFor(title)
