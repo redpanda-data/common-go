@@ -6,10 +6,10 @@ buf.build/gen/go/redpandadata/cloud/protocolbuffers/go v1.36.11-20260206121607-b
 buf.build/gen/go/redpandadata/cloud/protocolbuffers/go v1.36.11-20260206121607-b7882624f6ea.1/go.mod h1:j1RqrOUwJtvY22i3Bikxc/i3zY+K0oqCiduDNurlQSI=
 buf.build/gen/go/redpandadata/common/protocolbuffers/go v1.36.11-20251216164002-601698cfe71d.1 h1:0KH3IndUZDFYFcYdcBa+bZziomFsBzlksAzTbmd5QQY=
 buf.build/gen/go/redpandadata/common/protocolbuffers/go v1.36.11-20251216164002-601698cfe71d.1/go.mod h1:3w7EzexwlL6PIFGbbeKZ0yHfUlAmI0aBVzF/QoFb8Cg=
-buf.build/gen/go/redpandadata/core/protocolbuffers/go v1.36.11-20260217173213-e6e10c02e902.1 h1:2voJY/CZajz8DHxfouB1QNfqwFaYfNVxUf3i2O61src=
-buf.build/gen/go/redpandadata/core/protocolbuffers/go v1.36.11-20260217173213-e6e10c02e902.1/go.mod h1:5sjUVquVwNxt3Q/EhE/UW0BBJ5sgPiaVTw8//wxRULI=
-buf.build/gen/go/redpandadata/dataplane/protocolbuffers/go v1.36.11-20260218131256-c99590eb8f41.1 h1:SOWOwRxFHMm+aL7KETbKL/Naq9LoBHfXc1cUd8h+0Q8=
-buf.build/gen/go/redpandadata/dataplane/protocolbuffers/go v1.36.11-20260218131256-c99590eb8f41.1/go.mod h1:98387umipabqYPDEE7E/pgVKdRuaFumXY9R5gH+gfGc=
+buf.build/gen/go/redpandadata/core/protocolbuffers/go v1.36.11-20260219184720-92d267893f89.1 h1:eOjDnUfezsTEC20OQDXH4OQ7IXWcQ7+dgT1e+1ABfU4=
+buf.build/gen/go/redpandadata/core/protocolbuffers/go v1.36.11-20260219184720-92d267893f89.1/go.mod h1:5sjUVquVwNxt3Q/EhE/UW0BBJ5sgPiaVTw8//wxRULI=
+buf.build/gen/go/redpandadata/dataplane/protocolbuffers/go v1.36.11-20260219182640-53f7e728e222.1 h1:KPHY0S52U3yqNVAwqYz5GjWILqPpsBL+XN2NIyddiT8=
+buf.build/gen/go/redpandadata/dataplane/protocolbuffers/go v1.36.11-20260219182640-53f7e728e222.1/go.mod h1:98387umipabqYPDEE7E/pgVKdRuaFumXY9R5gH+gfGc=
 buf.build/gen/go/redpandadata/otel/protocolbuffers/go v1.36.11-20251216164002-58c749b888d8.1 h1:4jqc94IBC9Ea9GaMbmgfhczXZzCkA4ZWfon3/uI3KV0=
 buf.build/gen/go/redpandadata/otel/protocolbuffers/go v1.36.11-20251216164002-58c749b888d8.1/go.mod h1:akvBCH3f6fL10sDu4NppgjHrQITLe1m5YWLt/yiLEKI=
 connectrpc.com/connect v1.19.1 h1:R5M57z05+90EfEvCY1b7hBxDVOUl45PrtXtAV2fOC14=

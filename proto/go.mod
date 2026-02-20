@@ -4,8 +4,8 @@ go 1.25.7
 
 require (
 	buf.build/gen/go/redpandadata/cloud/protocolbuffers/go v1.36.11-20260206121607-b7882624f6ea.1
-	buf.build/gen/go/redpandadata/core/protocolbuffers/go v1.36.11-20260217173213-e6e10c02e902.1
-	buf.build/gen/go/redpandadata/dataplane/protocolbuffers/go v1.36.11-20260218131256-c99590eb8f41.1
+	buf.build/gen/go/redpandadata/core/protocolbuffers/go v1.36.11-20260219184720-92d267893f89.1
+	buf.build/gen/go/redpandadata/dataplane/protocolbuffers/go v1.36.11-20260219182640-53f7e728e222.1
 	connectrpc.com/connect v1.19.1
 	github.com/mark3labs/mcp-go v0.44.0
 	github.com/redpanda-data/protoc-gen-go-mcp v0.0.0-20250930092048-a98b94b5957a
