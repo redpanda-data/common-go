@@ -118,7 +118,7 @@ func NewSecretProvider(secretsManager SecretAPI, prefix string, trimPrefix strin
 
 // trims the secret prefix and returns full secret ID with JSON field reference
 //
-//nolint:revive // no named return
+//nolint:revive // confusing-results: unnamed results are clear from context
 func (s *secretProvider) trimPrefixAndSplit(key string) (string, string, bool) {
 	if !strings.HasPrefix(key, s.trimPrefix) {
 		return "", "", false
