@@ -11,6 +11,9 @@ managed:
     - file_option: go_package_prefix
       value: buf.build/gen/go/redpandadata/core/protocolbuffers/go
       module: buf.build/redpandadata/core
+    - file_option: go_package_prefix
+      value: buf.build/gen/go/redpandadata/ai-gateway/protocolbuffers/go
+      module: buf.build/redpandadata/ai-gateway
 plugins:
   - local:
       - go

@@ -18,6 +18,7 @@ require (
 require (
 	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.11-20260209202127-80ab13bee0bf.1 // indirect
 	buf.build/gen/go/grpc-ecosystem/grpc-gateway/protocolbuffers/go v1.36.11-20260102203250-6467306b4f62.1 // indirect
+	buf.build/gen/go/redpandadata/ai-gateway/protocolbuffers/go v1.36.11-20260203101113-1c7702ddb57a.1 // indirect
 	buf.build/gen/go/redpandadata/common/protocolbuffers/go v1.36.11-20251216164002-601698cfe71d.1 // indirect
 	buf.build/gen/go/redpandadata/otel/protocolbuffers/go v1.36.11-20251216164002-58c749b888d8.1 // indirect
 	github.com/bahlo/generic-list-go v0.2.0 // indirect
