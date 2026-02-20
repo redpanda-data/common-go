@@ -23,7 +23,7 @@ const (
 
 // BucketConfiguration represents the configuration for a bucket
 type BucketConfiguration struct {
-	AccessKey           string `json:"access_key,omitempty"`
+	AccessKey           string `json:"access_key,omitempty"` //nolint:gosec // G117: field holds bucket access key for migration API
 	SecretKey           string `json:"secret_key,omitempty"`
 	Region              string `json:"region,omitempty"`
 	Bucket              string `json:"bucket"`

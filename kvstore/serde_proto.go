@@ -199,6 +199,7 @@ func WithSchemaReferences(refs []sr.SchemaReference) SchemaRegistryOption {
 }
 
 // NewSchemaRegistrySerde creates a protobuf serde with Schema Registry support.
+//
 // Deprecated: Use Proto with WithSchemaRegistry instead.
 func NewSchemaRegistrySerde[T proto.Message](
 	srClient *sr.Client,

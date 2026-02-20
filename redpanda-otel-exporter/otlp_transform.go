@@ -396,6 +396,8 @@ func metricToProto(m metricdata.Metrics, s instrumentation.Scope, r *resource.Re
 				DataPoints: summaryDataPointsToProto(data.DataPoints),
 			},
 		}
+	default:
+		// Unknown metric data type; leave pbMetric.Data unset.
 	}
 
 	return pbMetric
@@ -436,6 +438,8 @@ func numberDataPointsToProto[N int64 | float64](points []metricdata.DataPoint[N]
 			pbPoint.Value = &pb.NumberDataPoint_AsInt{AsInt: v}
 		case float64:
 			pbPoint.Value = &pb.NumberDataPoint_AsDouble{AsDouble: v}
+		default:
+			// N is constrained to int64 | float64; this case is unreachable.
 		}
 
 		pbPoints[i] = pbPoint
@@ -466,6 +470,8 @@ func histogramDataPointsToProto[N int64 | float64](points []metricdata.Histogram
 			}
 		case float64:
 			pbPoint.Sum = &s
+		default:
+			// N is constrained to int64 | float64; this case is unreachable.
 		}
 
 		// Add min/max if present
@@ -476,6 +482,8 @@ func histogramDataPointsToProto[N int64 | float64](points []metricdata.Histogram
 				pbPoint.Min = &f
 			case float64:
 				pbPoint.Min = &m
+			default:
+				// N is constrained to int64 | float64; this case is unreachable.
 			}
 		}
 		if maxVal, defined := dp.Max.Value(); defined {
@@ -485,6 +493,8 @@ func histogramDataPointsToProto[N int64 | float64](points []metricdata.Histogram
 				pbPoint.Max = &f
 			case float64:
 				pbPoint.Max = &m
+			default:
+				// N is constrained to int64 | float64; this case is unreachable.
 			}
 		}
 
@@ -531,6 +541,8 @@ func exponentialHistogramDataPointsToProto[N int64 | float64](points []metricdat
 			}
 		case float64:
 			pbPoint.Sum = &s
+		default:
+			// N is constrained to int64 | float64; this case is unreachable.
 		}
 
 		// Add min/max if present
@@ -541,6 +553,8 @@ func exponentialHistogramDataPointsToProto[N int64 | float64](points []metricdat
 				pbPoint.Min = &f
 			case float64:
 				pbPoint.Min = &m
+			default:
+				// N is constrained to int64 | float64; this case is unreachable.
 			}
 		}
 		if maxVal, defined := dp.Max.Value(); defined {
@@ -550,6 +564,8 @@ func exponentialHistogramDataPointsToProto[N int64 | float64](points []metricdat
 				pbPoint.Max = &f
 			case float64:
 				pbPoint.Max = &m
+			default:
+				// N is constrained to int64 | float64; this case is unreachable.
 			}
 		}
 
@@ -619,6 +635,8 @@ func exemplarsToProto[N int64 | float64](exemplars []metricdata.Exemplar[N]) []*
 			pbEx.Value = &pb.Exemplar_AsInt{AsInt: v}
 		case float64:
 			pbEx.Value = &pb.Exemplar_AsDouble{AsDouble: v}
+		default:
+			// N is constrained to int64 | float64; this case is unreachable.
 		}
 
 		// Add trace context if present
