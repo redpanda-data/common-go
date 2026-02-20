@@ -87,7 +87,7 @@ func createFederationClient(ctx context.Context, logger *slog.Logger, audience s
 	}
 
 	// Create credential config for federation
-	credConfig := map[string]any{
+	credConfig := map[string]any{ //nolint:gosec // G101: not hardcoded credentials, this is a config structure for workload identity federation
 		"type":               "external_account",
 		"audience":           audience,
 		"subject_token_type": "urn:ietf:params:oauth:token-type:jwt",
@@ -108,7 +108,7 @@ func createFederationClient(ctx context.Context, logger *slog.Logger, audience s
 	logger.Info("Creating GCP client with federation credentials", "audience", audience)
 
 	// Create client with JSON credentials directly (no temp files)
-	client, err := secretmanager.NewClient(ctx, option.WithCredentialsJSON(credBytes))
+	client, err := secretmanager.NewClient(ctx, option.WithAuthCredentialsJSON(option.ExternalAccount, credBytes))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create client with federation credentials: %w", err)
 	}

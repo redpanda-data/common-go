@@ -21,7 +21,7 @@ const usersEndpoint = "/v1/security/users"
 
 type newUser struct {
 	User      string `json:"username,omitempty"`
-	Password  string `json:"password"`
+	Password  string `json:"password"` //nolint:gosec // G117: field holds user password for admin API
 	Algorithm string `json:"algorithm"`
 }
 

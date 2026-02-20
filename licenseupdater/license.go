@@ -38,7 +38,7 @@ func writeLicenseHeader(licenseTemplate *template.Template, templateName string,
 			mid += " "
 		}
 
-		if _, err := fmt.Fprintln(&out, strings.TrimRightFunc(mid+s.Text(), unicode.IsSpace)); err != nil {
+		if _, err := fmt.Fprintln(&out, strings.TrimRightFunc(mid+s.Text(), unicode.IsSpace)); err != nil { //nolint:gosec // G705: writing to bytes.Buffer, not an HTTP response
 			return err
 		}
 	}
@@ -100,7 +100,7 @@ func writeLicenseHeader(licenseTemplate *template.Template, templateName string,
 			}
 		}
 
-		if _, err := fmt.Fprintln(&out, text); err != nil {
+		if _, err := fmt.Fprintln(&out, text); err != nil { //nolint:gosec // G705: writing to bytes.Buffer, not an HTTP response
 			return err
 		}
 	}
