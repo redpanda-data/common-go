@@ -56,6 +56,7 @@ func writeLicenseHeader(licenseTemplate *template.Template, templateName string,
 	}
 
 	s = bufio.NewScanner(bytes.NewReader(data))
+	s.Buffer(make([]byte, 0, bufio.MaxScanTokenSize), 1024*1024) // 1MB max line length for generated code
 	inLicense := false
 	skipEmptyFirstLineAfter := false
 	lines := 0
