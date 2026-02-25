@@ -325,7 +325,7 @@ func TestMigrate(t *testing.T) {
 		}},
 		ControllerName: t.Name(),
 	}), kubetest.WithRegisterFn(func(m ctrl.Manager) error {
-		return ctrl.NewWebhookManagedBy(m).For(&myKindV2{}).Complete()
+		return ctrl.NewWebhookManagedBy(m, &myKindV2{}).Complete()
 	}))
 
 	ensureInjected(t, ctl, testCRDName)

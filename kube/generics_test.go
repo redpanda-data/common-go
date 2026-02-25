@@ -30,13 +30,10 @@ import (
 func TestItems(t *testing.T) {
 	t.Parallel()
 
-	// Unlike other types, ServiceMonitorList's Items is []*T instead of []T.
-	// As we need to use reflection to get Items out, we need to be careful to
-	// not panic.
-	_, err := kube.Items[kube.Object](&monitoringv1.ServiceMonitorList{Items: []*monitoringv1.ServiceMonitor{{}}})
+	_, err := kube.Items[kube.Object](&monitoringv1.ServiceMonitorList{Items: []monitoringv1.ServiceMonitor{{}}})
 	require.NoError(t, err)
 
-	_, err = kube.Items[*monitoringv1.ServiceMonitor](&monitoringv1.ServiceMonitorList{Items: []*monitoringv1.ServiceMonitor{{}}})
+	_, err = kube.Items[*monitoringv1.ServiceMonitor](&monitoringv1.ServiceMonitorList{Items: []monitoringv1.ServiceMonitor{{}}})
 	require.NoError(t, err)
 
 	_, err = kube.Items[kube.Object](&corev1.PodList{Items: []corev1.Pod{{}}})

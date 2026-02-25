@@ -228,7 +228,7 @@ func (c *Ctl) Apply(ctx context.Context, obj Object, opts ...client.PatchOption)
 	// Prepend field owner to allow caller's to override it.
 	opts = append([]client.PatchOption{c.fieldOwner}, opts...)
 
-	if err := c.client.Patch(ctx, obj, client.Apply, opts...); err != nil {
+	if err := c.client.Patch(ctx, obj, client.Apply, opts...); err != nil { //nolint:staticcheck // keep this for now
 		return errors.WithStack(err)
 	}
 
@@ -247,7 +247,7 @@ func (c *Ctl) ApplyStatus(ctx context.Context, obj Object, opts ...client.SubRes
 	// Prepend field owner to allow caller's to override it.
 	opts = append([]client.SubResourcePatchOption{c.fieldOwner}, opts...)
 
-	if err := c.client.Status().Patch(ctx, obj, client.Apply, opts...); err != nil {
+	if err := c.client.Status().Patch(ctx, obj, client.Apply, opts...); err != nil { //nolint:staticcheck // keep this for now
 		return errors.WithStack(err)
 	}
 	return nil

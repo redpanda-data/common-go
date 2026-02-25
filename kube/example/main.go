@@ -150,7 +150,7 @@ func main() {
 
 	storage := resources.NewVirtualStorage(ctl)
 
-	if err := ctrl.NewWebhookManagedBy(mgr).For(&clusterv1.Cluster{}).Complete(); err != nil {
+	if err := ctrl.NewWebhookManagedBy(mgr, &clusterv1.Cluster{}).Complete(); err != nil {
 		logger.Error(err, "setting up webhook")
 		os.Exit(1)
 	}
