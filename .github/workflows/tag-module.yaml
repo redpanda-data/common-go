@@ -1,0 +1,139 @@
+name: "Tag Module"
+
+on:
+  workflow_dispatch:
+    inputs:
+      modules:
+        description: "Comma-separated module names (e.g. rpadmin,authz) or 'all'"
+        required: true
+        default: "all"
+        type: string
+      bump:
+        description: "Version bump type"
+        required: true
+        default: "patch"
+        type: choice
+        options:
+          - patch
+          - minor
+      dry_run:
+        description: "Print what would be tagged without pushing"
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+
+jobs:
+  tag:
+    name: tag-modules
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Tag modules
+        env:
+          MODULES_INPUT: ${{ inputs.modules }}
+          BUMP: ${{ inputs.bump }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          set -eo pipefail
+
+          # Collect modules to process
+          declare -a modules
+
+          if [ "$MODULES_INPUT" = "all" ]; then
+            while IFS= read -r mod; do
+              [ -n "$mod" ] && modules+=("$mod")
+            done < <(git tag --list '*/v*' | sed 's|/v.*||' | sort -u)
+
+            if [ ${#modules[@]} -eq 0 ]; then
+              echo "::error::No tagged modules found. Create an initial tag manually first."
+              exit 1
+            fi
+            echo "Discovered ${#modules[@]} tagged module(s): ${modules[*]}"
+          else
+            IFS=',' read -ra raw <<< "$MODULES_INPUT"
+            for entry in "${raw[@]}"; do
+              trimmed=$(echo "$entry" | xargs)
+              [ -n "$trimmed" ] && modules+=("$trimmed")
+            done
+          fi
+
+          # Process each module
+          new_tags=()
+          skipped=()
+          summary="| Module | Current Tag | New Tag | Status |\n|--------|-------------|---------|--------|\n"
+
+          for mod in "${modules[@]}"; do
+            # Validate go.mod exists
+            if [ ! -f "$mod/go.mod" ]; then
+              echo "::error::Module '$mod' does not have a go.mod file."
+              exit 1
+            fi
+
+            # Find latest tag
+            latest=$(git tag --list --sort=-version:refname "$mod/v*" | head -n 1 || true)
+
+            if [ -z "$latest" ]; then
+              if [ "$MODULES_INPUT" = "all" ]; then
+                echo "::notice::Skipping '$mod' — no existing tags found."
+                skipped+=("$mod")
+                summary+="| $mod | — | — | Skipped (untagged) |\n"
+                continue
+              else
+                echo "::error::Module '$mod' has no existing tags. Create an initial tag manually: git tag $mod/v0.1.0 && git push origin $mod/v0.1.0"
+                exit 1
+              fi
+            fi
+
+            # Parse version from tag (e.g. rpadmin/v0.2.2 -> 0 2 2)
+            version=${latest#"$mod/v"}
+            IFS='.' read -r major minor patch <<< "$version"
+
+            # Bump
+            if [ "$BUMP" = "minor" ]; then
+              new_tag="$mod/v$major.$((minor + 1)).0"
+            else
+              new_tag="$mod/v$major.$minor.$((patch + 1))"
+            fi
+
+            # Check if tag already exists
+            if git rev-parse "$new_tag" >/dev/null 2>&1; then
+              echo "::error::Tag '$new_tag' already exists."
+              exit 1
+            fi
+
+            if [ "$DRY_RUN" = "true" ]; then
+              echo "[DRY RUN] Would create tag: $new_tag (current: $latest)"
+              summary+="| $mod | $latest | $new_tag | Dry run |\n"
+            else
+              git tag "$new_tag"
+              new_tags+=("$new_tag")
+              echo "Created tag: $new_tag (was: $latest)"
+              summary+="| $mod | $latest | $new_tag | Tagged |\n"
+            fi
+          done
+
+          # Push all new tags at once
+          if [ "$DRY_RUN" != "true" ] && [ "${#new_tags[@]}" -gt 0 ]; then
+            git push origin "${new_tags[@]}"
+            echo "Pushed ${#new_tags[@]} tag(s): ${new_tags[*]}"
+          fi
+
+          # Write job summary
+          echo "## Tag Module Results" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Bump:** $BUMP | **Dry run:** $DRY_RUN" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo -e "$summary" >> "$GITHUB_STEP_SUMMARY"
+
+          if [ ${#skipped[@]} -gt 0 ]; then
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "> **Skipped modules (no existing tags):** ${skipped[*]}" >> "$GITHUB_STEP_SUMMARY"
+          fi
