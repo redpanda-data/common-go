@@ -20,6 +20,11 @@ import (
 	"connectrpc.com/connect"
 )
 
+const (
+	principalTypeUser  = "User"
+	principalTypeGroup = "Group"
+)
+
 // Role is a representation of a Role as returned by the Admin API.
 type Role struct {
 	Name string `json:"name" yaml:"name"`
@@ -61,13 +66,13 @@ type RoleDetailResponse struct {
 
 func (m RoleMember) toProto() *adminv2.RoleMember {
 	switch m.PrincipalType {
-	case "User":
+	case principalTypeUser:
 		return &adminv2.RoleMember{
 			Member: &adminv2.RoleMember_User{
 				User: &adminv2.RoleUser{Name: m.Name},
 			},
 		}
-	case "Group":
+	case principalTypeGroup:
 		return &adminv2.RoleMember{
 			Member: &adminv2.RoleMember_Group{
 				Group: &adminv2.RoleGroup{Name: m.Name},
@@ -80,26 +85,35 @@ func (m RoleMember) toProto() *adminv2.RoleMember {
 // roleMemberFromProto converts a proto RoleMember to a Go RoleMember.
 func roleMemberFromProto(m *adminv2.RoleMember) RoleMember {
 	if m.HasUser() {
-		return RoleMember{Name: m.GetUser().Name, PrincipalType: "User"}
+		return RoleMember{Name: m.GetUser().Name, PrincipalType: principalTypeUser}
 	}
 	if m.HasGroup() {
-		return RoleMember{Name: m.GetGroup().Name, PrincipalType: "Group"}
+		return RoleMember{Name: m.GetGroup().Name, PrincipalType: principalTypeGroup}
 	}
 	return RoleMember{}
+}
+
+// Check if a given principal is assigned to the current role
+func isRoleAssignedToPrincipal(role *adminv2.Role, principal, principalType string) bool {
+	for _, member := range role.Members {
+		if (principalType == "User" && member.HasUser() && principal == member.GetUser().Name) ||
+			(principalType == "Group" && member.HasGroup() && principal == member.GetGroup().Name) {
+			return true
+		}
+	}
+	return false
 }
 
 // Roles returns the roles in Redpanda, use 'prefix', 'principal', and
 // 'principalType' to filter the results. principalType must be set along with
 // principal. It has no effect on its own.
 func (a *AdminAPI) Roles(ctx context.Context, prefix, principal, principalType string) (RolesResponse, error) {
-	if principal != "" {
-		if principalType == "" {
-			return RolesResponse{}, errors.New("principalType can not be empty if principal is set")
-		}
+	if principal != "" && principalType == "" {
+		return RolesResponse{}, errors.New("principalType can not be empty if principal is set")
 	}
 
 	// Validate that the principalType is one of the ones we're expecting
-	if principalType != "" && principalType != "User" && principalType != "Group" {
+	if principalType != "" && principalType != principalTypeUser && principalType != principalTypeGroup {
 		return RolesResponse{}, fmt.Errorf("unexpected principalType value %q", principalType)
 	}
 
@@ -112,19 +126,7 @@ func (a *AdminAPI) Roles(ctx context.Context, prefix, principal, principalType s
 
 	var filtered []Role
 	for _, role := range resp.Msg.Roles {
-		// Check if a given principal is assigned to the current role
-		hasPrincipal := principal == ""
-		if !hasPrincipal {
-			for _, member := range role.Members {
-				if (principalType == "User" && member.HasUser() && principal == member.GetUser().Name) ||
-					(principalType == "Group" && member.HasGroup() && principal == member.GetGroup().Name) {
-					hasPrincipal = true
-					break
-				}
-			}
-		}
-
-		if hasPrincipal && strings.HasPrefix(role.Name, prefix) {
+		if (principal == "" || isRoleAssignedToPrincipal(role, principal, principalType)) && strings.HasPrefix(role.Name, prefix) {
 			filtered = append(filtered, Role{Name: role.Name})
 		}
 	}
