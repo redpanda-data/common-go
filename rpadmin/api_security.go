@@ -13,13 +13,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/http"
-	"net/url"
+	"strings"
+
+	"buf.build/gen/go/redpandadata/core/connectrpc/go/redpanda/core/admin/v2/adminv2connect"
+	adminv2 "buf.build/gen/go/redpandadata/core/protocolbuffers/go/redpanda/core/admin/v2"
+	"connectrpc.com/connect"
 )
 
 const (
-	baseSecurityEndpoint = "/v1/security/"
-	baseRoleEndpoint     = baseSecurityEndpoint + "roles"
+	principalTypeUser  = "User"
+	principalTypeGroup = "Group"
 )
 
 // Role is a representation of a Role as returned by the Admin API.
@@ -50,11 +53,6 @@ type PatchRoleResponse struct {
 	Removed  []RoleMember `json:"removed" yaml:"removed"`
 }
 
-type patchRoleRequest struct {
-	Add    []RoleMember `json:"add,omitempty"`
-	Remove []RoleMember `json:"remove,omitempty"`
-}
-
 // RoleMemberResponse is the response of the RoleMembers method.
 type RoleMemberResponse struct {
 	Members []RoleMember `json:"members" yaml:"members"`
@@ -66,91 +64,200 @@ type RoleDetailResponse struct {
 	Members  []RoleMember `json:"members" yaml:"members"`
 }
 
+func (m RoleMember) toProto() *adminv2.RoleMember {
+	switch m.PrincipalType {
+	case principalTypeUser:
+		return &adminv2.RoleMember{
+			Member: &adminv2.RoleMember_User{
+				User: &adminv2.RoleUser{Name: m.Name},
+			},
+		}
+	case principalTypeGroup:
+		return &adminv2.RoleMember{
+			Member: &adminv2.RoleMember_Group{
+				Group: &adminv2.RoleGroup{Name: m.Name},
+			},
+		}
+	}
+	return nil
+}
+
+// roleMemberFromProto converts a proto RoleMember to a Go RoleMember.
+func roleMemberFromProto(m *adminv2.RoleMember) RoleMember {
+	if m.HasUser() {
+		return RoleMember{Name: m.GetUser().Name, PrincipalType: principalTypeUser}
+	}
+	if m.HasGroup() {
+		return RoleMember{Name: m.GetGroup().Name, PrincipalType: principalTypeGroup}
+	}
+	return RoleMember{}
+}
+
+// Check if a given principal is assigned to the current role
+func isRoleAssignedToPrincipal(role *adminv2.Role, principal, principalType string) bool {
+	for _, member := range role.Members {
+		if (principalType == "User" && member.HasUser() && principal == member.GetUser().Name) ||
+			(principalType == "Group" && member.HasGroup() && principal == member.GetGroup().Name) {
+			return true
+		}
+	}
+	return false
+}
+
 // Roles returns the roles in Redpanda, use 'prefix', 'principal', and
 // 'principalType' to filter the results. principalType must be set along with
 // principal. It has no effect on its own.
 func (a *AdminAPI) Roles(ctx context.Context, prefix, principal, principalType string) (RolesResponse, error) {
-	var roles RolesResponse
-	u, qs := baseRoleEndpoint, url.Values{}
-	if prefix != "" {
-		qs.Add("filter", prefix)
+	if principal != "" && principalType == "" {
+		return RolesResponse{}, errors.New("principalType can not be empty if principal is set")
 	}
-	if principal != "" {
-		if principalType == "" {
-			return RolesResponse{}, errors.New("principalType can not be empty if principal is set")
+
+	// Validate that the principalType is one of the ones we're expecting
+	if principalType != "" && principalType != principalTypeUser && principalType != principalTypeGroup {
+		return RolesResponse{}, fmt.Errorf("unexpected principalType value %q", principalType)
+	}
+
+	resp, err := adminv2connect.
+		NewSecurityServiceClient(a, "/").
+		ListRoles(ctx, connect.NewRequest(&adminv2.ListRolesRequest{}))
+	if err != nil {
+		return RolesResponse{}, err
+	}
+
+	var filtered []Role
+	for _, role := range resp.Msg.Roles {
+		if (principal == "" || isRoleAssignedToPrincipal(role, principal, principalType)) && strings.HasPrefix(role.Name, prefix) {
+			filtered = append(filtered, Role{Name: role.Name})
 		}
-		qs.Add("principal", principal)
-		qs.Add("principal_type", principalType)
 	}
-	if queryString := qs.Encode(); queryString != "" {
-		u += "?" + queryString
-	}
-	return roles, a.sendAny(ctx, http.MethodGet, u, nil, &roles)
+
+	return RolesResponse{Roles: filtered}, nil
 }
 
 // Role returns the specific role in Redpanda.
 func (a *AdminAPI) Role(ctx context.Context, roleName string) (RoleDetailResponse, error) {
-	var role RoleDetailResponse
+	resp, err := adminv2connect.
+		NewSecurityServiceClient(a, "/").
+		GetRole(ctx, connect.NewRequest(&adminv2.GetRoleRequest{Name: roleName}))
+	if err != nil {
+		return RoleDetailResponse{}, err
+	}
 
-	return role, a.sendAny(ctx,
-		http.MethodGet,
-		fmt.Sprintf("%v/%v", baseRoleEndpoint, roleName),
-		nil,
-		&role)
+	var members []RoleMember
+	for _, m := range resp.Msg.Role.Members {
+		members = append(members, roleMemberFromProto(m))
+	}
+	return RoleDetailResponse{RoleName: resp.Msg.Role.Name, Members: members}, nil
 }
 
 // CreateRole creates a Role in Redpanda with the given name.
 func (a *AdminAPI) CreateRole(ctx context.Context, name string) (CreateRole, error) {
-	var res CreateRole
-	return res, a.sendAny(ctx, http.MethodPost, baseRoleEndpoint, CreateRole{name}, &res)
+	resp, err := adminv2connect.
+		NewSecurityServiceClient(a, "/").
+		CreateRole(ctx, connect.NewRequest(&adminv2.CreateRoleRequest{Role: &adminv2.Role{Name: name}}))
+	if err != nil {
+		return CreateRole{}, err
+	}
+
+	return CreateRole{resp.Msg.Role.Name}, nil
 }
 
 // DeleteRole deletes a Role in Redpanda with the given name. If deleteACL is
 // true, Redpanda will delete ACLs bound to the role.
 func (a *AdminAPI) DeleteRole(ctx context.Context, name string, deleteACL bool) error {
-	return a.sendAny(
-		ctx,
-		http.MethodDelete,
-		fmt.Sprintf("%v/%v?delete_acls=%v", baseRoleEndpoint, name, deleteACL),
-		nil,
-		nil,
-	)
+	_, err := adminv2connect.
+		NewSecurityServiceClient(a, "/").
+		DeleteRole(ctx, connect.NewRequest(&adminv2.DeleteRoleRequest{Name: name, DeleteAcls: deleteACL}))
+	return err
 }
 
-// AssignRole assign the role 'roleName' to the passed members.
-func (a *AdminAPI) AssignRole(ctx context.Context, roleName string, add []RoleMember) (PatchRoleResponse, error) {
-	var res PatchRoleResponse
-	body := patchRoleRequest{
-		Add: add,
+// AssignRole adds the given RoleMembers to the role
+func (a *AdminAPI) AssignRole(ctx context.Context, roleName string, members []RoleMember) (PatchRoleResponse, error) {
+	protoMembers := make([]*adminv2.RoleMember, len(members))
+	for i, m := range members {
+		protoMembers[i] = m.toProto()
 	}
-	return res, a.sendAny(ctx, http.MethodPost, fmt.Sprintf("%v/%v/members", baseRoleEndpoint, roleName), body, &res)
-}
 
-// UnassignRole unassigns the role 'roleName' from the passed members.
-func (a *AdminAPI) UnassignRole(ctx context.Context, roleName string, remove []RoleMember) (PatchRoleResponse, error) {
-	var res PatchRoleResponse
-	body := patchRoleRequest{
-		Remove: remove,
+	_, err := adminv2connect.
+		NewSecurityServiceClient(a, "/").
+		AddRoleMembers(ctx, connect.NewRequest(&adminv2.AddRoleMembersRequest{
+			RoleName: roleName,
+			Members:  protoMembers,
+		}))
+	if err != nil {
+		return PatchRoleResponse{}, err
 	}
-	return res, a.sendAny(ctx, http.MethodPost, fmt.Sprintf("%v/%v/members", baseRoleEndpoint, roleName), body, &res)
+	return PatchRoleResponse{RoleName: roleName, Added: members}, nil
 }
 
-// UpdateRoleMembership updates the role membership for 'roleName' adding and removing the passed members.
+// UnassignRole removes the given users from the role
+func (a *AdminAPI) UnassignRole(ctx context.Context, roleName string, members []RoleMember) (PatchRoleResponse, error) {
+	protoMembers := make([]*adminv2.RoleMember, len(members))
+	for i, m := range members {
+		protoMembers[i] = m.toProto()
+	}
+
+	_, err := adminv2connect.
+		NewSecurityServiceClient(a, "/").
+		RemoveRoleMembers(ctx, connect.NewRequest(&adminv2.RemoveRoleMembersRequest{
+			RoleName: roleName,
+			Members:  protoMembers,
+		}))
+	if err != nil {
+		return PatchRoleResponse{}, err
+	}
+	return PatchRoleResponse{RoleName: roleName, Removed: members}, nil
+}
+
+// UpdateRoleMembership updates the role membership for the role, adding and removing members.
+// If createRole is true, the role is created first (ignoring "already exists" errors).
+// Note: create, add and remove are separate RPCs and are _not_ atomic.
 func (a *AdminAPI) UpdateRoleMembership(ctx context.Context, roleName string, add, remove []RoleMember, createRole bool) (PatchRoleResponse, error) {
-	var res PatchRoleResponse
-	body := patchRoleRequest{
-		Add:    add,
-		Remove: remove,
+	client := adminv2connect.NewSecurityServiceClient(a, "/")
+
+	if createRole {
+		_, err := client.CreateRole(ctx, connect.NewRequest(&adminv2.CreateRoleRequest{
+			Role: &adminv2.Role{Name: roleName},
+		}))
+		if err != nil && connect.CodeOf(err) != connect.CodeAlreadyExists {
+			return PatchRoleResponse{}, err
+		}
 	}
-	return res, a.sendAny(ctx,
-		http.MethodPost,
-		fmt.Sprintf("%v/%v/members?create=%v", baseRoleEndpoint, roleName, createRole),
-		body,
-		&res)
+
+	// When no members are being added or removed and the role isn't being
+	// created, validate the role exists by fetching it.
+	if !createRole && len(add) == 0 && len(remove) == 0 {
+		_, err := client.GetRole(ctx, connect.NewRequest(&adminv2.GetRoleRequest{Name: roleName}))
+		return PatchRoleResponse{RoleName: roleName}, err
+	}
+
+	if len(add) > 0 {
+		if _, err := a.AssignRole(ctx, roleName, add); err != nil {
+			return PatchRoleResponse{}, err
+		}
+	}
+
+	if len(remove) > 0 {
+		if _, err := a.UnassignRole(ctx, roleName, remove); err != nil {
+			return PatchRoleResponse{}, err
+		}
+	}
+
+	return PatchRoleResponse{RoleName: roleName, Added: add, Removed: remove}, nil
 }
 
 // RoleMembers returns the list of RoleMembers of a given role.
 func (a *AdminAPI) RoleMembers(ctx context.Context, roleName string) (RoleMemberResponse, error) {
-	var res RoleMemberResponse
-	return res, a.sendAny(ctx, http.MethodGet, fmt.Sprintf("%v/%v/members", baseRoleEndpoint, roleName), nil, &res)
+	resp, err := adminv2connect.
+		NewSecurityServiceClient(a, "/").
+		GetRole(ctx, connect.NewRequest(&adminv2.GetRoleRequest{Name: roleName}))
+	if err != nil {
+		return RoleMemberResponse{}, err
+	}
+
+	var members []RoleMember
+	for _, m := range resp.Msg.Role.Members {
+		members = append(members, roleMemberFromProto(m))
+	}
+	return RoleMemberResponse{Members: members}, nil
 }
