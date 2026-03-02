@@ -58,7 +58,7 @@ func (r *ResourcePolicy) buildChecker(childScope ResourceName, perm PermissionNa
 	checker := &resourceChecker{principals: map[PrincipalID]struct{}{}}
 	for _, scope := range []ResourceName{childScope, childScope.Parent()} {
 		for _, binding := range r.bindingsByScope[scope] {
-			if !binding.Scope.Matches(scope) {
+			if !binding.Scope.Matches(childScope) {
 				continue
 			}
 			role, ok := r.roleByID[binding.Role]
