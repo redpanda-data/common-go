@@ -53,6 +53,73 @@ func TestResourceFullName_Name(t *testing.T) {
 	}
 }
 
+func TestResourceFullName_Matches(t *testing.T) {
+	tests := []struct {
+		name     string
+		resource authz.ResourceName
+		against  authz.ResourceName
+		matches  bool
+	}{
+		{
+			name:     "exact match",
+			resource: "organizations/acme/resourcegroups/foo/dataplanes/bar/mcpservers/qux",
+			against:  "organizations/acme/resourcegroups/foo/dataplanes/bar/mcpservers/qux",
+			matches:  true,
+		},
+		{
+			name:     "not exact match",
+			resource: "organizations/acme/resourcegroups/foo/dataplanes/bar/mcpservers/qux",
+			against:  "organizations/acme/resourcegroups/foo/dataplanes/bar/mcpservers/bar",
+			matches:  false,
+		},
+		{
+			name:     "prefix match",
+			resource: "organizations/acme/resourcegroups/foo/dataplanes/bar/mcpservers/*",
+			against:  "organizations/acme/resourcegroups/foo/dataplanes/bar/mcpservers/foobar",
+			matches:  true,
+		},
+		{
+			name:     "prefix match w/prefix",
+			resource: "organizations/acme/resourcegroups/foo/dataplanes/bar/mcpservers/foo*",
+			against:  "organizations/acme/resourcegroups/foo/dataplanes/bar/mcpservers/foobar",
+			matches:  true,
+		},
+		{
+			name:     "parent prefix match",
+			resource: "organizations/acme/resourcegroups/foo/dataplanes/*",
+			against:  "organizations/acme/resourcegroups/foo/dataplanes/bar/mcpservers/foobar",
+			matches:  true,
+		},
+		{
+			name:     "parent not prefix match",
+			resource: "organizations/acme/resourcegroups/foo/dataplanes/*",
+			against:  "organizations/acme/resourcegroups/qux/dataplanes/bar/mcpservers/foobar",
+			matches:  false,
+		},
+		{
+			name:     "parent prefix match w/prefix",
+			resource: "organizations/acme/resourcegroups/foo/dataplanes/b*",
+			against:  "organizations/acme/resourcegroups/foo/dataplanes/bar/mcpservers/foobar",
+			matches:  true,
+		},
+		{
+			name:     "parent prefix not match w/prefix",
+			resource: "organizations/acme/resourcegroups/foo/dataplanes/b-*",
+			against:  "organizations/acme/resourcegroups/foo/dataplanes/bar/mcpservers/foobar",
+			matches:  false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.resource.Matches(tt.against)
+			if got != tt.matches {
+				t.Errorf("ResourceFullName.Matches() = %v, want %v", got, tt.matches)
+			}
+		})
+	}
+}
+
 func TestResourceFullName_Type(t *testing.T) {
 	tests := []struct {
 		name     string
