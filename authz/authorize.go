@@ -54,17 +54,22 @@ func (r *ResourcePolicy) SubResourceAuthorizer(t ResourceType, id ResourceID, pe
 	return &authorizerImpl{checkers: append(parentAuth.checkers, childChecker)}
 }
 
-func (r *ResourcePolicy) buildChecker(scope ResourceName, perm PermissionName) *resourceChecker {
+func (r *ResourcePolicy) buildChecker(childScope ResourceName, perm PermissionName) *resourceChecker {
 	checker := &resourceChecker{principals: map[PrincipalID]struct{}{}}
-	for _, binding := range r.bindingsByScope[scope] {
-		role, ok := r.roleByID[binding.Role]
-		if !ok {
-			// Skip bindings with missing roles during runtime checks
-			continue
-		}
-		// This is expected to be small, so iterating every time is fine.
-		if slices.Index(role.Permissions, perm) != -1 {
-			checker.principals[binding.Principal] = struct{}{}
+	for _, scope := range []ResourceName{childScope, childScope.Parent()} {
+		for _, binding := range r.bindingsByScope[scope] {
+			if !binding.Scope.Matches(scope) {
+				continue
+			}
+			role, ok := r.roleByID[binding.Role]
+			if !ok {
+				// Skip bindings with missing roles during runtime checks
+				continue
+			}
+			// This is expected to be small, so iterating every time is fine.
+			if slices.Index(role.Permissions, perm) != -1 {
+				checker.principals[binding.Principal] = struct{}{}
+			}
 		}
 	}
 	return checker
@@ -124,8 +129,12 @@ func NewResourcePolicy(
 		if _, ok := roleByID[binding.Role]; !ok {
 			return &ResourcePolicy{}, fmt.Errorf("missing role %q for binding", binding.Role)
 		}
-		bindings := bindingsByScope[binding.Scope]
-		bindingsByScope[binding.Scope] = append(bindings, binding)
+		scope := binding.Scope
+		if scope.HasWildcard() {
+			scope = scope.Parent()
+		}
+		bindings := bindingsByScope[scope]
+		bindingsByScope[scope] = append(bindings, binding)
 	}
 
 	rp := &ResourcePolicy{
@@ -143,6 +152,9 @@ func NewResourcePolicy(
 		for current != "" {
 			// Add principals from this scope to the accumulated checker
 			for _, binding := range bindingsByScope[current] {
+				if !binding.Scope.Matches(resource) {
+					continue
+				}
 				role, ok := roleByID[binding.Role]
 				if !ok {
 					continue

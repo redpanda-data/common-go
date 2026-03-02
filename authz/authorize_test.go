@@ -40,7 +40,7 @@ func Example() {
 			{
 				Role:      "mcp.user",
 				Principal: "user:bob",
-				Scope:     "organizations/acme/resourcegroups/foo/dataplanes/bar/mcpservers/qux",
+				Scope:     "organizations/acme/resourcegroups/foo/dataplanes/bar/mcpservers/*",
 			},
 		},
 	}
@@ -103,6 +103,11 @@ func TestCompileAuthorizer(t *testing.T) {
 				Role:      "viewer",
 				Principal: "user:charlie",
 				Scope:     "organizations/acme/resourcegroups/foo/dataplanes/bar",
+			},
+			{
+				Role:      "viewer",
+				Principal: "user:diane",
+				Scope:     "organizations/acme/resourcegroups/dev*",
 			},
 		},
 	}
@@ -168,6 +173,48 @@ func TestCompileAuthorizer(t *testing.T) {
 			resource:   "",
 			permission: "read",
 			principal:  "user:alice",
+			want:       false,
+		},
+		{
+			name:       "viewer permission wildcard match",
+			resource:   "organizations/acme/resourcegroups/dev-us-east",
+			permission: "read",
+			principal:  "user:diane",
+			want:       true,
+		},
+		{
+			name:       "viewer permission wildcard exact match",
+			resource:   "organizations/acme/resourcegroups/dev",
+			permission: "read",
+			principal:  "user:diane",
+			want:       true,
+		},
+		{
+			name:       "viewer permission wildcard mismatch",
+			resource:   "organizations/acme/resourcegroups/staging-us-east",
+			permission: "read",
+			principal:  "user:diane",
+			want:       false,
+		},
+		{
+			name:       "viewer permission wildcard at child match",
+			resource:   "organizations/acme/resourcegroups/dev-us-east/mcpservers/foo",
+			permission: "read",
+			principal:  "user:diane",
+			want:       true,
+		},
+		{
+			name:       "viewer permission wildcard at child mismatch",
+			resource:   "organizations/acme/resourcegroups/staging-us-east/mcpservers/bar",
+			permission: "read",
+			principal:  "user:diane",
+			want:       false,
+		},
+		{
+			name:       "viewer permission wildcard does not propagate to parent",
+			resource:   "organizations/acme",
+			permission: "read",
+			principal:  "user:diane",
 			want:       false,
 		},
 	}
@@ -312,6 +359,16 @@ func TestSubResourceAuthorizer(t *testing.T) {
 				Principal: "user:bob",
 				Scope:     "organizations/acme/resourcegroups/foo/dataplanes/bar/mcpservers/qux",
 			},
+			{
+				Role:      "mcpserver.user",
+				Principal: "user:diane",
+				Scope:     "organizations/acme/resourcegroups/foo/dataplanes/bar*",
+			},
+			{
+				Role:      "mcpserver.user",
+				Principal: "user:ed",
+				Scope:     "organizations/acme/resourcegroups/foo/dataplanes/bar*",
+			},
 		},
 	}
 
@@ -347,6 +404,11 @@ func TestSubResourceAuthorizer(t *testing.T) {
 	// Charlie has no permissions
 	if mcpServerAuthorizer.Check("user:charlie") {
 		t.Error("Expected charlie to NOT have tool_invoke permission on mcpserver")
+	}
+
+	// Diane has permissions from the wildcard parent
+	if !mcpServerAuthorizer.Check("user:diane") {
+		t.Error("Expected diane to have tool_invoke permission on mcpserver")
 	}
 
 	// Test sub-resource authorizer for a different MCP server

@@ -22,6 +22,20 @@ import (
 //
 // For more information see: https://aip.dev/122
 //
+// As an extension on aip.dev/122 we also support wildcards `*` at the end of the name. It's only valid for
+// at the very end of the [ResourceID].
+//
+// Examples that are valid:
+//
+//	organizations/acme/resourcegroups/foo/dataplanes/bar/mcpservers/myagent*
+//	organizations/acme/resourcegroups/foo/dataplanes/bar/mcpservers/*
+//	organizations/acme/resourcegroups/foo/dataplanes/dev-*
+//
+// Examples that are *NOT* valid:
+//
+//	organizations/acme/resourcegroups/foo/dataplanes/bar/mcpservers/*myagent
+//	organizations/acme/resourcegroups/*/dataplanes/dev
+//
 // The default ResourceName is the root resource that exists outside the resource realm.
 type ResourceName string
 
@@ -43,6 +57,25 @@ func (r ResourceName) Type() ResourceType {
 		return ""
 	}
 	return t
+}
+
+// Matches returns if this ResourceName matches the resource, including wildcards and prefixes.
+func (r ResourceName) Matches(o ResourceName) bool {
+	check := string(r)
+	if before, found := strings.CutSuffix(check, "*"); found {
+		check = before
+	}
+	return strings.HasPrefix(string(o), check)
+}
+
+// HasWildcard is if the resource ID applies to many different resources via a `*` wildcard.
+//
+// For example, these should return `true`:
+//
+//	organizations/acme/resourcegroups/foo/dataplanes/bar/mcpservers/myagent*
+//	organizations/acme/resourcegroups/foo/dataplanes/bar/mcpservers/*
+func (r ResourceName) HasWildcard() bool {
+	return r.Name().HasWildcard()
 }
 
 // Parent returns the parent resource for this resource.
@@ -121,6 +154,13 @@ func (r ResourceName) String() string {
 //
 // For more information see: aip.dev/122
 type ResourceID string
+
+// HasWildcard is if the resource ID applies to many different resources via a `*` wildcard
+//
+// For example `dev-topics*` or `my-servers-*`
+func (r ResourceID) HasWildcard() bool {
+	return strings.HasSuffix(string(r), "*")
+}
 
 // String implements fmt.Stringer.
 func (r ResourceID) String() string {
