@@ -369,6 +369,11 @@ func TestSubResourceAuthorizer(t *testing.T) {
 				Principal: "user:ed",
 				Scope:     "organizations/acme/resourcegroups/foo/dataplanes/bar*",
 			},
+			{
+				Role:      "mcpserver.user",
+				Principal: "user:frank",
+				Scope:     "organizations/acme/resourcegroups/foo/dataplanes/bar/mcpservers/*",
+			},
 		},
 	}
 
@@ -411,6 +416,16 @@ func TestSubResourceAuthorizer(t *testing.T) {
 		t.Error("Expected diane to have tool_invoke permission on mcpserver")
 	}
 
+	// Frank has wildcard at the mcpservers/* child resource level via SubResourceAuthorizer
+	if !mcpServerAuthorizer.Check("user:frank") {
+		t.Error("Expected frank to have tool_invoke permission on mcpserver (wildcard mcpservers/*)")
+	}
+
+	// Frank should NOT have access to the dataplane itself (wildcard is scoped to mcpservers/*)
+	if dataplaneAuthorizer.Check("user:frank") {
+		t.Error("Expected frank to NOT have tool_list permission on dataplane")
+	}
+
 	// Test sub-resource authorizer for a different MCP server
 	otherMcpServerAuthorizer := resourcePolicy.SubResourceAuthorizer("mcpservers", "other", "tool_invoke")
 
@@ -422,6 +437,11 @@ func TestSubResourceAuthorizer(t *testing.T) {
 	// Bob should NOT have access (only bound to 'qux' mcpserver)
 	if otherMcpServerAuthorizer.Check("user:bob") {
 		t.Error("Expected bob to NOT have tool_invoke permission on other mcpserver")
+	}
+
+	// Frank should have access to any mcpserver (wildcard mcpservers/*)
+	if !otherMcpServerAuthorizer.Check("user:frank") {
+		t.Error("Expected frank to have tool_invoke permission on other mcpserver (wildcard mcpservers/*)")
 	}
 }
 
