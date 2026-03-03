@@ -31,6 +31,11 @@ func (a *AdminAPI) ClusterService(opts ...connect.ClientOption) adminv2connect.C
 	return adminv2connect.NewClusterServiceClient(a, "/", withDefaultClientOpts(opts)...)
 }
 
+// SecurityService returns a client for the SecurityService of the Admin API V2.
+func (a *AdminAPI) SecurityService(opts ...connect.ClientOption) adminv2connect.SecurityServiceClient {
+	return adminv2connect.NewSecurityServiceClient(a, "/", withDefaultClientOpts(opts)...)
+}
+
 // newContentTypeInterceptor is a Connect interceptor that sets the Content-Type
 // and Accept headers to "application/proto" for all requests. This ensures that
 // we override the default "application/json" used by some of our shared
