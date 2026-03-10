@@ -34,6 +34,12 @@ var tracer = otel.Tracer("github.com/redpanda-data/common-go/authz")
 // PrincipalExtractor extracts a principal from the request context.
 type PrincipalExtractor func(ctx context.Context) (PrincipalID, bool)
 
+// PolicyWatchFunc loads the initial policy and watches for changes.
+// It returns the initial policy, an unwatch function, and any error.
+// The callback is invoked on policy changes after the initial load.
+// This matches the signature of [loader.WatchPolicyFile].
+type PolicyWatchFunc func(callback func(Policy, error)) (Policy, func() error, error)
+
 // InterceptorConfig configures the policy-based authorization interceptor.
 type InterceptorConfig struct {
 	// Logger for authorization events. If nil, slog.Default() is used.
@@ -43,8 +49,18 @@ type InterceptorConfig struct {
 	ResourceName ResourceName
 	// ExtractPrincipal extracts the caller's principal from the request context.
 	ExtractPrincipal PrincipalExtractor
-	// Policy is the initial authorization policy.
+	// Policy is the initial authorization policy. Mutually exclusive with PolicyWatch.
 	Policy Policy
+	// PolicyWatch loads the initial policy and watches for changes, hot-reloading
+	// automatically. Mutually exclusive with Policy. Call [Interceptor.Close] to
+	// stop watching.
+	//
+	// Example using loader.WatchPolicyFile:
+	//
+	//   PolicyWatch: func(cb func(authz.Policy, error)) (authz.Policy, func() error, error) {
+	//       return loader.WatchPolicyFile("/path/to/policy.yaml", cb)
+	//   },
+	PolicyWatch PolicyWatchFunc
 	// MethodPermissions provides manual method-to-permission mappings for
 	// services whose protos don't yet have authorization annotations.
 	// These are merged with any permissions discovered from proto annotations.
@@ -74,6 +90,7 @@ type Interceptor struct {
 	allPerms         []PermissionName
 	resourceName     ResourceName
 	extractPrincipal PrincipalExtractor
+	unwatch          func() error // non-nil when PolicyFile is used
 
 	// authzCache caches proto descriptor lookups: fullMethod -> *MethodAuthz.
 	// nil means "looked up but no annotation found" (deny).
@@ -98,8 +115,8 @@ func (a *Interceptor) ExtractPrincipal() PrincipalExtractor {
 //
 // Methods without annotations are denied (fail-closed).
 //
-// Use [Interceptor.SwapPolicy] to hot-reload the policy (e.g. from
-// loader.WatchPolicyFile).
+// When PolicyWatch is set, the interceptor watches for policy changes and
+// hot-reloads automatically. Call [Interceptor.Close] to stop watching.
 func NewInterceptor(cfg InterceptorConfig) (*Interceptor, error) {
 	if cfg.ExtractPrincipal == nil {
 		return nil, errors.New("principal extractor must not be nil")
@@ -137,8 +154,40 @@ func NewInterceptor(cfg InterceptorConfig) (*Interceptor, error) {
 	}
 	allPerms = deduped
 
-	rp, err := NewResourcePolicy(cfg.Policy, cfg.ResourceName, allPerms)
+	// Load initial policy — either static or from a watched file.
+	// The callback captures `iptr` which is set after NewInterceptor returns
+	// the interceptor. The watch callback only fires on file changes after
+	// WatchPolicyFile returns, so `*iptr` is always initialized.
+	var (
+		policy  Policy
+		unwatch func() error
+		iptr    *Interceptor
+	)
+	if cfg.PolicyWatch != nil {
+		var err error
+		policy, unwatch, err = cfg.PolicyWatch(func(p Policy, watchErr error) {
+			if watchErr != nil {
+				logger.Error("Failed to reload authorization policy", "error", watchErr)
+				return
+			}
+			if swapErr := iptr.SwapPolicy(p); swapErr != nil {
+				logger.Error("Failed to apply reloaded authorization policy", "error", swapErr)
+				return
+			}
+			logger.Info("Authorization policy reloaded")
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to load policy: %w", err)
+		}
+	} else {
+		policy = cfg.Policy
+	}
+
+	rp, err := NewResourcePolicy(policy, cfg.ResourceName, allPerms)
 	if err != nil {
+		if unwatch != nil {
+			_ = unwatch()
+		}
 		return nil, fmt.Errorf("failed to create resource policy: %w", err)
 	}
 
@@ -147,8 +196,10 @@ func NewInterceptor(cfg InterceptorConfig) (*Interceptor, error) {
 		allPerms:         allPerms,
 		resourceName:     cfg.ResourceName,
 		extractPrincipal: cfg.ExtractPrincipal,
+		unwatch:          unwatch,
 	}
 	i.resourcePolicy.Store(rp)
+	iptr = i // Wire up the callback's reference.
 
 	// Pre-seed cache with manual mappings.
 	for _, e := range manualEntries {
@@ -163,13 +214,21 @@ func NewInterceptor(cfg InterceptorConfig) (*Interceptor, error) {
 }
 
 // SwapPolicy replaces the active policy. Safe for concurrent use.
-// Intended to be called from a loader.WatchPolicyFile callback.
 func (a *Interceptor) SwapPolicy(p Policy) error {
 	rp, err := NewResourcePolicy(p, a.resourceName, a.allPerms)
 	if err != nil {
 		return fmt.Errorf("failed to create resource policy: %w", err)
 	}
 	a.resourcePolicy.Store(rp)
+	return nil
+}
+
+// Close stops the policy file watcher if one was configured via PolicyWatch.
+// Safe to call multiple times or if no watcher is active.
+func (a *Interceptor) Close() error {
+	if a.unwatch != nil {
+		return a.unwatch()
+	}
 	return nil
 }
 
