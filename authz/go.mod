@@ -1,9 +1,9 @@
 module github.com/redpanda-data/common-go/authz
 
-go 1.25.3
+go 1.25.8
 
 require (
-	buf.build/gen/go/redpandadata/common/protocolbuffers/go v1.36.11-20251216164002-601698cfe71d.1
+	buf.build/gen/go/redpandadata/common/protocolbuffers/go v1.36.11-20260310135854-8efbf3a00d6e.1
 	github.com/knadh/koanf/parsers/yaml v1.1.0
 	github.com/knadh/koanf/providers/file v1.2.1
 	github.com/knadh/koanf/providers/rawbytes v1.0.0

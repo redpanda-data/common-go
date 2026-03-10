@@ -1,0 +1,66 @@
+syntax = "proto3";
+
+package authz.test.v1;
+
+option go_package = "github.com/redpanda-data/common-go/authz/testdata/gen/authz/test/v1;testv1";
+
+import "redpanda/api/common/v1/options.proto";
+
+service TestService {
+  // Simple permission check at the base resource level (e.g. list pipelines).
+  rpc SimpleMethod(SimpleRequest) returns (SimpleResponse) {
+    option (redpanda.api.common.v1.required_permission) = "test_simple_perm";
+  }
+
+  // Scoped to a specific sub-resource via id extraction (e.g. get pipeline by ID).
+  rpc GetWidget(GetWidgetRequest) returns (GetWidgetResponse) {
+    option (redpanda.api.common.v1.method_authorization) = {
+      resource_type: "widgets",
+      id_getter_cel: "request.id",
+      permission: "test_scoped_perm"
+    };
+  }
+
+  // Create: no id_getter_cel — checks at base resource level (resource doesn't exist yet).
+  rpc CreateWidget(CreateWidgetRequest) returns (CreateWidgetResponse) {
+    option (redpanda.api.common.v1.method_authorization) = {
+      resource_type: "widgets",
+      permission: "test_create_perm"
+    };
+  }
+
+  // Nested field path: id extracted from request.widget.id.
+  rpc UpdateWidget(UpdateWidgetRequest) returns (UpdateWidgetResponse) {
+    option (redpanda.api.common.v1.method_authorization) = {
+      resource_type: "widgets",
+      id_getter_cel: "request.widget.id",
+      permission: "test_scoped_perm"
+    };
+  }
+
+  // No annotation — must be denied (fail-closed).
+  rpc UnannotatedMethod(SimpleRequest) returns (SimpleResponse) {}
+}
+
+message SimpleRequest {}
+message SimpleResponse {}
+
+message GetWidgetRequest {
+  string id = 1;
+}
+message GetWidgetResponse {}
+
+message CreateWidgetRequest {
+  string name = 1;
+}
+message CreateWidgetResponse {}
+
+message UpdateWidgetRequest {
+  Widget widget = 1;
+}
+message UpdateWidgetResponse {}
+
+message Widget {
+  string id = 1;
+  string name = 2;
+}

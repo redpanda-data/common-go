@@ -11,178 +11,616 @@ package authz
 
 import (
 	"context"
+	"net"
+	"sync"
 	"testing"
 
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
+
+	testv1 "github.com/redpanda-data/common-go/authz/testdata/gen"
 )
 
 func noopHandler(_ context.Context, _ any) (any, error) { return "ok", nil }
 
 func srvInfo(method string) *grpc.UnaryServerInfo { return &grpc.UnaryServerInfo{FullMethod: method} }
 
-type principalKey struct{}
+type testServer struct {
+	testv1.UnimplementedTestServiceServer
+}
+
+func (*testServer) SimpleMethod(context.Context, *testv1.SimpleRequest) (*testv1.SimpleResponse, error) {
+	return &testv1.SimpleResponse{}, nil
+}
+
+func (*testServer) GetWidget(context.Context, *testv1.GetWidgetRequest) (*testv1.GetWidgetResponse, error) {
+	return &testv1.GetWidgetResponse{}, nil
+}
+
+func (*testServer) CreateWidget(context.Context, *testv1.CreateWidgetRequest) (*testv1.CreateWidgetResponse, error) {
+	return &testv1.CreateWidgetResponse{}, nil
+}
+
+func (*testServer) UpdateWidget(context.Context, *testv1.UpdateWidgetRequest) (*testv1.UpdateWidgetResponse, error) {
+	return &testv1.UpdateWidgetResponse{}, nil
+}
+
+func (*testServer) UnannotatedMethod(context.Context, *testv1.SimpleRequest) (*testv1.SimpleResponse, error) {
+	return &testv1.SimpleResponse{}, nil
+}
+
+const testPrincipalMDKey = "x-test-principal"
 
 func testExtractor(ctx context.Context) (PrincipalID, bool) {
-	val, ok := ctx.Value(principalKey{}).(PrincipalID)
-	return val, ok
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return "", false
+	}
+	vals := md.Get(testPrincipalMDKey)
+	if len(vals) == 0 {
+		return "", false
+	}
+	return UserPrincipal(vals[0]), true
 }
 
-func ctxWith(email string) context.Context {
-	return context.WithValue(context.Background(), principalKey{}, UserPrincipal(email))
+const testDataplane ResourceName = "organizations/a845616f-0484-4506-9638-45fe28f34865/resourcegroups/a098bb32-55a0-4783-9eef-873826987d58/dataplanes/d5tp5kntujt599ksadgg"
+
+// Mirrors a real dataplane authorization ConfigMap with Admin/Writer/Reader roles.
+var realisticPolicy = Policy{
+	Roles: []Role{
+		{
+			ID: "Admin",
+			Permissions: []PermissionName{
+				"test_simple_perm",
+				"test_scoped_perm",
+				"test_create_perm",
+			},
+		},
+		{
+			ID: "Writer",
+			Permissions: []PermissionName{
+				"test_simple_perm",
+				"test_scoped_perm",
+				"test_create_perm",
+			},
+		},
+		{
+			ID: "Reader",
+			Permissions: []PermissionName{
+				"test_simple_perm",
+			},
+		},
+	},
+	Bindings: []RoleBinding{
+		{Role: "Admin", Principal: UserPrincipal("stephan@redpanda.com"), Scope: testDataplane},
+		{Role: "Writer", Principal: UserPrincipal("tyler@redpanda.com"), Scope: testDataplane},
+		{Role: "Reader", Principal: UserPrincipal("intern@redpanda.com"), Scope: testDataplane},
+	},
 }
 
-const testResource ResourceName = "organizations/org1/resourcegroups/rg1/dataplanes/dp1"
-
-func newTestInterceptor(t *testing.T, policy Policy) *Interceptor {
+func startTestServer(t *testing.T, policy Policy) testv1.TestServiceClient {
 	t.Helper()
 	l, _ := zap.NewDevelopment()
-	i, err := NewInterceptor(InterceptorConfig{
+
+	interceptor, err := NewInterceptor(InterceptorConfig{
 		Logger:           l,
-		ResourceName:     testResource,
+		ResourceName:     testDataplane,
 		ExtractPrincipal: testExtractor,
 		Policy:           policy,
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	return i
+
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	srv := grpc.NewServer(grpc.ChainUnaryInterceptor(interceptor.UnaryServerInterceptor()))
+	testv1.RegisterTestServiceServer(srv, &testServer{})
+	go func() { _ = srv.Serve(ln) }()
+	t.Cleanup(srv.GracefulStop)
+
+	conn, err := grpc.NewClient(ln.Addr().String(), grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = conn.Close() })
+	return testv1.NewTestServiceClient(conn)
 }
 
-func TestInterceptor_UnannotatedMethodDenied(t *testing.T) {
-	// No protos with annotations are registered in this test binary,
-	// so any method lookup returns noPermission -> denied.
-	i := newTestInterceptor(t, Policy{})
-	h := i.UnaryServerInterceptor()
-	_, err := h(ctxWith("u@x.com"), nil, srvInfo("/some.Service/SomeMethod"), noopHandler)
+func startTestServerWithInterceptor(t *testing.T, policy Policy) (testv1.TestServiceClient, *Interceptor) {
+	t.Helper()
+	l, _ := zap.NewDevelopment()
+
+	interceptor, err := NewInterceptor(InterceptorConfig{
+		Logger:           l,
+		ResourceName:     testDataplane,
+		ExtractPrincipal: testExtractor,
+		Policy:           policy,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	srv := grpc.NewServer(grpc.ChainUnaryInterceptor(interceptor.UnaryServerInterceptor()))
+	testv1.RegisterTestServiceServer(srv, &testServer{})
+	go func() { _ = srv.Serve(ln) }()
+	t.Cleanup(srv.GracefulStop)
+
+	conn, err := grpc.NewClient(ln.Addr().String(), grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = conn.Close() })
+	return testv1.NewTestServiceClient(conn), interceptor
+}
+
+// ctxAs creates a context with outgoing metadata (for gRPC client calls).
+func ctxAs(email string) context.Context {
+	return metadata.NewOutgoingContext(context.Background(), metadata.Pairs(testPrincipalMDKey, email))
+}
+
+// ctxAsIncoming creates a context with incoming metadata (for direct interceptor calls in benchmarks).
+func ctxAsIncoming(email string) context.Context {
+	return metadata.NewIncomingContext(context.Background(), metadata.Pairs(testPrincipalMDKey, email))
+}
+
+// --- Proto annotation discovery ---
+
+func TestDiscoverPermissions(t *testing.T) {
+	perms := discoverAllPermissions()
+	found := map[PermissionName]bool{}
+	for _, p := range perms {
+		found[p] = true
+	}
+	for _, want := range []PermissionName{"test_simple_perm", "test_scoped_perm", "test_create_perm"} {
+		if !found[want] {
+			t.Errorf("missing %s", want)
+		}
+	}
+}
+
+func TestResolveAnnotations(t *testing.T) {
+	tests := []struct {
+		method   string
+		wantPerm PermissionName
+		wantType ResourceType
+		wantCEL  string
+		wantNil  bool
+	}{
+		{"/authz.test.v1.TestService/SimpleMethod", "test_simple_perm", "", "", false},
+		{"/authz.test.v1.TestService/GetWidget", "test_scoped_perm", "widgets", "request.id", false},
+		{"/authz.test.v1.TestService/CreateWidget", "test_create_perm", "widgets", "", false},
+		{"/authz.test.v1.TestService/UpdateWidget", "test_scoped_perm", "widgets", "request.widget.id", false},
+		{"/authz.test.v1.TestService/UnannotatedMethod", "", "", "", true},
+		{"/no.such.Service/Method", "", "", "", true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.method, func(t *testing.T) {
+			ma := resolveMethodAuthz(tt.method)
+			if tt.wantNil {
+				if ma != nil {
+					t.Fatalf("expected nil, got %+v", ma)
+				}
+				return
+			}
+			if ma == nil {
+				t.Fatal("expected non-nil")
+			}
+			if ma.permission != tt.wantPerm {
+				t.Errorf("permission: got %s, want %s", ma.permission, tt.wantPerm)
+			}
+			if ma.resourceType != tt.wantType {
+				t.Errorf("resourceType: got %s, want %s", ma.resourceType, tt.wantType)
+			}
+			if ma.idGetterCEL != tt.wantCEL {
+				t.Errorf("idGetterCEL: got %s, want %s", ma.idGetterCEL, tt.wantCEL)
+			}
+		})
+	}
+}
+
+// --- Fail-closed and bypass ---
+
+func TestGRPC_UnannotatedMethodDenied(t *testing.T) {
+	client := startTestServer(t, realisticPolicy)
+	// Even admin is denied on unannotated methods.
+	_, err := client.UnannotatedMethod(ctxAs("stephan@redpanda.com"), &testv1.SimpleRequest{})
 	if status.Code(err) != codes.PermissionDenied {
 		t.Fatalf("expected PermissionDenied, got %v", err)
 	}
 }
 
-func TestInterceptor_HealthAndReflectionBypass(t *testing.T) {
-	i := newTestInterceptor(t, Policy{})
-	h := i.UnaryServerInterceptor()
-	for _, m := range []string{
-		"/grpc.health.v1.Health/Check",
-		"/grpc.reflection.v1alpha.ServerReflection/ServerReflectionInfo",
-	} {
-		resp, err := h(context.Background(), nil, srvInfo(m), noopHandler)
-		if err != nil {
-			t.Fatalf("%s: %v", m, err)
-		}
-		if resp != "ok" {
-			t.Fatalf("%s: got %v", m, resp)
-		}
-	}
-}
-
-func TestInterceptor_ResolvePermission(t *testing.T) {
-	// Direct test of the resolver with a method that doesn't exist in registry.
-	perm := resolvePermission("/no.such.Service/Method")
-	if perm != noPermission {
-		t.Fatalf("expected noPermission, got %q", perm)
-	}
-}
-
-func TestInterceptor_CachesLookup(t *testing.T) {
-	i := newTestInterceptor(t, Policy{})
-
-	// First lookup populates cache
-	p1 := i.lookupPermission("/test.Svc/M")
-	// Second lookup hits cache
-	p2 := i.lookupPermission("/test.Svc/M")
-
-	if p1 != p2 {
-		t.Fatalf("cache inconsistency: %q vs %q", p1, p2)
-	}
-}
-
-func TestInterceptor_SwapPolicy(t *testing.T) {
-	// SwapPolicy should not error on valid policies.
-	i := newTestInterceptor(t, Policy{
-		Roles: []Role{{ID: "r", Permissions: []PermissionName{"p"}}},
-	})
-
-	err := i.SwapPolicy(Policy{
-		Roles:    []Role{{ID: "r", Permissions: []PermissionName{"p"}}},
-		Bindings: []RoleBinding{{Role: "r", Principal: UserPrincipal("bob@x.com"), Scope: testResource}},
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-}
-
-// newTestInterceptorWithPerms creates an interceptor with pre-seeded permissions
-// (since no annotated protos are registered in this test binary).
-func newTestInterceptorWithPerms(t *testing.T, policy Policy, perms []PermissionName, cache map[string]PermissionName) *Interceptor {
-	t.Helper()
-	l, _ := zap.NewDevelopment()
-
-	rp, err := NewResourcePolicy(policy, testResource, perms)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	i := &Interceptor{
-		logger:           l,
-		allPerms:         perms,
-		resourceName:     testResource,
-		extractPrincipal: testExtractor,
-		resourcePolicy:   rp,
-	}
-	for method, perm := range cache {
-		i.permCache.Store(method, perm)
-	}
-	return i
-}
-
-func TestInterceptor_NoIdentity(t *testing.T) {
-	i := newTestInterceptorWithPerms(t,
-		Policy{Roles: []Role{{ID: "r", Permissions: []PermissionName{"test_perm"}}}},
-		[]PermissionName{"test_perm"},
-		map[string]PermissionName{"/test.Svc/M": "test_perm"},
-	)
-	h := i.UnaryServerInterceptor()
-	_, err := h(context.Background(), nil, srvInfo("/test.Svc/M"), noopHandler)
+func TestGRPC_NoIdentityReturnsInternal(t *testing.T) {
+	client := startTestServer(t, realisticPolicy)
+	_, err := client.SimpleMethod(context.Background(), &testv1.SimpleRequest{})
 	if status.Code(err) != codes.Internal {
 		t.Fatalf("expected Internal, got %v", err)
 	}
 }
 
-func TestInterceptor_GrantedViaCachedPerm(t *testing.T) {
-	i := newTestInterceptorWithPerms(t,
-		Policy{
-			Roles:    []Role{{ID: "r", Permissions: []PermissionName{"test_perm"}}},
-			Bindings: []RoleBinding{{Role: "r", Principal: UserPrincipal("a@x.com"), Scope: testResource}},
-		},
-		[]PermissionName{"test_perm"},
-		map[string]PermissionName{"/test.Svc/R": "test_perm"},
-	)
-	h := i.UnaryServerInterceptor()
-	resp, err := h(ctxWith("a@x.com"), nil, srvInfo("/test.Svc/R"), noopHandler)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if resp != "ok" {
-		t.Fatalf("got %v", resp)
-	}
-}
-
-func TestInterceptor_DeniedViaCachedPerm(t *testing.T) {
-	i := newTestInterceptorWithPerms(t,
-		Policy{
-			Roles:    []Role{{ID: "r", Permissions: []PermissionName{"read"}}},
-			Bindings: []RoleBinding{{Role: "r", Principal: UserPrincipal("a@x.com"), Scope: testResource}},
-		},
-		[]PermissionName{"read", "write"},
-		map[string]PermissionName{"/test.Svc/W": "write"},
-	)
-	h := i.UnaryServerInterceptor()
-	_, err := h(ctxWith("a@x.com"), nil, srvInfo("/test.Svc/W"), noopHandler)
+func TestGRPC_UnboundUserDenied(t *testing.T) {
+	client := startTestServer(t, realisticPolicy)
+	_, err := client.SimpleMethod(ctxAs("random@attacker.com"), &testv1.SimpleRequest{})
 	if status.Code(err) != codes.PermissionDenied {
 		t.Fatalf("expected PermissionDenied, got %v", err)
 	}
+}
+
+// --- Role-based access at dataplane level ---
+
+func TestGRPC_AdminGrantedSimple(t *testing.T) {
+	client := startTestServer(t, realisticPolicy)
+	_, err := client.SimpleMethod(ctxAs("stephan@redpanda.com"), &testv1.SimpleRequest{})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestGRPC_ReaderGrantedSimple(t *testing.T) {
+	client := startTestServer(t, realisticPolicy)
+	_, err := client.SimpleMethod(ctxAs("intern@redpanda.com"), &testv1.SimpleRequest{})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestGRPC_ReaderDeniedGetWidget(t *testing.T) {
+	client := startTestServer(t, realisticPolicy)
+	// Reader doesn't have test_scoped_perm.
+	_, err := client.GetWidget(ctxAs("intern@redpanda.com"), &testv1.GetWidgetRequest{Id: "w1"})
+	if status.Code(err) != codes.PermissionDenied {
+		t.Fatalf("expected PermissionDenied, got %v", err)
+	}
+}
+
+func TestGRPC_ReaderDeniedCreateWidget(t *testing.T) {
+	client := startTestServer(t, realisticPolicy)
+	// Reader doesn't have test_create_perm.
+	_, err := client.CreateWidget(ctxAs("intern@redpanda.com"), &testv1.CreateWidgetRequest{Name: "new"})
+	if status.Code(err) != codes.PermissionDenied {
+		t.Fatalf("expected PermissionDenied, got %v", err)
+	}
+}
+
+// --- Sub-resource scoping: dataplane binding cascades to children ---
+
+func TestGRPC_DataplaneBindingGrantsGetWidget(t *testing.T) {
+	// Admin bound at dataplane level can get any widget.
+	client := startTestServer(t, realisticPolicy)
+	_, err := client.GetWidget(ctxAs("stephan@redpanda.com"), &testv1.GetWidgetRequest{Id: "any-widget"})
+	if err != nil {
+		t.Fatalf("dataplane admin should access any widget: %v", err)
+	}
+}
+
+func TestGRPC_DataplaneBindingGrantsUpdateWidget(t *testing.T) {
+	// Writer bound at dataplane level can update any widget (nested field path).
+	client := startTestServer(t, realisticPolicy)
+	_, err := client.UpdateWidget(ctxAs("tyler@redpanda.com"), &testv1.UpdateWidgetRequest{
+		Widget: &testv1.Widget{Id: "widget-abc", Name: "updated"},
+	})
+	if err != nil {
+		t.Fatalf("dataplane writer should update any widget: %v", err)
+	}
+}
+
+func TestGRPC_DataplaneBindingGrantsCreateWidget(t *testing.T) {
+	// Create has no id_getter_cel — checks at base resource (dataplane) level.
+	client := startTestServer(t, realisticPolicy)
+	_, err := client.CreateWidget(ctxAs("tyler@redpanda.com"), &testv1.CreateWidgetRequest{Name: "new-widget"})
+	if err != nil {
+		t.Fatalf("dataplane writer should create: %v", err)
+	}
+}
+
+// --- Sub-resource scoping: per-resource binding ---
+
+func TestGRPC_PerResourceBindingGrantsSpecificWidget(t *testing.T) {
+	// Binding scoped to widgets/widget-123 — grants only that widget.
+	policy := Policy{
+		Roles: []Role{{ID: "WidgetEditor", Permissions: []PermissionName{"test_scoped_perm"}}},
+		Bindings: []RoleBinding{{
+			Role:      "WidgetEditor",
+			Principal: UserPrincipal("alice@redpanda.com"),
+			Scope:     testDataplane + "/widgets/widget-123",
+		}},
+	}
+	client := startTestServer(t, policy)
+
+	_, err := client.GetWidget(ctxAs("alice@redpanda.com"), &testv1.GetWidgetRequest{Id: "widget-123"})
+	if err != nil {
+		t.Fatalf("should grant widget-123: %v", err)
+	}
+}
+
+func TestGRPC_PerResourceBindingDeniesOtherWidget(t *testing.T) {
+	// Binding scoped to widgets/widget-123 — must NOT grant widget-456.
+	policy := Policy{
+		Roles: []Role{{ID: "WidgetEditor", Permissions: []PermissionName{"test_scoped_perm"}}},
+		Bindings: []RoleBinding{{
+			Role:      "WidgetEditor",
+			Principal: UserPrincipal("alice@redpanda.com"),
+			Scope:     testDataplane + "/widgets/widget-123",
+		}},
+	}
+	client := startTestServer(t, policy)
+
+	_, err := client.GetWidget(ctxAs("alice@redpanda.com"), &testv1.GetWidgetRequest{Id: "widget-456"})
+	if status.Code(err) != codes.PermissionDenied {
+		t.Fatalf("expected PermissionDenied for wrong widget, got %v", err)
+	}
+}
+
+func TestGRPC_PerResourceBindingNestedFieldPath(t *testing.T) {
+	// UpdateWidget uses request.widget.id — test that nested extraction works.
+	policy := Policy{
+		Roles: []Role{{ID: "WidgetEditor", Permissions: []PermissionName{"test_scoped_perm"}}},
+		Bindings: []RoleBinding{{
+			Role:      "WidgetEditor",
+			Principal: UserPrincipal("alice@redpanda.com"),
+			Scope:     testDataplane + "/widgets/widget-999",
+		}},
+	}
+	client := startTestServer(t, policy)
+
+	// Correct widget ID in nested field — granted.
+	_, err := client.UpdateWidget(ctxAs("alice@redpanda.com"), &testv1.UpdateWidgetRequest{
+		Widget: &testv1.Widget{Id: "widget-999", Name: "x"},
+	})
+	if err != nil {
+		t.Fatalf("should grant update on widget-999: %v", err)
+	}
+
+	// Wrong widget ID in nested field — denied.
+	_, err = client.UpdateWidget(ctxAs("alice@redpanda.com"), &testv1.UpdateWidgetRequest{
+		Widget: &testv1.Widget{Id: "widget-000", Name: "x"},
+	})
+	if status.Code(err) != codes.PermissionDenied {
+		t.Fatalf("expected PermissionDenied for wrong widget, got %v", err)
+	}
+}
+
+// --- Wildcard bindings ---
+
+func TestGRPC_WildcardBindingGrantsAllWidgets(t *testing.T) {
+	// Binding with wildcard scope: widgets/* — grants all widgets.
+	policy := Policy{
+		Roles: []Role{{ID: "WidgetEditor", Permissions: []PermissionName{"test_scoped_perm"}}},
+		Bindings: []RoleBinding{{
+			Role:      "WidgetEditor",
+			Principal: UserPrincipal("bob@redpanda.com"),
+			Scope:     testDataplane + "/widgets/*",
+		}},
+	}
+	client := startTestServer(t, policy)
+
+	_, err := client.GetWidget(ctxAs("bob@redpanda.com"), &testv1.GetWidgetRequest{Id: "any-widget"})
+	if err != nil {
+		t.Fatalf("wildcard binding should grant any widget: %v", err)
+	}
+
+	_, err = client.GetWidget(ctxAs("bob@redpanda.com"), &testv1.GetWidgetRequest{Id: "another-widget"})
+	if err != nil {
+		t.Fatalf("wildcard binding should grant another widget: %v", err)
+	}
+}
+
+// --- Empty resource ID when id_getter_cel is set ---
+
+func TestGRPC_EmptyResourceIDDenied(t *testing.T) {
+	// GetWidget has id_getter_cel: "request.id". Sending empty ID must be
+	// rejected with InvalidArgument, not silently checked at dataplane scope.
+	client := startTestServer(t, realisticPolicy)
+	_, err := client.GetWidget(ctxAs("stephan@redpanda.com"), &testv1.GetWidgetRequest{Id: ""})
+	if status.Code(err) != codes.InvalidArgument {
+		t.Fatalf("expected InvalidArgument for empty resource ID, got %v", err)
+	}
+}
+
+// --- Policy hot-reload ---
+
+func TestGRPC_SwapPolicy(t *testing.T) {
+	client, interceptor := startTestServerWithInterceptor(t, Policy{
+		Roles: []Role{{ID: "r", Permissions: []PermissionName{"test_simple_perm"}}},
+	})
+
+	// Bob has no binding — denied.
+	_, err := client.SimpleMethod(ctxAs("bob@redpanda.com"), &testv1.SimpleRequest{})
+	if status.Code(err) != codes.PermissionDenied {
+		t.Fatalf("expected PermissionDenied before swap, got %v", err)
+	}
+
+	// Hot-reload to grant bob.
+	if err := interceptor.SwapPolicy(Policy{
+		Roles:    []Role{{ID: "r", Permissions: []PermissionName{"test_simple_perm"}}},
+		Bindings: []RoleBinding{{Role: "r", Principal: UserPrincipal("bob@redpanda.com"), Scope: testDataplane}},
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = client.SimpleMethod(ctxAs("bob@redpanda.com"), &testv1.SimpleRequest{})
+	if err != nil {
+		t.Fatalf("bob should be granted after swap: %v", err)
+	}
+}
+
+// --- Race: concurrent requests + policy swaps ---
+
+func TestGRPC_ConcurrentRequestsAndSwaps(t *testing.T) {
+	policyGranted := Policy{
+		Roles:    []Role{{ID: "r", Permissions: []PermissionName{"test_simple_perm", "test_scoped_perm", "test_create_perm"}}},
+		Bindings: []RoleBinding{{Role: "r", Principal: UserPrincipal("racer@redpanda.com"), Scope: testDataplane}},
+	}
+	policyDenied := Policy{
+		Roles: []Role{{ID: "r", Permissions: []PermissionName{"test_simple_perm", "test_scoped_perm", "test_create_perm"}}},
+		// No bindings — everyone denied.
+	}
+
+	client, interceptor := startTestServerWithInterceptor(t, policyGranted)
+
+	const goroutines = 20
+	const iterations = 100
+
+	var wg sync.WaitGroup
+
+	// Hammer requests from multiple goroutines.
+	for i := range goroutines {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for range iterations {
+				// Mix of different RPC types.
+				switch i % 3 {
+				case 0:
+					client.SimpleMethod(ctxAs("racer@redpanda.com"), &testv1.SimpleRequest{}) //nolint:errcheck
+				case 1:
+					client.GetWidget(ctxAs("racer@redpanda.com"), &testv1.GetWidgetRequest{Id: "w1"}) //nolint:errcheck
+				case 2:
+					client.UpdateWidget(ctxAs("racer@redpanda.com"), &testv1.UpdateWidgetRequest{Widget: &testv1.Widget{Id: "w2"}}) //nolint:errcheck
+				}
+			}
+		}()
+	}
+
+	// Simultaneously swap policies back and forth.
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for range iterations {
+			interceptor.SwapPolicy(policyDenied)  //nolint:errcheck
+			interceptor.SwapPolicy(policyGranted) //nolint:errcheck
+		}
+	}()
+
+	wg.Wait()
+	// If we get here without a race detector complaint, we're good.
+}
+
+// --- Benchmarks ---
+
+func BenchmarkInterceptor_SimplePermission(b *testing.B) {
+	l := zap.NewNop()
+	interceptor, err := NewInterceptor(InterceptorConfig{
+		Logger:           l,
+		ResourceName:     testDataplane,
+		ExtractPrincipal: testExtractor,
+		Policy:           realisticPolicy,
+	})
+	if err != nil {
+		b.Fatal(err)
+	}
+	h := interceptor.UnaryServerInterceptor()
+	ctx := ctxAsIncoming("stephan@redpanda.com")
+	info := srvInfo("/authz.test.v1.TestService/SimpleMethod")
+
+	b.ResetTimer()
+	b.ReportAllocs()
+	for b.Loop() {
+		h(ctx, nil, info, noopHandler) //nolint:errcheck
+	}
+}
+
+func BenchmarkInterceptor_ScopedPermission(b *testing.B) {
+	l := zap.NewNop()
+	interceptor, err := NewInterceptor(InterceptorConfig{
+		Logger:           l,
+		ResourceName:     testDataplane,
+		ExtractPrincipal: testExtractor,
+		Policy:           realisticPolicy,
+	})
+	if err != nil {
+		b.Fatal(err)
+	}
+	h := interceptor.UnaryServerInterceptor()
+	ctx := ctxAsIncoming("stephan@redpanda.com")
+	info := srvInfo("/authz.test.v1.TestService/GetWidget")
+	req := &testv1.GetWidgetRequest{Id: "widget-abc"}
+
+	b.ResetTimer()
+	b.ReportAllocs()
+	for b.Loop() {
+		h(ctx, req, info, noopHandler) //nolint:errcheck
+	}
+}
+
+func BenchmarkInterceptor_NestedFieldPath(b *testing.B) {
+	l := zap.NewNop()
+	interceptor, err := NewInterceptor(InterceptorConfig{
+		Logger:           l,
+		ResourceName:     testDataplane,
+		ExtractPrincipal: testExtractor,
+		Policy:           realisticPolicy,
+	})
+	if err != nil {
+		b.Fatal(err)
+	}
+	h := interceptor.UnaryServerInterceptor()
+	ctx := ctxAsIncoming("stephan@redpanda.com")
+	info := srvInfo("/authz.test.v1.TestService/UpdateWidget")
+	req := &testv1.UpdateWidgetRequest{Widget: &testv1.Widget{Id: "widget-abc"}}
+
+	b.ResetTimer()
+	b.ReportAllocs()
+	for b.Loop() {
+		h(ctx, req, info, noopHandler) //nolint:errcheck
+	}
+}
+
+func BenchmarkInterceptor_Denied(b *testing.B) {
+	l := zap.NewNop()
+	interceptor, err := NewInterceptor(InterceptorConfig{
+		Logger:           l,
+		ResourceName:     testDataplane,
+		ExtractPrincipal: testExtractor,
+		Policy:           realisticPolicy,
+	})
+	if err != nil {
+		b.Fatal(err)
+	}
+	h := interceptor.UnaryServerInterceptor()
+	ctx := ctxAsIncoming("random@attacker.com")
+	info := srvInfo("/authz.test.v1.TestService/SimpleMethod")
+
+	b.ResetTimer()
+	b.ReportAllocs()
+	for b.Loop() {
+		h(ctx, nil, info, noopHandler) //nolint:errcheck
+	}
+}
+
+func BenchmarkInterceptor_Parallel(b *testing.B) {
+	l := zap.NewNop()
+	interceptor, err := NewInterceptor(InterceptorConfig{
+		Logger:           l,
+		ResourceName:     testDataplane,
+		ExtractPrincipal: testExtractor,
+		Policy:           realisticPolicy,
+	})
+	if err != nil {
+		b.Fatal(err)
+	}
+	h := interceptor.UnaryServerInterceptor()
+	info := srvInfo("/authz.test.v1.TestService/GetWidget")
+	req := &testv1.GetWidgetRequest{Id: "widget-abc"}
+
+	b.ResetTimer()
+	b.ReportAllocs()
+	b.RunParallel(func(pb *testing.PB) {
+		ctx := ctxAsIncoming("stephan@redpanda.com")
+		for pb.Next() {
+			h(ctx, req, info, noopHandler) //nolint:errcheck
+		}
+	})
 }

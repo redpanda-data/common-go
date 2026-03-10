@@ -1,5 +1,5 @@
-buf.build/gen/go/redpandadata/common/protocolbuffers/go v1.36.11-20251216164002-601698cfe71d.1 h1:0KH3IndUZDFYFcYdcBa+bZziomFsBzlksAzTbmd5QQY=
-buf.build/gen/go/redpandadata/common/protocolbuffers/go v1.36.11-20251216164002-601698cfe71d.1/go.mod h1:3w7EzexwlL6PIFGbbeKZ0yHfUlAmI0aBVzF/QoFb8Cg=
+buf.build/gen/go/redpandadata/common/protocolbuffers/go v1.36.11-20260310135854-8efbf3a00d6e.1 h1:K/GwF7MZQWw02xuDSf4dOLhjLB70jGkFERBL5La7jyc=
+buf.build/gen/go/redpandadata/common/protocolbuffers/go v1.36.11-20260310135854-8efbf3a00d6e.1/go.mod h1:3w7EzexwlL6PIFGbbeKZ0yHfUlAmI0aBVzF/QoFb8Cg=
 github.com/cespare/xxhash/v2 v2.3.0 h1:UL815xU9SqsFlibzuggzjXhog7bL6oX9BbNZnL2UFvs=
 github.com/cespare/xxhash/v2 v2.3.0/go.mod h1:VGX0DQ3Q6kWi7AoAeZDth3/j3BFtOZR5XLFGgcrjCOs=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
