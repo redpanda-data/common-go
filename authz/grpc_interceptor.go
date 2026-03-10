@@ -23,9 +23,6 @@ import (
 	otelcodes "go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/reflect/protoregistry"
@@ -50,18 +47,18 @@ type InterceptorConfig struct {
 	Policy Policy
 }
 
-// methodAuthz holds the resolved authorization info for a gRPC method.
-type methodAuthz struct {
-	permission   PermissionName
-	resourceType ResourceType // empty = check at base resource level
-	idGetterCEL  string       // CEL path to extract resource ID from request
+// MethodAuthz holds the resolved authorization info for a gRPC/Connect method.
+type MethodAuthz struct {
+	Permission   PermissionName
+	ResourceType ResourceType // empty = check at base resource level
+	IDGetterCEL  string       // CEL path to extract resource ID from request
 
 	// Collection fields — set for List RPCs with collection_authorization.
-	// When isCollection is true, the interceptor filters the response
+	// When IsCollection is true, the interceptor filters the response
 	// instead of doing a per-resource pre-call check.
-	isCollection        bool
-	collectionGetterCEL string // CEL path to collection in response (e.g. "response.pipelines")
-	eachIDGetterCEL     string // CEL path to ID on each item (e.g. "each.id")
+	IsCollection        bool
+	CollectionGetterCEL string // CEL path to collection in response (e.g. "response.pipelines")
+	EachIDGetterCEL     string // CEL path to ID on each item (e.g. "each.id")
 }
 
 // Interceptor enforces policy-based authorization on gRPC/Connect methods.
@@ -75,9 +72,19 @@ type Interceptor struct {
 	resourceName     ResourceName
 	extractPrincipal PrincipalExtractor
 
-	// authzCache caches proto descriptor lookups: fullMethod -> *methodAuthz.
+	// authzCache caches proto descriptor lookups: fullMethod -> *MethodAuthz.
 	// nil means "looked up but no annotation found" (deny).
 	authzCache sync.Map
+}
+
+// Logger returns the interceptor's logger.
+func (a *Interceptor) Logger() *zap.Logger {
+	return a.logger
+}
+
+// ExtractPrincipal returns the interceptor's principal extractor.
+func (a *Interceptor) ExtractPrincipal() PrincipalExtractor {
+	return a.extractPrincipal
 }
 
 // NewInterceptor creates a new policy-based authorization interceptor.
@@ -128,32 +135,36 @@ func (a *Interceptor) SwapPolicy(p Policy) error {
 	return nil
 }
 
-// skipPrefixes contains gRPC service prefixes that bypass authorization.
-var skipPrefixes = []string{
+// SkipPrefixes contains gRPC service prefixes that bypass authorization.
+var SkipPrefixes = []string{
 	"/grpc.health.v1.Health/",
 	"/grpc.reflection.",
 }
 
-// authzDenialKind classifies authorization failures.
-type authzDenialKind int
+// DenialKind classifies authorization failures.
+type DenialKind int
 
 const (
-	authzDenialUnknownMethod authzDenialKind = iota
-	authzDenialNoIdentity
-	authzDenialEmptyResourceID
-	authzDenialForbidden
+	// DenialUnknownMethod indicates no annotation was found for the method.
+	DenialUnknownMethod DenialKind = iota
+	// DenialNoIdentity indicates no principal could be extracted.
+	DenialNoIdentity
+	// DenialEmptyResourceID indicates a required resource ID was empty.
+	DenialEmptyResourceID
+	// DenialForbidden indicates the principal lacks the required permission.
+	DenialForbidden
 )
 
-// authzDenial is a structured authorization failure returned by checkAccess.
-type authzDenial struct {
-	kind    authzDenialKind
-	method  string
-	message string
+// Denial is a structured authorization failure returned by CheckAccess.
+type Denial struct {
+	Kind    DenialKind
+	Method  string
+	Message string
 }
 
-// shouldSkip returns true if the method should bypass authorization.
-func shouldSkip(method string) bool {
-	for _, prefix := range skipPrefixes {
+// ShouldSkip returns true if the method should bypass authorization.
+func ShouldSkip(method string) bool {
+	for _, prefix := range SkipPrefixes {
 		if strings.HasPrefix(method, prefix) {
 			return true
 		}
@@ -161,44 +172,44 @@ func shouldSkip(method string) bool {
 	return false
 }
 
-// checkAccess is the shared authorization core used by both gRPC and Connect
-// interceptors. It returns nil on success, or an *authzDenial on failure.
+// CheckAccess is the shared authorization core used by both gRPC and Connect
+// interceptors. It returns nil on success, or an *AuthzDenial on failure.
 // The ma parameter may be nil (looked up externally to allow reuse).
-func (a *Interceptor) checkAccess(ctx context.Context, method string, principal PrincipalID, ma *methodAuthz, reqMsg any) *authzDenial {
+func (a *Interceptor) CheckAccess(ctx context.Context, method string, principal PrincipalID, ma *MethodAuthz, reqMsg any) *Denial {
 	if ma == nil {
 		a.logger.Warn("No permission annotation, denying access (fail-closed)", zap.String("method", method))
-		return &authzDenial{kind: authzDenialUnknownMethod, method: method, message: fmt.Sprintf("unknown method %s", method)}
+		return &Denial{Kind: DenialUnknownMethod, Method: method, Message: fmt.Sprintf("unknown method %s", method)}
 	}
 
 	// Collection methods do no pre-call authorization — the principal may only
 	// have permission on specific resources, not at the parent level. The
-	// response is filtered per-item by filterCollection after the call.
-	if ma.isCollection {
+	// response is filtered per-item by FilterCollection after the call.
+	if ma.IsCollection {
 		return nil
 	}
 
 	_, span := tracer.Start(ctx, "authz.check",
 		trace.WithAttributes(
 			attribute.String("rp.authz.principal", string(principal)),
-			attribute.String("rp.authz.permission", string(ma.permission)),
+			attribute.String("rp.authz.permission", string(ma.Permission)),
 			attribute.String("rp.authz.method", method),
 		),
 	)
 	defer span.End()
 
 	var resourceID string
-	if ma.idGetterCEL != "" {
-		resourceID = evalFieldPath(reqMsg, ma.idGetterCEL)
+	if ma.IDGetterCEL != "" {
+		resourceID = EvalFieldPath(reqMsg, ma.IDGetterCEL)
 		if resourceID == "" {
 			span.SetAttributes(attribute.String("rp.authz.decision", "denied"))
 			span.SetStatus(otelcodes.Error, "empty resource ID")
 			a.logger.Warn("Empty resource ID from request, denying",
 				zap.String("method", method),
-				zap.String("id_getter_cel", ma.idGetterCEL))
-			return &authzDenial{kind: authzDenialEmptyResourceID, method: method, message: "resource ID is required"}
+				zap.String("id_getter_cel", ma.IDGetterCEL))
+			return &Denial{Kind: DenialEmptyResourceID, Method: method, Message: "resource ID is required"}
 		}
 		span.SetAttributes(
-			attribute.String("rp.authz.resource_type", string(ma.resourceType)),
+			attribute.String("rp.authz.resource_type", string(ma.ResourceType)),
 			attribute.String("rp.authz.resource_id", resourceID),
 		)
 	}
@@ -206,9 +217,9 @@ func (a *Interceptor) checkAccess(ctx context.Context, method string, principal 
 	rp := a.resourcePolicy.Load()
 	var authorizer Authorizer
 	if resourceID != "" {
-		authorizer = rp.SubResourceAuthorizer(ma.resourceType, ResourceID(resourceID), ma.permission)
+		authorizer = rp.SubResourceAuthorizer(ma.ResourceType, ResourceID(resourceID), ma.Permission)
 	} else {
-		authorizer = rp.Authorizer(ma.permission)
+		authorizer = rp.Authorizer(ma.Permission)
 	}
 
 	if !authorizer.Check(principal) {
@@ -216,12 +227,12 @@ func (a *Interceptor) checkAccess(ctx context.Context, method string, principal 
 		span.SetStatus(otelcodes.Error, "permission denied")
 		a.logger.Warn("Authorization denied",
 			zap.String("method", method),
-			zap.String("permission", string(ma.permission)),
+			zap.String("permission", string(ma.Permission)),
 			zap.String("principal", string(principal)))
-		return &authzDenial{
-			kind:    authzDenialForbidden,
-			method:  method,
-			message: fmt.Sprintf("principal %s lacks permission %s", principal, ma.permission),
+		return &Denial{
+			Kind:    DenialForbidden,
+			Method:  method,
+			Message: fmt.Sprintf("principal %s lacks permission %s", principal, ma.Permission),
 		}
 	}
 
@@ -229,24 +240,24 @@ func (a *Interceptor) checkAccess(ctx context.Context, method string, principal 
 	return nil
 }
 
-// filterCollection removes items from a response collection that the principal
+// FilterCollection removes items from a response collection that the principal
 // lacks permission for. It uses protoreflect to walk the response message,
 // find the collection field, and check each item's resource ID.
-func (a *Interceptor) filterCollection(ma *methodAuthz, principal PrincipalID, resp any) {
+func (a *Interceptor) FilterCollection(ma *MethodAuthz, principal PrincipalID, resp any) {
 	msg, ok := resp.(proto.Message)
-	if !ok || ma.collectionGetterCEL == "" || ma.eachIDGetterCEL == "" {
+	if !ok || ma.CollectionGetterCEL == "" || ma.EachIDGetterCEL == "" {
 		return
 	}
 
 	// Parse "response.field" -> "field"
-	collField := strings.TrimPrefix(ma.collectionGetterCEL, "response.")
-	if collField == ma.collectionGetterCEL {
+	collField := strings.TrimPrefix(ma.CollectionGetterCEL, "response.")
+	if collField == ma.CollectionGetterCEL {
 		return
 	}
 
 	// Parse "each.field" -> "field"
-	idField := strings.TrimPrefix(ma.eachIDGetterCEL, "each.")
-	if idField == ma.eachIDGetterCEL {
+	idField := strings.TrimPrefix(ma.EachIDGetterCEL, "each.")
+	if idField == ma.EachIDGetterCEL {
 		return
 	}
 
@@ -275,7 +286,7 @@ func (a *Interceptor) filterCollection(ma *methodAuthz, principal PrincipalID, r
 			continue
 		}
 
-		authorizer := rp.SubResourceAuthorizer(ma.resourceType, ResourceID(resourceID), ma.permission)
+		authorizer := rp.SubResourceAuthorizer(ma.ResourceType, ResourceID(resourceID), ma.Permission)
 		if !authorizer.Check(principal) {
 			// Remove by swapping with last element and truncating.
 			last := list.Len() - 1
@@ -287,54 +298,11 @@ func (a *Interceptor) filterCollection(ma *methodAuthz, principal PrincipalID, r
 	}
 }
 
-// UnaryServerInterceptor returns a gRPC unary server interceptor that
-// enforces authorization checks.
-func (a *Interceptor) UnaryServerInterceptor() grpc.UnaryServerInterceptor {
-	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
-		if shouldSkip(info.FullMethod) {
-			return handler(ctx, req)
-		}
-
-		principal, ok := a.extractPrincipal(ctx)
-		if !ok {
-			a.logger.Warn("No identity in context, denying access", zap.String("method", info.FullMethod))
-			return nil, status.Error(codes.Internal, "no identity in context")
-		}
-
-		ma := a.lookupMethodAuthz(info.FullMethod)
-		if denial := a.checkAccess(ctx, info.FullMethod, principal, ma, req); denial != nil {
-			return nil, grpcError(denial)
-		}
-
-		resp, err := handler(ctx, req)
-		if err != nil {
-			return resp, err
-		}
-
-		if ma != nil && ma.isCollection {
-			a.filterCollection(ma, principal, resp)
-		}
-
-		return resp, nil
-	}
-}
-
-func grpcError(d *authzDenial) error {
-	switch d.kind {
-	case authzDenialUnknownMethod, authzDenialForbidden:
-		return status.Error(codes.PermissionDenied, d.message)
-	case authzDenialEmptyResourceID:
-		return status.Error(codes.InvalidArgument, d.message)
-	default:
-		return status.Error(codes.Internal, d.message)
-	}
-}
-
-// lookupMethodAuthz resolves a gRPC full method name to its authorization info.
+// LookupMethodAuthz resolves a gRPC full method name to its authorization info.
 // Results are cached. Returns nil if no annotation found.
-func (a *Interceptor) lookupMethodAuthz(fullMethod string) *methodAuthz {
+func (a *Interceptor) LookupMethodAuthz(fullMethod string) *MethodAuthz {
 	if v, ok := a.authzCache.Load(fullMethod); ok {
-		if ma, ok := v.(*methodAuthz); ok {
+		if ma, ok := v.(*MethodAuthz); ok {
 			return ma
 		}
 		return nil
@@ -345,7 +313,7 @@ func (a *Interceptor) lookupMethodAuthz(fullMethod string) *methodAuthz {
 }
 
 // resolveMethodAuthz looks up authorization annotations for a gRPC method.
-func resolveMethodAuthz(fullMethod string) *methodAuthz {
+func resolveMethodAuthz(fullMethod string) *MethodAuthz {
 	parts := strings.Split(strings.TrimPrefix(fullMethod, "/"), "/")
 	if len(parts) != 2 {
 		return nil
@@ -379,14 +347,14 @@ func resolveMethodAuthz(fullMethod string) *methodAuthz {
 }
 
 // extractMethodAuthz reads authorization annotations from method options.
-func extractMethodAuthz(methodOpts *descriptorpb.MethodOptions) *methodAuthz {
+func extractMethodAuthz(methodOpts *descriptorpb.MethodOptions) *MethodAuthz {
 	// Prefer method_authorization (structured, with resource scoping).
 	if ext := proto.GetExtension(methodOpts, commonv1.E_MethodAuthorization); ext != nil {
 		if ma, ok := ext.(*commonv1.MethodAuthorization); ok && ma != nil && ma.GetPermission() != "" {
-			return &methodAuthz{
-				permission:   PermissionName(ma.GetPermission()),
-				resourceType: ResourceType(ma.GetResourceType()),
-				idGetterCEL:  ma.GetIdGetterCel(),
+			return &MethodAuthz{
+				Permission:   PermissionName(ma.GetPermission()),
+				ResourceType: ResourceType(ma.GetResourceType()),
+				IDGetterCEL:  ma.GetIdGetterCel(),
 			}
 		}
 	}
@@ -396,12 +364,12 @@ func extractMethodAuthz(methodOpts *descriptorpb.MethodOptions) *methodAuthz {
 	// collection so only items the principal can access are returned.
 	if ext := proto.GetExtension(methodOpts, commonv1.E_CollectionAuthorization); ext != nil {
 		if ca, ok := ext.(*commonv1.CollectionAuthorization); ok && ca != nil && ca.GetEach() != nil && ca.GetEach().GetPermission() != "" {
-			return &methodAuthz{
-				permission:          PermissionName(ca.GetEach().GetPermission()),
-				resourceType:        ResourceType(ca.GetEach().GetResourceType()),
-				isCollection:        true,
-				collectionGetterCEL: ca.GetCollectionGetterCel(),
-				eachIDGetterCEL:     ca.GetEach().GetIdGetterCel(),
+			return &MethodAuthz{
+				Permission:          PermissionName(ca.GetEach().GetPermission()),
+				ResourceType:        ResourceType(ca.GetEach().GetResourceType()),
+				IsCollection:        true,
+				CollectionGetterCEL: ca.GetCollectionGetterCel(),
+				EachIDGetterCEL:     ca.GetEach().GetIdGetterCel(),
 			}
 		}
 	}
@@ -409,17 +377,17 @@ func extractMethodAuthz(methodOpts *descriptorpb.MethodOptions) *methodAuthz {
 	// Fall back to simple required_permission string.
 	if ext := proto.GetExtension(methodOpts, commonv1.E_RequiredPermission); ext != nil {
 		if perms, ok := ext.([]string); ok && len(perms) > 0 {
-			return &methodAuthz{permission: PermissionName(perms[0])}
+			return &MethodAuthz{Permission: PermissionName(perms[0])}
 		}
 	}
 
 	return nil
 }
 
-// evalFieldPath evaluates a dotted field path on a proto message to extract
+// EvalFieldPath evaluates a dotted field path on a proto message to extract
 // a string value. Handles the common "request.<field>.<field>" pattern used
 // in id_getter_cel annotations.
-func evalFieldPath(req any, celExpr string) string {
+func EvalFieldPath(req any, celExpr string) string {
 	path := strings.TrimPrefix(celExpr, "request.")
 	if path == celExpr {
 		return ""

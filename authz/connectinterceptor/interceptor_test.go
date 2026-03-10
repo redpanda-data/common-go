@@ -7,7 +7,7 @@
 // the Business Source License, use of this software will be governed
 // by the Apache License, Version 2.0
 
-package authz
+package connectinterceptor_test
 
 import (
 	"context"
@@ -19,6 +19,8 @@ import (
 	"connectrpc.com/connect"
 	"go.uber.org/zap"
 
+	"github.com/redpanda-data/common-go/authz"
+	"github.com/redpanda-data/common-go/authz/connectinterceptor"
 	testv1 "github.com/redpanda-data/common-go/authz/testdata/gen"
 	"github.com/redpanda-data/common-go/authz/testdata/gen/testv1connect"
 )
@@ -57,31 +59,71 @@ func (*connectTestHandler) UnannotatedMethod(_ context.Context, _ *connect.Reque
 	return connect.NewResponse(&testv1.SimpleResponse{}), nil
 }
 
+const testPrincipalMDKey = "x-test-principal"
+
 // connectTestExtractor reads the principal from Connect request headers.
-func connectTestExtractor(_ context.Context, h http.Header) (PrincipalID, bool) {
+func connectTestExtractor(_ context.Context, h http.Header) (authz.PrincipalID, bool) {
 	v := h.Get(testPrincipalMDKey)
 	if v == "" {
 		return "", false
 	}
-	return UserPrincipal(v), true
+	return authz.UserPrincipal(v), true
 }
 
-func startConnectTestServer(t testing.TB, policy Policy) testv1connect.TestServiceClient {
+const testDataplane authz.ResourceName = "organizations/a845616f-0484-4506-9638-45fe28f34865/resourcegroups/a098bb32-55a0-4783-9eef-873826987d58/dataplanes/d5tp5kntujt599ksadgg"
+
+// Mirrors a real dataplane authorization ConfigMap with Admin/Writer/Reader roles.
+var realisticPolicy = authz.Policy{
+	Roles: []authz.Role{
+		{
+			ID: "Admin",
+			Permissions: []authz.PermissionName{
+				"test_simple_perm",
+				"test_scoped_perm",
+				"test_create_perm",
+				"test_list_perm",
+			},
+		},
+		{
+			ID: "Writer",
+			Permissions: []authz.PermissionName{
+				"test_simple_perm",
+				"test_scoped_perm",
+				"test_create_perm",
+				"test_list_perm",
+			},
+		},
+		{
+			ID: "Reader",
+			Permissions: []authz.PermissionName{
+				"test_simple_perm",
+				"test_list_perm",
+			},
+		},
+	},
+	Bindings: []authz.RoleBinding{
+		{Role: "Admin", Principal: authz.UserPrincipal("stephan@redpanda.com"), Scope: testDataplane},
+		{Role: "Writer", Principal: authz.UserPrincipal("tyler@redpanda.com"), Scope: testDataplane},
+		{Role: "Reader", Principal: authz.UserPrincipal("intern@redpanda.com"), Scope: testDataplane},
+	},
+}
+
+func startConnectTestServer(t testing.TB, policy authz.Policy) testv1connect.TestServiceClient {
 	t.Helper()
 	client, _ := startConnectTestServerWithInterceptor(t, policy)
 	return client
 }
 
-func startConnectTestServerWithInterceptor(t testing.TB, policy Policy) (testv1connect.TestServiceClient, *Interceptor) {
+func startConnectTestServerWithInterceptor(t testing.TB, policy authz.Policy) (testv1connect.TestServiceClient, *authz.Interceptor) {
 	t.Helper()
 	l, _ := zap.NewDevelopment()
 
 	// PrincipalExtractor here is a dummy — the Connect interceptor uses
-	// ConnectPrincipalExtractor from the config override.
-	interceptor, err := NewInterceptor(InterceptorConfig{
+	// connectinterceptor.PrincipalExtractor from the config override.
+	interceptor, err := authz.NewInterceptor(authz.InterceptorConfig{
 		Logger:           l,
 		ResourceName:     testDataplane,
-		ExtractPrincipal: func(context.Context) (PrincipalID, bool) { return "", false },
+		ExtractPrincipal: func(context.Context) (authz.PrincipalID, bool) { return "", false },
 		Policy:           policy,
 	})
 	if err != nil {
@@ -91,7 +133,7 @@ func startConnectTestServerWithInterceptor(t testing.TB, policy Policy) (testv1c
 	mux := http.NewServeMux()
 	path, handler := testv1connect.NewTestServiceHandler(
 		&connectTestHandler{},
-		connect.WithInterceptors(interceptor.ConnectInterceptor(ConnectInterceptorConfig{
+		connect.WithInterceptors(connectinterceptor.New(interceptor, connectinterceptor.Config{
 			ExtractPrincipal: connectTestExtractor,
 		})),
 	)
@@ -195,11 +237,11 @@ func TestConnect_ListWidgets_DataplaneScopeReturnsAll(t *testing.T) {
 }
 
 func TestConnect_ListWidgets_PerResourceReturnsSubset(t *testing.T) {
-	policy := Policy{
-		Roles: []Role{{ID: "Lister", Permissions: []PermissionName{"test_list_perm"}}},
-		Bindings: []RoleBinding{
-			{Role: "Lister", Principal: UserPrincipal("alice@redpanda.com"), Scope: testDataplane + "/widgets/widget-1"},
-			{Role: "Lister", Principal: UserPrincipal("alice@redpanda.com"), Scope: testDataplane + "/widgets/widget-3"},
+	policy := authz.Policy{
+		Roles: []authz.Role{{ID: "Lister", Permissions: []authz.PermissionName{"test_list_perm"}}},
+		Bindings: []authz.RoleBinding{
+			{Role: "Lister", Principal: authz.UserPrincipal("alice@redpanda.com"), Scope: testDataplane + "/widgets/widget-1"},
+			{Role: "Lister", Principal: authz.UserPrincipal("alice@redpanda.com"), Scope: testDataplane + "/widgets/widget-3"},
 		},
 	}
 	client := startConnectTestServer(t, policy)
@@ -220,8 +262,8 @@ func TestConnect_ListWidgets_PerResourceReturnsSubset(t *testing.T) {
 }
 
 func TestConnect_ListWidgets_NoPermissionReturnsEmpty(t *testing.T) {
-	policy := Policy{
-		Roles: []Role{{ID: "Lister", Permissions: []PermissionName{"test_list_perm"}}},
+	policy := authz.Policy{
+		Roles: []authz.Role{{ID: "Lister", Permissions: []authz.PermissionName{"test_list_perm"}}},
 	}
 	client := startConnectTestServer(t, policy)
 	resp, err := client.ListWidgets(context.Background(), connectReqAs("bob@redpanda.com", &testv1.ListWidgetsRequest{}))
@@ -234,10 +276,10 @@ func TestConnect_ListWidgets_NoPermissionReturnsEmpty(t *testing.T) {
 }
 
 func TestConnect_ListWidgets_WildcardReturnsAll(t *testing.T) {
-	policy := Policy{
-		Roles: []Role{{ID: "Lister", Permissions: []PermissionName{"test_list_perm"}}},
-		Bindings: []RoleBinding{
-			{Role: "Lister", Principal: UserPrincipal("carol@redpanda.com"), Scope: testDataplane + "/widgets/*"},
+	policy := authz.Policy{
+		Roles: []authz.Role{{ID: "Lister", Permissions: []authz.PermissionName{"test_list_perm"}}},
+		Bindings: []authz.RoleBinding{
+			{Role: "Lister", Principal: authz.UserPrincipal("carol@redpanda.com"), Scope: testDataplane + "/widgets/*"},
 		},
 	}
 	client := startConnectTestServer(t, policy)
@@ -289,11 +331,11 @@ func TestConnect_DataplaneBindingGrantsCreateWidget(t *testing.T) {
 // --- Sub-resource scoping: per-resource binding ---
 
 func TestConnect_PerResourceBindingGrantsSpecificWidget(t *testing.T) {
-	policy := Policy{
-		Roles: []Role{{ID: "WidgetEditor", Permissions: []PermissionName{"test_scoped_perm"}}},
-		Bindings: []RoleBinding{{
+	policy := authz.Policy{
+		Roles: []authz.Role{{ID: "WidgetEditor", Permissions: []authz.PermissionName{"test_scoped_perm"}}},
+		Bindings: []authz.RoleBinding{{
 			Role:      "WidgetEditor",
-			Principal: UserPrincipal("alice@redpanda.com"),
+			Principal: authz.UserPrincipal("alice@redpanda.com"),
 			Scope:     testDataplane + "/widgets/widget-123",
 		}},
 	}
@@ -305,11 +347,11 @@ func TestConnect_PerResourceBindingGrantsSpecificWidget(t *testing.T) {
 }
 
 func TestConnect_PerResourceBindingDeniesOtherWidget(t *testing.T) {
-	policy := Policy{
-		Roles: []Role{{ID: "WidgetEditor", Permissions: []PermissionName{"test_scoped_perm"}}},
-		Bindings: []RoleBinding{{
+	policy := authz.Policy{
+		Roles: []authz.Role{{ID: "WidgetEditor", Permissions: []authz.PermissionName{"test_scoped_perm"}}},
+		Bindings: []authz.RoleBinding{{
 			Role:      "WidgetEditor",
-			Principal: UserPrincipal("alice@redpanda.com"),
+			Principal: authz.UserPrincipal("alice@redpanda.com"),
 			Scope:     testDataplane + "/widgets/widget-123",
 		}},
 	}
@@ -321,11 +363,11 @@ func TestConnect_PerResourceBindingDeniesOtherWidget(t *testing.T) {
 }
 
 func TestConnect_PerResourceBindingNestedFieldPath(t *testing.T) {
-	policy := Policy{
-		Roles: []Role{{ID: "WidgetEditor", Permissions: []PermissionName{"test_scoped_perm"}}},
-		Bindings: []RoleBinding{{
+	policy := authz.Policy{
+		Roles: []authz.Role{{ID: "WidgetEditor", Permissions: []authz.PermissionName{"test_scoped_perm"}}},
+		Bindings: []authz.RoleBinding{{
 			Role:      "WidgetEditor",
-			Principal: UserPrincipal("alice@redpanda.com"),
+			Principal: authz.UserPrincipal("alice@redpanda.com"),
 			Scope:     testDataplane + "/widgets/widget-999",
 		}},
 	}
@@ -349,11 +391,11 @@ func TestConnect_PerResourceBindingNestedFieldPath(t *testing.T) {
 // --- Wildcard bindings ---
 
 func TestConnect_WildcardBindingGrantsAllWidgets(t *testing.T) {
-	policy := Policy{
-		Roles: []Role{{ID: "WidgetEditor", Permissions: []PermissionName{"test_scoped_perm"}}},
-		Bindings: []RoleBinding{{
+	policy := authz.Policy{
+		Roles: []authz.Role{{ID: "WidgetEditor", Permissions: []authz.PermissionName{"test_scoped_perm"}}},
+		Bindings: []authz.RoleBinding{{
 			Role:      "WidgetEditor",
-			Principal: UserPrincipal("bob@redpanda.com"),
+			Principal: authz.UserPrincipal("bob@redpanda.com"),
 			Scope:     testDataplane + "/widgets/*",
 		}},
 	}
@@ -383,8 +425,8 @@ func TestConnect_EmptyResourceIDDenied(t *testing.T) {
 // --- Policy hot-reload ---
 
 func TestConnect_SwapPolicy(t *testing.T) {
-	client, interceptor := startConnectTestServerWithInterceptor(t, Policy{
-		Roles: []Role{{ID: "r", Permissions: []PermissionName{"test_simple_perm"}}},
+	client, interceptor := startConnectTestServerWithInterceptor(t, authz.Policy{
+		Roles: []authz.Role{{ID: "r", Permissions: []authz.PermissionName{"test_simple_perm"}}},
 	})
 
 	_, err := client.SimpleMethod(context.Background(), connectReqAs("bob@redpanda.com", &testv1.SimpleRequest{}))
@@ -392,9 +434,9 @@ func TestConnect_SwapPolicy(t *testing.T) {
 		t.Fatalf("expected PermissionDenied before swap, got %v", err)
 	}
 
-	if err := interceptor.SwapPolicy(Policy{
-		Roles:    []Role{{ID: "r", Permissions: []PermissionName{"test_simple_perm"}}},
-		Bindings: []RoleBinding{{Role: "r", Principal: UserPrincipal("bob@redpanda.com"), Scope: testDataplane}},
+	if err := interceptor.SwapPolicy(authz.Policy{
+		Roles:    []authz.Role{{ID: "r", Permissions: []authz.PermissionName{"test_simple_perm"}}},
+		Bindings: []authz.RoleBinding{{Role: "r", Principal: authz.UserPrincipal("bob@redpanda.com"), Scope: testDataplane}},
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -408,12 +450,12 @@ func TestConnect_SwapPolicy(t *testing.T) {
 // --- Race: concurrent requests + policy swaps ---
 
 func TestConnect_ConcurrentRequestsAndSwaps(t *testing.T) {
-	policyGranted := Policy{
-		Roles:    []Role{{ID: "r", Permissions: []PermissionName{"test_simple_perm", "test_scoped_perm", "test_create_perm"}}},
-		Bindings: []RoleBinding{{Role: "r", Principal: UserPrincipal("racer@redpanda.com"), Scope: testDataplane}},
+	policyGranted := authz.Policy{
+		Roles:    []authz.Role{{ID: "r", Permissions: []authz.PermissionName{"test_simple_perm", "test_scoped_perm", "test_create_perm"}}},
+		Bindings: []authz.RoleBinding{{Role: "r", Principal: authz.UserPrincipal("racer@redpanda.com"), Scope: testDataplane}},
 	}
-	policyDenied := Policy{
-		Roles: []Role{{ID: "r", Permissions: []PermissionName{"test_simple_perm", "test_scoped_perm", "test_create_perm"}}},
+	policyDenied := authz.Policy{
+		Roles: []authz.Role{{ID: "r", Permissions: []authz.PermissionName{"test_simple_perm", "test_scoped_perm", "test_create_perm"}}},
 	}
 
 	client, interceptor := startConnectTestServerWithInterceptor(t, policyGranted)

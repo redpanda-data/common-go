@@ -7,7 +7,9 @@
 // the Business Source License, use of this software will be governed
 // by the Apache License, Version 2.0
 
-package authz
+// Package connectinterceptor provides a Connect interceptor that enforces
+// policy-based authorization using [authz.Interceptor].
+package connectinterceptor
 
 import (
 	"context"
@@ -17,32 +19,34 @@ import (
 
 	"connectrpc.com/connect"
 	"go.uber.org/zap"
+
+	"github.com/redpanda-data/common-go/authz"
 )
 
-// ConnectPrincipalExtractor extracts a principal from the request context
+// PrincipalExtractor extracts a principal from the request context
 // and HTTP headers. Connect RPCs have headers available directly on the
 // request, unlike gRPC where metadata is embedded in context.
-type ConnectPrincipalExtractor func(ctx context.Context, headers http.Header) (PrincipalID, bool)
+type PrincipalExtractor func(ctx context.Context, headers http.Header) (authz.PrincipalID, bool)
 
-// ConnectInterceptorConfig configures the Connect authorization interceptor.
-type ConnectInterceptorConfig struct {
+// Config configures the Connect authorization interceptor.
+type Config struct {
 	// ExtractPrincipal extracts the caller's principal from request context
 	// and headers. If nil, falls back to the Interceptor's PrincipalExtractor
 	// (ignoring headers).
-	ExtractPrincipal ConnectPrincipalExtractor
+	ExtractPrincipal PrincipalExtractor
 }
 
-// ConnectInterceptor returns a connect.Interceptor that enforces
-// policy-based authorization on Connect RPCs. It reuses the same
-// Interceptor core (proto annotation discovery, policy evaluation,
-// atomic policy swaps) as the gRPC interceptor.
-func (a *Interceptor) ConnectInterceptor(opts ...ConnectInterceptorConfig) connect.Interceptor {
-	var extractor ConnectPrincipalExtractor
+// New returns a connect.Interceptor that enforces policy-based
+// authorization on Connect RPCs. It reuses the same Interceptor core
+// (proto annotation discovery, policy evaluation, atomic policy swaps)
+// as the gRPC interceptor.
+func New(a *authz.Interceptor, opts ...Config) connect.Interceptor {
+	var extractor PrincipalExtractor
 	if len(opts) > 0 && opts[0].ExtractPrincipal != nil {
 		extractor = opts[0].ExtractPrincipal
 	} else {
-		ctxExtractor := a.extractPrincipal
-		extractor = func(ctx context.Context, _ http.Header) (PrincipalID, bool) {
+		ctxExtractor := a.ExtractPrincipal()
+		extractor = func(ctx context.Context, _ http.Header) (authz.PrincipalID, bool) {
 			return ctxExtractor(ctx)
 		}
 	}
@@ -50,25 +54,25 @@ func (a *Interceptor) ConnectInterceptor(opts ...ConnectInterceptorConfig) conne
 }
 
 type connectAuthzInterceptor struct {
-	core             *Interceptor
-	extractPrincipal ConnectPrincipalExtractor
+	core             *authz.Interceptor
+	extractPrincipal PrincipalExtractor
 }
 
 func (c *connectAuthzInterceptor) WrapUnary(next connect.UnaryFunc) connect.UnaryFunc {
 	return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
 		procedure := req.Spec().Procedure
-		if shouldSkip(procedure) {
+		if authz.ShouldSkip(procedure) {
 			return next(ctx, req)
 		}
 
 		principal, ok := c.extractPrincipal(ctx, req.Header())
 		if !ok {
-			c.core.logger.Warn("No identity in context, denying access", zap.String("method", procedure))
+			c.core.Logger().Warn("No identity in context, denying access", zap.String("method", procedure))
 			return nil, connect.NewError(connect.CodeInternal, errors.New("no identity in context"))
 		}
 
-		ma := c.core.lookupMethodAuthz(procedure)
-		if denial := c.core.checkAccess(ctx, procedure, principal, ma, req.Any()); denial != nil {
+		ma := c.core.LookupMethodAuthz(procedure)
+		if denial := c.core.CheckAccess(ctx, procedure, principal, ma, req.Any()); denial != nil {
 			return nil, connectError(denial)
 		}
 
@@ -77,22 +81,22 @@ func (c *connectAuthzInterceptor) WrapUnary(next connect.UnaryFunc) connect.Unar
 			return resp, err
 		}
 
-		if ma != nil && ma.isCollection {
-			c.core.filterCollection(ma, principal, resp.Any())
+		if ma != nil && ma.IsCollection {
+			c.core.FilterCollection(ma, principal, resp.Any())
 		}
 
 		return resp, nil
 	}
 }
 
-func connectError(d *authzDenial) *connect.Error {
-	switch d.kind {
-	case authzDenialUnknownMethod, authzDenialForbidden:
-		return connect.NewError(connect.CodePermissionDenied, fmt.Errorf("%s", d.message))
-	case authzDenialEmptyResourceID:
-		return connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("%s", d.message))
+func connectError(d *authz.Denial) *connect.Error {
+	switch d.Kind {
+	case authz.DenialUnknownMethod, authz.DenialForbidden:
+		return connect.NewError(connect.CodePermissionDenied, fmt.Errorf("%s", d.Message))
+	case authz.DenialEmptyResourceID:
+		return connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("%s", d.Message))
 	default:
-		return connect.NewError(connect.CodeInternal, fmt.Errorf("%s", d.message))
+		return connect.NewError(connect.CodeInternal, fmt.Errorf("%s", d.Message))
 	}
 }
 
