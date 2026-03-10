@@ -45,6 +45,11 @@ type InterceptorConfig struct {
 	ExtractPrincipal PrincipalExtractor
 	// Policy is the initial authorization policy.
 	Policy Policy
+	// MethodPermissions provides manual method-to-permission mappings for
+	// services whose protos don't yet have authorization annotations.
+	// These are merged with any permissions discovered from proto annotations.
+	// Keys are gRPC full method names (e.g. "/package.Service/Method").
+	MethodPermissions map[string]PermissionName
 }
 
 // MethodAuthz holds the resolved authorization info for a gRPC/Connect method.
@@ -107,6 +112,31 @@ func NewInterceptor(cfg InterceptorConfig) (*Interceptor, error) {
 
 	allPerms := discoverAllPermissions()
 
+	// Merge manual method permissions into the permission set and pre-seed cache.
+	var manualEntries []struct {
+		method string
+		ma     *MethodAuthz
+	}
+	for method, perm := range cfg.MethodPermissions {
+		ma := &MethodAuthz{Auth: &commonv1.MethodAuthorization{Permission: string(perm)}}
+		manualEntries = append(manualEntries, struct {
+			method string
+			ma     *MethodAuthz
+		}{method, ma})
+		allPerms = append(allPerms, perm)
+	}
+
+	// Deduplicate permissions.
+	seen := make(map[PermissionName]struct{}, len(allPerms))
+	deduped := make([]PermissionName, 0, len(allPerms))
+	for _, p := range allPerms {
+		if _, ok := seen[p]; !ok {
+			seen[p] = struct{}{}
+			deduped = append(deduped, p)
+		}
+	}
+	allPerms = deduped
+
 	rp, err := NewResourcePolicy(cfg.Policy, cfg.ResourceName, allPerms)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create resource policy: %w", err)
@@ -119,6 +149,11 @@ func NewInterceptor(cfg InterceptorConfig) (*Interceptor, error) {
 		extractPrincipal: cfg.ExtractPrincipal,
 	}
 	i.resourcePolicy.Store(rp)
+
+	// Pre-seed cache with manual mappings.
+	for _, e := range manualEntries {
+		i.authzCache.Store(e.method, e.ma)
+	}
 
 	logger.Info("Authorization interceptor initialized",
 		"resource", string(cfg.ResourceName),
