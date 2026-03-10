@@ -44,7 +44,13 @@ func (*connectTestHandler) UpdateWidget(_ context.Context, _ *connect.Request[te
 }
 
 func (*connectTestHandler) ListWidgets(_ context.Context, _ *connect.Request[testv1.ListWidgetsRequest]) (*connect.Response[testv1.ListWidgetsResponse], error) {
-	return connect.NewResponse(&testv1.ListWidgetsResponse{}), nil
+	return connect.NewResponse(&testv1.ListWidgetsResponse{
+		Widgets: []*testv1.Widget{
+			{Id: "widget-1", Name: "one"},
+			{Id: "widget-2", Name: "two"},
+			{Id: "widget-3", Name: "three"},
+		},
+	}), nil
 }
 
 func (*connectTestHandler) UnannotatedMethod(_ context.Context, _ *connect.Request[testv1.SimpleRequest]) (*connect.Response[testv1.SimpleResponse], error) {
@@ -177,27 +183,78 @@ func TestConnect_ReaderDeniedCreateWidget(t *testing.T) {
 
 // --- Collection authorization (List RPCs) ---
 
-func TestConnect_AdminGrantedListWidgets(t *testing.T) {
+func TestConnect_ListWidgets_DataplaneScopeReturnsAll(t *testing.T) {
 	client := startConnectTestServer(t, realisticPolicy)
-	_, err := client.ListWidgets(context.Background(), connectReqAs("stephan@redpanda.com", &testv1.ListWidgetsRequest{}))
+	resp, err := client.ListWidgets(context.Background(), connectReqAs("stephan@redpanda.com", &testv1.ListWidgetsRequest{}))
 	if err != nil {
 		t.Fatal(err)
 	}
-}
-
-func TestConnect_ReaderGrantedListWidgets(t *testing.T) {
-	client := startConnectTestServer(t, realisticPolicy)
-	_, err := client.ListWidgets(context.Background(), connectReqAs("intern@redpanda.com", &testv1.ListWidgetsRequest{}))
-	if err != nil {
-		t.Fatal(err)
+	if len(resp.Msg.Widgets) != 3 {
+		t.Fatalf("expected 3 widgets, got %d", len(resp.Msg.Widgets))
 	}
 }
 
-func TestConnect_UnboundUserDeniedListWidgets(t *testing.T) {
+func TestConnect_ListWidgets_PerResourceReturnsSubset(t *testing.T) {
+	policy := Policy{
+		Roles: []Role{{ID: "Lister", Permissions: []PermissionName{"test_list_perm"}}},
+		Bindings: []RoleBinding{
+			{Role: "Lister", Principal: UserPrincipal("alice@redpanda.com"), Scope: testDataplane + "/widgets/widget-1"},
+			{Role: "Lister", Principal: UserPrincipal("alice@redpanda.com"), Scope: testDataplane + "/widgets/widget-3"},
+		},
+	}
+	client := startConnectTestServer(t, policy)
+	resp, err := client.ListWidgets(context.Background(), connectReqAs("alice@redpanda.com", &testv1.ListWidgetsRequest{}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(resp.Msg.Widgets) != 2 {
+		t.Fatalf("expected 2 widgets, got %d", len(resp.Msg.Widgets))
+	}
+	ids := map[string]bool{}
+	for _, w := range resp.Msg.Widgets {
+		ids[w.Id] = true
+	}
+	if !ids["widget-1"] || !ids["widget-3"] {
+		t.Fatalf("expected widget-1 and widget-3, got %v", ids)
+	}
+}
+
+func TestConnect_ListWidgets_NoPermissionReturnsEmpty(t *testing.T) {
+	policy := Policy{
+		Roles: []Role{{ID: "Lister", Permissions: []PermissionName{"test_list_perm"}}},
+	}
+	client := startConnectTestServer(t, policy)
+	resp, err := client.ListWidgets(context.Background(), connectReqAs("bob@redpanda.com", &testv1.ListWidgetsRequest{}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(resp.Msg.Widgets) != 0 {
+		t.Fatalf("expected 0 widgets, got %d", len(resp.Msg.Widgets))
+	}
+}
+
+func TestConnect_ListWidgets_WildcardReturnsAll(t *testing.T) {
+	policy := Policy{
+		Roles: []Role{{ID: "Lister", Permissions: []PermissionName{"test_list_perm"}}},
+		Bindings: []RoleBinding{
+			{Role: "Lister", Principal: UserPrincipal("carol@redpanda.com"), Scope: testDataplane + "/widgets/*"},
+		},
+	}
+	client := startConnectTestServer(t, policy)
+	resp, err := client.ListWidgets(context.Background(), connectReqAs("carol@redpanda.com", &testv1.ListWidgetsRequest{}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(resp.Msg.Widgets) != 3 {
+		t.Fatalf("expected 3 widgets, got %d", len(resp.Msg.Widgets))
+	}
+}
+
+func TestConnect_ListWidgets_NoIdentityDenied(t *testing.T) {
 	client := startConnectTestServer(t, realisticPolicy)
-	_, err := client.ListWidgets(context.Background(), connectReqAs("random@attacker.com", &testv1.ListWidgetsRequest{}))
-	if connect.CodeOf(err) != connect.CodePermissionDenied {
-		t.Fatalf("expected PermissionDenied, got %v", err)
+	_, err := client.ListWidgets(context.Background(), connect.NewRequest(&testv1.ListWidgetsRequest{}))
+	if connect.CodeOf(err) != connect.CodeInternal {
+		t.Fatalf("expected Internal, got %v", err)
 	}
 }
 

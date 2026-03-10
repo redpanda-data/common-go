@@ -50,7 +50,13 @@ func (*testServer) UpdateWidget(context.Context, *testv1.UpdateWidgetRequest) (*
 }
 
 func (*testServer) ListWidgets(context.Context, *testv1.ListWidgetsRequest) (*testv1.ListWidgetsResponse, error) {
-	return &testv1.ListWidgetsResponse{}, nil
+	return &testv1.ListWidgetsResponse{
+		Widgets: []*testv1.Widget{
+			{Id: "widget-1", Name: "one"},
+			{Id: "widget-2", Name: "two"},
+			{Id: "widget-3", Name: "three"},
+		},
+	}, nil
 }
 
 func (*testServer) UnannotatedMethod(context.Context, *testv1.SimpleRequest) (*testv1.SimpleResponse, error) {
@@ -306,28 +312,82 @@ func TestGRPC_ReaderDeniedCreateWidget(t *testing.T) {
 
 // --- Collection authorization (List RPCs) ---
 
-func TestGRPC_AdminGrantedListWidgets(t *testing.T) {
+func TestGRPC_ListWidgets_DataplaneScopeReturnsAll(t *testing.T) {
+	// Admin bound at dataplane level sees all widgets.
 	client := startTestServer(t, realisticPolicy)
-	_, err := client.ListWidgets(ctxAs("stephan@redpanda.com"), &testv1.ListWidgetsRequest{})
+	resp, err := client.ListWidgets(ctxAs("stephan@redpanda.com"), &testv1.ListWidgetsRequest{})
 	if err != nil {
 		t.Fatal(err)
 	}
-}
-
-func TestGRPC_ReaderGrantedListWidgets(t *testing.T) {
-	client := startTestServer(t, realisticPolicy)
-	// Reader has test_list_perm.
-	_, err := client.ListWidgets(ctxAs("intern@redpanda.com"), &testv1.ListWidgetsRequest{})
-	if err != nil {
-		t.Fatal(err)
+	if len(resp.Widgets) != 3 {
+		t.Fatalf("expected 3 widgets, got %d", len(resp.Widgets))
 	}
 }
 
-func TestGRPC_UnboundUserDeniedListWidgets(t *testing.T) {
+func TestGRPC_ListWidgets_PerResourceReturnsSubset(t *testing.T) {
+	// Alice has permission only on widget-1 and widget-3.
+	policy := Policy{
+		Roles: []Role{{ID: "Lister", Permissions: []PermissionName{"test_list_perm"}}},
+		Bindings: []RoleBinding{
+			{Role: "Lister", Principal: UserPrincipal("alice@redpanda.com"), Scope: testDataplane + "/widgets/widget-1"},
+			{Role: "Lister", Principal: UserPrincipal("alice@redpanda.com"), Scope: testDataplane + "/widgets/widget-3"},
+		},
+	}
+	client := startTestServer(t, policy)
+	resp, err := client.ListWidgets(ctxAs("alice@redpanda.com"), &testv1.ListWidgetsRequest{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(resp.Widgets) != 2 {
+		t.Fatalf("expected 2 widgets, got %d", len(resp.Widgets))
+	}
+	ids := map[string]bool{}
+	for _, w := range resp.Widgets {
+		ids[w.Id] = true
+	}
+	if !ids["widget-1"] || !ids["widget-3"] {
+		t.Fatalf("expected widget-1 and widget-3, got %v", ids)
+	}
+}
+
+func TestGRPC_ListWidgets_NoPermissionReturnsEmpty(t *testing.T) {
+	// Bob has no bindings at all — gets empty list, not an error.
+	policy := Policy{
+		Roles: []Role{{ID: "Lister", Permissions: []PermissionName{"test_list_perm"}}},
+	}
+	client := startTestServer(t, policy)
+	resp, err := client.ListWidgets(ctxAs("bob@redpanda.com"), &testv1.ListWidgetsRequest{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(resp.Widgets) != 0 {
+		t.Fatalf("expected 0 widgets, got %d", len(resp.Widgets))
+	}
+}
+
+func TestGRPC_ListWidgets_WildcardReturnsAll(t *testing.T) {
+	// Wildcard binding on widgets/* sees everything.
+	policy := Policy{
+		Roles: []Role{{ID: "Lister", Permissions: []PermissionName{"test_list_perm"}}},
+		Bindings: []RoleBinding{
+			{Role: "Lister", Principal: UserPrincipal("carol@redpanda.com"), Scope: testDataplane + "/widgets/*"},
+		},
+	}
+	client := startTestServer(t, policy)
+	resp, err := client.ListWidgets(ctxAs("carol@redpanda.com"), &testv1.ListWidgetsRequest{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(resp.Widgets) != 3 {
+		t.Fatalf("expected 3 widgets, got %d", len(resp.Widgets))
+	}
+}
+
+func TestGRPC_ListWidgets_NoIdentityDenied(t *testing.T) {
 	client := startTestServer(t, realisticPolicy)
-	_, err := client.ListWidgets(ctxAs("random@attacker.com"), &testv1.ListWidgetsRequest{})
-	if status.Code(err) != codes.PermissionDenied {
-		t.Fatalf("expected PermissionDenied, got %v", err)
+	_, err := client.ListWidgets(context.Background(), &testv1.ListWidgetsRequest{})
+	if status.Code(err) != codes.Internal {
+		t.Fatalf("expected Internal, got %v", err)
 	}
 }
 

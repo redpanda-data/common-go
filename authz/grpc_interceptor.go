@@ -55,6 +55,13 @@ type methodAuthz struct {
 	permission   PermissionName
 	resourceType ResourceType // empty = check at base resource level
 	idGetterCEL  string       // CEL path to extract resource ID from request
+
+	// Collection fields — set for List RPCs with collection_authorization.
+	// When isCollection is true, the interceptor filters the response
+	// instead of doing a per-resource pre-call check.
+	isCollection        bool
+	collectionGetterCEL string // CEL path to collection in response (e.g. "response.pipelines")
+	eachIDGetterCEL     string // CEL path to ID on each item (e.g. "each.id")
 }
 
 // Interceptor enforces policy-based authorization on gRPC/Connect methods.
@@ -156,11 +163,18 @@ func shouldSkip(method string) bool {
 
 // checkAccess is the shared authorization core used by both gRPC and Connect
 // interceptors. It returns nil on success, or an *authzDenial on failure.
-func (a *Interceptor) checkAccess(ctx context.Context, method string, principal PrincipalID, reqMsg any) *authzDenial {
-	ma := a.lookupMethodAuthz(method)
+// The ma parameter may be nil (looked up externally to allow reuse).
+func (a *Interceptor) checkAccess(ctx context.Context, method string, principal PrincipalID, ma *methodAuthz, reqMsg any) *authzDenial {
 	if ma == nil {
 		a.logger.Warn("No permission annotation, denying access (fail-closed)", zap.String("method", method))
 		return &authzDenial{kind: authzDenialUnknownMethod, method: method, message: fmt.Sprintf("unknown method %s", method)}
+	}
+
+	// Collection methods do no pre-call authorization — the principal may only
+	// have permission on specific resources, not at the parent level. The
+	// response is filtered per-item by filterCollection after the call.
+	if ma.isCollection {
+		return nil
 	}
 
 	_, span := tracer.Start(ctx, "authz.check",
@@ -215,6 +229,64 @@ func (a *Interceptor) checkAccess(ctx context.Context, method string, principal 
 	return nil
 }
 
+// filterCollection removes items from a response collection that the principal
+// lacks permission for. It uses protoreflect to walk the response message,
+// find the collection field, and check each item's resource ID.
+func (a *Interceptor) filterCollection(ma *methodAuthz, principal PrincipalID, resp any) {
+	msg, ok := resp.(proto.Message)
+	if !ok || ma.collectionGetterCEL == "" || ma.eachIDGetterCEL == "" {
+		return
+	}
+
+	// Parse "response.field" -> "field"
+	collField := strings.TrimPrefix(ma.collectionGetterCEL, "response.")
+	if collField == ma.collectionGetterCEL {
+		return
+	}
+
+	// Parse "each.field" -> "field"
+	idField := strings.TrimPrefix(ma.eachIDGetterCEL, "each.")
+	if idField == ma.eachIDGetterCEL {
+		return
+	}
+
+	refl := msg.ProtoReflect()
+	fd := refl.Descriptor().Fields().ByName(protoreflect.Name(collField))
+	if fd == nil || !fd.IsList() {
+		return
+	}
+
+	rp := a.resourcePolicy.Load()
+	list := refl.Mutable(fd).List()
+
+	// Filter in-place: walk backwards to safely remove items.
+	for i := list.Len() - 1; i >= 0; i-- {
+		item := list.Get(i)
+		if item.Message() == nil {
+			continue
+		}
+		itemRefl := item.Message()
+		idFd := itemRefl.Descriptor().Fields().ByName(protoreflect.Name(idField))
+		if idFd == nil {
+			continue
+		}
+		resourceID := fmt.Sprint(itemRefl.Get(idFd).Interface())
+		if resourceID == "" {
+			continue
+		}
+
+		authorizer := rp.SubResourceAuthorizer(ma.resourceType, ResourceID(resourceID), ma.permission)
+		if !authorizer.Check(principal) {
+			// Remove by swapping with last element and truncating.
+			last := list.Len() - 1
+			if i != last {
+				list.Set(i, list.Get(last))
+			}
+			list.Truncate(last)
+		}
+	}
+}
+
 // UnaryServerInterceptor returns a gRPC unary server interceptor that
 // enforces authorization checks.
 func (a *Interceptor) UnaryServerInterceptor() grpc.UnaryServerInterceptor {
@@ -229,11 +301,21 @@ func (a *Interceptor) UnaryServerInterceptor() grpc.UnaryServerInterceptor {
 			return nil, status.Error(codes.Internal, "no identity in context")
 		}
 
-		if denial := a.checkAccess(ctx, info.FullMethod, principal, req); denial != nil {
+		ma := a.lookupMethodAuthz(info.FullMethod)
+		if denial := a.checkAccess(ctx, info.FullMethod, principal, ma, req); denial != nil {
 			return nil, grpcError(denial)
 		}
 
-		return handler(ctx, req)
+		resp, err := handler(ctx, req)
+		if err != nil {
+			return resp, err
+		}
+
+		if ma != nil && ma.isCollection {
+			a.filterCollection(ma, principal, resp)
+		}
+
+		return resp, nil
 	}
 }
 
@@ -309,14 +391,17 @@ func extractMethodAuthz(methodOpts *descriptorpb.MethodOptions) *methodAuthz {
 		}
 	}
 
-	// collection_authorization: uses each.permission and each.resource_type.
-	// No request-side ID extraction (id_getter_cel refers to response items).
-	// The policy check cascades from parent scopes automatically.
+	// collection_authorization: List RPCs that require per-item filtering on the response.
+	// The interceptor does a base-level pre-call check, then filters the response
+	// collection so only items the principal can access are returned.
 	if ext := proto.GetExtension(methodOpts, commonv1.E_CollectionAuthorization); ext != nil {
 		if ca, ok := ext.(*commonv1.CollectionAuthorization); ok && ca != nil && ca.GetEach() != nil && ca.GetEach().GetPermission() != "" {
 			return &methodAuthz{
-				permission:   PermissionName(ca.GetEach().GetPermission()),
-				resourceType: ResourceType(ca.GetEach().GetResourceType()),
+				permission:          PermissionName(ca.GetEach().GetPermission()),
+				resourceType:        ResourceType(ca.GetEach().GetResourceType()),
+				isCollection:        true,
+				collectionGetterCEL: ca.GetCollectionGetterCel(),
+				eachIDGetterCEL:     ca.GetEach().GetIdGetterCel(),
 			}
 		}
 	}

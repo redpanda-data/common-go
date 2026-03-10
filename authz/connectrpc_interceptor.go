@@ -67,11 +67,21 @@ func (c *connectAuthzInterceptor) WrapUnary(next connect.UnaryFunc) connect.Unar
 			return nil, connect.NewError(connect.CodeInternal, errors.New("no identity in context"))
 		}
 
-		if denial := c.core.checkAccess(ctx, procedure, principal, req.Any()); denial != nil {
+		ma := c.core.lookupMethodAuthz(procedure)
+		if denial := c.core.checkAccess(ctx, procedure, principal, ma, req.Any()); denial != nil {
 			return nil, connectError(denial)
 		}
 
-		return next(ctx, req)
+		resp, err := next(ctx, req)
+		if err != nil {
+			return resp, err
+		}
+
+		if ma != nil && ma.isCollection {
+			c.core.filterCollection(ma, principal, resp.Any())
+		}
+
+		return resp, nil
 	}
 }
 
