@@ -11,11 +11,11 @@ package grpcinterceptor_test
 
 import (
 	"context"
+	"log/slog"
 	"net"
 	"sync"
 	"testing"
 
-	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
@@ -119,7 +119,7 @@ var realisticPolicy = authz.Policy{
 
 func startTestServer(t *testing.T, policy authz.Policy) testv1.TestServiceClient {
 	t.Helper()
-	l, _ := zap.NewDevelopment()
+	l := slog.Default()
 
 	interceptor, err := authz.NewInterceptor(authz.InterceptorConfig{
 		Logger:           l,
@@ -152,7 +152,7 @@ func startTestServer(t *testing.T, policy authz.Policy) testv1.TestServiceClient
 
 func startTestServerWithInterceptor(t *testing.T, policy authz.Policy) (testv1.TestServiceClient, *authz.Interceptor) {
 	t.Helper()
-	l, _ := zap.NewDevelopment()
+	l := slog.Default()
 
 	interceptor, err := authz.NewInterceptor(authz.InterceptorConfig{
 		Logger:           l,
@@ -198,7 +198,7 @@ func ctxAsIncoming(email string) context.Context {
 func TestDiscoverPermissions(t *testing.T) {
 	// Create an interceptor to trigger proto registration, then verify
 	// that the core module can discover permissions from annotations.
-	l, _ := zap.NewDevelopment()
+	l := slog.Default()
 	interceptor, err := authz.NewInterceptor(authz.InterceptorConfig{
 		Logger:           l,
 		ResourceName:     testDataplane,
@@ -224,7 +224,7 @@ func TestDiscoverPermissions(t *testing.T) {
 }
 
 func TestResolveAnnotations(t *testing.T) {
-	l, _ := zap.NewDevelopment()
+	l := slog.Default()
 	interceptor, err := authz.NewInterceptor(authz.InterceptorConfig{
 		Logger:           l,
 		ResourceName:     testDataplane,
@@ -237,8 +237,8 @@ func TestResolveAnnotations(t *testing.T) {
 
 	tests := []struct {
 		method   string
-		wantPerm authz.PermissionName
-		wantType authz.ResourceType
+		wantPerm string
+		wantType string
 		wantCEL  string
 		wantNil  bool
 	}{
@@ -246,7 +246,7 @@ func TestResolveAnnotations(t *testing.T) {
 		{"/authz.test.v1.TestService/GetWidget", "test_scoped_perm", "widgets", "request.id", false},
 		{"/authz.test.v1.TestService/CreateWidget", "test_create_perm", "widgets", "", false},
 		{"/authz.test.v1.TestService/UpdateWidget", "test_scoped_perm", "widgets", "request.widget.id", false},
-		{"/authz.test.v1.TestService/ListWidgets", "test_list_perm", "widgets", "", false},
+		{"/authz.test.v1.TestService/ListWidgets", "test_list_perm", "widgets", "each.id", false},
 		{"/authz.test.v1.TestService/UnannotatedMethod", "", "", "", true},
 		{"/no.such.Service/Method", "", "", "", true},
 	}
@@ -259,17 +259,17 @@ func TestResolveAnnotations(t *testing.T) {
 				}
 				return
 			}
-			if ma == nil {
+			if ma == nil || ma.Auth == nil {
 				t.Fatal("expected non-nil")
 			}
-			if ma.Permission != tt.wantPerm {
-				t.Errorf("permission: got %s, want %s", ma.Permission, tt.wantPerm)
+			if ma.Auth.GetPermission() != tt.wantPerm {
+				t.Errorf("permission: got %s, want %s", ma.Auth.GetPermission(), tt.wantPerm)
 			}
-			if ma.ResourceType != tt.wantType {
-				t.Errorf("resourceType: got %s, want %s", ma.ResourceType, tt.wantType)
+			if ma.Auth.GetResourceType() != tt.wantType {
+				t.Errorf("resourceType: got %s, want %s", ma.Auth.GetResourceType(), tt.wantType)
 			}
-			if ma.IDGetterCEL != tt.wantCEL {
-				t.Errorf("idGetterCEL: got %s, want %s", ma.IDGetterCEL, tt.wantCEL)
+			if ma.Auth.GetIdGetterCel() != tt.wantCEL {
+				t.Errorf("idGetterCEL: got %s, want %s", ma.Auth.GetIdGetterCel(), tt.wantCEL)
 			}
 		})
 	}
@@ -631,7 +631,7 @@ func TestGRPC_ConcurrentRequestsAndSwaps(t *testing.T) {
 // --- Benchmarks ---
 
 func BenchmarkInterceptor_SimplePermission(b *testing.B) {
-	l := zap.NewNop()
+	l := slog.New(slog.DiscardHandler)
 	interceptor, err := authz.NewInterceptor(authz.InterceptorConfig{
 		Logger:           l,
 		ResourceName:     testDataplane,
@@ -653,7 +653,7 @@ func BenchmarkInterceptor_SimplePermission(b *testing.B) {
 }
 
 func BenchmarkInterceptor_ScopedPermission(b *testing.B) {
-	l := zap.NewNop()
+	l := slog.New(slog.DiscardHandler)
 	interceptor, err := authz.NewInterceptor(authz.InterceptorConfig{
 		Logger:           l,
 		ResourceName:     testDataplane,
@@ -676,7 +676,7 @@ func BenchmarkInterceptor_ScopedPermission(b *testing.B) {
 }
 
 func BenchmarkInterceptor_NestedFieldPath(b *testing.B) {
-	l := zap.NewNop()
+	l := slog.New(slog.DiscardHandler)
 	interceptor, err := authz.NewInterceptor(authz.InterceptorConfig{
 		Logger:           l,
 		ResourceName:     testDataplane,
@@ -699,7 +699,7 @@ func BenchmarkInterceptor_NestedFieldPath(b *testing.B) {
 }
 
 func BenchmarkInterceptor_Denied(b *testing.B) {
-	l := zap.NewNop()
+	l := slog.New(slog.DiscardHandler)
 	interceptor, err := authz.NewInterceptor(authz.InterceptorConfig{
 		Logger:           l,
 		ResourceName:     testDataplane,
@@ -721,7 +721,7 @@ func BenchmarkInterceptor_Denied(b *testing.B) {
 }
 
 func BenchmarkInterceptor_Parallel(b *testing.B) {
-	l := zap.NewNop()
+	l := slog.New(slog.DiscardHandler)
 	interceptor, err := authz.NewInterceptor(authz.InterceptorConfig{
 		Logger:           l,
 		ResourceName:     testDataplane,

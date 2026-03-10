@@ -11,13 +11,13 @@ package connectinterceptor_test
 
 import (
 	"context"
+	"log/slog"
 	"net"
 	"net/http"
 	"sync"
 	"testing"
 
 	"connectrpc.com/connect"
-	"go.uber.org/zap"
 
 	"github.com/redpanda-data/common-go/authz"
 	"github.com/redpanda-data/common-go/authz/connectinterceptor"
@@ -116,7 +116,7 @@ func startConnectTestServer(t testing.TB, policy authz.Policy) testv1connect.Tes
 
 func startConnectTestServerWithInterceptor(t testing.TB, policy authz.Policy) (testv1connect.TestServiceClient, *authz.Interceptor) {
 	t.Helper()
-	l, _ := zap.NewDevelopment()
+	l := slog.Default()
 
 	// PrincipalExtractor here is a dummy — the Connect interceptor uses
 	// connectinterceptor.PrincipalExtractor from the config override.

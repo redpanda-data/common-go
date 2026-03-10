@@ -14,7 +14,6 @@ package grpcinterceptor
 import (
 	"context"
 
-	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -32,7 +31,7 @@ func UnaryServerInterceptor(a *authz.Interceptor) grpc.UnaryServerInterceptor {
 
 		principal, ok := a.ExtractPrincipal()(ctx)
 		if !ok {
-			a.Logger().Warn("No identity in context, denying access", zap.String("method", info.FullMethod))
+			a.Logger().Warn("No identity in context, denying access", "method", info.FullMethod)
 			return nil, status.Error(codes.Internal, "no identity in context")
 		}
 
@@ -46,7 +45,7 @@ func UnaryServerInterceptor(a *authz.Interceptor) grpc.UnaryServerInterceptor {
 			return resp, err
 		}
 
-		if ma != nil && ma.IsCollection {
+		if ma != nil && ma.Collection != nil {
 			a.FilterCollection(ma, principal, resp)
 		}
 

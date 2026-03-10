@@ -18,7 +18,6 @@ import (
 	"net/http"
 
 	"connectrpc.com/connect"
-	"go.uber.org/zap"
 
 	"github.com/redpanda-data/common-go/authz"
 )
@@ -67,7 +66,7 @@ func (c *connectAuthzInterceptor) WrapUnary(next connect.UnaryFunc) connect.Unar
 
 		principal, ok := c.extractPrincipal(ctx, req.Header())
 		if !ok {
-			c.core.Logger().Warn("No identity in context, denying access", zap.String("method", procedure))
+			c.core.Logger().Warn("No identity in context, denying access", "method", procedure)
 			return nil, connect.NewError(connect.CodeInternal, errors.New("no identity in context"))
 		}
 
@@ -81,7 +80,7 @@ func (c *connectAuthzInterceptor) WrapUnary(next connect.UnaryFunc) connect.Unar
 			return resp, err
 		}
 
-		if ma != nil && ma.IsCollection {
+		if ma != nil && ma.Collection != nil {
 			c.core.FilterCollection(ma, principal, resp.Any())
 		}
 
