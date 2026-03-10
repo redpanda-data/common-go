@@ -49,6 +49,10 @@ func (*testServer) UpdateWidget(context.Context, *testv1.UpdateWidgetRequest) (*
 	return &testv1.UpdateWidgetResponse{}, nil
 }
 
+func (*testServer) ListWidgets(context.Context, *testv1.ListWidgetsRequest) (*testv1.ListWidgetsResponse, error) {
+	return &testv1.ListWidgetsResponse{}, nil
+}
+
 func (*testServer) UnannotatedMethod(context.Context, *testv1.SimpleRequest) (*testv1.SimpleResponse, error) {
 	return &testv1.SimpleResponse{}, nil
 }
@@ -78,6 +82,7 @@ var realisticPolicy = Policy{
 				"test_simple_perm",
 				"test_scoped_perm",
 				"test_create_perm",
+				"test_list_perm",
 			},
 		},
 		{
@@ -86,12 +91,14 @@ var realisticPolicy = Policy{
 				"test_simple_perm",
 				"test_scoped_perm",
 				"test_create_perm",
+				"test_list_perm",
 			},
 		},
 		{
 			ID: "Reader",
 			Permissions: []PermissionName{
 				"test_simple_perm",
+				"test_list_perm",
 			},
 		},
 	},
@@ -116,7 +123,8 @@ func startTestServer(t *testing.T, policy Policy) testv1.TestServiceClient {
 		t.Fatal(err)
 	}
 
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	var lc net.ListenConfig
+	ln, err := lc.Listen(context.Background(), "tcp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -148,7 +156,8 @@ func startTestServerWithInterceptor(t *testing.T, policy Policy) (testv1.TestSer
 		t.Fatal(err)
 	}
 
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	var lc net.ListenConfig
+	ln, err := lc.Listen(context.Background(), "tcp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -184,7 +193,7 @@ func TestDiscoverPermissions(t *testing.T) {
 	for _, p := range perms {
 		found[p] = true
 	}
-	for _, want := range []PermissionName{"test_simple_perm", "test_scoped_perm", "test_create_perm"} {
+	for _, want := range []PermissionName{"test_simple_perm", "test_scoped_perm", "test_create_perm", "test_list_perm"} {
 		if !found[want] {
 			t.Errorf("missing %s", want)
 		}
@@ -203,6 +212,7 @@ func TestResolveAnnotations(t *testing.T) {
 		{"/authz.test.v1.TestService/GetWidget", "test_scoped_perm", "widgets", "request.id", false},
 		{"/authz.test.v1.TestService/CreateWidget", "test_create_perm", "widgets", "", false},
 		{"/authz.test.v1.TestService/UpdateWidget", "test_scoped_perm", "widgets", "request.widget.id", false},
+		{"/authz.test.v1.TestService/ListWidgets", "test_list_perm", "widgets", "", false},
 		{"/authz.test.v1.TestService/UnannotatedMethod", "", "", "", true},
 		{"/no.such.Service/Method", "", "", "", true},
 	}
@@ -289,6 +299,33 @@ func TestGRPC_ReaderDeniedCreateWidget(t *testing.T) {
 	client := startTestServer(t, realisticPolicy)
 	// Reader doesn't have test_create_perm.
 	_, err := client.CreateWidget(ctxAs("intern@redpanda.com"), &testv1.CreateWidgetRequest{Name: "new"})
+	if status.Code(err) != codes.PermissionDenied {
+		t.Fatalf("expected PermissionDenied, got %v", err)
+	}
+}
+
+// --- Collection authorization (List RPCs) ---
+
+func TestGRPC_AdminGrantedListWidgets(t *testing.T) {
+	client := startTestServer(t, realisticPolicy)
+	_, err := client.ListWidgets(ctxAs("stephan@redpanda.com"), &testv1.ListWidgetsRequest{})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestGRPC_ReaderGrantedListWidgets(t *testing.T) {
+	client := startTestServer(t, realisticPolicy)
+	// Reader has test_list_perm.
+	_, err := client.ListWidgets(ctxAs("intern@redpanda.com"), &testv1.ListWidgetsRequest{})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestGRPC_UnboundUserDeniedListWidgets(t *testing.T) {
+	client := startTestServer(t, realisticPolicy)
+	_, err := client.ListWidgets(ctxAs("random@attacker.com"), &testv1.ListWidgetsRequest{})
 	if status.Code(err) != codes.PermissionDenied {
 		t.Fatalf("expected PermissionDenied, got %v", err)
 	}
@@ -477,32 +514,27 @@ func TestGRPC_ConcurrentRequestsAndSwaps(t *testing.T) {
 
 	// Hammer requests from multiple goroutines.
 	for i := range goroutines {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			for range iterations {
-				// Mix of different RPC types.
 				switch i % 3 {
 				case 0:
-					client.SimpleMethod(ctxAs("racer@redpanda.com"), &testv1.SimpleRequest{}) //nolint:errcheck
+					client.SimpleMethod(ctxAs("racer@redpanda.com"), &testv1.SimpleRequest{}) //nolint:errcheck // race test: errors expected
 				case 1:
-					client.GetWidget(ctxAs("racer@redpanda.com"), &testv1.GetWidgetRequest{Id: "w1"}) //nolint:errcheck
-				case 2:
-					client.UpdateWidget(ctxAs("racer@redpanda.com"), &testv1.UpdateWidgetRequest{Widget: &testv1.Widget{Id: "w2"}}) //nolint:errcheck
+					client.GetWidget(ctxAs("racer@redpanda.com"), &testv1.GetWidgetRequest{Id: "w1"}) //nolint:errcheck // race test: errors expected
+				default:
+					client.UpdateWidget(ctxAs("racer@redpanda.com"), &testv1.UpdateWidgetRequest{Widget: &testv1.Widget{Id: "w2"}}) //nolint:errcheck // race test: errors expected
 				}
 			}
-		}()
+		})
 	}
 
 	// Simultaneously swap policies back and forth.
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		for range iterations {
-			interceptor.SwapPolicy(policyDenied)  //nolint:errcheck
-			interceptor.SwapPolicy(policyGranted) //nolint:errcheck
+			interceptor.SwapPolicy(policyDenied)  //nolint:errcheck // race test: intentional
+			interceptor.SwapPolicy(policyGranted) //nolint:errcheck // race test: intentional
 		}
-	}()
+	})
 
 	wg.Wait()
 	// If we get here without a race detector complaint, we're good.
@@ -528,7 +560,7 @@ func BenchmarkInterceptor_SimplePermission(b *testing.B) {
 	b.ResetTimer()
 	b.ReportAllocs()
 	for b.Loop() {
-		h(ctx, nil, info, noopHandler) //nolint:errcheck
+		h(ctx, nil, info, noopHandler) //nolint:errcheck // benchmark/race test: result not needed
 	}
 }
 
@@ -551,7 +583,7 @@ func BenchmarkInterceptor_ScopedPermission(b *testing.B) {
 	b.ResetTimer()
 	b.ReportAllocs()
 	for b.Loop() {
-		h(ctx, req, info, noopHandler) //nolint:errcheck
+		h(ctx, req, info, noopHandler) //nolint:errcheck // benchmark/race test: result not needed
 	}
 }
 
@@ -574,7 +606,7 @@ func BenchmarkInterceptor_NestedFieldPath(b *testing.B) {
 	b.ResetTimer()
 	b.ReportAllocs()
 	for b.Loop() {
-		h(ctx, req, info, noopHandler) //nolint:errcheck
+		h(ctx, req, info, noopHandler) //nolint:errcheck // benchmark/race test: result not needed
 	}
 }
 
@@ -596,7 +628,7 @@ func BenchmarkInterceptor_Denied(b *testing.B) {
 	b.ResetTimer()
 	b.ReportAllocs()
 	for b.Loop() {
-		h(ctx, nil, info, noopHandler) //nolint:errcheck
+		h(ctx, nil, info, noopHandler) //nolint:errcheck // benchmark/race test: result not needed
 	}
 }
 
@@ -620,7 +652,7 @@ func BenchmarkInterceptor_Parallel(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		ctx := ctxAsIncoming("stephan@redpanda.com")
 		for pb.Next() {
-			h(ctx, req, info, noopHandler) //nolint:errcheck
+			h(ctx, req, info, noopHandler) //nolint:errcheck // benchmark/race test: result not needed
 		}
 	})
 }

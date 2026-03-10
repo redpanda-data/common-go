@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package authz.test.v1;
 
-option go_package = "github.com/redpanda-data/common-go/authz/testdata/gen/authz/test/v1;testv1";
+option go_package = "github.com/redpanda-data/common-go/authz/testdata/gen;testv1";
 
 import "redpanda/api/common/v1/options.proto";
 
@@ -38,12 +38,29 @@ service TestService {
     };
   }
 
+  // List with collection_authorization: checks each.permission at base resource level.
+  rpc ListWidgets(ListWidgetsRequest) returns (ListWidgetsResponse) {
+    option (redpanda.api.common.v1.collection_authorization) = {
+      collection_getter_cel: "response.widgets",
+      each: {
+        resource_type: "widgets",
+        id_getter_cel: "each.id",
+        permission: "test_list_perm"
+      }
+    };
+  }
+
   // No annotation — must be denied (fail-closed).
   rpc UnannotatedMethod(SimpleRequest) returns (SimpleResponse) {}
 }
 
 message SimpleRequest {}
 message SimpleResponse {}
+
+message ListWidgetsRequest {}
+message ListWidgetsResponse {
+  repeated Widget widgets = 1;
+}
 
 message GetWidgetRequest {
   string id = 1;
