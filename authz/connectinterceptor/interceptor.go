@@ -81,7 +81,10 @@ func (c *connectAuthzInterceptor) WrapUnary(next connect.UnaryFunc) connect.Unar
 		}
 
 		if ma != nil && ma.Collection != nil {
-			c.core.FilterCollection(ma, principal, resp.Any())
+			if err := c.core.FilterCollection(ma, principal, resp.Any()); err != nil {
+				c.core.Logger().Error("collection filtering failed", "method", procedure, "error", err)
+				return nil, connect.NewError(connect.CodeInternal, errors.New("authorization filter error"))
+			}
 		}
 
 		return resp, nil

@@ -490,6 +490,71 @@ func TestConnect_ConcurrentRequestsAndSwaps(t *testing.T) {
 	wg.Wait()
 }
 
+// --- Fallback extractor (no Config, uses core PrincipalExtractor) ---
+
+type ctxKey struct{}
+
+func TestConnect_FallbackExtractor(t *testing.T) {
+	l := slog.Default()
+
+	// Core extractor reads principal from context value (set by HTTP middleware).
+	interceptor, err := authz.NewInterceptor(authz.InterceptorConfig{
+		Logger:       l,
+		ResourceName: testDataplane,
+		ExtractPrincipal: func(ctx context.Context) (authz.PrincipalID, bool) {
+			v, ok := ctx.Value(ctxKey{}).(string)
+			if !ok || v == "" {
+				return "", false
+			}
+			return authz.UserPrincipal(v), true
+		},
+		Policy: realisticPolicy,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Use New() without Config — triggers the fallback wrapper that
+	// delegates to the context-only PrincipalExtractor.
+	mux := http.NewServeMux()
+	path, handler := testv1connect.NewTestServiceHandler(
+		&connectTestHandler{},
+		connect.WithInterceptors(connectinterceptor.New(interceptor)),
+	)
+	// Wrap handler with middleware that reads the header and injects into context.
+	// This simulates real auth middleware that runs before the interceptor.
+	wrappedHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if v := r.Header.Get(testPrincipalMDKey); v != "" {
+			r = r.WithContext(context.WithValue(r.Context(), ctxKey{}, v))
+		}
+		handler.ServeHTTP(w, r)
+	})
+	mux.Handle(path, wrappedHandler)
+
+	var lc net.ListenConfig
+	ln, err := lc.Listen(context.Background(), "tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	srv := &http.Server{Handler: mux}
+	go func() { _ = srv.Serve(ln) }()
+	t.Cleanup(func() { _ = srv.Close() })
+
+	client := testv1connect.NewTestServiceClient(http.DefaultClient, "http://"+ln.Addr().String())
+
+	// Principal passed via header -> middleware puts it in context -> fallback extractor finds it.
+	_, err = client.SimpleMethod(context.Background(), connectReqAs("stephan@redpanda.com", &testv1.SimpleRequest{}))
+	if err != nil {
+		t.Fatalf("fallback extractor should grant via context: %v", err)
+	}
+
+	// No header — context has no value — should fail.
+	_, err = client.SimpleMethod(context.Background(), connect.NewRequest(&testv1.SimpleRequest{}))
+	if connect.CodeOf(err) != connect.CodeInternal {
+		t.Fatalf("expected Internal without context principal, got %v", err)
+	}
+}
+
 // --- Benchmarks ---
 
 func BenchmarkConnectInterceptor_SimplePermission(b *testing.B) {

@@ -138,8 +138,8 @@ func (a *Interceptor) SwapPolicy(p Policy) error {
 	return nil
 }
 
-// SkipPrefixes contains gRPC service prefixes that bypass authorization.
-var SkipPrefixes = []string{
+// skipPrefixes contains gRPC service prefixes that bypass authorization.
+var skipPrefixes = []string{
 	"/grpc.health.v1.Health/",
 	"/grpc.reflection.",
 }
@@ -150,8 +150,6 @@ type DenialKind int
 const (
 	// DenialUnknownMethod indicates no annotation was found for the method.
 	DenialUnknownMethod DenialKind = iota
-	// DenialNoIdentity indicates no principal could be extracted.
-	DenialNoIdentity
 	// DenialEmptyResourceID indicates a required resource ID was empty.
 	DenialEmptyResourceID
 	// DenialForbidden indicates the principal lacks the required permission.
@@ -167,7 +165,7 @@ type Denial struct {
 
 // ShouldSkip returns true if the method should bypass authorization.
 func ShouldSkip(method string) bool {
-	for _, prefix := range SkipPrefixes {
+	for _, prefix := range skipPrefixes {
 		if strings.HasPrefix(method, prefix) {
 			return true
 		}
@@ -246,40 +244,41 @@ func (a *Interceptor) CheckAccess(ctx context.Context, method string, principal 
 }
 
 // FilterCollection removes items from a response collection that the principal
-// lacks permission for. It uses protoreflect to walk the response message,
-// find the collection field, and check each item's resource ID.
-func (a *Interceptor) FilterCollection(ma *MethodAuthz, principal PrincipalID, resp any) {
+// lacks permission for. Returns an error if the collection annotation is
+// misconfigured (fail-closed: caller must not return the unfiltered response).
+func (a *Interceptor) FilterCollection(ma *MethodAuthz, principal PrincipalID, resp any) error {
 	if ma.Collection == nil || ma.Collection.GetEach() == nil {
-		return
+		return errors.New("authz: FilterCollection called on non-collection method")
 	}
+
 	msg, ok := resp.(proto.Message)
 	if !ok {
-		return
+		return errors.New("authz: response is not a proto.Message")
 	}
 
 	each := ma.Collection.GetEach()
 	collCEL := ma.Collection.GetCollectionGetterCel()
 	idCEL := each.GetIdGetterCel()
-	if collCEL == "" || idCEL == "" {
-		return
-	}
 
 	// Parse "response.field" -> "field"
 	collField := strings.TrimPrefix(collCEL, "response.")
-	if collField == collCEL {
-		return
+	if collField == collCEL || collField == "" {
+		return fmt.Errorf("authz: invalid collection_getter_cel %q (must start with 'response.')", collCEL)
 	}
 
 	// Parse "each.field" -> "field"
 	idField := strings.TrimPrefix(idCEL, "each.")
-	if idField == idCEL {
-		return
+	if idField == idCEL || idField == "" {
+		return fmt.Errorf("authz: invalid each.id_getter_cel %q (must start with 'each.')", idCEL)
 	}
 
 	refl := msg.ProtoReflect()
 	fd := refl.Descriptor().Fields().ByName(protoreflect.Name(collField))
-	if fd == nil || !fd.IsList() {
-		return
+	if fd == nil {
+		return fmt.Errorf("authz: response has no field %q", collField)
+	}
+	if !fd.IsList() {
+		return fmt.Errorf("authz: response field %q is not a repeated field", collField)
 	}
 
 	perm := PermissionName(each.GetPermission())
@@ -287,8 +286,9 @@ func (a *Interceptor) FilterCollection(ma *MethodAuthz, principal PrincipalID, r
 	rp := a.resourcePolicy.Load()
 	list := refl.Mutable(fd).List()
 
-	// Filter in-place: walk backwards to safely remove items.
-	for i := list.Len() - 1; i >= 0; i-- {
+	// Build a filtered copy preserving order.
+	var kept []protoreflect.Value
+	for i := range list.Len() {
 		item := list.Get(i)
 		if item.Message() == nil {
 			continue
@@ -296,7 +296,7 @@ func (a *Interceptor) FilterCollection(ma *MethodAuthz, principal PrincipalID, r
 		itemRefl := item.Message()
 		idFd := itemRefl.Descriptor().Fields().ByName(protoreflect.Name(idField))
 		if idFd == nil {
-			continue
+			return fmt.Errorf("authz: collection item has no field %q", idField)
 		}
 		resourceID := fmt.Sprint(itemRefl.Get(idFd).Interface())
 		if resourceID == "" {
@@ -304,15 +304,18 @@ func (a *Interceptor) FilterCollection(ma *MethodAuthz, principal PrincipalID, r
 		}
 
 		authorizer := rp.SubResourceAuthorizer(resType, ResourceID(resourceID), perm)
-		if !authorizer.Check(principal) {
-			// Remove by swapping with last element and truncating.
-			last := list.Len() - 1
-			if i != last {
-				list.Set(i, list.Get(last))
-			}
-			list.Truncate(last)
+		if authorizer.Check(principal) {
+			kept = append(kept, item)
 		}
 	}
+
+	// Replace the list contents with the filtered items.
+	list.Truncate(0)
+	for _, v := range kept {
+		list.Append(v)
+	}
+
+	return nil
 }
 
 // LookupMethodAuthz resolves a gRPC full method name to its authorization info.

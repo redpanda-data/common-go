@@ -46,7 +46,10 @@ func UnaryServerInterceptor(a *authz.Interceptor) grpc.UnaryServerInterceptor {
 		}
 
 		if ma != nil && ma.Collection != nil {
-			a.FilterCollection(ma, principal, resp)
+			if err := a.FilterCollection(ma, principal, resp); err != nil {
+				a.Logger().Error("collection filtering failed", "method", info.FullMethod, "error", err)
+				return nil, status.Error(codes.Internal, "authorization filter error")
+			}
 		}
 
 		return resp, nil
