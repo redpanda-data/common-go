@@ -16,75 +16,115 @@ import (
 	"log/slog"
 
 	commonv1 "buf.build/gen/go/redpandadata/common/protocolbuffers/go/redpanda/api/common/v1"
+	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/reflect/protoregistry"
 
 	"github.com/redpanda-data/common-go/authz"
+	"github.com/redpanda-data/common-go/authz/authzcore"
 )
 
 // PrincipalExtractor extracts a principal from the gRPC request context.
 type PrincipalExtractor func(ctx context.Context) (authz.PrincipalID, bool)
 
-// Config configures the gRPC authorization interceptor.
-type Config struct {
-	// Logger for authorization events. If nil, slog.Default() is used.
-	Logger *slog.Logger
-	// ResourceName is the base scope path for policy evaluation,
-	// e.g. "organizations/{org}/resourcegroups/{rg}/dataplanes/{dp}".
-	ResourceName authz.ResourceName
-	// ExtractPrincipal extracts the caller's principal from the gRPC
-	// request context (typically from metadata). Required.
-	ExtractPrincipal PrincipalExtractor
-	// Policy is the initial authorization policy. Mutually exclusive with PolicyWatch.
-	Policy authz.Policy
-	// PolicyWatch loads the initial policy and watches for changes, hot-reloading
-	// automatically. Mutually exclusive with Policy. Call [Interceptor.Close] to
-	// stop watching.
-	PolicyWatch authz.PolicyWatchFunc
-	// Domain is the error domain for structured error details (e.g. "redpanda.com").
-	// Defaults to "redpanda.com" if empty.
-	Domain string
-	// SkipPrefixes is a list of gRPC method prefixes that bypass authorization
-	// entirely (e.g. "/grpc.health.v1.Health/", "/grpc.reflection.").
-	SkipPrefixes []string
+// Option configures optional behavior of the authzcore.
+type Option func(*options)
+
+type options struct {
+	logger         *slog.Logger
+	domain         string
+	files          *protoregistry.Files
+	skipPrefixes   []string
+	tracerProvider trace.TracerProvider
+}
+
+// WithLogger sets the logger for authorization events.
+// Defaults to slog.Default().
+func WithLogger(l *slog.Logger) Option {
+	return func(o *options) { o.logger = l }
+}
+
+// WithDomain sets the error domain for structured error details.
+// Defaults to "redpanda.com".
+func WithDomain(d string) Option {
+	return func(o *options) { o.domain = d }
+}
+
+// WithFiles sets the proto file registry for resolving method annotations.
+// Defaults to protoregistry.GlobalFiles.
+func WithFiles(f *protoregistry.Files) Option {
+	return func(o *options) { o.files = f }
+}
+
+// WithSkipPrefixes sets method prefixes that bypass authorization entirely
+// (e.g. "/grpc.health.v1.Health/", "/grpc.reflection.").
+func WithSkipPrefixes(prefixes ...string) Option {
+	return func(o *options) { o.skipPrefixes = prefixes }
+}
+
+// WithTracerProvider sets the OpenTelemetry tracer provider for authorization spans.
+// Defaults to the global provider.
+func WithTracerProvider(tp trace.TracerProvider) Option {
+	return func(o *options) { o.tracerProvider = tp }
 }
 
 // Interceptor is a gRPC authorization interceptor. Use [New] to create one.
 type Interceptor struct {
-	engine           *authz.Engine
+	base             *authzcore.Base
 	extractPrincipal PrincipalExtractor
 	logger           *slog.Logger
 }
 
 // New creates a gRPC authorization interceptor.
-func New(cfg Config) (*Interceptor, error) {
-	engine, err := authz.NewEngine(authz.EngineConfig{
-		Logger:       cfg.Logger,
-		ResourceName: cfg.ResourceName,
-		Policy:       cfg.Policy,
-		PolicyWatch:  cfg.PolicyWatch,
-		Domain:       cfg.Domain,
-		SkipPrefixes: cfg.SkipPrefixes,
+//
+// resourceName is the base scope path for policy evaluation
+// (e.g. "organizations/{org}/resourcegroups/{rg}/dataplanes/{dp}").
+//
+// extractPrincipal extracts the caller's identity from the gRPC request context.
+//
+// policy provides the initial authorization policy. Use [authz.PolicyWatchFunc]
+// wrapped in a closure for hot-reloading, or pass a static [authz.Policy] via
+// [authz.StaticPolicy].
+func New(
+	resourceName authz.ResourceName,
+	extractPrincipal PrincipalExtractor,
+	policy authz.PolicyWatchFunc,
+	opts ...Option,
+) (*Interceptor, error) {
+	o := &options{}
+	for _, opt := range opts {
+		opt(o)
+	}
+
+	base, err := authzcore.New(authzcore.Config{
+		Logger:         o.logger,
+		ResourceName:   resourceName,
+		PolicyWatch:    policy,
+		Domain:         o.domain,
+		Files:          o.files,
+		SkipPrefixes:   o.skipPrefixes,
+		TracerProvider: o.tracerProvider,
 	})
 	if err != nil {
 		return nil, err
 	}
-	logger := cfg.Logger
+	logger := o.logger
 	if logger == nil {
 		logger = slog.Default()
 	}
-	return &Interceptor{engine: engine, extractPrincipal: cfg.ExtractPrincipal, logger: logger}, nil
+	return &Interceptor{base: base, extractPrincipal: extractPrincipal, logger: logger}, nil
 }
 
 // Unary returns a gRPC unary server interceptor.
 func (i *Interceptor) Unary() grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
-		if i.engine.ShouldSkip(info.FullMethod) {
+		if i.base.ShouldSkip(info.FullMethod) {
 			return handler(ctx, req)
 		}
 
-		ma := i.engine.LookupMethodAuthz(info.FullMethod)
+		ma := i.base.LookupMethodAuthz(info.FullMethod)
 		if ma != nil && ma.Skip {
 			return handler(ctx, req)
 		}
@@ -95,8 +135,8 @@ func (i *Interceptor) Unary() grpc.UnaryServerInterceptor {
 			return nil, status.Error(codes.Internal, "no identity in context")
 		}
 
-		if denial := i.engine.CheckAccess(ctx, info.FullMethod, principal, ma, req); denial != nil {
-			return nil, grpcError(i.engine, denial)
+		if denial := i.base.CheckAccess(ctx, info.FullMethod, principal, ma, req); denial != nil {
+			return nil, grpcError(i.base, denial)
 		}
 
 		resp, err := handler(ctx, req)
@@ -105,7 +145,7 @@ func (i *Interceptor) Unary() grpc.UnaryServerInterceptor {
 		}
 
 		if ma != nil && ma.Collection != nil {
-			if err := i.engine.FilterCollection(ma, principal, resp); err != nil {
+			if err := i.base.FilterCollection(ma, principal, resp); err != nil {
 				i.logger.Error("collection filtering failed", "method", info.FullMethod, "error", err)
 				return nil, status.Error(codes.Internal, "authorization filter error")
 			}
@@ -120,11 +160,11 @@ func (i *Interceptor) Unary() grpc.UnaryServerInterceptor {
 // applicable to streaming RPCs.
 func (i *Interceptor) Stream() grpc.StreamServerInterceptor {
 	return func(srv any, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
-		if i.engine.ShouldSkip(info.FullMethod) {
+		if i.base.ShouldSkip(info.FullMethod) {
 			return handler(srv, ss)
 		}
 
-		ma := i.engine.LookupMethodAuthz(info.FullMethod)
+		ma := i.base.LookupMethodAuthz(info.FullMethod)
 		if ma != nil && ma.Skip {
 			return handler(srv, ss)
 		}
@@ -135,8 +175,8 @@ func (i *Interceptor) Stream() grpc.StreamServerInterceptor {
 			return status.Error(codes.Internal, "no identity in context")
 		}
 
-		if denial := i.engine.CheckAccess(ss.Context(), info.FullMethod, principal, ma, nil); denial != nil {
-			return grpcError(i.engine, denial)
+		if denial := i.base.CheckAccess(ss.Context(), info.FullMethod, principal, ma, nil); denial != nil {
+			return grpcError(i.base, denial)
 		}
 
 		return handler(srv, ss)
@@ -145,24 +185,27 @@ func (i *Interceptor) Stream() grpc.StreamServerInterceptor {
 
 // LookupMethodAuthz resolves a method name to its authorization info.
 func (i *Interceptor) LookupMethodAuthz(fullMethod string) *authz.MethodAuthz {
-	return i.engine.LookupMethodAuthz(fullMethod)
+	return i.base.LookupMethodAuthz(fullMethod)
 }
 
 // SwapPolicy replaces the active policy. Safe for concurrent use.
 func (i *Interceptor) SwapPolicy(p authz.Policy) error {
-	return i.engine.SwapPolicy(p)
+	return i.base.SwapPolicy(p)
 }
 
 // Close stops the policy file watcher if one was configured.
 func (i *Interceptor) Close() error {
-	return i.engine.Close()
+	return i.base.Close()
 }
 
-func grpcError(a *authz.Engine, d *authz.Denial) error {
+func grpcError(b *authzcore.Base, d *authz.Denial) error {
 	var code codes.Code
 	var reason string
 	switch d.Kind {
-	case authz.DenialUnknownMethod, authz.DenialForbidden:
+	case authz.DenialUnknownMethod:
+		code = codes.FailedPrecondition
+		reason = commonv1.Reason_REASON_INVALID_INPUT.String()
+	case authz.DenialForbidden:
 		code = codes.PermissionDenied
 		reason = commonv1.Reason_REASON_PERMISSION_DENIED.String()
 	case authz.DenialEmptyResourceID:
@@ -173,7 +216,7 @@ func grpcError(a *authz.Engine, d *authz.Denial) error {
 		reason = commonv1.Reason_REASON_SERVER_ERROR.String()
 	}
 
-	st, err := status.New(code, d.Message).WithDetails(authz.DenialErrorInfo(a.Domain(), reason, d))
+	st, err := status.New(code, d.Message).WithDetails(authz.DenialErrorInfo(b.Domain(), reason, d))
 	if err != nil {
 		return status.Error(code, d.Message)
 	}

@@ -133,11 +133,11 @@ var realisticPolicy = authz.Policy{
 
 func newTestInterceptor(t testing.TB, policy authz.Policy) *grpcauthz.Interceptor {
 	t.Helper()
-	interceptor, err := grpcauthz.New(grpcauthz.Config{
-		ResourceName:     testDataplane,
-		ExtractPrincipal: testExtractor,
-		Policy:           policy,
-	})
+	interceptor, err := grpcauthz.New(
+		testDataplane,
+		testExtractor,
+		authz.StaticPolicy(policy),
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -251,10 +251,11 @@ func TestResolveAnnotations(t *testing.T) {
 
 func TestGRPC_UnannotatedMethodDenied(t *testing.T) {
 	client := startTestServer(t, realisticPolicy)
-	// Even admin is denied on unannotated methods.
+	// Even admin is denied on unannotated methods — FailedPrecondition
+	// indicates a server-side configuration error, not a caller auth failure.
 	_, err := client.UnannotatedMethod(ctxAs("stephan@redpanda.com"), &testv1.SimpleRequest{})
-	if status.Code(err) != codes.PermissionDenied {
-		t.Fatalf("expected PermissionDenied, got %v", err)
+	if status.Code(err) != codes.FailedPrecondition {
+		t.Fatalf("expected FailedPrecondition, got %v", err)
 	}
 }
 
@@ -766,8 +767,8 @@ func TestGRPC_DenialErrorDetails(t *testing.T) {
 				_, err := client.UnannotatedMethod(ctxAs("stephan@redpanda.com"), &testv1.SimpleRequest{})
 				return err
 			},
-			wantCode:   codes.PermissionDenied,
-			wantReason: "REASON_PERMISSION_DENIED",
+			wantCode:   codes.FailedPrecondition,
+			wantReason: "REASON_INVALID_INPUT",
 			wantMeta: map[string]string{
 				"method":    "/authz.test.v1.TestService/UnannotatedMethod",
 				"principal": "User:stephan@redpanda.com",

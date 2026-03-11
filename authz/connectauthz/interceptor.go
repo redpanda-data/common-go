@@ -19,8 +19,11 @@ import (
 
 	commonv1 "buf.build/gen/go/redpandadata/common/protocolbuffers/go/redpanda/api/common/v1"
 	"connectrpc.com/connect"
+	"go.opentelemetry.io/otel/trace"
+	"google.golang.org/protobuf/reflect/protoregistry"
 
 	"github.com/redpanda-data/common-go/authz"
+	"github.com/redpanda-data/common-go/authz/authzcore"
 )
 
 // PrincipalExtractor extracts a principal from the request context
@@ -28,77 +31,119 @@ import (
 // request, unlike gRPC where metadata is embedded in context.
 type PrincipalExtractor func(ctx context.Context, headers http.Header) (authz.PrincipalID, bool)
 
-// Config configures the Connect authorization interceptor.
-type Config struct {
-	// Logger for authorization events. If nil, slog.Default() is used.
-	Logger *slog.Logger
-	// ResourceName is the base scope path for policy evaluation,
-	// e.g. "organizations/{org}/resourcegroups/{rg}/dataplanes/{dp}".
-	ResourceName authz.ResourceName
-	// ExtractPrincipal extracts the caller's principal from request context
-	// and HTTP headers. Required. The headers are curried per-request so the
-	// engine sees a standard context-only extractor.
-	ExtractPrincipal PrincipalExtractor
-	// Policy is the initial authorization policy. Mutually exclusive with PolicyWatch.
-	Policy authz.Policy
-	// PolicyWatch loads the initial policy and watches for changes, hot-reloading
-	// automatically. Mutually exclusive with Policy. Call [Interceptor.Close] to
-	// stop watching.
-	PolicyWatch authz.PolicyWatchFunc
-	// Domain is the error domain for structured error details (e.g. "redpanda.com").
-	// Defaults to "redpanda.com" if empty.
-	Domain string
-	// SkipPrefixes is a list of procedure prefixes that bypass authorization
-	// entirely (e.g. "/grpc.health.v1.Health/", "/grpc.reflection.").
-	SkipPrefixes []string
+// Option configures optional behavior of the interceptor.
+type Option func(*options)
+
+type options struct {
+	logger         *slog.Logger
+	domain         string
+	files          *protoregistry.Files
+	skipPrefixes   []string
+	tracerProvider trace.TracerProvider
+}
+
+// WithLogger sets the logger for authorization events.
+// Defaults to slog.Default().
+func WithLogger(l *slog.Logger) Option {
+	return func(o *options) { o.logger = l }
+}
+
+// WithDomain sets the error domain for structured error details.
+// Defaults to "redpanda.com".
+func WithDomain(d string) Option {
+	return func(o *options) { o.domain = d }
+}
+
+// WithFiles sets the proto file registry for resolving method annotations.
+// Defaults to protoregistry.GlobalFiles.
+func WithFiles(f *protoregistry.Files) Option {
+	return func(o *options) { o.files = f }
+}
+
+// WithSkipPrefixes sets procedure prefixes that bypass authorization entirely
+// (e.g. "/grpc.health.v1.Health/", "/grpc.reflection.").
+func WithSkipPrefixes(prefixes ...string) Option {
+	return func(o *options) { o.skipPrefixes = prefixes }
+}
+
+// WithTracerProvider sets the OpenTelemetry tracer provider for authorization spans.
+// Defaults to the global provider.
+func WithTracerProvider(tp trace.TracerProvider) Option {
+	return func(o *options) { o.tracerProvider = tp }
 }
 
 // Interceptor is a Connect authorization interceptor. Use [New] to create one.
 type Interceptor struct {
-	engine           *authz.Engine
+	base             *authzcore.Base
 	extractPrincipal PrincipalExtractor
 	logger           *slog.Logger
 }
 
 // New creates a Connect authorization interceptor.
-func New(cfg Config) (*Interceptor, error) {
-	engine, err := authz.NewEngine(authz.EngineConfig{
-		Logger:       cfg.Logger,
-		ResourceName: cfg.ResourceName,
-		Policy:       cfg.Policy,
-		PolicyWatch:  cfg.PolicyWatch,
-		Domain:       cfg.Domain,
-		SkipPrefixes: cfg.SkipPrefixes,
+//
+// resourceName is the base scope path for policy evaluation
+// (e.g. "organizations/{org}/resourcegroups/{rg}/dataplanes/{dp}").
+//
+// extractPrincipal extracts the caller's identity from the request context and headers.
+//
+// policy provides the initial authorization policy. Use [authz.PolicyWatchFunc]
+// wrapped in a closure for hot-reloading, or pass a static [authz.Policy] via
+// [authz.StaticPolicy].
+func New(
+	resourceName authz.ResourceName,
+	extractPrincipal PrincipalExtractor,
+	policy authz.PolicyWatchFunc,
+	opts ...Option,
+) (*Interceptor, error) {
+	o := &options{}
+	for _, opt := range opts {
+		opt(o)
+	}
+
+	base, err := authzcore.New(authzcore.Config{
+		Logger:         o.logger,
+		ResourceName:   resourceName,
+		PolicyWatch:    policy,
+		Domain:         o.domain,
+		Files:          o.files,
+		SkipPrefixes:   o.skipPrefixes,
+		TracerProvider: o.tracerProvider,
 	})
 	if err != nil {
 		return nil, err
 	}
-	logger := cfg.Logger
+	logger := o.logger
 	if logger == nil {
 		logger = slog.Default()
 	}
-	return &Interceptor{engine: engine, extractPrincipal: cfg.ExtractPrincipal, logger: logger}, nil
+	return &Interceptor{base: base, extractPrincipal: extractPrincipal, logger: logger}, nil
+}
+
+// LookupMethodAuthz resolves a method name to its authorization info.
+func (i *Interceptor) LookupMethodAuthz(procedure string) *authz.MethodAuthz {
+	return i.base.LookupMethodAuthz(procedure)
 }
 
 // SwapPolicy replaces the active policy. Safe for concurrent use.
+// On error, the previous policy remains in effect.
 func (i *Interceptor) SwapPolicy(p authz.Policy) error {
-	return i.engine.SwapPolicy(p)
+	return i.base.SwapPolicy(p)
 }
 
 // Close stops the policy file watcher if one was configured.
 func (i *Interceptor) Close() error {
-	return i.engine.Close()
+	return i.base.Close()
 }
 
 // WrapUnary implements [connect.Interceptor].
 func (i *Interceptor) WrapUnary(next connect.UnaryFunc) connect.UnaryFunc {
 	return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
 		procedure := req.Spec().Procedure
-		if i.engine.ShouldSkip(procedure) {
+		if i.base.ShouldSkip(procedure) {
 			return next(ctx, req)
 		}
 
-		ma := i.engine.LookupMethodAuthz(procedure)
+		ma := i.base.LookupMethodAuthz(procedure)
 		if ma != nil && ma.Skip {
 			return next(ctx, req)
 		}
@@ -109,8 +154,8 @@ func (i *Interceptor) WrapUnary(next connect.UnaryFunc) connect.UnaryFunc {
 			return nil, connect.NewError(connect.CodeInternal, errors.New("no identity in context"))
 		}
 
-		if denial := i.engine.CheckAccess(ctx, procedure, principal, ma, req.Any()); denial != nil {
-			return nil, connectError(i.engine, denial)
+		if denial := i.base.CheckAccess(ctx, procedure, principal, ma, req.Any()); denial != nil {
+			return nil, connectError(i.base, denial)
 		}
 
 		resp, err := next(ctx, req)
@@ -119,7 +164,7 @@ func (i *Interceptor) WrapUnary(next connect.UnaryFunc) connect.UnaryFunc {
 		}
 
 		if ma != nil && ma.Collection != nil {
-			if err := i.engine.FilterCollection(ma, principal, resp.Any()); err != nil {
+			if err := i.base.FilterCollection(ma, principal, resp.Any()); err != nil {
 				i.logger.Error("collection filtering failed", "method", procedure, "error", err)
 				return nil, connect.NewError(connect.CodeInternal, errors.New("authorization filter error"))
 			}
@@ -140,11 +185,11 @@ func (*Interceptor) WrapStreamingClient(next connect.StreamingClientFunc) connec
 func (i *Interceptor) WrapStreamingHandler(next connect.StreamingHandlerFunc) connect.StreamingHandlerFunc {
 	return func(ctx context.Context, conn connect.StreamingHandlerConn) error {
 		procedure := conn.Spec().Procedure
-		if i.engine.ShouldSkip(procedure) {
+		if i.base.ShouldSkip(procedure) {
 			return next(ctx, conn)
 		}
 
-		ma := i.engine.LookupMethodAuthz(procedure)
+		ma := i.base.LookupMethodAuthz(procedure)
 		if ma != nil && ma.Skip {
 			return next(ctx, conn)
 		}
@@ -155,19 +200,22 @@ func (i *Interceptor) WrapStreamingHandler(next connect.StreamingHandlerFunc) co
 			return connect.NewError(connect.CodeInternal, errors.New("no identity in context"))
 		}
 
-		if denial := i.engine.CheckAccess(ctx, procedure, principal, ma, nil); denial != nil {
-			return connectError(i.engine, denial)
+		if denial := i.base.CheckAccess(ctx, procedure, principal, ma, nil); denial != nil {
+			return connectError(i.base, denial)
 		}
 
 		return next(ctx, conn)
 	}
 }
 
-func connectError(a *authz.Engine, d *authz.Denial) *connect.Error {
+func connectError(b *authzcore.Base, d *authz.Denial) *connect.Error {
 	var code connect.Code
 	var reason string
 	switch d.Kind {
-	case authz.DenialUnknownMethod, authz.DenialForbidden:
+	case authz.DenialUnknownMethod:
+		code = connect.CodeFailedPrecondition
+		reason = commonv1.Reason_REASON_INVALID_INPUT.String()
+	case authz.DenialForbidden:
 		code = connect.CodePermissionDenied
 		reason = commonv1.Reason_REASON_PERMISSION_DENIED.String()
 	case authz.DenialEmptyResourceID:
@@ -179,7 +227,7 @@ func connectError(a *authz.Engine, d *authz.Denial) *connect.Error {
 	}
 
 	connectErr := connect.NewError(code, errors.New(d.Message))
-	info := authz.DenialErrorInfo(a.Domain(), reason, d)
+	info := authz.DenialErrorInfo(b.Domain(), reason, d)
 	if detail, err := connect.NewErrorDetail(info); err == nil {
 		connectErr.AddDetail(detail)
 	}

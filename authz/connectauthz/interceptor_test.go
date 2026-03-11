@@ -56,6 +56,20 @@ func (*connectTestHandler) ListWidgets(_ context.Context, _ *connect.Request[tes
 	}), nil
 }
 
+func (*connectTestHandler) SkippedMethod(_ context.Context, _ *connect.Request[testv1.SimpleRequest]) (*connect.Response[testv1.SimpleResponse], error) {
+	return connect.NewResponse(&testv1.SimpleResponse{}), nil
+}
+
+func (*connectTestHandler) ListWidgetsWithPreCheck(_ context.Context, _ *connect.Request[testv1.ListWidgetsRequest]) (*connect.Response[testv1.ListWidgetsResponse], error) {
+	return connect.NewResponse(&testv1.ListWidgetsResponse{
+		Widgets: []*testv1.Widget{
+			{Id: "widget-1", Name: "one"},
+			{Id: "widget-2", Name: "two"},
+			{Id: "widget-3", Name: "three"},
+		},
+	}), nil
+}
+
 func (*connectTestHandler) UnannotatedMethod(_ context.Context, _ *connect.Request[testv1.SimpleRequest]) (*connect.Response[testv1.SimpleResponse], error) {
 	return connect.NewResponse(&testv1.SimpleResponse{}), nil
 }
@@ -111,11 +125,11 @@ var realisticPolicy = authz.Policy{
 
 func newTestInterceptor(t testing.TB, policy authz.Policy) *connectauthz.Interceptor {
 	t.Helper()
-	interceptor, err := connectauthz.New(connectauthz.Config{
-		ResourceName:     testDataplane,
-		ExtractPrincipal: connectTestExtractor,
-		Policy:           policy,
-	})
+	interceptor, err := connectauthz.New(
+		testDataplane,
+		connectTestExtractor,
+		authz.StaticPolicy(policy),
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -167,9 +181,11 @@ func connectReqAs[T any](email string, msg *T) *connect.Request[T] {
 
 func TestConnect_UnannotatedMethodDenied(t *testing.T) {
 	client := startConnectTestServer(t, realisticPolicy)
+	// Even admin is denied on unannotated methods — FailedPrecondition
+	// indicates a server-side configuration error, not a caller auth failure.
 	_, err := client.UnannotatedMethod(context.Background(), connectReqAs("stephan@redpanda.com", &testv1.SimpleRequest{}))
-	if connect.CodeOf(err) != connect.CodePermissionDenied {
-		t.Fatalf("expected PermissionDenied, got %v", err)
+	if connect.CodeOf(err) != connect.CodeFailedPrecondition {
+		t.Fatalf("expected FailedPrecondition, got %v", err)
 	}
 }
 
@@ -297,6 +313,120 @@ func TestConnect_ListWidgets_NoIdentityDenied(t *testing.T) {
 	_, err := client.ListWidgets(context.Background(), connect.NewRequest(&testv1.ListWidgetsRequest{}))
 	if connect.CodeOf(err) != connect.CodeInternal {
 		t.Fatalf("expected Internal, got %v", err)
+	}
+}
+
+// --- Skip authorization ---
+
+func TestConnect_SkippedMethodAllowsAnyone(t *testing.T) {
+	client := startConnectTestServer(t, realisticPolicy)
+	// No identity at all — still allowed because skip: true.
+	_, err := client.SkippedMethod(context.Background(), connect.NewRequest(&testv1.SimpleRequest{}))
+	if err != nil {
+		t.Fatalf("skipped method should allow unauthenticated: %v", err)
+	}
+}
+
+func TestConnect_SkippedMethodResolves(t *testing.T) {
+	interceptor := newTestInterceptor(t, realisticPolicy)
+	ma := interceptor.LookupMethodAuthz("/authz.test.v1.TestService/SkippedMethod")
+	if ma == nil {
+		t.Fatal("expected non-nil MethodAuthz for skipped method")
+	}
+	if !ma.Skip {
+		t.Fatal("expected Skip to be true")
+	}
+}
+
+// --- Collection with pre-check (both method_authorization + collection_authorization) ---
+
+func TestConnect_ListWithPreCheck_AdminSeesAll(t *testing.T) {
+	// Admin has test_list_perm at dataplane level — passes pre-check
+	// and all items pass per-item filter.
+	client := startConnectTestServer(t, realisticPolicy)
+	resp, err := client.ListWidgetsWithPreCheck(context.Background(), connectReqAs("stephan@redpanda.com", &testv1.ListWidgetsRequest{}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(resp.Msg.Widgets) != 3 {
+		t.Fatalf("expected 3 widgets, got %d", len(resp.Msg.Widgets))
+	}
+}
+
+func TestConnect_ListWithPreCheck_NoPerm_Denied(t *testing.T) {
+	// User with no bindings — pre-check fails with PermissionDenied,
+	// never reaches the handler.
+	policy := authz.Policy{
+		Roles: []authz.Role{{ID: "Lister", Permissions: []authz.PermissionName{"test_list_perm"}}},
+	}
+	client := startConnectTestServer(t, policy)
+	_, err := client.ListWidgetsWithPreCheck(context.Background(), connectReqAs("nobody@redpanda.com", &testv1.ListWidgetsRequest{}))
+	if connect.CodeOf(err) != connect.CodePermissionDenied {
+		t.Fatalf("expected PermissionDenied from pre-check, got %v", err)
+	}
+}
+
+func TestConnect_ListWithPreCheck_ResolvesBothAnnotations(t *testing.T) {
+	interceptor := newTestInterceptor(t, realisticPolicy)
+	ma := interceptor.LookupMethodAuthz("/authz.test.v1.TestService/ListWidgetsWithPreCheck")
+	if ma == nil {
+		t.Fatal("expected non-nil MethodAuthz")
+	}
+	if ma.Auth == nil {
+		t.Fatal("expected Auth (from method_authorization)")
+	}
+	if ma.Collection == nil {
+		t.Fatal("expected Collection (from collection_authorization)")
+	}
+	// Auth should NOT point to Collection.Each — they're from different annotations.
+	if ma.Auth == ma.Collection.GetEach() {
+		t.Fatal("Auth should be from method_authorization, not Collection.Each")
+	}
+	if ma.Auth.GetPermission() != "test_list_perm" {
+		t.Errorf("method_authorization permission: got %s, want test_list_perm", ma.Auth.GetPermission())
+	}
+	if ma.Collection.GetEach().GetPermission() != "test_list_perm" {
+		t.Errorf("collection_authorization permission: got %s, want test_list_perm", ma.Collection.GetEach().GetPermission())
+	}
+}
+
+func TestConnect_ListWithPreCheck_PerResource_FiltersAfterPreCheck(t *testing.T) {
+	// User has test_list_perm at dataplane level (passes pre-check).
+	// Dataplane-level binding cascades to all sub-resources.
+	policy := authz.Policy{
+		Roles: []authz.Role{{ID: "Lister", Permissions: []authz.PermissionName{"test_list_perm"}}},
+		Bindings: []authz.RoleBinding{
+			{Role: "Lister", Principal: authz.UserPrincipal("alice@redpanda.com"), Scope: testDataplane},
+		},
+	}
+	client := startConnectTestServer(t, policy)
+	resp, err := client.ListWidgetsWithPreCheck(context.Background(), connectReqAs("alice@redpanda.com", &testv1.ListWidgetsRequest{}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(resp.Msg.Widgets) != 3 {
+		t.Fatalf("expected 3 widgets (dataplane binding cascades), got %d", len(resp.Msg.Widgets))
+	}
+}
+
+// --- Collection only (no pre-check): existing ListWidgets behavior ---
+
+func TestConnect_ListWidgets_CollectionOnly_PerResourceAllowed(t *testing.T) {
+	// collection_authorization only — no pre-check. User has per-resource
+	// binding only, not at dataplane level. Should still work.
+	policy := authz.Policy{
+		Roles: []authz.Role{{ID: "Lister", Permissions: []authz.PermissionName{"test_list_perm"}}},
+		Bindings: []authz.RoleBinding{
+			{Role: "Lister", Principal: authz.UserPrincipal("alice@redpanda.com"), Scope: testDataplane + "/widgets/widget-2"},
+		},
+	}
+	client := startConnectTestServer(t, policy)
+	resp, err := client.ListWidgets(context.Background(), connectReqAs("alice@redpanda.com", &testv1.ListWidgetsRequest{}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(resp.Msg.Widgets) != 1 || resp.Msg.Widgets[0].Id != "widget-2" {
+		t.Fatalf("expected [widget-2], got %v", resp.Msg.Widgets)
 	}
 }
 
@@ -505,11 +635,11 @@ func TestConnect_ContextBasedExtractor(t *testing.T) {
 		return authz.UserPrincipal(v), true
 	}
 
-	interceptor, err := connectauthz.New(connectauthz.Config{
-		ResourceName:     testDataplane,
-		ExtractPrincipal: ctxExtractor,
-		Policy:           realisticPolicy,
-	})
+	interceptor, err := connectauthz.New(
+		testDataplane,
+		ctxExtractor,
+		authz.StaticPolicy(realisticPolicy),
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -601,8 +731,8 @@ func TestConnect_DenialErrorDetails(t *testing.T) {
 				_, err := client.UnannotatedMethod(context.Background(), connectReqAs("stephan@redpanda.com", &testv1.SimpleRequest{}))
 				return err
 			},
-			wantCode:   connect.CodePermissionDenied,
-			wantReason: "REASON_PERMISSION_DENIED",
+			wantCode:   connect.CodeFailedPrecondition,
+			wantReason: "REASON_INVALID_INPUT",
 			wantMeta: map[string]string{
 				"method":    "/authz.test.v1.TestService/UnannotatedMethod",
 				"principal": "User:stephan@redpanda.com",
