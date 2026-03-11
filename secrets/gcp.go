@@ -87,7 +87,7 @@ func createFederationClient(ctx context.Context, logger *slog.Logger, audience s
 	}
 
 	// Create credential config for federation
-	credConfig := map[string]any{ //nolint:gosec // G101: not hardcoded credentials, this is a config structure for workload identity federation
+	credConfig := map[string]any{
 		"type":               "external_account",
 		"audience":           audience,
 		"subject_token_type": "urn:ietf:params:oauth:token-type:jwt",
