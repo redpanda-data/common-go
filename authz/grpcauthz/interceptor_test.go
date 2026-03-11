@@ -11,7 +11,6 @@ package grpcauthz_test
 
 import (
 	"context"
-	"log/slog"
 	"net"
 	"sync"
 	"testing"
@@ -118,50 +117,28 @@ var realisticPolicy = authz.Policy{
 	},
 }
 
-func startTestServer(t *testing.T, policy authz.Policy) testv1.TestServiceClient {
+func newTestInterceptor(t testing.TB, policy authz.Policy) *grpcauthz.Interceptor {
 	t.Helper()
-	l := slog.Default()
-
-	interceptor, err := authz.NewInterceptor(authz.InterceptorConfig{
-		Logger:       l,
-		ResourceName: testDataplane,
-		Policy:       policy,
+	interceptor, err := grpcauthz.New(grpcauthz.Config{
+		ResourceName:     testDataplane,
+		ExtractPrincipal: testExtractor,
+		Policy:           policy,
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	var lc net.ListenConfig
-	ln, err := lc.Listen(context.Background(), "tcp", "127.0.0.1:0")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	srv := grpc.NewServer(grpc.ChainUnaryInterceptor(grpcauthz.UnaryServerInterceptor(interceptor, grpcauthz.Config{ExtractPrincipal: testExtractor})))
-	testv1.RegisterTestServiceServer(srv, &testServer{})
-	go func() { _ = srv.Serve(ln) }()
-	t.Cleanup(srv.GracefulStop)
-
-	conn, err := grpc.NewClient(ln.Addr().String(), grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { _ = conn.Close() })
-	return testv1.NewTestServiceClient(conn)
+	return interceptor
 }
 
-func startTestServerWithInterceptor(t *testing.T, policy authz.Policy) (testv1.TestServiceClient, *authz.Interceptor) {
+func startTestServer(t *testing.T, policy authz.Policy) testv1.TestServiceClient {
 	t.Helper()
-	l := slog.Default()
+	client, _ := startTestServerWithInterceptor(t, policy)
+	return client
+}
 
-	interceptor, err := authz.NewInterceptor(authz.InterceptorConfig{
-		Logger:       l,
-		ResourceName: testDataplane,
-		Policy:       policy,
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
+func startTestServerWithInterceptor(t *testing.T, policy authz.Policy) (testv1.TestServiceClient, *grpcauthz.Interceptor) {
+	t.Helper()
+	interceptor := newTestInterceptor(t, policy)
 
 	var lc net.ListenConfig
 	ln, err := lc.Listen(context.Background(), "tcp", "127.0.0.1:0")
@@ -169,7 +146,7 @@ func startTestServerWithInterceptor(t *testing.T, policy authz.Policy) (testv1.T
 		t.Fatal(err)
 	}
 
-	srv := grpc.NewServer(grpc.ChainUnaryInterceptor(grpcauthz.UnaryServerInterceptor(interceptor, grpcauthz.Config{ExtractPrincipal: testExtractor})))
+	srv := grpc.NewServer(grpc.ChainUnaryInterceptor(interceptor.Unary()))
 	testv1.RegisterTestServiceServer(srv, &testServer{})
 	go func() { _ = srv.Serve(ln) }()
 	t.Cleanup(srv.GracefulStop)
@@ -197,15 +174,7 @@ func ctxAsIncoming(email string) context.Context {
 func TestDiscoverPermissions(t *testing.T) {
 	// Create an interceptor to trigger proto registration, then verify
 	// that the core module can discover permissions from annotations.
-	l := slog.Default()
-	interceptor, err := authz.NewInterceptor(authz.InterceptorConfig{
-		Logger:       l,
-		ResourceName: testDataplane,
-		Policy:       realisticPolicy,
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
+	interceptor := newTestInterceptor(t, realisticPolicy)
 
 	// Verify annotations resolve for known methods.
 	for _, method := range []string{
@@ -222,15 +191,7 @@ func TestDiscoverPermissions(t *testing.T) {
 }
 
 func TestResolveAnnotations(t *testing.T) {
-	l := slog.Default()
-	interceptor, err := authz.NewInterceptor(authz.InterceptorConfig{
-		Logger:       l,
-		ResourceName: testDataplane,
-		Policy:       realisticPolicy,
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
+	interceptor := newTestInterceptor(t, realisticPolicy)
 
 	tests := []struct {
 		method   string
@@ -724,16 +685,8 @@ func TestGRPC_DenialErrorDetails(t *testing.T) {
 // --- Benchmarks ---
 
 func BenchmarkInterceptor_SimplePermission(b *testing.B) {
-	l := slog.New(slog.DiscardHandler)
-	interceptor, err := authz.NewInterceptor(authz.InterceptorConfig{
-		Logger:       l,
-		ResourceName: testDataplane,
-		Policy:       realisticPolicy,
-	})
-	if err != nil {
-		b.Fatal(err)
-	}
-	h := grpcauthz.UnaryServerInterceptor(interceptor, grpcauthz.Config{ExtractPrincipal: testExtractor})
+	interceptor := newTestInterceptor(b, realisticPolicy)
+	h := interceptor.Unary()
 	ctx := ctxAsIncoming("stephan@redpanda.com")
 	info := srvInfo("/authz.test.v1.TestService/SimpleMethod")
 
@@ -745,16 +698,8 @@ func BenchmarkInterceptor_SimplePermission(b *testing.B) {
 }
 
 func BenchmarkInterceptor_ScopedPermission(b *testing.B) {
-	l := slog.New(slog.DiscardHandler)
-	interceptor, err := authz.NewInterceptor(authz.InterceptorConfig{
-		Logger:       l,
-		ResourceName: testDataplane,
-		Policy:       realisticPolicy,
-	})
-	if err != nil {
-		b.Fatal(err)
-	}
-	h := grpcauthz.UnaryServerInterceptor(interceptor, grpcauthz.Config{ExtractPrincipal: testExtractor})
+	interceptor := newTestInterceptor(b, realisticPolicy)
+	h := interceptor.Unary()
 	ctx := ctxAsIncoming("stephan@redpanda.com")
 	info := srvInfo("/authz.test.v1.TestService/GetWidget")
 	req := &testv1.GetWidgetRequest{Id: "widget-abc"}
@@ -767,16 +712,8 @@ func BenchmarkInterceptor_ScopedPermission(b *testing.B) {
 }
 
 func BenchmarkInterceptor_NestedFieldPath(b *testing.B) {
-	l := slog.New(slog.DiscardHandler)
-	interceptor, err := authz.NewInterceptor(authz.InterceptorConfig{
-		Logger:       l,
-		ResourceName: testDataplane,
-		Policy:       realisticPolicy,
-	})
-	if err != nil {
-		b.Fatal(err)
-	}
-	h := grpcauthz.UnaryServerInterceptor(interceptor, grpcauthz.Config{ExtractPrincipal: testExtractor})
+	interceptor := newTestInterceptor(b, realisticPolicy)
+	h := interceptor.Unary()
 	ctx := ctxAsIncoming("stephan@redpanda.com")
 	info := srvInfo("/authz.test.v1.TestService/UpdateWidget")
 	req := &testv1.UpdateWidgetRequest{Widget: &testv1.Widget{Id: "widget-abc"}}
@@ -789,16 +726,8 @@ func BenchmarkInterceptor_NestedFieldPath(b *testing.B) {
 }
 
 func BenchmarkInterceptor_Denied(b *testing.B) {
-	l := slog.New(slog.DiscardHandler)
-	interceptor, err := authz.NewInterceptor(authz.InterceptorConfig{
-		Logger:       l,
-		ResourceName: testDataplane,
-		Policy:       realisticPolicy,
-	})
-	if err != nil {
-		b.Fatal(err)
-	}
-	h := grpcauthz.UnaryServerInterceptor(interceptor, grpcauthz.Config{ExtractPrincipal: testExtractor})
+	interceptor := newTestInterceptor(b, realisticPolicy)
+	h := interceptor.Unary()
 	ctx := ctxAsIncoming("random@attacker.com")
 	info := srvInfo("/authz.test.v1.TestService/SimpleMethod")
 
@@ -810,16 +739,8 @@ func BenchmarkInterceptor_Denied(b *testing.B) {
 }
 
 func BenchmarkInterceptor_Parallel(b *testing.B) {
-	l := slog.New(slog.DiscardHandler)
-	interceptor, err := authz.NewInterceptor(authz.InterceptorConfig{
-		Logger:       l,
-		ResourceName: testDataplane,
-		Policy:       realisticPolicy,
-	})
-	if err != nil {
-		b.Fatal(err)
-	}
-	h := grpcauthz.UnaryServerInterceptor(interceptor, grpcauthz.Config{ExtractPrincipal: testExtractor})
+	interceptor := newTestInterceptor(b, realisticPolicy)
+	h := interceptor.Unary()
 	info := srvInfo("/authz.test.v1.TestService/GetWidget")
 	req := &testv1.GetWidgetRequest{Id: "widget-abc"}
 

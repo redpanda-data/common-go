@@ -12,7 +12,6 @@ package connectauthz_test
 import (
 	"context"
 	"errors"
-	"log/slog"
 	"net"
 	"net/http"
 	"sync"
@@ -110,31 +109,33 @@ var realisticPolicy = authz.Policy{
 	},
 }
 
+func newTestInterceptor(t testing.TB, policy authz.Policy) *connectauthz.Interceptor {
+	t.Helper()
+	interceptor, err := connectauthz.New(connectauthz.Config{
+		ResourceName:     testDataplane,
+		ExtractPrincipal: connectTestExtractor,
+		Policy:           policy,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return interceptor
+}
+
 func startConnectTestServer(t testing.TB, policy authz.Policy) testv1connect.TestServiceClient {
 	t.Helper()
 	client, _ := startConnectTestServerWithInterceptor(t, policy)
 	return client
 }
 
-func startConnectTestServerWithInterceptor(t testing.TB, policy authz.Policy) (testv1connect.TestServiceClient, *authz.Interceptor) {
+func startConnectTestServerWithInterceptor(t testing.TB, policy authz.Policy) (testv1connect.TestServiceClient, *connectauthz.Interceptor) {
 	t.Helper()
-	l := slog.Default()
-
-	interceptor, err := authz.NewInterceptor(authz.InterceptorConfig{
-		Logger:       l,
-		ResourceName: testDataplane,
-		Policy:       policy,
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
+	interceptor := newTestInterceptor(t, policy)
 
 	mux := http.NewServeMux()
 	path, handler := testv1connect.NewTestServiceHandler(
 		&connectTestHandler{},
-		connect.WithInterceptors(connectauthz.New(interceptor, connectauthz.Config{
-			ExtractPrincipal: connectTestExtractor,
-		})),
+		connect.WithInterceptors(interceptor),
 	)
 	mux.Handle(path, handler)
 
@@ -494,17 +495,6 @@ func TestConnect_ConcurrentRequestsAndSwaps(t *testing.T) {
 type ctxKey struct{}
 
 func TestConnect_ContextBasedExtractor(t *testing.T) {
-	l := slog.Default()
-
-	interceptor, err := authz.NewInterceptor(authz.InterceptorConfig{
-		Logger:       l,
-		ResourceName: testDataplane,
-		Policy:       realisticPolicy,
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	// Context-based extractor that ignores headers — reads from context
 	// value set by upstream HTTP middleware.
 	ctxExtractor := func(ctx context.Context, _ http.Header) (authz.PrincipalID, bool) {
@@ -515,12 +505,19 @@ func TestConnect_ContextBasedExtractor(t *testing.T) {
 		return authz.UserPrincipal(v), true
 	}
 
+	interceptor, err := connectauthz.New(connectauthz.Config{
+		ResourceName:     testDataplane,
+		ExtractPrincipal: ctxExtractor,
+		Policy:           realisticPolicy,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	mux := http.NewServeMux()
 	path, handler := testv1connect.NewTestServiceHandler(
 		&connectTestHandler{},
-		connect.WithInterceptors(connectauthz.New(interceptor, connectauthz.Config{
-			ExtractPrincipal: ctxExtractor,
-		})),
+		connect.WithInterceptors(interceptor),
 	)
 	// Middleware injects principal into context from header.
 	wrappedHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

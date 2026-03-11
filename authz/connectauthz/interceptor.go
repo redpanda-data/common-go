@@ -8,7 +8,7 @@
 // by the Apache License, Version 2.0
 
 // Package connectauthz provides a Connect interceptor that enforces
-// policy-based authorization using [authz.Interceptor].
+// policy-based authorization using the authz engine.
 package connectauthz
 
 import (
@@ -30,47 +30,83 @@ type PrincipalExtractor func(ctx context.Context, headers http.Header) (authz.Pr
 
 // Config configures the Connect authorization interceptor.
 type Config struct {
+	// Logger for authorization events. If nil, slog.Default() is used.
+	Logger *slog.Logger
+	// ResourceName is the base scope path for policy evaluation,
+	// e.g. "organizations/{org}/resourcegroups/{rg}/dataplanes/{dp}".
+	ResourceName authz.ResourceName
 	// ExtractPrincipal extracts the caller's principal from request context
 	// and headers. Required.
 	ExtractPrincipal PrincipalExtractor
-	// Logger for authorization events. If nil, slog.Default() is used.
-	Logger *slog.Logger
+	// Policy is the initial authorization policy. Mutually exclusive with PolicyWatch.
+	Policy authz.Policy
+	// PolicyWatch loads the initial policy and watches for changes, hot-reloading
+	// automatically. Mutually exclusive with Policy. Call [Interceptor.Close] to
+	// stop watching.
+	PolicyWatch authz.PolicyWatchFunc
+	// MethodPermissions provides manual method-to-permission mappings for
+	// services whose protos don't yet have authorization annotations.
+	// Keys are gRPC full method names (e.g. "/package.Service/Method").
+	MethodPermissions map[string]authz.PermissionName
+	// Domain is the error domain for structured error details (e.g. "redpanda.com").
+	// Defaults to "redpanda.com" if empty.
+	Domain string
 }
 
-// New returns a connect.Interceptor that enforces policy-based
-// authorization on Connect RPCs. It reuses the same Interceptor core
-// (proto annotation discovery, policy evaluation, atomic policy swaps)
-// as the gRPC interceptor.
-func New(a *authz.Interceptor, cfg Config) connect.Interceptor {
-	logger := cfg.Logger
-	if logger == nil {
-		logger = slog.Default()
-	}
-	return &connectAuthzInterceptor{core: a, extractPrincipal: cfg.ExtractPrincipal, logger: logger}
-}
-
-type connectAuthzInterceptor struct {
-	core             *authz.Interceptor
+// Interceptor is a Connect authorization interceptor. Use [New] to create one.
+type Interceptor struct {
+	engine           *authz.Engine
 	extractPrincipal PrincipalExtractor
 	logger           *slog.Logger
 }
 
-func (c *connectAuthzInterceptor) WrapUnary(next connect.UnaryFunc) connect.UnaryFunc {
+// New creates a Connect authorization interceptor.
+func New(cfg Config) (*Interceptor, error) {
+	engine, err := authz.NewEngine(authz.EngineConfig{
+		Logger:            cfg.Logger,
+		ResourceName:      cfg.ResourceName,
+		Policy:            cfg.Policy,
+		PolicyWatch:       cfg.PolicyWatch,
+		MethodPermissions: cfg.MethodPermissions,
+		Domain:            cfg.Domain,
+	})
+	if err != nil {
+		return nil, err
+	}
+	logger := cfg.Logger
+	if logger == nil {
+		logger = slog.Default()
+	}
+	return &Interceptor{engine: engine, extractPrincipal: cfg.ExtractPrincipal, logger: logger}, nil
+}
+
+// SwapPolicy replaces the active policy. Safe for concurrent use.
+func (i *Interceptor) SwapPolicy(p authz.Policy) error {
+	return i.engine.SwapPolicy(p)
+}
+
+// Close stops the policy file watcher if one was configured.
+func (i *Interceptor) Close() error {
+	return i.engine.Close()
+}
+
+// WrapUnary implements [connect.Interceptor].
+func (i *Interceptor) WrapUnary(next connect.UnaryFunc) connect.UnaryFunc {
 	return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
 		procedure := req.Spec().Procedure
 		if authz.ShouldSkip(procedure) {
 			return next(ctx, req)
 		}
 
-		principal, ok := c.extractPrincipal(ctx, req.Header())
+		principal, ok := i.extractPrincipal(ctx, req.Header())
 		if !ok {
-			c.logger.Warn("No identity in context, denying access", "method", procedure)
+			i.logger.Warn("No identity in context, denying access", "method", procedure)
 			return nil, connect.NewError(connect.CodeInternal, errors.New("no identity in context"))
 		}
 
-		ma := c.core.LookupMethodAuthz(procedure)
-		if denial := c.core.CheckAccess(ctx, procedure, principal, ma, req.Any()); denial != nil {
-			return nil, connectError(c.core, denial)
+		ma := i.engine.LookupMethodAuthz(procedure)
+		if denial := i.engine.CheckAccess(ctx, procedure, principal, ma, req.Any()); denial != nil {
+			return nil, connectError(i.engine, denial)
 		}
 
 		resp, err := next(ctx, req)
@@ -79,8 +115,8 @@ func (c *connectAuthzInterceptor) WrapUnary(next connect.UnaryFunc) connect.Unar
 		}
 
 		if ma != nil && ma.Collection != nil {
-			if err := c.core.FilterCollection(ma, principal, resp.Any()); err != nil {
-				c.logger.Error("collection filtering failed", "method", procedure, "error", err)
+			if err := i.engine.FilterCollection(ma, principal, resp.Any()); err != nil {
+				i.logger.Error("collection filtering failed", "method", procedure, "error", err)
 				return nil, connect.NewError(connect.CodeInternal, errors.New("authorization filter error"))
 			}
 		}
@@ -89,7 +125,17 @@ func (c *connectAuthzInterceptor) WrapUnary(next connect.UnaryFunc) connect.Unar
 	}
 }
 
-func connectError(a *authz.Interceptor, d *authz.Denial) *connect.Error {
+// WrapStreamingClient implements [connect.Interceptor]. No-op for server-side interceptors.
+func (*Interceptor) WrapStreamingClient(next connect.StreamingClientFunc) connect.StreamingClientFunc {
+	return next
+}
+
+// WrapStreamingHandler implements [connect.Interceptor]. No-op — streaming RPCs are not yet supported.
+func (*Interceptor) WrapStreamingHandler(next connect.StreamingHandlerFunc) connect.StreamingHandlerFunc {
+	return next
+}
+
+func connectError(a *authz.Engine, d *authz.Denial) *connect.Error {
 	var code connect.Code
 	var reason string
 	switch d.Kind {
@@ -110,12 +156,4 @@ func connectError(a *authz.Interceptor, d *authz.Denial) *connect.Error {
 		connectErr.AddDetail(detail)
 	}
 	return connectErr
-}
-
-func (*connectAuthzInterceptor) WrapStreamingClient(next connect.StreamingClientFunc) connect.StreamingClientFunc {
-	return next
-}
-
-func (*connectAuthzInterceptor) WrapStreamingHandler(next connect.StreamingHandlerFunc) connect.StreamingHandlerFunc {
-	return next
 }

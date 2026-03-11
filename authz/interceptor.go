@@ -38,8 +38,8 @@ var tracer = otel.Tracer("github.com/redpanda-data/common-go/authz")
 // This matches the signature of [loader.WatchPolicyFile].
 type PolicyWatchFunc func(callback func(Policy, error)) (Policy, func() error, error)
 
-// InterceptorConfig configures the policy-based authorization interceptor.
-type InterceptorConfig struct {
+// EngineConfig configures the policy-based authorization interceptor.
+type EngineConfig struct {
 	// Logger for authorization events. If nil, slog.Default() is used.
 	Logger *slog.Logger
 	// ResourceName is the base scope path for policy evaluation,
@@ -48,7 +48,7 @@ type InterceptorConfig struct {
 	// Policy is the initial authorization policy. Mutually exclusive with PolicyWatch.
 	Policy Policy
 	// PolicyWatch loads the initial policy and watches for changes, hot-reloading
-	// automatically. Mutually exclusive with Policy. Call [Interceptor.Close] to
+	// automatically. Mutually exclusive with Policy. Call [Engine.Close] to
 	// stop watching.
 	//
 	// Example using loader.WatchPolicyFile:
@@ -79,11 +79,11 @@ type MethodAuthz struct {
 	Collection *commonv1.CollectionAuthorization
 }
 
-// Interceptor enforces policy-based authorization on gRPC/Connect methods.
-// It reads required permissions from proto method annotations
-// (method_authorization or required_permission) and enforces them
-// against the authorization policy.
-type Interceptor struct {
+// Engine is the shared authorization core. It owns the policy state,
+// proto annotation cache, and policy watcher lifecycle. Transport
+// adapters (grpcauthz, connectauthz) wrap it to provide protocol-specific
+// interceptors.
+type Engine struct {
 	logger         *slog.Logger
 	resourcePolicy atomic.Pointer[ResourcePolicy]
 	allPerms       []PermissionName
@@ -97,21 +97,21 @@ type Interceptor struct {
 }
 
 // Domain returns the error domain for structured error details.
-func (a *Interceptor) Domain() string {
+func (a *Engine) Domain() string {
 	return a.domain
 }
 
 // qualifiedResourceID returns the fully qualified resource path,
 // e.g. "organizations/.../dataplanes/xxx/widgets/widget-123".
 // Returns the bare resourceID if resourceType is empty or resourceID is empty.
-func (a *Interceptor) qualifiedResourceID(resourceType, resourceID string) string {
+func (a *Engine) qualifiedResourceID(resourceType, resourceID string) string {
 	if resourceType == "" || resourceID == "" {
 		return resourceID
 	}
 	return string(a.resourceName.Child(ResourceType(resourceType), ResourceID(resourceID)))
 }
 
-// NewInterceptor creates a new policy-based authorization interceptor.
+// NewEngine creates a new policy-based authorization interceptor.
 //
 // Required permissions are read from proto method annotations:
 //   - redpanda.api.common.v1.method_authorization (with resource scoping)
@@ -120,8 +120,8 @@ func (a *Interceptor) qualifiedResourceID(resourceType, resourceID string) strin
 // Methods without annotations are denied (fail-closed).
 //
 // When PolicyWatch is set, the interceptor watches for policy changes and
-// hot-reloads automatically. Call [Interceptor.Close] to stop watching.
-func NewInterceptor(cfg InterceptorConfig) (*Interceptor, error) {
+// hot-reloads automatically. Call [Engine.Close] to stop watching.
+func NewEngine(cfg EngineConfig) (*Engine, error) {
 	logger := cfg.Logger
 	if logger == nil {
 		logger = slog.Default()
@@ -155,13 +155,13 @@ func NewInterceptor(cfg InterceptorConfig) (*Interceptor, error) {
 	allPerms = deduped
 
 	// Load initial policy — either static or from a watched file.
-	// The callback captures `iptr` which is set after NewInterceptor returns
+	// The callback captures `iptr` which is set after NewEngine returns
 	// the interceptor. The watch callback only fires on file changes after
 	// WatchPolicyFile returns, so `*iptr` is always initialized.
 	var (
 		policy  Policy
 		unwatch func() error
-		iptr    *Interceptor
+		iptr    *Engine
 	)
 	if cfg.PolicyWatch != nil {
 		var err error
@@ -196,7 +196,7 @@ func NewInterceptor(cfg InterceptorConfig) (*Interceptor, error) {
 		domain = "redpanda.com"
 	}
 
-	i := &Interceptor{
+	i := &Engine{
 		logger:       logger,
 		allPerms:     allPerms,
 		resourceName: cfg.ResourceName,
@@ -219,7 +219,7 @@ func NewInterceptor(cfg InterceptorConfig) (*Interceptor, error) {
 }
 
 // SwapPolicy replaces the active policy. Safe for concurrent use.
-func (a *Interceptor) SwapPolicy(p Policy) error {
+func (a *Engine) SwapPolicy(p Policy) error {
 	rp, err := NewResourcePolicy(p, a.resourceName, a.allPerms)
 	if err != nil {
 		return fmt.Errorf("failed to create resource policy: %w", err)
@@ -230,7 +230,7 @@ func (a *Interceptor) SwapPolicy(p Policy) error {
 
 // Close stops the policy file watcher if one was configured via PolicyWatch.
 // Safe to call multiple times or if no watcher is active.
-func (a *Interceptor) Close() error {
+func (a *Engine) Close() error {
 	if a.unwatch != nil {
 		return a.unwatch()
 	}
@@ -305,7 +305,7 @@ func ShouldSkip(method string) bool {
 // CheckAccess is the shared authorization core used by both gRPC and Connect
 // interceptors. It returns nil on success, or a *Denial on failure.
 // The ma parameter may be nil (looked up externally to allow reuse).
-func (a *Interceptor) CheckAccess(ctx context.Context, method string, principal PrincipalID, ma *MethodAuthz, reqMsg any) *Denial {
+func (a *Engine) CheckAccess(ctx context.Context, method string, principal PrincipalID, ma *MethodAuthz, reqMsg any) *Denial {
 	if ma == nil {
 		a.logger.Warn("No permission annotation, denying access (fail-closed)", "method", method)
 		return &Denial{Kind: DenialUnknownMethod, Method: method, Principal: principal, Message: fmt.Sprintf("unknown method %s", method)}
@@ -386,7 +386,7 @@ func (a *Interceptor) CheckAccess(ctx context.Context, method string, principal 
 // FilterCollection removes items from a response collection that the principal
 // lacks permission for. Returns an error if the collection annotation is
 // misconfigured (fail-closed: caller must not return the unfiltered response).
-func (a *Interceptor) FilterCollection(ma *MethodAuthz, principal PrincipalID, resp any) error {
+func (a *Engine) FilterCollection(ma *MethodAuthz, principal PrincipalID, resp any) error {
 	if ma.Collection == nil || ma.Collection.GetEach() == nil {
 		return errors.New("authz: FilterCollection called on non-collection method")
 	}
@@ -460,7 +460,7 @@ func (a *Interceptor) FilterCollection(ma *MethodAuthz, principal PrincipalID, r
 
 // LookupMethodAuthz resolves a gRPC full method name to its authorization info.
 // Results are cached. Returns nil if no annotation found.
-func (a *Interceptor) LookupMethodAuthz(fullMethod string) *MethodAuthz {
+func (a *Engine) LookupMethodAuthz(fullMethod string) *MethodAuthz {
 	if v, ok := a.authzCache.Load(fullMethod); ok {
 		if ma, ok := v.(*MethodAuthz); ok {
 			return ma
