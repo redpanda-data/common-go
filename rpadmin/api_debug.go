@@ -203,7 +203,7 @@ type DebugBundleLabelSelector struct {
 type debugBundleSCRAMAuthentication struct {
 	Mechanism string `json:"mechanism,omitempty"`
 	Username  string `json:"username,omitempty"`
-	Password  string `json:"password,omitempty"`
+	Password  string `json:"password,omitempty"` //nolint:gosec // G117: field holds SCRAM credentials for debug bundle API
 }
 
 type debugBundleStartConfig struct {

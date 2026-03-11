@@ -21,7 +21,7 @@ type (
 	// BasicAuth options struct.
 	BasicAuth struct {
 		Username string
-		Password string
+		Password string //nolint:gosec // G117: field holds basic auth password
 	}
 	// BearerToken options struct.
 	BearerToken struct {

@@ -677,7 +677,7 @@ func (a *AdminAPI) sendReqAndReceive(req *http.Request, retryable bool) (*http.R
 	if retryable {
 		res, err = a.retryClient.Do(req)
 	} else {
-		res, err = a.oneshotClient.Do(req)
+		res, err = a.oneshotClient.Do(req) //nolint:gosec // G704: req URL is constructed internally, not from user input
 	}
 
 	if res != nil {
