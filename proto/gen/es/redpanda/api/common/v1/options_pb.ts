@@ -42,6 +42,18 @@ export class MethodAuthorization extends Message<MethodAuthorization> {
    */
   permission = "";
 
+  /**
+   * skip exempts this method from authorization. The interceptor passes
+   * through without any permission check. Use for RPCs that must remain
+   * open (e.g. health checks on the same gRPC server).
+   *
+   * e.g.:
+   *   option (redpanda.api.common.v1.method_authorization) = { skip: true };
+   *
+   * @generated from field: bool skip = 4;
+   */
+  skip = false;
+
   constructor(data?: PartialMessage<MethodAuthorization>) {
     super();
     proto3.util.initPartial(data, this);
@@ -53,6 +65,7 @@ export class MethodAuthorization extends Message<MethodAuthorization> {
     { no: 1, name: "resource_type", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 2, name: "id_getter_cel", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 3, name: "permission", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 4, name: "skip", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): MethodAuthorization {

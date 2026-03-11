@@ -42,10 +42,6 @@ type Config struct {
 	// automatically. Mutually exclusive with Policy. Call [Interceptor.Close] to
 	// stop watching.
 	PolicyWatch authz.PolicyWatchFunc
-	// MethodPermissions provides manual method-to-permission mappings for
-	// services whose protos don't yet have authorization annotations.
-	// Keys are gRPC full method names (e.g. "/package.Service/Method").
-	MethodPermissions map[string]authz.PermissionName
 	// Domain is the error domain for structured error details (e.g. "redpanda.com").
 	// Defaults to "redpanda.com" if empty.
 	Domain string
@@ -64,9 +60,8 @@ func New(cfg Config) (*Interceptor, error) {
 		Logger:            cfg.Logger,
 		ResourceName:      cfg.ResourceName,
 		Policy:            cfg.Policy,
-		PolicyWatch:       cfg.PolicyWatch,
-		MethodPermissions: cfg.MethodPermissions,
-		Domain:            cfg.Domain,
+		PolicyWatch: cfg.PolicyWatch,
+		Domain:      cfg.Domain,
 	})
 	if err != nil {
 		return nil, err

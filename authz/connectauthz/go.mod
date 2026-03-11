@@ -5,7 +5,7 @@ go 1.25.8
 replace github.com/redpanda-data/common-go/authz => ../
 
 require (
-	buf.build/gen/go/redpandadata/common/protocolbuffers/go v1.36.11-20260310135854-8efbf3a00d6e.1
+	buf.build/gen/go/redpandadata/common/protocolbuffers/go v1.36.11-20260311105927-262feff38225.1
 	connectrpc.com/connect v1.19.1
 	github.com/redpanda-data/common-go/authz v0.0.0-00010101000000-000000000000
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260226221140-a57be14db171

@@ -57,11 +57,6 @@ type EngineConfig struct {
 	//       return loader.WatchPolicyFile("/path/to/policy.yaml", cb)
 	//   },
 	PolicyWatch PolicyWatchFunc
-	// MethodPermissions provides manual method-to-permission mappings for
-	// services whose protos don't yet have authorization annotations.
-	// These are merged with any permissions discovered from proto annotations.
-	// Keys are gRPC full method names (e.g. "/package.Service/Method").
-	MethodPermissions map[string]PermissionName
 	// Domain is the error domain for structured error details (e.g. "redpanda.com").
 	// Defaults to "redpanda.com" if empty.
 	Domain string
@@ -77,6 +72,9 @@ type MethodAuthz struct {
 	// When non-nil, the interceptor skips pre-call authorization and
 	// filters the response per-item instead.
 	Collection *commonv1.CollectionAuthorization
+	// Skip is set when the method has skip_authorization = true.
+	// The interceptor passes through without any permission check.
+	Skip bool
 }
 
 // Engine is the shared authorization core. It owns the policy state,
@@ -129,31 +127,6 @@ func NewEngine(cfg EngineConfig) (*Engine, error) {
 
 	allPerms := discoverAllPermissions()
 
-	// Merge manual method permissions into the permission set and pre-seed cache.
-	var manualEntries []struct {
-		method string
-		ma     *MethodAuthz
-	}
-	for method, perm := range cfg.MethodPermissions {
-		ma := &MethodAuthz{Auth: &commonv1.MethodAuthorization{Permission: string(perm)}}
-		manualEntries = append(manualEntries, struct {
-			method string
-			ma     *MethodAuthz
-		}{method, ma})
-		allPerms = append(allPerms, perm)
-	}
-
-	// Deduplicate permissions.
-	seen := make(map[PermissionName]struct{}, len(allPerms))
-	deduped := make([]PermissionName, 0, len(allPerms))
-	for _, p := range allPerms {
-		if _, ok := seen[p]; !ok {
-			seen[p] = struct{}{}
-			deduped = append(deduped, p)
-		}
-	}
-	allPerms = deduped
-
 	// Load initial policy — either static or from a watched file.
 	// The callback captures `iptr` which is set after NewEngine returns
 	// the interceptor. The watch callback only fires on file changes after
@@ -205,11 +178,6 @@ func NewEngine(cfg EngineConfig) (*Engine, error) {
 	}
 	i.resourcePolicy.Store(rp)
 	iptr = i // Wire up the callback's reference.
-
-	// Pre-seed cache with manual mappings.
-	for _, e := range manualEntries {
-		i.authzCache.Store(e.method, e.ma)
-	}
 
 	logger.Info("Authorization interceptor initialized",
 		"resource", string(cfg.ResourceName),
@@ -310,11 +278,16 @@ func (a *Engine) CheckAccess(ctx context.Context, method string, principal Princ
 		a.logger.Warn("No permission annotation, denying access (fail-closed)", "method", method)
 		return &Denial{Kind: DenialUnknownMethod, Method: method, Principal: principal, Message: fmt.Sprintf("unknown method %s", method)}
 	}
+	if ma.Skip {
+		return nil
+	}
 
-	// Collection methods do no pre-call authorization — the principal may only
-	// have permission on specific resources, not at the parent level. The
-	// response is filtered per-item by FilterCollection after the call.
-	if ma.Collection != nil {
+	// Collection-only methods (no method_authorization) skip the pre-call check.
+	// The principal may only have permission on specific resources, not at the
+	// parent level. The response is filtered per-item by FilterCollection after
+	// the call. When both method_authorization and collection_authorization are
+	// present, the pre-call check runs AND the response is filtered post-call.
+	if ma.Collection != nil && ma.Auth == ma.Collection.GetEach() {
 		return nil
 	}
 
@@ -507,19 +480,44 @@ func resolveMethodAuthz(fullMethod string) *MethodAuthz {
 }
 
 // extractMethodAuthz reads authorization annotations from method options.
+//
+// When both method_authorization and collection_authorization are present,
+// both are honored: CheckAccess performs the pre-call permission check using
+// method_authorization, and FilterCollection performs per-item filtering on
+// the response using collection_authorization. When only collection_authorization
+// is set, the pre-call check is skipped (the principal may only have permission
+// on specific resources).
 func extractMethodAuthz(methodOpts *descriptorpb.MethodOptions) *MethodAuthz {
-	// Prefer method_authorization (structured, with resource scoping).
+	var result *MethodAuthz
+
+	// method_authorization: structured permission with optional resource scoping.
 	if ext := proto.GetExtension(methodOpts, commonv1.E_MethodAuthorization); ext != nil {
-		if ma, ok := ext.(*commonv1.MethodAuthorization); ok && ma != nil && ma.GetPermission() != "" {
-			return &MethodAuthz{Auth: ma}
+		if ma, ok := ext.(*commonv1.MethodAuthorization); ok && ma != nil {
+			if ma.GetSkip() {
+				return &MethodAuthz{Skip: true}
+			}
+			if ma.GetPermission() != "" {
+				result = &MethodAuthz{Auth: ma}
+			}
 		}
 	}
 
-	// collection_authorization: List RPCs that require per-item filtering on the response.
+	// collection_authorization: per-item filtering on the response.
 	if ext := proto.GetExtension(methodOpts, commonv1.E_CollectionAuthorization); ext != nil {
 		if ca, ok := ext.(*commonv1.CollectionAuthorization); ok && ca != nil && ca.GetEach() != nil && ca.GetEach().GetPermission() != "" {
-			return &MethodAuthz{Auth: ca.GetEach(), Collection: ca}
+			if result != nil {
+				// Both present: pre-call check via method_authorization,
+				// post-call filter via collection_authorization.
+				result.Collection = ca
+			} else {
+				// Collection only: skip pre-call check, filter post-call.
+				result = &MethodAuthz{Auth: ca.GetEach(), Collection: ca}
+			}
 		}
+	}
+
+	if result != nil {
+		return result
 	}
 
 	// Fall back to simple required_permission string.
