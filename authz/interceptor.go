@@ -60,6 +60,9 @@ type EngineConfig struct {
 	// Domain is the error domain for structured error details (e.g. "redpanda.com").
 	// Defaults to "redpanda.com" if empty.
 	Domain string
+	// Files is the proto file registry used to resolve method annotations.
+	// Defaults to protoregistry.GlobalFiles if nil.
+	Files *protoregistry.Files
 }
 
 // MethodAuthz holds the resolved authorization info for a gRPC/Connect method.
@@ -87,6 +90,7 @@ type Engine struct {
 	allPerms       []PermissionName
 	resourceName   ResourceName
 	domain         string
+	files          *protoregistry.Files
 	unwatch        func() error // non-nil when PolicyFile is used
 
 	// authzCache caches proto descriptor lookups: fullMethod -> *MethodAuthz.
@@ -125,7 +129,12 @@ func NewEngine(cfg EngineConfig) (*Engine, error) {
 		logger = slog.Default()
 	}
 
-	allPerms := discoverAllPermissions()
+	files := cfg.Files
+	if files == nil {
+		files = protoregistry.GlobalFiles
+	}
+
+	allPerms := discoverAllPermissions(files)
 
 	// Load initial policy — either static or from a watched file.
 	// The callback captures `iptr` which is set after NewEngine returns
@@ -174,6 +183,7 @@ func NewEngine(cfg EngineConfig) (*Engine, error) {
 		allPerms:     allPerms,
 		resourceName: cfg.ResourceName,
 		domain:       domain,
+		files:        files,
 		unwatch:      unwatch,
 	}
 	i.resourcePolicy.Store(rp)
@@ -203,12 +213,6 @@ func (a *Engine) Close() error {
 		return a.unwatch()
 	}
 	return nil
-}
-
-// skipPrefixes contains gRPC service prefixes that bypass authorization.
-var skipPrefixes = []string{
-	"/grpc.health.v1.Health/",
-	"/grpc.reflection.",
 }
 
 // DenialKind classifies authorization failures.
@@ -260,15 +264,6 @@ func DenialErrorInfo(domain, reason string, d *Denial) *errdetails.ErrorInfo {
 	}
 }
 
-// ShouldSkip returns true if the method should bypass authorization.
-func ShouldSkip(method string) bool {
-	for _, prefix := range skipPrefixes {
-		if strings.HasPrefix(method, prefix) {
-			return true
-		}
-	}
-	return false
-}
 
 // CheckAccess is the shared authorization core used by both gRPC and Connect
 // interceptors. It returns nil on success, or a *Denial on failure.
@@ -440,19 +435,19 @@ func (a *Engine) LookupMethodAuthz(fullMethod string) *MethodAuthz {
 		}
 		return nil
 	}
-	ma := resolveMethodAuthz(fullMethod)
+	ma := a.resolveMethodAuthz(fullMethod)
 	a.authzCache.Store(fullMethod, ma)
 	return ma
 }
 
 // resolveMethodAuthz looks up authorization annotations for a gRPC method.
-func resolveMethodAuthz(fullMethod string) *MethodAuthz {
+func (a *Engine) resolveMethodAuthz(fullMethod string) *MethodAuthz {
 	parts := strings.Split(strings.TrimPrefix(fullMethod, "/"), "/")
 	if len(parts) != 2 {
 		return nil
 	}
 
-	desc, err := protoregistry.GlobalFiles.FindDescriptorByName(protoreflect.FullName(parts[0]))
+	desc, err := a.files.FindDescriptorByName(protoreflect.FullName(parts[0]))
 	if err != nil || desc == nil {
 		return nil
 	}
@@ -562,7 +557,7 @@ func EvalFieldPath(req any, celExpr string) string {
 
 // discoverAllPermissions scans all registered proto files for
 // authorization annotations and returns the deduplicated set of permissions.
-func discoverAllPermissions() []PermissionName {
+func discoverAllPermissions(files *protoregistry.Files) []PermissionName {
 	seen := make(map[PermissionName]struct{})
 	var perms []PermissionName
 
@@ -574,7 +569,7 @@ func discoverAllPermissions() []PermissionName {
 		}
 	}
 
-	protoregistry.GlobalFiles.RangeFiles(func(fd protoreflect.FileDescriptor) bool {
+	files.RangeFiles(func(fd protoreflect.FileDescriptor) bool {
 		services := fd.Services()
 		for i := range services.Len() {
 			svc := services.Get(i)

@@ -16,6 +16,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"strings"
 
 	commonv1 "buf.build/gen/go/redpandadata/common/protocolbuffers/go/redpanda/api/common/v1"
 	"connectrpc.com/connect"
@@ -47,6 +48,9 @@ type Config struct {
 	// Domain is the error domain for structured error details (e.g. "redpanda.com").
 	// Defaults to "redpanda.com" if empty.
 	Domain string
+	// SkipPrefixes is a list of procedure prefixes that bypass authorization
+	// entirely (e.g. "/grpc.health.v1.Health/", "/grpc.reflection.").
+	SkipPrefixes []string
 }
 
 // Interceptor is a Connect authorization interceptor. Use [New] to create one.
@@ -54,6 +58,7 @@ type Interceptor struct {
 	engine           *authz.Engine
 	extractPrincipal PrincipalExtractor
 	logger           *slog.Logger
+	skipPrefixes     []string
 }
 
 // New creates a Connect authorization interceptor.
@@ -72,7 +77,7 @@ func New(cfg Config) (*Interceptor, error) {
 	if logger == nil {
 		logger = slog.Default()
 	}
-	return &Interceptor{engine: engine, extractPrincipal: cfg.ExtractPrincipal, logger: logger}, nil
+	return &Interceptor{engine: engine, extractPrincipal: cfg.ExtractPrincipal, logger: logger, skipPrefixes: cfg.SkipPrefixes}, nil
 }
 
 // SwapPolicy replaces the active policy. Safe for concurrent use.
@@ -89,7 +94,12 @@ func (i *Interceptor) Close() error {
 func (i *Interceptor) WrapUnary(next connect.UnaryFunc) connect.UnaryFunc {
 	return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
 		procedure := req.Spec().Procedure
-		if authz.ShouldSkip(procedure) {
+		if i.shouldSkip(procedure) {
+			return next(ctx, req)
+		}
+
+		ma := i.engine.LookupMethodAuthz(procedure)
+		if ma != nil && ma.Skip {
 			return next(ctx, req)
 		}
 
@@ -99,7 +109,6 @@ func (i *Interceptor) WrapUnary(next connect.UnaryFunc) connect.UnaryFunc {
 			return nil, connect.NewError(connect.CodeInternal, errors.New("no identity in context"))
 		}
 
-		ma := i.engine.LookupMethodAuthz(procedure)
 		if denial := i.engine.CheckAccess(ctx, procedure, principal, ma, req.Any()); denial != nil {
 			return nil, connectError(i.engine, denial)
 		}
@@ -125,9 +134,42 @@ func (*Interceptor) WrapStreamingClient(next connect.StreamingClientFunc) connec
 	return next
 }
 
-// WrapStreamingHandler implements [connect.Interceptor]. No-op — streaming RPCs are not yet supported.
-func (*Interceptor) WrapStreamingHandler(next connect.StreamingHandlerFunc) connect.StreamingHandlerFunc {
-	return next
+// WrapStreamingHandler implements [connect.Interceptor]. It performs the same
+// pre-call authorization check as WrapUnary. Collection filtering is not
+// applicable to streaming RPCs.
+func (i *Interceptor) WrapStreamingHandler(next connect.StreamingHandlerFunc) connect.StreamingHandlerFunc {
+	return func(ctx context.Context, conn connect.StreamingHandlerConn) error {
+		procedure := conn.Spec().Procedure
+		if i.shouldSkip(procedure) {
+			return next(ctx, conn)
+		}
+
+		ma := i.engine.LookupMethodAuthz(procedure)
+		if ma != nil && ma.Skip {
+			return next(ctx, conn)
+		}
+
+		principal, ok := i.extractPrincipal(ctx, conn.RequestHeader())
+		if !ok {
+			i.logger.Warn("No identity in context, denying access", "method", procedure)
+			return connect.NewError(connect.CodeInternal, errors.New("no identity in context"))
+		}
+
+		if denial := i.engine.CheckAccess(ctx, procedure, principal, ma, nil); denial != nil {
+			return connectError(i.engine, denial)
+		}
+
+		return next(ctx, conn)
+	}
+}
+
+func (i *Interceptor) shouldSkip(procedure string) bool {
+	for _, prefix := range i.skipPrefixes {
+		if strings.HasPrefix(procedure, prefix) {
+			return true
+		}
+	}
+	return false
 }
 
 func connectError(a *authz.Engine, d *authz.Denial) *connect.Error {

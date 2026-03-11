@@ -14,6 +14,7 @@ package grpcauthz
 import (
 	"context"
 	"log/slog"
+	"strings"
 
 	commonv1 "buf.build/gen/go/redpandadata/common/protocolbuffers/go/redpanda/api/common/v1"
 	"google.golang.org/grpc"
@@ -45,6 +46,9 @@ type Config struct {
 	// Domain is the error domain for structured error details (e.g. "redpanda.com").
 	// Defaults to "redpanda.com" if empty.
 	Domain string
+	// SkipPrefixes is a list of gRPC method prefixes that bypass authorization
+	// entirely (e.g. "/grpc.health.v1.Health/", "/grpc.reflection.").
+	SkipPrefixes []string
 }
 
 // Interceptor is a gRPC authorization interceptor. Use [New] to create one.
@@ -52,6 +56,7 @@ type Interceptor struct {
 	engine           *authz.Engine
 	extractPrincipal PrincipalExtractor
 	logger           *slog.Logger
+	skipPrefixes     []string
 }
 
 // New creates a gRPC authorization interceptor.
@@ -70,13 +75,18 @@ func New(cfg Config) (*Interceptor, error) {
 	if logger == nil {
 		logger = slog.Default()
 	}
-	return &Interceptor{engine: engine, extractPrincipal: cfg.ExtractPrincipal, logger: logger}, nil
+	return &Interceptor{engine: engine, extractPrincipal: cfg.ExtractPrincipal, logger: logger, skipPrefixes: cfg.SkipPrefixes}, nil
 }
 
 // Unary returns a gRPC unary server interceptor.
 func (i *Interceptor) Unary() grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
-		if authz.ShouldSkip(info.FullMethod) {
+		if i.shouldSkip(info.FullMethod) {
+			return handler(ctx, req)
+		}
+
+		ma := i.engine.LookupMethodAuthz(info.FullMethod)
+		if ma != nil && ma.Skip {
 			return handler(ctx, req)
 		}
 
@@ -86,7 +96,6 @@ func (i *Interceptor) Unary() grpc.UnaryServerInterceptor {
 			return nil, status.Error(codes.Internal, "no identity in context")
 		}
 
-		ma := i.engine.LookupMethodAuthz(info.FullMethod)
 		if denial := i.engine.CheckAccess(ctx, info.FullMethod, principal, ma, req); denial != nil {
 			return nil, grpcError(i.engine, denial)
 		}
@@ -107,6 +116,34 @@ func (i *Interceptor) Unary() grpc.UnaryServerInterceptor {
 	}
 }
 
+// Stream returns a gRPC stream server interceptor. It performs the same
+// pre-call authorization check as Unary. Collection filtering is not
+// applicable to streaming RPCs.
+func (i *Interceptor) Stream() grpc.StreamServerInterceptor {
+	return func(srv any, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
+		if i.shouldSkip(info.FullMethod) {
+			return handler(srv, ss)
+		}
+
+		ma := i.engine.LookupMethodAuthz(info.FullMethod)
+		if ma != nil && ma.Skip {
+			return handler(srv, ss)
+		}
+
+		principal, ok := i.extractPrincipal(ss.Context())
+		if !ok {
+			i.logger.Warn("No identity in context, denying access", "method", info.FullMethod)
+			return status.Error(codes.Internal, "no identity in context")
+		}
+
+		if denial := i.engine.CheckAccess(ss.Context(), info.FullMethod, principal, ma, nil); denial != nil {
+			return grpcError(i.engine, denial)
+		}
+
+		return handler(srv, ss)
+	}
+}
+
 // LookupMethodAuthz resolves a method name to its authorization info.
 func (i *Interceptor) LookupMethodAuthz(fullMethod string) *authz.MethodAuthz {
 	return i.engine.LookupMethodAuthz(fullMethod)
@@ -120,6 +157,15 @@ func (i *Interceptor) SwapPolicy(p authz.Policy) error {
 // Close stops the policy file watcher if one was configured.
 func (i *Interceptor) Close() error {
 	return i.engine.Close()
+}
+
+func (i *Interceptor) shouldSkip(method string) bool {
+	for _, prefix := range i.skipPrefixes {
+		if strings.HasPrefix(method, prefix) {
+			return true
+		}
+	}
+	return false
 }
 
 func grpcError(a *authz.Engine, d *authz.Denial) error {

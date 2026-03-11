@@ -61,6 +61,20 @@ func (*testServer) ListWidgets(context.Context, *testv1.ListWidgetsRequest) (*te
 	}, nil
 }
 
+func (*testServer) SkippedMethod(context.Context, *testv1.SimpleRequest) (*testv1.SimpleResponse, error) {
+	return &testv1.SimpleResponse{}, nil
+}
+
+func (*testServer) ListWidgetsWithPreCheck(context.Context, *testv1.ListWidgetsRequest) (*testv1.ListWidgetsResponse, error) {
+	return &testv1.ListWidgetsResponse{
+		Widgets: []*testv1.Widget{
+			{Id: "widget-1", Name: "one"},
+			{Id: "widget-2", Name: "two"},
+			{Id: "widget-3", Name: "three"},
+		},
+	}, nil
+}
+
 func (*testServer) UnannotatedMethod(context.Context, *testv1.SimpleRequest) (*testv1.SimpleResponse, error) {
 	return &testv1.SimpleResponse{}, nil
 }
@@ -374,6 +388,123 @@ func TestGRPC_ListWidgets_NoIdentityDenied(t *testing.T) {
 	_, err := client.ListWidgets(context.Background(), &testv1.ListWidgetsRequest{})
 	if status.Code(err) != codes.Internal {
 		t.Fatalf("expected Internal, got %v", err)
+	}
+}
+
+// --- Skip authorization ---
+
+func TestGRPC_SkippedMethodAllowsAnyone(t *testing.T) {
+	client := startTestServer(t, realisticPolicy)
+	// No identity at all — still allowed because skip: true.
+	_, err := client.SkippedMethod(context.Background(), &testv1.SimpleRequest{})
+	if err != nil {
+		t.Fatalf("skipped method should allow unauthenticated: %v", err)
+	}
+}
+
+func TestGRPC_SkippedMethodResolves(t *testing.T) {
+	interceptor := newTestInterceptor(t, realisticPolicy)
+	ma := interceptor.LookupMethodAuthz("/authz.test.v1.TestService/SkippedMethod")
+	if ma == nil {
+		t.Fatal("expected non-nil MethodAuthz for skipped method")
+	}
+	if !ma.Skip {
+		t.Fatal("expected Skip to be true")
+	}
+}
+
+// --- Collection with pre-check (both method_authorization + collection_authorization) ---
+
+func TestGRPC_ListWithPreCheck_AdminSeesAll(t *testing.T) {
+	// Admin has test_list_perm at dataplane level — passes pre-check
+	// and all items pass per-item filter.
+	client := startTestServer(t, realisticPolicy)
+	resp, err := client.ListWidgetsWithPreCheck(ctxAs("stephan@redpanda.com"), &testv1.ListWidgetsRequest{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(resp.Widgets) != 3 {
+		t.Fatalf("expected 3 widgets, got %d", len(resp.Widgets))
+	}
+}
+
+func TestGRPC_ListWithPreCheck_NoPerm_Denied(t *testing.T) {
+	// User with no bindings — pre-check fails with PermissionDenied,
+	// never reaches the handler.
+	policy := authz.Policy{
+		Roles: []authz.Role{{ID: "Lister", Permissions: []authz.PermissionName{"test_list_perm"}}},
+	}
+	client := startTestServer(t, policy)
+	_, err := client.ListWidgetsWithPreCheck(ctxAs("nobody@redpanda.com"), &testv1.ListWidgetsRequest{})
+	if status.Code(err) != codes.PermissionDenied {
+		t.Fatalf("expected PermissionDenied from pre-check, got %v", err)
+	}
+}
+
+func TestGRPC_ListWithPreCheck_PerResource_FiltersAfterPreCheck(t *testing.T) {
+	// User has test_list_perm at dataplane level (passes pre-check)
+	// but per-item bindings only on widget-1 and widget-3.
+	policy := authz.Policy{
+		Roles: []authz.Role{{ID: "Lister", Permissions: []authz.PermissionName{"test_list_perm"}}},
+		Bindings: []authz.RoleBinding{
+			// Dataplane-level binding — passes the method_authorization pre-check.
+			{Role: "Lister", Principal: authz.UserPrincipal("alice@redpanda.com"), Scope: testDataplane},
+		},
+	}
+	client := startTestServer(t, policy)
+	resp, err := client.ListWidgetsWithPreCheck(ctxAs("alice@redpanda.com"), &testv1.ListWidgetsRequest{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Dataplane-level binding cascades to all sub-resources, so all 3 pass the per-item filter too.
+	if len(resp.Widgets) != 3 {
+		t.Fatalf("expected 3 widgets (dataplane binding cascades), got %d", len(resp.Widgets))
+	}
+}
+
+func TestGRPC_ListWithPreCheck_ResolvesBothAnnotations(t *testing.T) {
+	interceptor := newTestInterceptor(t, realisticPolicy)
+	ma := interceptor.LookupMethodAuthz("/authz.test.v1.TestService/ListWidgetsWithPreCheck")
+	if ma == nil {
+		t.Fatal("expected non-nil MethodAuthz")
+	}
+	if ma.Auth == nil {
+		t.Fatal("expected Auth (from method_authorization)")
+	}
+	if ma.Collection == nil {
+		t.Fatal("expected Collection (from collection_authorization)")
+	}
+	// Auth should NOT point to Collection.Each — they're from different annotations.
+	if ma.Auth == ma.Collection.GetEach() {
+		t.Fatal("Auth should be from method_authorization, not Collection.Each")
+	}
+	if ma.Auth.GetPermission() != "test_list_perm" {
+		t.Errorf("method_authorization permission: got %s, want test_list_perm", ma.Auth.GetPermission())
+	}
+	if ma.Collection.GetEach().GetPermission() != "test_list_perm" {
+		t.Errorf("collection_authorization permission: got %s, want test_list_perm", ma.Collection.GetEach().GetPermission())
+	}
+}
+
+// --- Collection only (no pre-check): existing ListWidgets behavior ---
+
+func TestGRPC_ListWidgets_CollectionOnly_PerResourceAllowed(t *testing.T) {
+	// collection_authorization only — no pre-check. User has per-resource
+	// binding only, not at dataplane level. Should still work (handler runs,
+	// then items are filtered).
+	policy := authz.Policy{
+		Roles: []authz.Role{{ID: "Lister", Permissions: []authz.PermissionName{"test_list_perm"}}},
+		Bindings: []authz.RoleBinding{
+			{Role: "Lister", Principal: authz.UserPrincipal("alice@redpanda.com"), Scope: testDataplane + "/widgets/widget-2"},
+		},
+	}
+	client := startTestServer(t, policy)
+	resp, err := client.ListWidgets(ctxAs("alice@redpanda.com"), &testv1.ListWidgetsRequest{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(resp.Widgets) != 1 || resp.Widgets[0].Id != "widget-2" {
+		t.Fatalf("expected [widget-2], got %v", resp.Widgets)
 	}
 }
 

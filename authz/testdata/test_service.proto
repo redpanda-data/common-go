@@ -50,6 +50,30 @@ service TestService {
     };
   }
 
+  // skip: true — explicitly exempt from authorization.
+  rpc SkippedMethod(SimpleRequest) returns (SimpleResponse) {
+    option (redpanda.api.common.v1.method_authorization) = {
+      skip: true
+    };
+  }
+
+  // Both method_authorization and collection_authorization — pre-call
+  // permission check AND post-call per-item filtering.
+  rpc ListWidgetsWithPreCheck(ListWidgetsRequest) returns (ListWidgetsResponse) {
+    option (redpanda.api.common.v1.method_authorization) = {
+      resource_type: "widgets"
+      permission: "test_list_perm"
+    };
+    option (redpanda.api.common.v1.collection_authorization) = {
+      collection_getter_cel: "response.widgets"
+      each: {
+        resource_type: "widgets"
+        id_getter_cel: "each.id"
+        permission: "test_list_perm"
+      }
+    };
+  }
+
   // No annotation — must be denied (fail-closed).
   rpc UnannotatedMethod(SimpleRequest) returns (SimpleResponse) {}
 }
