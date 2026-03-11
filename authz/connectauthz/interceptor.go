@@ -16,7 +16,6 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
-	"strings"
 
 	commonv1 "buf.build/gen/go/redpandadata/common/protocolbuffers/go/redpanda/api/common/v1"
 	"connectrpc.com/connect"
@@ -37,7 +36,8 @@ type Config struct {
 	// e.g. "organizations/{org}/resourcegroups/{rg}/dataplanes/{dp}".
 	ResourceName authz.ResourceName
 	// ExtractPrincipal extracts the caller's principal from request context
-	// and headers. Required.
+	// and HTTP headers. Required. The headers are curried per-request so the
+	// engine sees a standard context-only extractor.
 	ExtractPrincipal PrincipalExtractor
 	// Policy is the initial authorization policy. Mutually exclusive with PolicyWatch.
 	Policy authz.Policy
@@ -58,17 +58,17 @@ type Interceptor struct {
 	engine           *authz.Engine
 	extractPrincipal PrincipalExtractor
 	logger           *slog.Logger
-	skipPrefixes     []string
 }
 
 // New creates a Connect authorization interceptor.
 func New(cfg Config) (*Interceptor, error) {
 	engine, err := authz.NewEngine(authz.EngineConfig{
-		Logger:            cfg.Logger,
-		ResourceName:      cfg.ResourceName,
-		Policy:            cfg.Policy,
-		PolicyWatch: cfg.PolicyWatch,
-		Domain:      cfg.Domain,
+		Logger:       cfg.Logger,
+		ResourceName: cfg.ResourceName,
+		Policy:       cfg.Policy,
+		PolicyWatch:  cfg.PolicyWatch,
+		Domain:       cfg.Domain,
+		SkipPrefixes: cfg.SkipPrefixes,
 	})
 	if err != nil {
 		return nil, err
@@ -77,7 +77,7 @@ func New(cfg Config) (*Interceptor, error) {
 	if logger == nil {
 		logger = slog.Default()
 	}
-	return &Interceptor{engine: engine, extractPrincipal: cfg.ExtractPrincipal, logger: logger, skipPrefixes: cfg.SkipPrefixes}, nil
+	return &Interceptor{engine: engine, extractPrincipal: cfg.ExtractPrincipal, logger: logger}, nil
 }
 
 // SwapPolicy replaces the active policy. Safe for concurrent use.
@@ -94,7 +94,7 @@ func (i *Interceptor) Close() error {
 func (i *Interceptor) WrapUnary(next connect.UnaryFunc) connect.UnaryFunc {
 	return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
 		procedure := req.Spec().Procedure
-		if i.shouldSkip(procedure) {
+		if i.engine.ShouldSkip(procedure) {
 			return next(ctx, req)
 		}
 
@@ -140,7 +140,7 @@ func (*Interceptor) WrapStreamingClient(next connect.StreamingClientFunc) connec
 func (i *Interceptor) WrapStreamingHandler(next connect.StreamingHandlerFunc) connect.StreamingHandlerFunc {
 	return func(ctx context.Context, conn connect.StreamingHandlerConn) error {
 		procedure := conn.Spec().Procedure
-		if i.shouldSkip(procedure) {
+		if i.engine.ShouldSkip(procedure) {
 			return next(ctx, conn)
 		}
 
@@ -161,15 +161,6 @@ func (i *Interceptor) WrapStreamingHandler(next connect.StreamingHandlerFunc) co
 
 		return next(ctx, conn)
 	}
-}
-
-func (i *Interceptor) shouldSkip(procedure string) bool {
-	for _, prefix := range i.skipPrefixes {
-		if strings.HasPrefix(procedure, prefix) {
-			return true
-		}
-	}
-	return false
 }
 
 func connectError(a *authz.Engine, d *authz.Denial) *connect.Error {

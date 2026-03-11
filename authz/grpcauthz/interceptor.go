@@ -14,7 +14,6 @@ package grpcauthz
 import (
 	"context"
 	"log/slog"
-	"strings"
 
 	commonv1 "buf.build/gen/go/redpandadata/common/protocolbuffers/go/redpanda/api/common/v1"
 	"google.golang.org/grpc"
@@ -56,17 +55,17 @@ type Interceptor struct {
 	engine           *authz.Engine
 	extractPrincipal PrincipalExtractor
 	logger           *slog.Logger
-	skipPrefixes     []string
 }
 
 // New creates a gRPC authorization interceptor.
 func New(cfg Config) (*Interceptor, error) {
 	engine, err := authz.NewEngine(authz.EngineConfig{
-		Logger:            cfg.Logger,
-		ResourceName:      cfg.ResourceName,
-		Policy:            cfg.Policy,
-		PolicyWatch: cfg.PolicyWatch,
-		Domain:      cfg.Domain,
+		Logger:       cfg.Logger,
+		ResourceName: cfg.ResourceName,
+		Policy:       cfg.Policy,
+		PolicyWatch:  cfg.PolicyWatch,
+		Domain:       cfg.Domain,
+		SkipPrefixes: cfg.SkipPrefixes,
 	})
 	if err != nil {
 		return nil, err
@@ -75,13 +74,13 @@ func New(cfg Config) (*Interceptor, error) {
 	if logger == nil {
 		logger = slog.Default()
 	}
-	return &Interceptor{engine: engine, extractPrincipal: cfg.ExtractPrincipal, logger: logger, skipPrefixes: cfg.SkipPrefixes}, nil
+	return &Interceptor{engine: engine, extractPrincipal: cfg.ExtractPrincipal, logger: logger}, nil
 }
 
 // Unary returns a gRPC unary server interceptor.
 func (i *Interceptor) Unary() grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
-		if i.shouldSkip(info.FullMethod) {
+		if i.engine.ShouldSkip(info.FullMethod) {
 			return handler(ctx, req)
 		}
 
@@ -121,7 +120,7 @@ func (i *Interceptor) Unary() grpc.UnaryServerInterceptor {
 // applicable to streaming RPCs.
 func (i *Interceptor) Stream() grpc.StreamServerInterceptor {
 	return func(srv any, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
-		if i.shouldSkip(info.FullMethod) {
+		if i.engine.ShouldSkip(info.FullMethod) {
 			return handler(srv, ss)
 		}
 
@@ -157,15 +156,6 @@ func (i *Interceptor) SwapPolicy(p authz.Policy) error {
 // Close stops the policy file watcher if one was configured.
 func (i *Interceptor) Close() error {
 	return i.engine.Close()
-}
-
-func (i *Interceptor) shouldSkip(method string) bool {
-	for _, prefix := range i.skipPrefixes {
-		if strings.HasPrefix(method, prefix) {
-			return true
-		}
-	}
-	return false
 }
 
 func grpcError(a *authz.Engine, d *authz.Denial) error {

@@ -63,6 +63,9 @@ type EngineConfig struct {
 	// Files is the proto file registry used to resolve method annotations.
 	// Defaults to protoregistry.GlobalFiles if nil.
 	Files *protoregistry.Files
+	// SkipPrefixes is a list of method/procedure prefixes that bypass
+	// authorization entirely (e.g. "/grpc.health.v1.Health/", "/grpc.reflection.").
+	SkipPrefixes []string
 }
 
 // MethodAuthz holds the resolved authorization info for a gRPC/Connect method.
@@ -91,6 +94,7 @@ type Engine struct {
 	resourceName   ResourceName
 	domain         string
 	files          *protoregistry.Files
+	skipPrefixes   []string
 	unwatch        func() error // non-nil when PolicyFile is used
 
 	// authzCache caches proto descriptor lookups: fullMethod -> *MethodAuthz.
@@ -184,6 +188,7 @@ func NewEngine(cfg EngineConfig) (*Engine, error) {
 		resourceName: cfg.ResourceName,
 		domain:       domain,
 		files:        files,
+		skipPrefixes: cfg.SkipPrefixes,
 		unwatch:      unwatch,
 	}
 	i.resourcePolicy.Store(rp)
@@ -213,6 +218,16 @@ func (a *Engine) Close() error {
 		return a.unwatch()
 	}
 	return nil
+}
+
+// ShouldSkip returns true if the method matches a configured skip prefix.
+func (a *Engine) ShouldSkip(method string) bool {
+	for _, prefix := range a.skipPrefixes {
+		if strings.HasPrefix(method, prefix) {
+			return true
+		}
+	}
+	return false
 }
 
 // DenialKind classifies authorization failures.
@@ -263,7 +278,6 @@ func DenialErrorInfo(domain, reason string, d *Denial) *errdetails.ErrorInfo {
 		Metadata: md,
 	}
 }
-
 
 // CheckAccess is the shared authorization core used by both gRPC and Connect
 // interceptors. It returns nil on success, or a *Denial on failure.
