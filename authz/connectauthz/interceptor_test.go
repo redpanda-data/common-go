@@ -7,10 +7,11 @@
 // the Business Source License, use of this software will be governed
 // by the Apache License, Version 2.0
 
-package connectinterceptor_test
+package connectauthz_test
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"net"
 	"net/http"
@@ -18,9 +19,10 @@ import (
 	"testing"
 
 	"connectrpc.com/connect"
+	"google.golang.org/genproto/googleapis/rpc/errdetails"
 
 	"github.com/redpanda-data/common-go/authz"
-	"github.com/redpanda-data/common-go/authz/connectinterceptor"
+	"github.com/redpanda-data/common-go/authz/connectauthz"
 	testv1 "github.com/redpanda-data/common-go/authz/testdata/gen"
 	"github.com/redpanda-data/common-go/authz/testdata/gen/testv1connect"
 )
@@ -118,13 +120,10 @@ func startConnectTestServerWithInterceptor(t testing.TB, policy authz.Policy) (t
 	t.Helper()
 	l := slog.Default()
 
-	// PrincipalExtractor here is a dummy — the Connect interceptor uses
-	// connectinterceptor.PrincipalExtractor from the config override.
 	interceptor, err := authz.NewInterceptor(authz.InterceptorConfig{
-		Logger:           l,
-		ResourceName:     testDataplane,
-		ExtractPrincipal: func(context.Context) (authz.PrincipalID, bool) { return "", false },
-		Policy:           policy,
+		Logger:       l,
+		ResourceName: testDataplane,
+		Policy:       policy,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -133,7 +132,7 @@ func startConnectTestServerWithInterceptor(t testing.TB, policy authz.Policy) (t
 	mux := http.NewServeMux()
 	path, handler := testv1connect.NewTestServiceHandler(
 		&connectTestHandler{},
-		connect.WithInterceptors(connectinterceptor.New(interceptor, connectinterceptor.Config{
+		connect.WithInterceptors(connectauthz.New(interceptor, connectauthz.Config{
 			ExtractPrincipal: connectTestExtractor,
 		})),
 	)
@@ -494,35 +493,36 @@ func TestConnect_ConcurrentRequestsAndSwaps(t *testing.T) {
 
 type ctxKey struct{}
 
-func TestConnect_FallbackExtractor(t *testing.T) {
+func TestConnect_ContextBasedExtractor(t *testing.T) {
 	l := slog.Default()
 
-	// Core extractor reads principal from context value (set by HTTP middleware).
 	interceptor, err := authz.NewInterceptor(authz.InterceptorConfig{
 		Logger:       l,
 		ResourceName: testDataplane,
-		ExtractPrincipal: func(ctx context.Context) (authz.PrincipalID, bool) {
-			v, ok := ctx.Value(ctxKey{}).(string)
-			if !ok || v == "" {
-				return "", false
-			}
-			return authz.UserPrincipal(v), true
-		},
-		Policy: realisticPolicy,
+		Policy:       realisticPolicy,
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// Use New() without Config — triggers the fallback wrapper that
-	// delegates to the context-only PrincipalExtractor.
+	// Context-based extractor that ignores headers — reads from context
+	// value set by upstream HTTP middleware.
+	ctxExtractor := func(ctx context.Context, _ http.Header) (authz.PrincipalID, bool) {
+		v, ok := ctx.Value(ctxKey{}).(string)
+		if !ok || v == "" {
+			return "", false
+		}
+		return authz.UserPrincipal(v), true
+	}
+
 	mux := http.NewServeMux()
 	path, handler := testv1connect.NewTestServiceHandler(
 		&connectTestHandler{},
-		connect.WithInterceptors(connectinterceptor.New(interceptor)),
+		connect.WithInterceptors(connectauthz.New(interceptor, connectauthz.Config{
+			ExtractPrincipal: ctxExtractor,
+		})),
 	)
-	// Wrap handler with middleware that reads the header and injects into context.
-	// This simulates real auth middleware that runs before the interceptor.
+	// Middleware injects principal into context from header.
 	wrappedHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if v := r.Header.Get(testPrincipalMDKey); v != "" {
 			r = r.WithContext(context.WithValue(r.Context(), ctxKey{}, v))
@@ -542,16 +542,119 @@ func TestConnect_FallbackExtractor(t *testing.T) {
 
 	client := testv1connect.NewTestServiceClient(http.DefaultClient, "http://"+ln.Addr().String())
 
-	// Principal passed via header -> middleware puts it in context -> fallback extractor finds it.
+	// Principal passed via header -> middleware puts it in context -> extractor finds it.
 	_, err = client.SimpleMethod(context.Background(), connectReqAs("stephan@redpanda.com", &testv1.SimpleRequest{}))
 	if err != nil {
-		t.Fatalf("fallback extractor should grant via context: %v", err)
+		t.Fatalf("context-based extractor should grant via context: %v", err)
 	}
 
 	// No header — context has no value — should fail.
 	_, err = client.SimpleMethod(context.Background(), connect.NewRequest(&testv1.SimpleRequest{}))
 	if connect.CodeOf(err) != connect.CodeInternal {
 		t.Fatalf("expected Internal without context principal, got %v", err)
+	}
+}
+
+// --- Error details ---
+
+func TestConnect_DenialErrorDetails(t *testing.T) {
+	client := startConnectTestServer(t, realisticPolicy)
+
+	tests := []struct {
+		name       string
+		call       func() error
+		wantCode   connect.Code
+		wantReason string
+		wantMeta   map[string]string
+	}{
+		{
+			name: "forbidden",
+			call: func() error {
+				_, err := client.GetWidget(context.Background(), connectReqAs("intern@redpanda.com", &testv1.GetWidgetRequest{Id: "w1"}))
+				return err
+			},
+			wantCode:   connect.CodePermissionDenied,
+			wantReason: "REASON_PERMISSION_DENIED",
+			wantMeta: map[string]string{
+				"method":        "/authz.test.v1.TestService/GetWidget",
+				"permission":    "test_scoped_perm",
+				"principal":     "User:intern@redpanda.com",
+				"resource_type": "widgets",
+				"resource_id":   string(testDataplane) + "/widgets/w1",
+			},
+		},
+		{
+			name: "empty_resource_id",
+			call: func() error {
+				_, err := client.GetWidget(context.Background(), connectReqAs("stephan@redpanda.com", &testv1.GetWidgetRequest{Id: ""}))
+				return err
+			},
+			wantCode:   connect.CodeInvalidArgument,
+			wantReason: "REASON_INVALID_INPUT",
+			wantMeta: map[string]string{
+				"method":        "/authz.test.v1.TestService/GetWidget",
+				"permission":    "test_scoped_perm",
+				"principal":     "User:stephan@redpanda.com",
+				"resource_type": "widgets",
+			},
+		},
+		{
+			name: "unknown_method",
+			call: func() error {
+				_, err := client.UnannotatedMethod(context.Background(), connectReqAs("stephan@redpanda.com", &testv1.SimpleRequest{}))
+				return err
+			},
+			wantCode:   connect.CodePermissionDenied,
+			wantReason: "REASON_PERMISSION_DENIED",
+			wantMeta: map[string]string{
+				"method":    "/authz.test.v1.TestService/UnannotatedMethod",
+				"principal": "User:stephan@redpanda.com",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.call()
+			connectErr := new(connect.Error)
+			if !errors.As(err, &connectErr) {
+				t.Fatalf("expected connect.Error, got %v", err)
+			}
+			if connectErr.Code() != tt.wantCode {
+				t.Fatalf("expected code %v, got %v", tt.wantCode, connectErr.Code())
+			}
+			assertConnectErrorInfo(t, connectErr, tt.wantReason, tt.wantMeta)
+		})
+	}
+}
+
+func assertConnectErrorInfo(t *testing.T, connectErr *connect.Error, wantReason string, wantMeta map[string]string) {
+	t.Helper()
+	details := connectErr.Details()
+	if len(details) == 0 {
+		t.Fatal("expected error details, got none")
+	}
+	val, err := details[0].Value()
+	if err != nil {
+		t.Fatalf("failed to unmarshal detail: %v", err)
+	}
+	info, ok := val.(*errdetails.ErrorInfo)
+	if !ok {
+		t.Fatalf("expected ErrorInfo, got %T", val)
+	}
+	if info.Reason != wantReason {
+		t.Errorf("reason: got %s, want %s", info.Reason, wantReason)
+	}
+	if info.Domain != "redpanda.com" {
+		t.Errorf("domain: got %s, want redpanda.com", info.Domain)
+	}
+	if len(info.Metadata) != len(wantMeta) {
+		t.Errorf("metadata length: got %d, want %d\n  got:  %v\n  want: %v", len(info.Metadata), len(wantMeta), info.Metadata, wantMeta)
+	}
+	for k, want := range wantMeta {
+		if got := info.Metadata[k]; got != want {
+			t.Errorf("metadata[%q]: got %q, want %q", k, got, want)
+		}
 	}
 }
 

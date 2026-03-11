@@ -7,16 +7,17 @@
 // the Business Source License, use of this software will be governed
 // by the Apache License, Version 2.0
 
-// Package connectinterceptor provides a Connect interceptor that enforces
+// Package connectauthz provides a Connect interceptor that enforces
 // policy-based authorization using [authz.Interceptor].
-package connectinterceptor
+package connectauthz
 
 import (
 	"context"
 	"errors"
-	"fmt"
+	"log/slog"
 	"net/http"
 
+	commonv1 "buf.build/gen/go/redpandadata/common/protocolbuffers/go/redpanda/api/common/v1"
 	"connectrpc.com/connect"
 
 	"github.com/redpanda-data/common-go/authz"
@@ -30,31 +31,28 @@ type PrincipalExtractor func(ctx context.Context, headers http.Header) (authz.Pr
 // Config configures the Connect authorization interceptor.
 type Config struct {
 	// ExtractPrincipal extracts the caller's principal from request context
-	// and headers. If nil, falls back to the Interceptor's PrincipalExtractor
-	// (ignoring headers).
+	// and headers. Required.
 	ExtractPrincipal PrincipalExtractor
+	// Logger for authorization events. If nil, slog.Default() is used.
+	Logger *slog.Logger
 }
 
 // New returns a connect.Interceptor that enforces policy-based
 // authorization on Connect RPCs. It reuses the same Interceptor core
 // (proto annotation discovery, policy evaluation, atomic policy swaps)
 // as the gRPC interceptor.
-func New(a *authz.Interceptor, opts ...Config) connect.Interceptor {
-	var extractor PrincipalExtractor
-	if len(opts) > 0 && opts[0].ExtractPrincipal != nil {
-		extractor = opts[0].ExtractPrincipal
-	} else {
-		ctxExtractor := a.ExtractPrincipal()
-		extractor = func(ctx context.Context, _ http.Header) (authz.PrincipalID, bool) {
-			return ctxExtractor(ctx)
-		}
+func New(a *authz.Interceptor, cfg Config) connect.Interceptor {
+	logger := cfg.Logger
+	if logger == nil {
+		logger = slog.Default()
 	}
-	return &connectAuthzInterceptor{core: a, extractPrincipal: extractor}
+	return &connectAuthzInterceptor{core: a, extractPrincipal: cfg.ExtractPrincipal, logger: logger}
 }
 
 type connectAuthzInterceptor struct {
 	core             *authz.Interceptor
 	extractPrincipal PrincipalExtractor
+	logger           *slog.Logger
 }
 
 func (c *connectAuthzInterceptor) WrapUnary(next connect.UnaryFunc) connect.UnaryFunc {
@@ -66,13 +64,13 @@ func (c *connectAuthzInterceptor) WrapUnary(next connect.UnaryFunc) connect.Unar
 
 		principal, ok := c.extractPrincipal(ctx, req.Header())
 		if !ok {
-			c.core.Logger().Warn("No identity in context, denying access", "method", procedure)
+			c.logger.Warn("No identity in context, denying access", "method", procedure)
 			return nil, connect.NewError(connect.CodeInternal, errors.New("no identity in context"))
 		}
 
 		ma := c.core.LookupMethodAuthz(procedure)
 		if denial := c.core.CheckAccess(ctx, procedure, principal, ma, req.Any()); denial != nil {
-			return nil, connectError(denial)
+			return nil, connectError(c.core, denial)
 		}
 
 		resp, err := next(ctx, req)
@@ -82,7 +80,7 @@ func (c *connectAuthzInterceptor) WrapUnary(next connect.UnaryFunc) connect.Unar
 
 		if ma != nil && ma.Collection != nil {
 			if err := c.core.FilterCollection(ma, principal, resp.Any()); err != nil {
-				c.core.Logger().Error("collection filtering failed", "method", procedure, "error", err)
+				c.logger.Error("collection filtering failed", "method", procedure, "error", err)
 				return nil, connect.NewError(connect.CodeInternal, errors.New("authorization filter error"))
 			}
 		}
@@ -91,15 +89,27 @@ func (c *connectAuthzInterceptor) WrapUnary(next connect.UnaryFunc) connect.Unar
 	}
 }
 
-func connectError(d *authz.Denial) *connect.Error {
+func connectError(a *authz.Interceptor, d *authz.Denial) *connect.Error {
+	var code connect.Code
+	var reason string
 	switch d.Kind {
 	case authz.DenialUnknownMethod, authz.DenialForbidden:
-		return connect.NewError(connect.CodePermissionDenied, fmt.Errorf("%s", d.Message))
+		code = connect.CodePermissionDenied
+		reason = commonv1.Reason_REASON_PERMISSION_DENIED.String()
 	case authz.DenialEmptyResourceID:
-		return connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("%s", d.Message))
+		code = connect.CodeInvalidArgument
+		reason = commonv1.Reason_REASON_INVALID_INPUT.String()
 	default:
-		return connect.NewError(connect.CodeInternal, fmt.Errorf("%s", d.Message))
+		code = connect.CodeInternal
+		reason = commonv1.Reason_REASON_SERVER_ERROR.String()
 	}
+
+	connectErr := connect.NewError(code, errors.New(d.Message))
+	info := authz.DenialErrorInfo(a.Domain(), reason, d)
+	if detail, err := connect.NewErrorDetail(info); err == nil {
+		connectErr.AddDetail(detail)
+	}
+	return connectErr
 }
 
 func (*connectAuthzInterceptor) WrapStreamingClient(next connect.StreamingClientFunc) connect.StreamingClientFunc {

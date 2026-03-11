@@ -23,6 +23,7 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	otelcodes "go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
+	"google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/reflect/protoregistry"
@@ -30,9 +31,6 @@ import (
 )
 
 var tracer = otel.Tracer("github.com/redpanda-data/common-go/authz")
-
-// PrincipalExtractor extracts a principal from the request context.
-type PrincipalExtractor func(ctx context.Context) (PrincipalID, bool)
 
 // PolicyWatchFunc loads the initial policy and watches for changes.
 // It returns the initial policy, an unwatch function, and any error.
@@ -47,8 +45,6 @@ type InterceptorConfig struct {
 	// ResourceName is the base scope path for policy evaluation,
 	// e.g. "organizations/{org}/resourcegroups/{rg}/dataplanes/{dp}".
 	ResourceName ResourceName
-	// ExtractPrincipal extracts the caller's principal from the request context.
-	ExtractPrincipal PrincipalExtractor
 	// Policy is the initial authorization policy. Mutually exclusive with PolicyWatch.
 	Policy Policy
 	// PolicyWatch loads the initial policy and watches for changes, hot-reloading
@@ -66,6 +62,9 @@ type InterceptorConfig struct {
 	// These are merged with any permissions discovered from proto annotations.
 	// Keys are gRPC full method names (e.g. "/package.Service/Method").
 	MethodPermissions map[string]PermissionName
+	// Domain is the error domain for structured error details (e.g. "redpanda.com").
+	// Defaults to "redpanda.com" if empty.
+	Domain string
 }
 
 // MethodAuthz holds the resolved authorization info for a gRPC/Connect method.
@@ -85,26 +84,31 @@ type MethodAuthz struct {
 // (method_authorization or required_permission) and enforces them
 // against the authorization policy.
 type Interceptor struct {
-	logger           *slog.Logger
-	resourcePolicy   atomic.Pointer[ResourcePolicy]
-	allPerms         []PermissionName
-	resourceName     ResourceName
-	extractPrincipal PrincipalExtractor
-	unwatch          func() error // non-nil when PolicyFile is used
+	logger         *slog.Logger
+	resourcePolicy atomic.Pointer[ResourcePolicy]
+	allPerms       []PermissionName
+	resourceName   ResourceName
+	domain         string
+	unwatch        func() error // non-nil when PolicyFile is used
 
 	// authzCache caches proto descriptor lookups: fullMethod -> *MethodAuthz.
 	// nil means "looked up but no annotation found" (deny).
 	authzCache sync.Map
 }
 
-// Logger returns the interceptor's logger.
-func (a *Interceptor) Logger() *slog.Logger {
-	return a.logger
+// Domain returns the error domain for structured error details.
+func (a *Interceptor) Domain() string {
+	return a.domain
 }
 
-// ExtractPrincipal returns the interceptor's principal extractor.
-func (a *Interceptor) ExtractPrincipal() PrincipalExtractor {
-	return a.extractPrincipal
+// qualifiedResourceID returns the fully qualified resource path,
+// e.g. "organizations/.../dataplanes/xxx/widgets/widget-123".
+// Returns the bare resourceID if resourceType is empty or resourceID is empty.
+func (a *Interceptor) qualifiedResourceID(resourceType, resourceID string) string {
+	if resourceType == "" || resourceID == "" {
+		return resourceID
+	}
+	return string(a.resourceName.Child(ResourceType(resourceType), ResourceID(resourceID)))
 }
 
 // NewInterceptor creates a new policy-based authorization interceptor.
@@ -118,10 +122,6 @@ func (a *Interceptor) ExtractPrincipal() PrincipalExtractor {
 // When PolicyWatch is set, the interceptor watches for policy changes and
 // hot-reloads automatically. Call [Interceptor.Close] to stop watching.
 func NewInterceptor(cfg InterceptorConfig) (*Interceptor, error) {
-	if cfg.ExtractPrincipal == nil {
-		return nil, errors.New("principal extractor must not be nil")
-	}
-
 	logger := cfg.Logger
 	if logger == nil {
 		logger = slog.Default()
@@ -191,12 +191,17 @@ func NewInterceptor(cfg InterceptorConfig) (*Interceptor, error) {
 		return nil, fmt.Errorf("failed to create resource policy: %w", err)
 	}
 
+	domain := cfg.Domain
+	if domain == "" {
+		domain = "redpanda.com"
+	}
+
 	i := &Interceptor{
-		logger:           logger,
-		allPerms:         allPerms,
-		resourceName:     cfg.ResourceName,
-		extractPrincipal: cfg.ExtractPrincipal,
-		unwatch:          unwatch,
+		logger:       logger,
+		allPerms:     allPerms,
+		resourceName: cfg.ResourceName,
+		domain:       domain,
+		unwatch:      unwatch,
 	}
 	i.resourcePolicy.Store(rp)
 	iptr = i // Wire up the callback's reference.
@@ -252,9 +257,39 @@ const (
 
 // Denial is a structured authorization failure returned by CheckAccess.
 type Denial struct {
-	Kind    DenialKind
-	Method  string
-	Message string
+	Kind         DenialKind
+	Method       string
+	Message      string
+	Permission   string
+	Principal    PrincipalID
+	ResourceType string
+	ResourceID   string
+}
+
+// DenialErrorInfo builds an [errdetails.ErrorInfo] from a Denial.
+// Used by transport adapters to attach structured error details.
+func DenialErrorInfo(domain, reason string, d *Denial) *errdetails.ErrorInfo {
+	md := make(map[string]string)
+	if d.Method != "" {
+		md["method"] = d.Method
+	}
+	if d.Permission != "" {
+		md["permission"] = d.Permission
+	}
+	if d.Principal != "" {
+		md["principal"] = string(d.Principal)
+	}
+	if d.ResourceType != "" {
+		md["resource_type"] = d.ResourceType
+	}
+	if d.ResourceID != "" {
+		md["resource_id"] = d.ResourceID
+	}
+	return &errdetails.ErrorInfo{
+		Reason:   reason,
+		Domain:   domain,
+		Metadata: md,
+	}
 }
 
 // ShouldSkip returns true if the method should bypass authorization.
@@ -273,7 +308,7 @@ func ShouldSkip(method string) bool {
 func (a *Interceptor) CheckAccess(ctx context.Context, method string, principal PrincipalID, ma *MethodAuthz, reqMsg any) *Denial {
 	if ma == nil {
 		a.logger.Warn("No permission annotation, denying access (fail-closed)", "method", method)
-		return &Denial{Kind: DenialUnknownMethod, Method: method, Message: fmt.Sprintf("unknown method %s", method)}
+		return &Denial{Kind: DenialUnknownMethod, Method: method, Principal: principal, Message: fmt.Sprintf("unknown method %s", method)}
 	}
 
 	// Collection methods do no pre-call authorization — the principal may only
@@ -303,7 +338,14 @@ func (a *Interceptor) CheckAccess(ctx context.Context, method string, principal 
 			a.logger.Warn("Empty resource ID from request, denying",
 				"method", method,
 				"id_getter_cel", cel)
-			return &Denial{Kind: DenialEmptyResourceID, Method: method, Message: "resource ID is required"}
+			return &Denial{
+				Kind:         DenialEmptyResourceID,
+				Method:       method,
+				Message:      "resource ID is required",
+				Permission:   perm,
+				Principal:    principal,
+				ResourceType: ma.Auth.GetResourceType(),
+			}
 		}
 		span.SetAttributes(
 			attribute.String("rp.authz.resource_type", ma.Auth.GetResourceType()),
@@ -327,9 +369,13 @@ func (a *Interceptor) CheckAccess(ctx context.Context, method string, principal 
 			"permission", perm,
 			"principal", string(principal))
 		return &Denial{
-			Kind:    DenialForbidden,
-			Method:  method,
-			Message: fmt.Sprintf("principal %s lacks permission %s", principal, perm),
+			Kind:         DenialForbidden,
+			Method:       method,
+			Message:      fmt.Sprintf("principal %s lacks permission %s", principal, perm),
+			Permission:   perm,
+			Principal:    principal,
+			ResourceType: ma.Auth.GetResourceType(),
+			ResourceID:   a.qualifiedResourceID(ma.Auth.GetResourceType(), resourceID),
 		}
 	}
 

@@ -7,7 +7,7 @@
 // the Business Source License, use of this software will be governed
 // by the Apache License, Version 2.0
 
-package grpcinterceptor_test
+package grpcauthz_test
 
 import (
 	"context"
@@ -16,6 +16,7 @@ import (
 	"sync"
 	"testing"
 
+	"google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
@@ -23,7 +24,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/redpanda-data/common-go/authz"
-	"github.com/redpanda-data/common-go/authz/grpcinterceptor"
+	"github.com/redpanda-data/common-go/authz/grpcauthz"
 	testv1 "github.com/redpanda-data/common-go/authz/testdata/gen"
 )
 
@@ -122,10 +123,9 @@ func startTestServer(t *testing.T, policy authz.Policy) testv1.TestServiceClient
 	l := slog.Default()
 
 	interceptor, err := authz.NewInterceptor(authz.InterceptorConfig{
-		Logger:           l,
-		ResourceName:     testDataplane,
-		ExtractPrincipal: testExtractor,
-		Policy:           policy,
+		Logger:       l,
+		ResourceName: testDataplane,
+		Policy:       policy,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -137,7 +137,7 @@ func startTestServer(t *testing.T, policy authz.Policy) testv1.TestServiceClient
 		t.Fatal(err)
 	}
 
-	srv := grpc.NewServer(grpc.ChainUnaryInterceptor(grpcinterceptor.UnaryServerInterceptor(interceptor)))
+	srv := grpc.NewServer(grpc.ChainUnaryInterceptor(grpcauthz.UnaryServerInterceptor(interceptor, grpcauthz.Config{ExtractPrincipal: testExtractor})))
 	testv1.RegisterTestServiceServer(srv, &testServer{})
 	go func() { _ = srv.Serve(ln) }()
 	t.Cleanup(srv.GracefulStop)
@@ -155,10 +155,9 @@ func startTestServerWithInterceptor(t *testing.T, policy authz.Policy) (testv1.T
 	l := slog.Default()
 
 	interceptor, err := authz.NewInterceptor(authz.InterceptorConfig{
-		Logger:           l,
-		ResourceName:     testDataplane,
-		ExtractPrincipal: testExtractor,
-		Policy:           policy,
+		Logger:       l,
+		ResourceName: testDataplane,
+		Policy:       policy,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -170,7 +169,7 @@ func startTestServerWithInterceptor(t *testing.T, policy authz.Policy) (testv1.T
 		t.Fatal(err)
 	}
 
-	srv := grpc.NewServer(grpc.ChainUnaryInterceptor(grpcinterceptor.UnaryServerInterceptor(interceptor)))
+	srv := grpc.NewServer(grpc.ChainUnaryInterceptor(grpcauthz.UnaryServerInterceptor(interceptor, grpcauthz.Config{ExtractPrincipal: testExtractor})))
 	testv1.RegisterTestServiceServer(srv, &testServer{})
 	go func() { _ = srv.Serve(ln) }()
 	t.Cleanup(srv.GracefulStop)
@@ -200,10 +199,9 @@ func TestDiscoverPermissions(t *testing.T) {
 	// that the core module can discover permissions from annotations.
 	l := slog.Default()
 	interceptor, err := authz.NewInterceptor(authz.InterceptorConfig{
-		Logger:           l,
-		ResourceName:     testDataplane,
-		ExtractPrincipal: testExtractor,
-		Policy:           realisticPolicy,
+		Logger:       l,
+		ResourceName: testDataplane,
+		Policy:       realisticPolicy,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -226,10 +224,9 @@ func TestDiscoverPermissions(t *testing.T) {
 func TestResolveAnnotations(t *testing.T) {
 	l := slog.Default()
 	interceptor, err := authz.NewInterceptor(authz.InterceptorConfig{
-		Logger:           l,
-		ResourceName:     testDataplane,
-		ExtractPrincipal: testExtractor,
-		Policy:           realisticPolicy,
+		Logger:       l,
+		ResourceName: testDataplane,
+		Policy:       realisticPolicy,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -628,20 +625,115 @@ func TestGRPC_ConcurrentRequestsAndSwaps(t *testing.T) {
 	// If we get here without a race detector complaint, we're good.
 }
 
+// --- Error details ---
+
+func TestGRPC_DenialErrorDetails(t *testing.T) {
+	client := startTestServer(t, realisticPolicy)
+
+	tests := []struct {
+		name       string
+		call       func() error
+		wantCode   codes.Code
+		wantReason string
+		wantMeta   map[string]string
+	}{
+		{
+			name: "forbidden",
+			call: func() error {
+				_, err := client.GetWidget(ctxAs("intern@redpanda.com"), &testv1.GetWidgetRequest{Id: "w1"})
+				return err
+			},
+			wantCode:   codes.PermissionDenied,
+			wantReason: "REASON_PERMISSION_DENIED",
+			wantMeta: map[string]string{
+				"method":        "/authz.test.v1.TestService/GetWidget",
+				"permission":    "test_scoped_perm",
+				"principal":     "User:intern@redpanda.com",
+				"resource_type": "widgets",
+				"resource_id":   string(testDataplane) + "/widgets/w1",
+			},
+		},
+		{
+			name: "empty_resource_id",
+			call: func() error {
+				_, err := client.GetWidget(ctxAs("stephan@redpanda.com"), &testv1.GetWidgetRequest{Id: ""})
+				return err
+			},
+			wantCode:   codes.InvalidArgument,
+			wantReason: "REASON_INVALID_INPUT",
+			wantMeta: map[string]string{
+				"method":        "/authz.test.v1.TestService/GetWidget",
+				"permission":    "test_scoped_perm",
+				"principal":     "User:stephan@redpanda.com",
+				"resource_type": "widgets",
+			},
+		},
+		{
+			name: "unknown_method",
+			call: func() error {
+				_, err := client.UnannotatedMethod(ctxAs("stephan@redpanda.com"), &testv1.SimpleRequest{})
+				return err
+			},
+			wantCode:   codes.PermissionDenied,
+			wantReason: "REASON_PERMISSION_DENIED",
+			wantMeta: map[string]string{
+				"method":    "/authz.test.v1.TestService/UnannotatedMethod",
+				"principal": "User:stephan@redpanda.com",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.call()
+			st, ok := status.FromError(err)
+			if !ok {
+				t.Fatalf("expected status error, got %v", err)
+			}
+			if st.Code() != tt.wantCode {
+				t.Fatalf("expected code %v, got %v", tt.wantCode, st.Code())
+			}
+
+			details := st.Details()
+			if len(details) == 0 {
+				t.Fatal("expected error details, got none")
+			}
+
+			info, ok := details[0].(*errdetails.ErrorInfo)
+			if !ok {
+				t.Fatalf("expected ErrorInfo, got %T", details[0])
+			}
+			if info.Reason != tt.wantReason {
+				t.Errorf("reason: got %s, want %s", info.Reason, tt.wantReason)
+			}
+			if info.Domain != "redpanda.com" {
+				t.Errorf("domain: got %s, want redpanda.com", info.Domain)
+			}
+			if len(info.Metadata) != len(tt.wantMeta) {
+				t.Errorf("metadata length: got %d, want %d\n  got:  %v\n  want: %v", len(info.Metadata), len(tt.wantMeta), info.Metadata, tt.wantMeta)
+			}
+			for k, want := range tt.wantMeta {
+				if got := info.Metadata[k]; got != want {
+					t.Errorf("metadata[%q]: got %q, want %q", k, got, want)
+				}
+			}
+		})
+	}
+}
+
 // --- Benchmarks ---
 
 func BenchmarkInterceptor_SimplePermission(b *testing.B) {
 	l := slog.New(slog.DiscardHandler)
 	interceptor, err := authz.NewInterceptor(authz.InterceptorConfig{
-		Logger:           l,
-		ResourceName:     testDataplane,
-		ExtractPrincipal: testExtractor,
-		Policy:           realisticPolicy,
+		Logger:       l,
+		ResourceName: testDataplane,
+		Policy:       realisticPolicy,
 	})
 	if err != nil {
 		b.Fatal(err)
 	}
-	h := grpcinterceptor.UnaryServerInterceptor(interceptor)
+	h := grpcauthz.UnaryServerInterceptor(interceptor, grpcauthz.Config{ExtractPrincipal: testExtractor})
 	ctx := ctxAsIncoming("stephan@redpanda.com")
 	info := srvInfo("/authz.test.v1.TestService/SimpleMethod")
 
@@ -655,15 +747,14 @@ func BenchmarkInterceptor_SimplePermission(b *testing.B) {
 func BenchmarkInterceptor_ScopedPermission(b *testing.B) {
 	l := slog.New(slog.DiscardHandler)
 	interceptor, err := authz.NewInterceptor(authz.InterceptorConfig{
-		Logger:           l,
-		ResourceName:     testDataplane,
-		ExtractPrincipal: testExtractor,
-		Policy:           realisticPolicy,
+		Logger:       l,
+		ResourceName: testDataplane,
+		Policy:       realisticPolicy,
 	})
 	if err != nil {
 		b.Fatal(err)
 	}
-	h := grpcinterceptor.UnaryServerInterceptor(interceptor)
+	h := grpcauthz.UnaryServerInterceptor(interceptor, grpcauthz.Config{ExtractPrincipal: testExtractor})
 	ctx := ctxAsIncoming("stephan@redpanda.com")
 	info := srvInfo("/authz.test.v1.TestService/GetWidget")
 	req := &testv1.GetWidgetRequest{Id: "widget-abc"}
@@ -678,15 +769,14 @@ func BenchmarkInterceptor_ScopedPermission(b *testing.B) {
 func BenchmarkInterceptor_NestedFieldPath(b *testing.B) {
 	l := slog.New(slog.DiscardHandler)
 	interceptor, err := authz.NewInterceptor(authz.InterceptorConfig{
-		Logger:           l,
-		ResourceName:     testDataplane,
-		ExtractPrincipal: testExtractor,
-		Policy:           realisticPolicy,
+		Logger:       l,
+		ResourceName: testDataplane,
+		Policy:       realisticPolicy,
 	})
 	if err != nil {
 		b.Fatal(err)
 	}
-	h := grpcinterceptor.UnaryServerInterceptor(interceptor)
+	h := grpcauthz.UnaryServerInterceptor(interceptor, grpcauthz.Config{ExtractPrincipal: testExtractor})
 	ctx := ctxAsIncoming("stephan@redpanda.com")
 	info := srvInfo("/authz.test.v1.TestService/UpdateWidget")
 	req := &testv1.UpdateWidgetRequest{Widget: &testv1.Widget{Id: "widget-abc"}}
@@ -701,15 +791,14 @@ func BenchmarkInterceptor_NestedFieldPath(b *testing.B) {
 func BenchmarkInterceptor_Denied(b *testing.B) {
 	l := slog.New(slog.DiscardHandler)
 	interceptor, err := authz.NewInterceptor(authz.InterceptorConfig{
-		Logger:           l,
-		ResourceName:     testDataplane,
-		ExtractPrincipal: testExtractor,
-		Policy:           realisticPolicy,
+		Logger:       l,
+		ResourceName: testDataplane,
+		Policy:       realisticPolicy,
 	})
 	if err != nil {
 		b.Fatal(err)
 	}
-	h := grpcinterceptor.UnaryServerInterceptor(interceptor)
+	h := grpcauthz.UnaryServerInterceptor(interceptor, grpcauthz.Config{ExtractPrincipal: testExtractor})
 	ctx := ctxAsIncoming("random@attacker.com")
 	info := srvInfo("/authz.test.v1.TestService/SimpleMethod")
 
@@ -723,15 +812,14 @@ func BenchmarkInterceptor_Denied(b *testing.B) {
 func BenchmarkInterceptor_Parallel(b *testing.B) {
 	l := slog.New(slog.DiscardHandler)
 	interceptor, err := authz.NewInterceptor(authz.InterceptorConfig{
-		Logger:           l,
-		ResourceName:     testDataplane,
-		ExtractPrincipal: testExtractor,
-		Policy:           realisticPolicy,
+		Logger:       l,
+		ResourceName: testDataplane,
+		Policy:       realisticPolicy,
 	})
 	if err != nil {
 		b.Fatal(err)
 	}
-	h := grpcinterceptor.UnaryServerInterceptor(interceptor)
+	h := grpcauthz.UnaryServerInterceptor(interceptor, grpcauthz.Config{ExtractPrincipal: testExtractor})
 	info := srvInfo("/authz.test.v1.TestService/GetWidget")
 	req := &testv1.GetWidgetRequest{Id: "widget-abc"}
 
