@@ -21,6 +21,7 @@ import (
 	"google.golang.org/genproto/googleapis/rpc/errdetails"
 
 	"github.com/redpanda-data/common-go/authz"
+	"github.com/redpanda-data/common-go/authz/authzcore"
 	"github.com/redpanda-data/common-go/authz/connectauthz"
 	testv1 "github.com/redpanda-data/common-go/authz/testdata/gen"
 	"github.com/redpanda-data/common-go/authz/testdata/gen/testv1connect"
@@ -128,7 +129,7 @@ func newTestInterceptor(t testing.TB, policy authz.Policy) *connectauthz.Interce
 	interceptor, err := connectauthz.New(
 		testDataplane,
 		connectTestExtractor,
-		authz.StaticPolicy(policy),
+		authzcore.StaticPolicy(policy),
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -638,7 +639,7 @@ func TestConnect_ContextBasedExtractor(t *testing.T) {
 	interceptor, err := connectauthz.New(
 		testDataplane,
 		ctxExtractor,
-		authz.StaticPolicy(realisticPolicy),
+		authzcore.StaticPolicy(realisticPolicy),
 	)
 	if err != nil {
 		t.Fatal(err)

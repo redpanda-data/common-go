@@ -86,13 +86,13 @@ type Interceptor struct {
 //
 // extractPrincipal extracts the caller's identity from the request context and headers.
 //
-// policy provides the initial authorization policy. Use [authz.PolicyWatchFunc]
+// policy provides the initial authorization policy. Use [authzcore.PolicyWatchFunc]
 // wrapped in a closure for hot-reloading, or pass a static [authz.Policy] via
-// [authz.StaticPolicy].
+// [authzcore.StaticPolicy].
 func New(
 	resourceName authz.ResourceName,
 	extractPrincipal PrincipalExtractor,
-	policy authz.PolicyWatchFunc,
+	policy authzcore.PolicyWatchFunc,
 	opts ...Option,
 ) (*Interceptor, error) {
 	o := &options{}
@@ -120,7 +120,7 @@ func New(
 }
 
 // LookupMethodAuthz resolves a method name to its authorization info.
-func (i *Interceptor) LookupMethodAuthz(procedure string) *authz.MethodAuthz {
+func (i *Interceptor) LookupMethodAuthz(procedure string) *authzcore.MethodAuthz {
 	return i.base.LookupMethodAuthz(procedure)
 }
 
@@ -208,17 +208,17 @@ func (i *Interceptor) WrapStreamingHandler(next connect.StreamingHandlerFunc) co
 	}
 }
 
-func connectError(b *authzcore.Base, d *authz.Denial) *connect.Error {
+func connectError(b *authzcore.Base, d *authzcore.Denial) *connect.Error {
 	var code connect.Code
 	var reason string
 	switch d.Kind {
-	case authz.DenialUnknownMethod:
+	case authzcore.DenialUnknownMethod:
 		code = connect.CodeFailedPrecondition
 		reason = commonv1.Reason_REASON_INVALID_INPUT.String()
-	case authz.DenialForbidden:
+	case authzcore.DenialForbidden:
 		code = connect.CodePermissionDenied
 		reason = commonv1.Reason_REASON_PERMISSION_DENIED.String()
-	case authz.DenialEmptyResourceID:
+	case authzcore.DenialEmptyResourceID:
 		code = connect.CodeInvalidArgument
 		reason = commonv1.Reason_REASON_INVALID_INPUT.String()
 	default:
@@ -227,7 +227,7 @@ func connectError(b *authzcore.Base, d *authz.Denial) *connect.Error {
 	}
 
 	connectErr := connect.NewError(code, errors.New(d.Message))
-	info := authz.DenialErrorInfo(b.Domain(), reason, d)
+	info := authzcore.DenialErrorInfo(b.Domain(), reason, d)
 	if detail, err := connect.NewErrorDetail(info); err == nil {
 		connectErr.AddDetail(detail)
 	}

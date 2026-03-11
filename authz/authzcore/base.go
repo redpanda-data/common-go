@@ -25,6 +25,7 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	otelcodes "go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
+	"google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/reflect/protoregistry"
@@ -32,6 +33,93 @@ import (
 
 	"github.com/redpanda-data/common-go/authz"
 )
+
+// PolicyWatchFunc loads the initial policy and watches for changes.
+// It returns the initial policy, an unwatch function, and any error.
+// The callback is invoked on policy changes after the initial load.
+// This matches the signature of [loader.WatchPolicyFile].
+type PolicyWatchFunc func(callback func(authz.Policy, error)) (authz.Policy, func() error, error)
+
+// StaticPolicy wraps a static [authz.Policy] into a [PolicyWatchFunc] that returns
+// the policy immediately with no file watching. Useful for tests and
+// configurations where hot-reloading is not needed.
+func StaticPolicy(p authz.Policy) PolicyWatchFunc {
+	return func(_ func(authz.Policy, error)) (authz.Policy, func() error, error) {
+		return p, func() error { return nil }, nil
+	}
+}
+
+// MethodAuthz holds the resolved authorization info for a gRPC/Connect method.
+// For single-resource RPCs, Auth is populated directly.
+// For collection RPCs (List), Collection is populated and Auth points to Collection.Each.
+//
+// When CollectionOnly is true, the interceptor skips the pre-call permission
+// check and defers to per-item filtering via FilterCollection. When both
+// method_authorization and collection_authorization are set on the same RPC,
+// CollectionOnly is false — the pre-call check runs AND the response is filtered.
+type MethodAuthz struct {
+	// Auth is the per-method authorization from the proto annotation.
+	Auth *commonv1.MethodAuthorization
+	// Collection is set for List RPCs with collection_authorization.
+	Collection *commonv1.CollectionAuthorization
+	// CollectionOnly is true when only collection_authorization is set
+	// (no method_authorization). The pre-call check is skipped.
+	CollectionOnly bool
+	// Skip is set when the method has skip: true in method_authorization.
+	// The interceptor passes through without any permission check.
+	Skip bool
+}
+
+// DenialKind classifies authorization failures.
+type DenialKind int
+
+const (
+	// DenialUnknown is the zero value and should not be used.
+	DenialUnknown DenialKind = iota
+	// DenialUnknownMethod indicates no annotation was found for the method.
+	DenialUnknownMethod
+	// DenialEmptyResourceID indicates a required resource ID was empty.
+	DenialEmptyResourceID
+	// DenialForbidden indicates the principal lacks the required permission.
+	DenialForbidden
+)
+
+// Denial is a structured authorization failure returned by CheckAccess.
+type Denial struct {
+	Kind         DenialKind
+	Method       string
+	Message      string
+	Permission   string
+	Principal    authz.PrincipalID
+	ResourceType string
+	ResourceID   string
+}
+
+// DenialErrorInfo builds an [errdetails.ErrorInfo] from a Denial.
+// Used by transport adapters to attach structured error details.
+func DenialErrorInfo(domain, reason string, d *Denial) *errdetails.ErrorInfo {
+	md := make(map[string]string)
+	if d.Method != "" {
+		md["method"] = d.Method
+	}
+	if d.Permission != "" {
+		md["permission"] = d.Permission
+	}
+	if d.Principal != "" {
+		md["principal"] = string(d.Principal)
+	}
+	if d.ResourceType != "" {
+		md["resource_type"] = d.ResourceType
+	}
+	if d.ResourceID != "" {
+		md["resource_id"] = d.ResourceID
+	}
+	return &errdetails.ErrorInfo{
+		Reason:   reason,
+		Domain:   domain,
+		Metadata: md,
+	}
+}
 
 // Config configures the authorization base.
 type Config struct {
@@ -43,7 +131,7 @@ type Config struct {
 	// PolicyWatch loads the initial policy and watches for changes, hot-reloading
 	// automatically. Call [Base.Close] to stop watching.
 	// Use [authz.StaticPolicy] to wrap a static policy when hot-reloading is not needed.
-	PolicyWatch authz.PolicyWatchFunc
+	PolicyWatch PolicyWatchFunc
 	// Domain is the error domain for structured error details (e.g. "redpanda.com").
 	// Defaults to "redpanda.com" if empty.
 	Domain string
@@ -74,7 +162,7 @@ type Base struct {
 	closeOnce      sync.Once
 	unwatch        func() error
 
-	// authzCache caches proto descriptor lookups: fullMethod -> *authz.MethodAuthz.
+	// authzCache caches proto descriptor lookups: fullMethod -> *MethodAuthz.
 	authzCache sync.Map
 }
 
@@ -208,13 +296,13 @@ func (b *Base) ShouldSkip(method string) bool {
 // CheckAccess is the shared authorization core used by both gRPC and Connect
 // interceptors. It returns nil on success, or a *Denial on failure.
 // The ma parameter may be nil (looked up externally to allow reuse).
-func (b *Base) CheckAccess(ctx context.Context, method string, principal authz.PrincipalID, ma *authz.MethodAuthz, reqMsg any) *authz.Denial {
+func (b *Base) CheckAccess(ctx context.Context, method string, principal authz.PrincipalID, ma *MethodAuthz, reqMsg any) *Denial {
 	if ma == nil {
 		b.logger.Warn("Authorization denied",
 			"method", method,
 			"principal", string(principal),
 			"reason", "unknown_method")
-		return &authz.Denial{Kind: authz.DenialUnknownMethod, Method: method, Principal: principal, Message: fmt.Sprintf("unknown method %s", method)}
+		return &Denial{Kind: DenialUnknownMethod, Method: method, Principal: principal, Message: fmt.Sprintf("unknown method %s", method)}
 	}
 	if ma.Skip {
 		b.logger.Info("Authorization skipped",
@@ -257,8 +345,8 @@ func (b *Base) CheckAccess(ctx context.Context, method string, principal authz.P
 				"permission", perm,
 				"reason", "empty_resource_id",
 				"id_getter_cel", cel)
-			return &authz.Denial{
-				Kind:         authz.DenialEmptyResourceID,
+			return &Denial{
+				Kind:         DenialEmptyResourceID,
 				Method:       method,
 				Message:      "resource ID is required",
 				Permission:   perm,
@@ -290,8 +378,8 @@ func (b *Base) CheckAccess(ctx context.Context, method string, principal authz.P
 			"resource_type", ma.Auth.GetResourceType(),
 			"resource_id", resourceID,
 			"reason", "forbidden")
-		return &authz.Denial{
-			Kind:         authz.DenialForbidden,
+		return &Denial{
+			Kind:         DenialForbidden,
 			Method:       method,
 			Message:      fmt.Sprintf("principal %s lacks permission %s", principal, perm),
 			Permission:   perm,
@@ -312,7 +400,7 @@ func (b *Base) CheckAccess(ctx context.Context, method string, principal authz.P
 // FilterCollection removes items from a response collection that the principal
 // lacks permission for. Returns an error if the collection annotation is
 // misconfigured (fail-closed: caller must not return the unfiltered response).
-func (b *Base) FilterCollection(ma *authz.MethodAuthz, principal authz.PrincipalID, resp any) error {
+func (b *Base) FilterCollection(ma *MethodAuthz, principal authz.PrincipalID, resp any) error {
 	if ma.Collection == nil || ma.Collection.GetEach() == nil {
 		return errors.New("authz: FilterCollection called on non-collection method")
 	}
@@ -382,9 +470,9 @@ func (b *Base) FilterCollection(ma *authz.MethodAuthz, principal authz.Principal
 
 // LookupMethodAuthz resolves a gRPC full method name to its authorization info.
 // Results are cached. Returns nil if no annotation found.
-func (b *Base) LookupMethodAuthz(fullMethod string) *authz.MethodAuthz {
+func (b *Base) LookupMethodAuthz(fullMethod string) *MethodAuthz {
 	if v, ok := b.authzCache.Load(fullMethod); ok {
-		if ma, ok := v.(*authz.MethodAuthz); ok {
+		if ma, ok := v.(*MethodAuthz); ok {
 			return ma
 		}
 		return nil
@@ -401,7 +489,7 @@ func (b *Base) qualifiedResourceID(resourceType, resourceID string) string {
 	return string(b.resourceName.Child(authz.ResourceType(resourceType), authz.ResourceID(resourceID)))
 }
 
-func (b *Base) resolveMethodAuthz(fullMethod string) *authz.MethodAuthz {
+func (b *Base) resolveMethodAuthz(fullMethod string) *MethodAuthz {
 	parts := strings.Split(strings.TrimPrefix(fullMethod, "/"), "/")
 	if len(parts) != 2 {
 		return nil
@@ -434,16 +522,16 @@ func (b *Base) resolveMethodAuthz(fullMethod string) *authz.MethodAuthz {
 	return extractMethodAuthz(methodOpts)
 }
 
-func extractMethodAuthz(methodOpts *descriptorpb.MethodOptions) *authz.MethodAuthz {
-	var result *authz.MethodAuthz
+func extractMethodAuthz(methodOpts *descriptorpb.MethodOptions) *MethodAuthz {
+	var result *MethodAuthz
 
 	if ext := proto.GetExtension(methodOpts, commonv1.E_MethodAuthorization); ext != nil {
 		if ma, ok := ext.(*commonv1.MethodAuthorization); ok && ma != nil {
 			if ma.GetSkip() {
-				return &authz.MethodAuthz{Skip: true}
+				return &MethodAuthz{Skip: true}
 			}
 			if ma.GetPermission() != "" {
-				result = &authz.MethodAuthz{Auth: ma}
+				result = &MethodAuthz{Auth: ma}
 			}
 		}
 	}
@@ -456,7 +544,7 @@ func extractMethodAuthz(methodOpts *descriptorpb.MethodOptions) *authz.MethodAut
 				result.Collection = ca
 			} else {
 				// Collection only: skip pre-call check, filter post-call.
-				result = &authz.MethodAuthz{Auth: ca.GetEach(), Collection: ca, CollectionOnly: true}
+				result = &MethodAuthz{Auth: ca.GetEach(), Collection: ca, CollectionOnly: true}
 			}
 		}
 	}
@@ -467,7 +555,7 @@ func extractMethodAuthz(methodOpts *descriptorpb.MethodOptions) *authz.MethodAut
 
 	if ext := proto.GetExtension(methodOpts, commonv1.E_RequiredPermission); ext != nil {
 		if perms, ok := ext.([]string); ok && len(perms) > 0 {
-			return &authz.MethodAuthz{Auth: &commonv1.MethodAuthorization{Permission: perms[0]}}
+			return &MethodAuthz{Auth: &commonv1.MethodAuthorization{Permission: perms[0]}}
 		}
 	}
 

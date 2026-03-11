@@ -84,13 +84,13 @@ type Interceptor struct {
 //
 // extractPrincipal extracts the caller's identity from the gRPC request context.
 //
-// policy provides the initial authorization policy. Use [authz.PolicyWatchFunc]
+// policy provides the initial authorization policy. Use [authzcore.PolicyWatchFunc]
 // wrapped in a closure for hot-reloading, or pass a static [authz.Policy] via
-// [authz.StaticPolicy].
+// [authzcore.StaticPolicy].
 func New(
 	resourceName authz.ResourceName,
 	extractPrincipal PrincipalExtractor,
-	policy authz.PolicyWatchFunc,
+	policy authzcore.PolicyWatchFunc,
 	opts ...Option,
 ) (*Interceptor, error) {
 	o := &options{}
@@ -184,7 +184,7 @@ func (i *Interceptor) Stream() grpc.StreamServerInterceptor {
 }
 
 // LookupMethodAuthz resolves a method name to its authorization info.
-func (i *Interceptor) LookupMethodAuthz(fullMethod string) *authz.MethodAuthz {
+func (i *Interceptor) LookupMethodAuthz(fullMethod string) *authzcore.MethodAuthz {
 	return i.base.LookupMethodAuthz(fullMethod)
 }
 
@@ -198,17 +198,17 @@ func (i *Interceptor) Close() error {
 	return i.base.Close()
 }
 
-func grpcError(b *authzcore.Base, d *authz.Denial) error {
+func grpcError(b *authzcore.Base, d *authzcore.Denial) error {
 	var code codes.Code
 	var reason string
 	switch d.Kind {
-	case authz.DenialUnknownMethod:
+	case authzcore.DenialUnknownMethod:
 		code = codes.FailedPrecondition
 		reason = commonv1.Reason_REASON_INVALID_INPUT.String()
-	case authz.DenialForbidden:
+	case authzcore.DenialForbidden:
 		code = codes.PermissionDenied
 		reason = commonv1.Reason_REASON_PERMISSION_DENIED.String()
-	case authz.DenialEmptyResourceID:
+	case authzcore.DenialEmptyResourceID:
 		code = codes.InvalidArgument
 		reason = commonv1.Reason_REASON_INVALID_INPUT.String()
 	default:
@@ -216,7 +216,7 @@ func grpcError(b *authzcore.Base, d *authz.Denial) error {
 		reason = commonv1.Reason_REASON_SERVER_ERROR.String()
 	}
 
-	st, err := status.New(code, d.Message).WithDetails(authz.DenialErrorInfo(b.Domain(), reason, d))
+	st, err := status.New(code, d.Message).WithDetails(authzcore.DenialErrorInfo(b.Domain(), reason, d))
 	if err != nil {
 		return status.Error(code, d.Message)
 	}

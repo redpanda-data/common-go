@@ -23,6 +23,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/redpanda-data/common-go/authz"
+	"github.com/redpanda-data/common-go/authz/authzcore"
 	"github.com/redpanda-data/common-go/authz/grpcauthz"
 	testv1 "github.com/redpanda-data/common-go/authz/testdata/gen"
 )
@@ -136,7 +137,7 @@ func newTestInterceptor(t testing.TB, policy authz.Policy) *grpcauthz.Intercepto
 	interceptor, err := grpcauthz.New(
 		testDataplane,
 		testExtractor,
-		authz.StaticPolicy(policy),
+		authzcore.StaticPolicy(policy),
 	)
 	if err != nil {
 		t.Fatal(err)
