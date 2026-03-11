@@ -105,7 +105,7 @@ func (i *Interceptor) WrapUnary(next connect.UnaryFunc) connect.UnaryFunc {
 
 		principal, ok := i.extractPrincipal(ctx, req.Header())
 		if !ok {
-			i.logger.Warn("No identity in context, denying access", "method", procedure)
+			i.logger.Warn("Authorization denied", "method", procedure, "reason", "no_identity")
 			return nil, connect.NewError(connect.CodeInternal, errors.New("no identity in context"))
 		}
 
@@ -151,7 +151,7 @@ func (i *Interceptor) WrapStreamingHandler(next connect.StreamingHandlerFunc) co
 
 		principal, ok := i.extractPrincipal(ctx, conn.RequestHeader())
 		if !ok {
-			i.logger.Warn("No identity in context, denying access", "method", procedure)
+			i.logger.Warn("Authorization denied", "method", procedure, "reason", "no_identity")
 			return connect.NewError(connect.CodeInternal, errors.New("no identity in context"))
 		}
 

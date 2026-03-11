@@ -91,7 +91,7 @@ func (i *Interceptor) Unary() grpc.UnaryServerInterceptor {
 
 		principal, ok := i.extractPrincipal(ctx)
 		if !ok {
-			i.logger.Warn("No identity in context, denying access", "method", info.FullMethod)
+			i.logger.Warn("Authorization denied", "method", info.FullMethod, "reason", "no_identity")
 			return nil, status.Error(codes.Internal, "no identity in context")
 		}
 
@@ -131,7 +131,7 @@ func (i *Interceptor) Stream() grpc.StreamServerInterceptor {
 
 		principal, ok := i.extractPrincipal(ss.Context())
 		if !ok {
-			i.logger.Warn("No identity in context, denying access", "method", info.FullMethod)
+			i.logger.Warn("Authorization denied", "method", info.FullMethod, "reason", "no_identity")
 			return status.Error(codes.Internal, "no identity in context")
 		}
 

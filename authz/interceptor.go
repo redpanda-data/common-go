@@ -160,7 +160,9 @@ func NewEngine(cfg EngineConfig) (*Engine, error) {
 				logger.Error("Failed to apply reloaded authorization policy", "error", swapErr)
 				return
 			}
-			logger.Info("Authorization policy reloaded")
+			logger.Info("Authorization policy reloaded",
+				"roles", len(p.Roles),
+				"bindings", len(p.Bindings))
 		})
 		if err != nil {
 			return nil, fmt.Errorf("failed to load policy: %w", err)
@@ -196,7 +198,9 @@ func NewEngine(cfg EngineConfig) (*Engine, error) {
 
 	logger.Info("Authorization interceptor initialized",
 		"resource", string(cfg.ResourceName),
-		"permissions", len(allPerms))
+		"permissions", len(allPerms),
+		"roles", len(policy.Roles),
+		"bindings", len(policy.Bindings))
 
 	return i, nil
 }
@@ -284,10 +288,15 @@ func DenialErrorInfo(domain, reason string, d *Denial) *errdetails.ErrorInfo {
 // The ma parameter may be nil (looked up externally to allow reuse).
 func (a *Engine) CheckAccess(ctx context.Context, method string, principal PrincipalID, ma *MethodAuthz, reqMsg any) *Denial {
 	if ma == nil {
-		a.logger.Warn("No permission annotation, denying access (fail-closed)", "method", method)
+		a.logger.Warn("Authorization denied",
+			"method", method,
+			"principal", string(principal),
+			"reason", "unknown_method")
 		return &Denial{Kind: DenialUnknownMethod, Method: method, Principal: principal, Message: fmt.Sprintf("unknown method %s", method)}
 	}
 	if ma.Skip {
+		a.logger.Info("Authorization skipped",
+			"method", method)
 		return nil
 	}
 
@@ -297,6 +306,9 @@ func (a *Engine) CheckAccess(ctx context.Context, method string, principal Princ
 	// the call. When both method_authorization and collection_authorization are
 	// present, the pre-call check runs AND the response is filtered post-call.
 	if ma.Collection != nil && ma.Auth == ma.Collection.GetEach() {
+		a.logger.Info("Authorization deferred to collection filter",
+			"method", method,
+			"principal", string(principal))
 		return nil
 	}
 
@@ -317,8 +329,11 @@ func (a *Engine) CheckAccess(ctx context.Context, method string, principal Princ
 		if resourceID == "" {
 			span.SetAttributes(attribute.String("rp.authz.decision", "denied"))
 			span.SetStatus(otelcodes.Error, "empty resource ID")
-			a.logger.Warn("Empty resource ID from request, denying",
+			a.logger.Warn("Authorization denied",
 				"method", method,
+				"principal", string(principal),
+				"permission", perm,
+				"reason", "empty_resource_id",
 				"id_getter_cel", cel)
 			return &Denial{
 				Kind:         DenialEmptyResourceID,
@@ -348,8 +363,11 @@ func (a *Engine) CheckAccess(ctx context.Context, method string, principal Princ
 		span.SetStatus(otelcodes.Error, "permission denied")
 		a.logger.Warn("Authorization denied",
 			"method", method,
+			"principal", string(principal),
 			"permission", perm,
-			"principal", string(principal))
+			"resource_type", ma.Auth.GetResourceType(),
+			"resource_id", resourceID,
+			"reason", "forbidden")
 		return &Denial{
 			Kind:         DenialForbidden,
 			Method:       method,
@@ -362,6 +380,10 @@ func (a *Engine) CheckAccess(ctx context.Context, method string, principal Princ
 	}
 
 	span.SetAttributes(attribute.String("rp.authz.decision", "granted"))
+	a.logger.Info("Authorization granted",
+		"method", method,
+		"principal", string(principal),
+		"permission", perm)
 	return nil
 }
 
