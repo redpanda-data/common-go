@@ -6,7 +6,88 @@ import "google/protobuf/descriptor.proto";
 
 option go_package = "buf.build/gen/go/redpandadata/common/protocolbuffers/go/redpanda/api/common/v1;commonv1";
 
-// Option used by protoc-gen-permissions
 extend google.protobuf.MethodOptions {
+  // required_permission is a simple permission string required to call this method.
+  // Use this for methods that don't need per-resource scoping.
+  //
+  // e.g.:
+  //   option (redpanda.api.common.v1.required_permission) = "dataplane_pipeline_create";
   repeated string required_permission = 15351;
+
+  // method_authorization defines the permission and resource extraction
+  // for single-resource RPCs (create, get, update, delete, start, stop).
+  // Can also be used to skip authorization entirely via the skip field.
+  //
+  // When used together with collection_authorization on the same RPC,
+  // the interceptor performs BOTH a pre-call permission check (using this
+  // annotation) AND post-call per-item filtering (using collection_authorization).
+  //
+  // e.g.:
+  //   option (redpanda.api.common.v1.method_authorization) = {
+  //     resource_type: "pipelines",
+  //     id_getter_cel: "request.pipeline.id",
+  //     permission: "dataplane_pipeline_create"
+  //   };
+  MethodAuthorization method_authorization = 15355;
+
+  // collection_authorization defines per-item filtering for list RPCs that
+  // return collections of resources. After the handler runs, items the
+  // principal lacks permission for are removed from the response.
+  //
+  // When used alone, the pre-call permission check is skipped — the principal
+  // may only have permission on specific resources, not at the parent level.
+  // When used together with method_authorization, the pre-call check also runs.
+  //
+  // e.g.:
+  //   option (redpanda.api.common.v1.collection_authorization) = {
+  //     collection_getter_cel: "response.pipelines",
+  //     each: {
+  //       resource_type: "pipelines",
+  //       id_getter_cel: "each.id",
+  //       permission: "dataplane_pipeline_list"
+  //     }
+  //   };
+  CollectionAuthorization collection_authorization = 15356;
+
+}
+
+// MethodAuthorization defines the authorization requirements for a single-resource RPC.
+message MethodAuthorization {
+  // resource_type is the type segment appended to the base resource path,
+  // e.g. "pipelines", "aiagents", "mcpservers", "knowledgebases".
+  string resource_type = 1;
+
+  // id_getter_cel is a CEL expression to extract the resource ID from the request.
+  // Available variables:
+  //   - request: the request proto message
+  //
+  // e.g. "request.id", "request.pipeline.name", "request.name"
+  // Empty string means the permission applies at the base resource level
+  // (no sub-resource scoping).
+  string id_getter_cel = 2;
+
+  // permission is the permission name to check.
+  //
+  // e.g. "dataplane_pipeline_create", "dataplane_aiagent_get"
+  string permission = 3;
+
+  // skip exempts this method from authorization. The interceptor passes
+  // through without any permission check. Use for RPCs that must remain
+  // open (e.g. health checks on the same gRPC server).
+  //
+  // e.g.:
+  //   option (redpanda.api.common.v1.method_authorization) = { skip: true };
+  bool skip = 4;
+}
+
+// CollectionAuthorization defines authorization for list RPCs returning collections.
+message CollectionAuthorization {
+  // collection_getter_cel is a CEL expression to extract the collection
+  // from the response message.
+  //
+  // e.g. "response.pipelines", "response.agents"
+  string collection_getter_cel = 1;
+
+  // each defines the permission check applied to each element in the collection.
+  MethodAuthorization each = 2;
 }

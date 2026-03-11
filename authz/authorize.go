@@ -127,7 +127,7 @@ func NewResourcePolicy(
 	for _, binding := range p.Bindings {
 		// Validate that the role exists
 		if _, ok := roleByID[binding.Role]; !ok {
-			return &ResourcePolicy{}, fmt.Errorf("missing role %q for binding", binding.Role)
+			return nil, fmt.Errorf("missing role %q for binding", binding.Role)
 		}
 		scope := binding.Scope
 		if scope.HasWildcard() {

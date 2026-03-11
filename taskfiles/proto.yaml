@@ -63,5 +63,8 @@ tasks:
         {{ .PATH_PREFIX }} buf generate buf.build/redpandadata/dataplane --path redpanda/api/dataplane/v1alpha3 --path redpanda/api/dataplane/v1 --template buf.gen.mcp.yaml
         {{ .PATH_PREFIX }} buf generate buf.build/redpandadata/cloud --path redpanda/api/controlplane/v1 --path redpanda/api/iam/v1 --template buf.gen.mcp.yaml
         {{ .PATH_PREFIX }} buf generate buf.build/redpandadata/ai-gateway --path redpanda/api/aigateway/v1 --template buf.gen.mcp.yaml
+      - rm -rf authz/testdata/gen
+      - |
+        cd authz/testdata && {{ .PATH_PREFIX }} buf generate
       - task: :fmt
       

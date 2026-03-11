@@ -1,0 +1,10 @@
+version: v2
+modules:
+  - path: .
+deps:
+  - buf.build/redpandadata/common
+lint:
+  use:
+    - STANDARD
+  except:
+    - PACKAGE_DIRECTORY_MATCH
