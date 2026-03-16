@@ -4,6 +4,7 @@ modules:
     name: buf.build/redpandadata/common
     includes:
       - proto/redpanda/api
+      - proto/redpanda/policymaterializer
     lint:
       except:
         - PACKAGE_DIRECTORY_MATCH
@@ -15,12 +16,6 @@ modules:
       except:
         - PACKAGE_DIRECTORY_MATCH
         - ENUM_ZERO_VALUE_SUFFIX
-  - path: proto
-    includes:
-      - proto/redpanda/policymaterializer
-    lint:
-      except:
-        - PACKAGE_DIRECTORY_MATCH
 deps:
   - buf.build/googleapis/googleapis
 lint:
