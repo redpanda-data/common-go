@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+package redpanda.policymaterializer.v1;
+
+// Note: go_package is overridden in buf.gen.yaml managed.override to use the
+// local module path (github.com/redpanda-data/common-go/proto/gen/go/...).
+option go_package = "github.com/redpanda-data/common-go/proto/gen/go/redpanda/policymaterializer/v1;policymaterializerv1";
+
+// PolicyMaterializerService exposes the latest DataplanePolicy from the
+// _redpanda.policy-sync topic to in-cluster consumers.
+service PolicyMaterializerService {
+  // WatchPolicy streams the current policy immediately on connect, then keeps
+  // the stream open and pushes a new message on every policy update.
+  rpc WatchPolicy(WatchPolicyRequest) returns (stream WatchPolicyResponse);
+}
+
+message WatchPolicyRequest {}
+
+message WatchPolicyResponse {
+  DataplanePolicy policy = 1;
+}
+
+// DataplanePolicy mirrors redpanda.backoffice.v1.DataplanePolicy in cloudv2.
+// The wire format is identical; both sides must keep the field numbers in sync.
+message DataplanePolicy {
+  repeated DataplaneRole roles = 1;
+  repeated DataplaneRoleBinding bindings = 2;
+}
+
+message DataplaneRole {
+  string id = 1;
+  repeated string permissions = 2;
+}
+
+message DataplaneRoleBinding {
+  string role_id = 1;
+  string principal = 2;
+  string scope = 3;
+}
