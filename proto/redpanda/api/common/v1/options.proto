@@ -48,7 +48,6 @@ extend google.protobuf.MethodOptions {
   //     }
   //   };
   CollectionAuthorization collection_authorization = 15356;
-
 }
 
 // MethodAuthorization defines the authorization requirements for a single-resource RPC.
