@@ -14,12 +14,14 @@
 package testv1connect
 
 import (
-	connect "connectrpc.com/connect"
 	context "context"
 	errors "errors"
-	gen "github.com/redpanda-data/common-go/authz/testdata/gen"
 	http "net/http"
 	strings "strings"
+
+	connect "connectrpc.com/connect"
+
+	gen "github.com/redpanda-data/common-go/authz/testdata/gen"
 )
 
 // This is a compile-time assertion to ensure that this generated file and the connect package are

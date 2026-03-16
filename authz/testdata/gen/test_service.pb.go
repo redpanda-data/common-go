@@ -16,12 +16,13 @@
 package testv1
 
 import (
-	_ "buf.build/gen/go/redpandadata/common/protocolbuffers/go/redpanda/api/common/v1"
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
+
+	_ "buf.build/gen/go/redpandadata/common/protocolbuffers/go/redpanda/api/common/v1"
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
 
 const (
