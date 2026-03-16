@@ -2,8 +2,6 @@ syntax = "proto3";
 
 package redpanda.policymaterializer.v1;
 
-// Note: go_package is overridden in buf.gen.yaml managed.override to use the
-// local module path (github.com/redpanda-data/common-go/proto/gen/go/...).
 option go_package = "github.com/redpanda-data/common-go/proto/gen/go/redpanda/policymaterializer/v1;policymaterializerv1";
 
 // PolicyMaterializerService exposes the latest DataplanePolicy from the
