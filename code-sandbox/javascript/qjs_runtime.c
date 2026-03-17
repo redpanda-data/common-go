@@ -54,17 +54,26 @@ static void setup_console(JSContext *ctx) {
 }
 
 /*
+ * Maximum number of compiled scripts per runtime instance
+ */
+#define MAX_COMPILED_SCRIPTS 256
+
+/*
  * QJSRuntime structure
  *
  * Encapsulates both the JSRuntime and JSContext for simplified API usage.
  * - rt: The QuickJS runtime instance
  * - ctx: The JavaScript execution context
  * - next_function_id: Counter for assigning function IDs
+ * - compiled_scripts: Array of compiled bytecode values (NULL if slot is free)
+ * - next_compiled_id: Next ID to assign to a compiled script
  */
 typedef struct {
   JSRuntime *rt;
   JSContext *ctx;
   int next_function_id;
+  JSValue *compiled_scripts[MAX_COMPILED_SCRIPTS];
+  int next_compiled_id;
 } QJSRuntime;
 
 /*
@@ -101,6 +110,10 @@ QJSRuntime *runtime_init(void) {
 
   // Initialize function ID counter
   runtime->next_function_id = 0;
+
+  // Initialize compiled scripts storage
+  runtime->next_compiled_id = 0;
+  memset(runtime->compiled_scripts, 0, sizeof(runtime->compiled_scripts));
 
   // Setup minimal console.log support
   setup_console(runtime->ctx);
@@ -341,6 +354,15 @@ void runtime_free(QJSRuntime *runtime) {
     return;
   }
 
+  // Free all compiled scripts
+  for (int i = 0; i < MAX_COMPILED_SCRIPTS; i++) {
+    if (runtime->compiled_scripts[i]) {
+      JS_FreeValue(runtime->ctx, *runtime->compiled_scripts[i]);
+      free(runtime->compiled_scripts[i]);
+      runtime->compiled_scripts[i] = NULL;
+    }
+  }
+
   if (runtime->ctx) {
     JS_FreeContext(runtime->ctx);
   }
@@ -350,6 +372,190 @@ void runtime_free(QJSRuntime *runtime) {
   }
 
   free(runtime);
+}
+
+/*
+ * runtime_compile
+ *
+ * Compiles a JavaScript script into bytecode without executing it.
+ * The compiled bytecode can be executed multiple times via runtime_exec.
+ *
+ * Parameters:
+ *   - runtime: The QJSRuntime instance
+ *   - script: The JavaScript code to compile (null-terminated string)
+ *   - output: Pointer to receive the compiled script handle (on success)
+ *             or error string (on failure)
+ *
+ * Returns:
+ *   - Positive (1): success, output contains the compiled handle (as uint32)
+ *   - Negative: failure, output contains error string, absolute value is error length
+ *   - Zero: invalid parameters
+ */
+WASM_EXPORT
+int runtime_compile(QJSRuntime *runtime, const char *script, char **output) {
+  if (!runtime || !runtime->ctx || !script || !output) {
+    return 0;
+  }
+
+  *output = NULL;
+
+  // Compile only, do not execute
+  JSValue bytecode = JS_Eval(runtime->ctx, script, strlen(script), "<compile>",
+                             JS_EVAL_TYPE_GLOBAL | JS_EVAL_FLAG_COMPILE_ONLY);
+
+  if (JS_IsException(bytecode)) {
+    JSValue exception = JS_GetException(runtime->ctx);
+    const char *error_str = JS_ToCString(runtime->ctx, exception);
+
+    if (error_str) {
+      *output = strdup(error_str);
+      int len = strlen(error_str);
+      JS_FreeCString(runtime->ctx, error_str);
+      JS_FreeValue(runtime->ctx, exception);
+      JS_FreeValue(runtime->ctx, bytecode);
+      return -len;
+    }
+
+    JS_FreeCString(runtime->ctx, error_str);
+    JS_FreeValue(runtime->ctx, exception);
+    JS_FreeValue(runtime->ctx, bytecode);
+    return 0;
+  }
+
+  // Find a free slot
+  int slot = runtime->next_compiled_id;
+  if (slot >= MAX_COMPILED_SCRIPTS) {
+    JS_FreeValue(runtime->ctx, bytecode);
+    const char *err = "too many compiled scripts";
+    *output = strdup(err);
+    return -(int)strlen(err);
+  }
+  runtime->next_compiled_id++;
+
+  // Store the compiled bytecode on the heap
+  JSValue *stored = malloc(sizeof(JSValue));
+  if (!stored) {
+    JS_FreeValue(runtime->ctx, bytecode);
+    return 0;
+  }
+  *stored = bytecode;
+  runtime->compiled_scripts[slot] = stored;
+
+  // Write the handle (slot + 1) as a uint32 to the output pointer
+  // We use slot+1 so that 0 is never a valid handle
+  *(uint32_t *)output = (uint32_t)(slot + 1);
+
+  return 1; // success
+}
+
+/*
+ * runtime_exec
+ *
+ * Executes a previously compiled script and returns the result as JSON.
+ *
+ * Parameters:
+ *   - runtime: The QJSRuntime instance
+ *   - compiled_handle: Handle returned by runtime_compile
+ *   - output: Pointer to receive the result string (caller must free)
+ *
+ * Returns:
+ *   - Positive: success, output contains JSON result, return value is length
+ *   - Negative: failure, output contains error string, absolute value is error length
+ *   - Zero: invalid parameters
+ */
+WASM_EXPORT
+int runtime_exec(QJSRuntime *runtime, int compiled_handle, char **output) {
+  if (!runtime || !runtime->ctx || !output || compiled_handle <= 0) {
+    return 0;
+  }
+
+  *output = NULL;
+
+  int slot = compiled_handle - 1;
+  if (slot >= MAX_COMPILED_SCRIPTS || !runtime->compiled_scripts[slot]) {
+    const char *err = "invalid compiled script handle";
+    *output = strdup(err);
+    return -(int)strlen(err);
+  }
+
+  // Duplicate the bytecode value (JS_EvalFunction consumes its argument)
+  JSValue bytecode = JS_DupValue(runtime->ctx, *runtime->compiled_scripts[slot]);
+
+  // Execute the compiled bytecode
+  JSValue result = JS_EvalFunction(runtime->ctx, bytecode);
+
+  // Check for exceptions
+  if (JS_IsException(result)) {
+    JSValue exception = JS_GetException(runtime->ctx);
+    const char *error_str = JS_ToCString(runtime->ctx, exception);
+
+    if (error_str) {
+      *output = strdup(error_str);
+      int len = strlen(error_str);
+      JS_FreeCString(runtime->ctx, error_str);
+      JS_FreeValue(runtime->ctx, exception);
+      JS_FreeValue(runtime->ctx, result);
+      return -len;
+    }
+
+    JS_FreeCString(runtime->ctx, error_str);
+    JS_FreeValue(runtime->ctx, exception);
+    JS_FreeValue(runtime->ctx, result);
+    return 0;
+  }
+
+  // Convert result to JSON string using JSON.stringify()
+  JSValue json_stringify = JS_GetGlobalObject(runtime->ctx);
+  JSValue json_obj = JS_GetPropertyStr(runtime->ctx, json_stringify, "JSON");
+  JSValue stringify_func =
+      JS_GetPropertyStr(runtime->ctx, json_obj, "stringify");
+
+  JSValue json_result =
+      JS_Call(runtime->ctx, stringify_func, json_obj, 1, &result);
+
+  int result_len = 0;
+  if (!JS_IsException(json_result)) {
+    const char *str = JS_ToCString(runtime->ctx, json_result);
+    if (str) {
+      *output = strdup(str);
+      result_len = strlen(str);
+      JS_FreeCString(runtime->ctx, str);
+    }
+  }
+
+  // Clean up all temporary values
+  JS_FreeValue(runtime->ctx, json_result);
+  JS_FreeValue(runtime->ctx, stringify_func);
+  JS_FreeValue(runtime->ctx, json_obj);
+  JS_FreeValue(runtime->ctx, json_stringify);
+  JS_FreeValue(runtime->ctx, result);
+
+  return result_len;
+}
+
+/*
+ * runtime_free_script
+ *
+ * Frees a compiled script previously created by runtime_compile.
+ *
+ * Parameters:
+ *   - runtime: The QJSRuntime instance
+ *   - compiled_handle: Handle returned by runtime_compile
+ */
+WASM_EXPORT
+void runtime_free_script(QJSRuntime *runtime, int compiled_handle) {
+  if (!runtime || !runtime->ctx || compiled_handle <= 0) {
+    return;
+  }
+
+  int slot = compiled_handle - 1;
+  if (slot >= MAX_COMPILED_SCRIPTS || !runtime->compiled_scripts[slot]) {
+    return;
+  }
+
+  JS_FreeValue(runtime->ctx, *runtime->compiled_scripts[slot]);
+  free(runtime->compiled_scripts[slot]);
+  runtime->compiled_scripts[slot] = NULL;
 }
 
 WASM_EXPORT void *runtime_malloc_memory(QJSRuntime *runtime, size_t amt) {

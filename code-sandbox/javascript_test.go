@@ -361,7 +361,7 @@ func TestJavaScriptResetMultipleTimes(t *testing.T) {
 
 	// Bind a counter function that increments each time
 	counter := 0
-	err = sandbox.Bind(ctx, "incrementCounter", func(data json.RawMessage) (json.RawMessage, error) {
+	err = sandbox.Bind(ctx, "incrementCounter", func(_ json.RawMessage) (json.RawMessage, error) {
 		counter++
 		return json.Marshal(counter)
 	})
@@ -433,7 +433,7 @@ func TestJavaScriptResetWithRebind(t *testing.T) {
 	defer sandbox.Close(ctx)
 
 	// Bind first function
-	err = sandbox.Bind(ctx, "func1", func(data json.RawMessage) (json.RawMessage, error) {
+	err = sandbox.Bind(ctx, "func1", func(_ json.RawMessage) (json.RawMessage, error) {
 		return json.Marshal("first")
 	})
 	require.NoError(t, err, "Failed to bind first function")
@@ -452,7 +452,7 @@ func TestJavaScriptResetWithRebind(t *testing.T) {
 	require.JSONEq(t, `"first"`, string(result))
 
 	// Bind second function
-	err = sandbox.Bind(ctx, "func2", func(data json.RawMessage) (json.RawMessage, error) {
+	err = sandbox.Bind(ctx, "func2", func(_ json.RawMessage) (json.RawMessage, error) {
 		return json.Marshal("second")
 	})
 	require.NoError(t, err, "Failed to bind second function")
@@ -461,6 +461,112 @@ func TestJavaScriptResetWithRebind(t *testing.T) {
 	result, err = sandbox.Eval(ctx, `func1() + " " + func2()`)
 	require.NoError(t, err, "Eval with both functions failed")
 	require.JSONEq(t, `"first second"`, string(result))
+}
+
+// TestJavaScriptCompileAndExec tests compile once, exec multiple times
+func TestJavaScriptCompileAndExec(t *testing.T) {
+	ctx := context.Background()
+
+	interp, err := javascript.NewInterpreter(ctx)
+	require.NoError(t, err)
+	defer interp.Close(ctx)
+
+	sandbox, err := codesandbox.NewSandbox(ctx, interp)
+	require.NoError(t, err)
+	defer sandbox.Close(ctx)
+
+	script, err := sandbox.Compile(ctx, `2 + 2`)
+	require.NoError(t, err)
+
+	// Exec multiple times, same result
+	for i := 0; i < 5; i++ {
+		result, err := sandbox.Exec(ctx, script)
+		require.NoError(t, err, "Exec %d failed", i)
+
+		var actual float64
+		err = json.Unmarshal(result, &actual)
+		require.NoError(t, err)
+		require.Equal(t, float64(4), actual)
+	}
+}
+
+// TestJavaScriptCompileWithBoundFunctions tests that bound functions work with exec
+func TestJavaScriptCompileWithBoundFunctions(t *testing.T) {
+	ctx := context.Background()
+
+	interp, err := javascript.NewInterpreter(ctx)
+	require.NoError(t, err)
+	defer interp.Close(ctx)
+
+	sandbox, err := codesandbox.NewSandbox(ctx, interp)
+	require.NoError(t, err)
+	defer sandbox.Close(ctx)
+
+	counter := 0
+	err = sandbox.Bind(ctx, "increment", func(_ json.RawMessage) (json.RawMessage, error) {
+		counter++
+		return json.Marshal(counter)
+	})
+	require.NoError(t, err)
+
+	script, err := sandbox.Compile(ctx, `increment(null)`)
+	require.NoError(t, err)
+
+	for i := 1; i <= 3; i++ {
+		result, err := sandbox.Exec(ctx, script)
+		require.NoError(t, err)
+
+		var actual int
+		err = json.Unmarshal(result, &actual)
+		require.NoError(t, err)
+		require.Equal(t, i, actual)
+	}
+}
+
+// TestJavaScriptCompileError tests that syntax errors are returned from Compile
+func TestJavaScriptCompileError(t *testing.T) {
+	ctx := context.Background()
+
+	interp, err := javascript.NewInterpreter(ctx)
+	require.NoError(t, err)
+	defer interp.Close(ctx)
+
+	sandbox, err := codesandbox.NewSandbox(ctx, interp)
+	require.NoError(t, err)
+	defer sandbox.Close(ctx)
+
+	_, err = sandbox.Compile(ctx, `function(`)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "SyntaxError")
+}
+
+// TestJavaScriptExecAfterReset tests that exec returns ErrScriptInvalidated after reset
+func TestJavaScriptExecAfterReset(t *testing.T) {
+	ctx := context.Background()
+
+	interp, err := javascript.NewInterpreter(ctx)
+	require.NoError(t, err)
+	defer interp.Close(ctx)
+
+	sandbox, err := codesandbox.NewSandbox(ctx, interp)
+	require.NoError(t, err)
+	defer sandbox.Close(ctx)
+
+	script, err := sandbox.Compile(ctx, `42`)
+	require.NoError(t, err)
+
+	// Exec should work before reset
+	result, err := sandbox.Exec(ctx, script)
+	require.NoError(t, err)
+	require.JSONEq(t, "42", string(result))
+
+	// Reset the sandbox
+	err = sandbox.Reset(ctx)
+	require.NoError(t, err)
+
+	// Exec should fail with ErrScriptInvalidated
+	_, err = sandbox.Exec(ctx, script)
+	require.ErrorIs(t, err, codesandbox.ErrScriptInvalidated)
 }
 
 // Helper function to convert values to JSON strings for comparison

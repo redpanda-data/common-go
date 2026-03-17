@@ -153,6 +153,19 @@ import (
 // The sandboxed code can then call: add([1, 2]) // Returns 3
 type Callback func(json.RawMessage) (json.RawMessage, error)
 
+// ErrScriptInvalidated is returned when attempting to Exec a Script that was compiled
+// on a sandbox that has since been Reset or Closed, or on a different sandbox.
+var ErrScriptInvalidated = errors.New("script invalidated: sandbox has been reset or closed")
+
+// Script represents a precompiled script that can be executed multiple times via Exec.
+// Scripts are created by Sandbox.Compile and are bound to the sandbox that compiled them.
+// A Script becomes invalid if the sandbox is Reset or Closed.
+type Script struct {
+	handle     uint32
+	generation uint64
+	sandbox    *impl
+}
+
 type implKeyType int
 
 const implKey implKeyType = 0
@@ -205,6 +218,25 @@ type Sandbox interface {
 	//
 	// The context can be used to cancel execution if the script exceeds time limits.
 	Eval(ctx context.Context, script string) (json.RawMessage, error)
+
+	// Compile parses and compiles a script into a reusable Script object.
+	// The compiled script can be executed multiple times via Exec without
+	// re-parsing, which is more efficient for hot-path use cases.
+	//
+	// The returned Script is bound to this sandbox and becomes invalid
+	// if the sandbox is Reset or Closed.
+	//
+	// Example:
+	//   script, err := sandbox.Compile(ctx, `({name: "Alice", age: 30})`)
+	//   result1, _ := sandbox.Exec(ctx, script)
+	//   result2, _ := sandbox.Exec(ctx, script) // no re-parse
+	Compile(ctx context.Context, script string) (*Script, error)
+
+	// Exec executes a precompiled Script and returns the result as JSON.
+	// The Script must have been compiled by this sandbox and the sandbox must
+	// not have been Reset or Closed since compilation. If the script is invalid,
+	// ErrScriptInvalidated is returned.
+	Exec(ctx context.Context, script *Script) (json.RawMessage, error)
 
 	// Reset clears the sandbox state and reinitializes the runtime to a fresh state.
 	//
@@ -283,6 +315,7 @@ type impl struct {
 	currentMod  api.Module
 	modConfig   wazero.ModuleConfig
 	handle      uint64
+	generation  uint64
 	callbacks   map[int32]boundCallback
 }
 
@@ -333,7 +366,7 @@ func WithMaxRuntime(d time.Duration) SandboxOpt {
 // WithRealtime enables real wall-clock time in the sandbox.
 // By default, time is deterministic (frozen), which is useful for testing.
 // When real-time is enabled, time-related functions in the sandboxed code
-// will return actual wall-clock time:
+// will return actual wall-clock time (at millisecond resolution):
 //   - JavaScript: Date.now()
 //   - Python: time.time()
 //
@@ -394,8 +427,8 @@ func NewSandbox(ctx context.Context, i Interpreter, opts ...SandboxOpt) (Sandbox
 	if iCfg.useRealtime {
 		now := time.Now()
 		mCfg = mCfg.WithWalltime(func() (sec int64, nsec int32) {
-			return now.Unix(), int32(now.Nanosecond())
-		}, sys.ClockResolution(time.Millisecond.Nanoseconds()))
+			return now.Unix(), int32(now.Nanosecond()) //nolint:gosec // Nanosecond() returns [0,999999999], always fits int32
+		}, sys.ClockResolution(time.Millisecond.Nanoseconds())) //nolint:gosec // constant value 1000000, fits uint32
 	}
 	if _, err := rt.InstantiateModule(ctx, i.hostModule(), mCfg); err != nil {
 		_ = rt.Close(ctx)
@@ -416,12 +449,13 @@ func NewSandbox(ctx context.Context, i Interpreter, opts ...SandboxOpt) (Sandbox
 		return nil, err
 	}
 	return &impl{
-		rt,
-		i.module(),
-		mod,
-		mCfg,
-		results[0],
-		make(map[int32]boundCallback, 5),
+		rt:          rt,
+		compiledMod: i.module(),
+		currentMod:  mod,
+		modConfig:   mCfg,
+		handle:      results[0],
+		generation:  0,
+		callbacks:   make(map[int32]boundCallback, 5),
 	}, nil
 }
 
@@ -431,7 +465,7 @@ func (i *impl) Bind(ctx context.Context, name string, cb Callback) error {
 	if err != nil {
 		return err
 	}
-	defer i.freeString(ctx, ptr, uint32(len(name)))
+	defer i.freeString(ctx, ptr, uint32(len(name))) //nolint:gosec // WASM linear memory is at most 4GB, name length fits uint32
 
 	results, err := i.currentMod.ExportedFunction("runtime_bind_function").
 		Call(ctx, i.handle, api.EncodeU32(ptr))
@@ -453,7 +487,7 @@ func (i *impl) Eval(ctx context.Context, script string) (json.RawMessage, error)
 	if err != nil {
 		return nil, err
 	}
-	defer i.freeString(ctx, scriptPtr, uint32(len(script)))
+	defer i.freeString(ctx, scriptPtr, uint32(len(script))) //nolint:gosec // WASM linear memory capped at 4GB
 
 	// Allocate space for output pointer
 	outputPtrPtr, err := i.currentMod.ExportedFunction("runtime_malloc_memory").
@@ -498,6 +532,114 @@ func (i *impl) Eval(ctx context.Context, script string) (json.RawMessage, error)
 	return bytes.Clone(data), nil
 }
 
+// Compile implements Sandbox.
+func (i *impl) Compile(ctx context.Context, script string) (*Script, error) {
+	ctx = context.WithValue(ctx, implKey, i)
+	scriptPtr, err := i.copyString(ctx, script)
+	if err != nil {
+		return nil, err
+	}
+	defer i.freeString(ctx, scriptPtr, uint32(len(script))) //nolint:gosec // WASM linear memory capped at 4GB
+
+	// Allocate space for output pointer
+	outputPtrPtr, err := i.currentMod.ExportedFunction("runtime_malloc_memory").
+		Call(ctx, i.handle, api.EncodeU32(4))
+	if err != nil {
+		return nil, err
+	}
+	outputPtrAddr := api.DecodeU32(outputPtrPtr[0])
+	defer i.currentMod.ExportedFunction("runtime_free_memory").
+		Call(ctx, i.handle, api.EncodeU32(outputPtrAddr), api.EncodeU32(4))
+
+	results, err := i.currentMod.ExportedFunction("runtime_compile").
+		Call(ctx, i.handle, api.EncodeU32(scriptPtr), api.EncodeU32(outputPtrAddr))
+	if err != nil {
+		return nil, err
+	}
+
+	resultCode := api.DecodeI32(results[0])
+	if resultCode == 0 {
+		return nil, errors.New("compilation error: no output")
+	}
+
+	if resultCode < 0 {
+		// Error: read error string from output pointer
+		outputPtr, ok := i.currentMod.Memory().ReadUint32Le(outputPtrAddr)
+		if !ok || outputPtr == 0 {
+			return nil, errors.New("compilation error: failed to read output")
+		}
+		defer i.freeString(ctx, outputPtr, uint32(-resultCode)) //nolint:gosec // resultCode is negative here, negation is positive and fits uint32
+		data, err := i.readStrView(outputPtr)
+		if err != nil {
+			return nil, err
+		}
+		return nil, errors.New(string(data))
+	}
+
+	// Success: resultCode > 0, read compiled handle from output pointer
+	compiledHandle, ok := i.currentMod.Memory().ReadUint32Le(outputPtrAddr)
+	if !ok {
+		return nil, errors.New("compilation error: failed to read compiled handle")
+	}
+
+	return &Script{
+		handle:     compiledHandle,
+		generation: i.generation,
+		sandbox:    i,
+	}, nil
+}
+
+// Exec implements Sandbox.
+func (i *impl) Exec(ctx context.Context, s *Script) (json.RawMessage, error) {
+	if s.sandbox != i || s.generation != i.generation {
+		return nil, ErrScriptInvalidated
+	}
+
+	ctx = context.WithValue(ctx, implKey, i)
+
+	// Allocate space for output pointer
+	outputPtrPtr, err := i.currentMod.ExportedFunction("runtime_malloc_memory").
+		Call(ctx, i.handle, api.EncodeU32(4))
+	if err != nil {
+		return nil, err
+	}
+	outputPtrAddr := api.DecodeU32(outputPtrPtr[0])
+	defer i.currentMod.ExportedFunction("runtime_free_memory").
+		Call(ctx, i.handle, api.EncodeU32(outputPtrAddr), api.EncodeU32(4))
+
+	results, err := i.currentMod.ExportedFunction("runtime_exec").
+		Call(ctx, i.handle, api.EncodeU32(s.handle), api.EncodeU32(outputPtrAddr))
+	if err != nil {
+		return nil, err
+	}
+
+	resultLen := api.DecodeI32(results[0])
+	if resultLen == 0 {
+		return nil, errors.New("execution error: no output")
+	}
+
+	// Read output pointer
+	outputPtr, ok := i.currentMod.Memory().ReadUint32Le(outputPtrAddr)
+	if !ok || outputPtr == 0 {
+		return nil, errors.New("execution error: failed to read output")
+	}
+
+	if resultLen < 0 {
+		defer i.freeString(ctx, outputPtr, uint32(-resultLen))
+		data, err := i.readStrView(outputPtr)
+		if err != nil {
+			return nil, err
+		}
+		return nil, errors.New(string(data))
+	}
+	defer i.freeString(ctx, outputPtr, uint32(resultLen))
+	data, err := i.readStrView(outputPtr)
+	if err != nil {
+		return nil, err
+	}
+	return bytes.Clone(data), nil
+}
+
 // Reset implements Sandbox.
 func (i *impl) Reset(ctx context.Context) error {
 	// Save bound functions before reset
@@ -516,6 +658,7 @@ func (i *impl) Reset(ctx context.Context) error {
 	}
 	i.currentMod = mod
 	i.handle = results[0]
+	i.generation++
 
 	// Clear and re-bind all functions
 	i.callbacks = make(map[int32]boundCallback, len(oldCallbacks))
@@ -545,11 +688,11 @@ func (i *impl) readStrView(ptr uint32) ([]byte, error) {
 	if !ok {
 		return nil, errors.New("out of memory error")
 	}
-	idx := bytes.IndexByte(data, 0)
-	if idx < 0 {
+	before, _, ok := bytes.Cut(data, []byte{0})
+	if !ok {
 		return nil, errors.New("invalid c str")
 	}
-	return data[:idx], nil
+	return before, nil
 }
 
 // copyString allocates memory in the WASM linear memory and copies a Go string into it.
@@ -558,7 +701,7 @@ func (i *impl) readStrView(ptr uint32) ([]byte, error) {
 func (i *impl) copyString(ctx context.Context, str string) (uint32, error) {
 	// Allocate len(str) + 1 for null terminator
 	results, err := i.currentMod.ExportedFunction("runtime_malloc_memory").
-		Call(ctx, i.handle, api.EncodeU32(uint32(len(str)+1)))
+		Call(ctx, i.handle, api.EncodeU32(uint32(len(str)+1))) //nolint:gosec // WASM linear memory capped at 4GB
 	if err != nil {
 		return 0, err
 	}
@@ -568,7 +711,7 @@ func (i *impl) copyString(ctx context.Context, str string) (uint32, error) {
 		return 0, errors.New("out of memory error")
 	}
 	// Write null terminator
-	if !i.currentMod.Memory().WriteByte(ptr+uint32(len(str)), 0) {
+	if !i.currentMod.Memory().WriteByte(ptr+uint32(len(str)), 0) { //nolint:gosec // WASM linear memory capped at 4GB
 		return 0, errors.New("out of memory error")
 	}
 	return ptr, nil
@@ -576,12 +719,12 @@ func (i *impl) copyString(ctx context.Context, str string) (uint32, error) {
 
 // freeString releases memory previously allocated in WASM linear memory.
 // Safe to call with a zero pointer (no-op).
-func (i *impl) freeString(ctx context.Context, ptr uint32, len uint32) error {
+func (i *impl) freeString(ctx context.Context, ptr uint32, size uint32) error {
 	if ptr == 0 {
 		return nil
 	}
 	_, err := i.currentMod.ExportedFunction("runtime_free_memory").
-		Call(ctx, i.handle, api.EncodeU32(ptr), api.EncodeU32(len+1))
+		Call(ctx, i.handle, api.EncodeU32(ptr), api.EncodeU32(size+1))
 	return err
 }
 
@@ -701,7 +844,7 @@ func NewInterpreter(ctx context.Context, wasmBinary []byte) (Interpreter, error)
 					return
 				}
 				writeOutput := func(data []byte, isError bool) int32 {
-					ptr, err := impl.copyString(ctx, unsafe.String(&data[0], len(data)))
+					ptr, err := impl.copyString(ctx, unsafe.String(&data[0], len(data))) //nolint:gosec // G103: converting []byte to string without copy for performance
 					if err != nil {
 						return 0
 					}
@@ -709,7 +852,7 @@ func NewInterpreter(ctx context.Context, wasmBinary []byte) (Interpreter, error)
 					if !mod.Memory().WriteUint32Le(outputPtrPtr, ptr) {
 						return 0
 					}
-					length := int32(len(data))
+					length := int32(len(data)) //nolint:gosec // callback data fits in WASM 4GB memory
 					if isError {
 						return -length
 					}
@@ -796,6 +939,18 @@ func validateABI(mod wazero.CompiledModule) error {
 		"runtime_free_memory": {
 			params:  []api.ValueType{i32, i32, i32}, // (handle, ptr, size)
 			results: []api.ValueType{},              // void
+		},
+		"runtime_compile": {
+			params:  []api.ValueType{i32, i32, i32}, // (handle, script_ptr, output_ptr)
+			results: []api.ValueType{i32},           // returns >0 success, <0 error len
+		},
+		"runtime_exec": {
+			params:  []api.ValueType{i32, i32, i32}, // (handle, compiled_handle, output_ptr)
+			results: []api.ValueType{i32},           // returns length (positive) or -length (error)
+		},
+		"runtime_free_script": {
+			params:  []api.ValueType{i32, i32}, // (handle, compiled_handle)
+			results: []api.ValueType{},         // void
 		},
 	}
 

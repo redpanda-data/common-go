@@ -206,7 +206,7 @@ func TestPythonMultipleSandboxes(t *testing.T) {
 
 	// Note: Python eval mode doesn't persist variables like exec mode would
 	// We'll test that sandboxes have separate bound functions instead
-	err = sandbox1.Bind(ctx, "test_func", func(data json.RawMessage) (json.RawMessage, error) {
+	err = sandbox1.Bind(ctx, "test_func", func(_ json.RawMessage) (json.RawMessage, error) {
 		return json.Marshal("from sandbox1")
 	})
 	require.NoError(t, err, "Failed to bind function in sandbox1")
@@ -415,7 +415,7 @@ func TestPythonResetMultipleTimes(t *testing.T) {
 
 	// Bind a counter function that increments each time
 	counter := 0
-	err = sandbox.Bind(ctx, "increment_counter", func(data json.RawMessage) (json.RawMessage, error) {
+	err = sandbox.Bind(ctx, "increment_counter", func(_ json.RawMessage) (json.RawMessage, error) {
 		counter++
 		return json.Marshal(counter)
 	})
@@ -485,7 +485,7 @@ func TestPythonResetWithRebind(t *testing.T) {
 	defer sandbox.Close(ctx)
 
 	// Bind first function
-	err = sandbox.Bind(ctx, "func1", func(data json.RawMessage) (json.RawMessage, error) {
+	err = sandbox.Bind(ctx, "func1", func(_ json.RawMessage) (json.RawMessage, error) {
 		return json.Marshal("first")
 	})
 	require.NoError(t, err, "Failed to bind first function")
@@ -504,7 +504,7 @@ func TestPythonResetWithRebind(t *testing.T) {
 	require.JSONEq(t, `"first"`, string(result))
 
 	// Bind second function
-	err = sandbox.Bind(ctx, "func2", func(data json.RawMessage) (json.RawMessage, error) {
+	err = sandbox.Bind(ctx, "func2", func(_ json.RawMessage) (json.RawMessage, error) {
 		return json.Marshal("second")
 	})
 	require.NoError(t, err, "Failed to bind second function")
@@ -513,6 +513,111 @@ func TestPythonResetWithRebind(t *testing.T) {
 	result, err = sandbox.Eval(ctx, `func1(None) + " " + func2(None)`)
 	require.NoError(t, err, "Eval with both functions failed")
 	require.JSONEq(t, `"first second"`, string(result))
+}
+
+// TestPythonCompileAndExec tests compile once, exec multiple times
+func TestPythonCompileAndExec(t *testing.T) {
+	ctx := context.Background()
+
+	interp, err := python.NewInterpreter(ctx)
+	require.NoError(t, err)
+	defer interp.Close(ctx)
+
+	sandbox, err := codesandbox.NewSandbox(ctx, interp)
+	require.NoError(t, err)
+	defer sandbox.Close(ctx)
+
+	script, err := sandbox.Compile(ctx, `2 + 2`)
+	require.NoError(t, err)
+
+	// Exec multiple times, same result
+	for i := 0; i < 5; i++ {
+		result, err := sandbox.Exec(ctx, script)
+		require.NoError(t, err, "Exec %d failed", i)
+
+		var actual float64
+		err = json.Unmarshal(result, &actual)
+		require.NoError(t, err)
+		require.Equal(t, float64(4), actual)
+	}
+}
+
+// TestPythonCompileWithBoundFunctions tests that bound functions work with exec
+func TestPythonCompileWithBoundFunctions(t *testing.T) {
+	ctx := context.Background()
+
+	interp, err := python.NewInterpreter(ctx)
+	require.NoError(t, err)
+	defer interp.Close(ctx)
+
+	sandbox, err := codesandbox.NewSandbox(ctx, interp)
+	require.NoError(t, err)
+	defer sandbox.Close(ctx)
+
+	counter := 0
+	err = sandbox.Bind(ctx, "increment", func(_ json.RawMessage) (json.RawMessage, error) {
+		counter++
+		return json.Marshal(counter)
+	})
+	require.NoError(t, err)
+
+	script, err := sandbox.Compile(ctx, `increment(None)`)
+	require.NoError(t, err)
+
+	for i := 1; i <= 3; i++ {
+		result, err := sandbox.Exec(ctx, script)
+		require.NoError(t, err)
+
+		var actual int
+		err = json.Unmarshal(result, &actual)
+		require.NoError(t, err)
+		require.Equal(t, i, actual)
+	}
+}
+
+// TestPythonCompileError tests that syntax errors are returned from Compile
+func TestPythonCompileError(t *testing.T) {
+	ctx := context.Background()
+
+	interp, err := python.NewInterpreter(ctx)
+	require.NoError(t, err)
+	defer interp.Close(ctx)
+
+	sandbox, err := codesandbox.NewSandbox(ctx, interp)
+	require.NoError(t, err)
+	defer sandbox.Close(ctx)
+
+	_, err = sandbox.Compile(ctx, `def(`)
+	require.Error(t, err)
+}
+
+// TestPythonExecAfterReset tests that exec returns ErrScriptInvalidated after reset
+func TestPythonExecAfterReset(t *testing.T) {
+	ctx := context.Background()
+
+	interp, err := python.NewInterpreter(ctx)
+	require.NoError(t, err)
+	defer interp.Close(ctx)
+
+	sandbox, err := codesandbox.NewSandbox(ctx, interp)
+	require.NoError(t, err)
+	defer sandbox.Close(ctx)
+
+	script, err := sandbox.Compile(ctx, `42`)
+	require.NoError(t, err)
+
+	// Exec should work before reset
+	result, err := sandbox.Exec(ctx, script)
+	require.NoError(t, err)
+	require.JSONEq(t, "42", string(result))
+
+	// Reset the sandbox
+	err = sandbox.Reset(ctx)
+	require.NoError(t, err)
+
+	// Exec should fail with ErrScriptInvalidated
+	_, err = sandbox.Exec(ctx, script)
+	require.ErrorIs(t, err, codesandbox.ErrScriptInvalidated)
 }
 
 // TestPythonResetPreservesBoundFunctions tests that bound functions work after reset
@@ -528,7 +633,7 @@ func TestPythonResetPreservesBoundFunctions(t *testing.T) {
 	defer sandbox.Close(ctx)
 
 	// Bind a test function
-	err = sandbox.Bind(ctx, "get_value", func(data json.RawMessage) (json.RawMessage, error) {
+	err = sandbox.Bind(ctx, "get_value", func(_ json.RawMessage) (json.RawMessage, error) {
 		return json.Marshal(100)
 	})
 	require.NoError(t, err, "Failed to bind function")
@@ -555,4 +660,3 @@ func TestPythonResetPreservesBoundFunctions(t *testing.T) {
 	require.NoError(t, err, "Failed to unmarshal second result")
 	require.Equal(t, 100, secondVal)
 }
-

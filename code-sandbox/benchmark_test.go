@@ -89,6 +89,120 @@ func BenchmarkPythonNewSandbox(b *testing.B) {
 	}
 }
 
+// BenchmarkJavaScriptCompileExec benchmarks compile once + exec many times
+func BenchmarkJavaScriptCompileExec(b *testing.B) {
+	ctx := context.Background()
+
+	interp, err := javascript.NewInterpreter(ctx)
+	if err != nil {
+		b.Fatal(err)
+	}
+	defer interp.Close(ctx)
+
+	sandbox, err := codesandbox.NewSandbox(ctx, interp)
+	if err != nil {
+		b.Fatal(err)
+	}
+	defer sandbox.Close(ctx)
+
+	err = sandbox.Bind(ctx, "getVectors", func(_ json.RawMessage) (json.RawMessage, error) {
+		type Vectors struct {
+			A []float64 `json:"a"`
+			B []float64 `json:"b"`
+		}
+		vectors := Vectors{
+			A: make([]float64, 1000),
+			B: make([]float64, 1000),
+		}
+		for i := range 1000 {
+			vectors.A[i] = float64(i)
+			vectors.B[i] = float64(i * 2)
+		}
+		return json.Marshal(vectors)
+	})
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	script := `
+		(() => {
+			const vectors = getVectors(null);
+			let dotProduct = 0;
+			for (let i = 0; i < vectors.a.length; i++) {
+				dotProduct += vectors.a[i] * vectors.b[i];
+			}
+			return dotProduct;
+		})()
+	`
+
+	compiled, err := sandbox.Compile(ctx, script)
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	b.ResetTimer()
+	for b.Loop() {
+		_, err := sandbox.Exec(ctx, compiled)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+// BenchmarkJavaScriptEvalBaseline benchmarks Eval for comparison with CompileExec
+func BenchmarkJavaScriptEvalBaseline(b *testing.B) {
+	ctx := context.Background()
+
+	interp, err := javascript.NewInterpreter(ctx)
+	if err != nil {
+		b.Fatal(err)
+	}
+	defer interp.Close(ctx)
+
+	sandbox, err := codesandbox.NewSandbox(ctx, interp)
+	if err != nil {
+		b.Fatal(err)
+	}
+	defer sandbox.Close(ctx)
+
+	err = sandbox.Bind(ctx, "getVectors", func(_ json.RawMessage) (json.RawMessage, error) {
+		type Vectors struct {
+			A []float64 `json:"a"`
+			B []float64 `json:"b"`
+		}
+		vectors := Vectors{
+			A: make([]float64, 1000),
+			B: make([]float64, 1000),
+		}
+		for i := range 1000 {
+			vectors.A[i] = float64(i)
+			vectors.B[i] = float64(i * 2)
+		}
+		return json.Marshal(vectors)
+	})
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	script := `
+		(() => {
+			const vectors = getVectors(null);
+			let dotProduct = 0;
+			for (let i = 0; i < vectors.a.length; i++) {
+				dotProduct += vectors.a[i] * vectors.b[i];
+			}
+			return dotProduct;
+		})()
+	`
+
+	for b.Loop() {
+		_, err := sandbox.Eval(ctx, script)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
 // BenchmarkJavaScriptEval benchmarks JavaScript evaluation with dot product computation
 func BenchmarkJavaScriptEval(b *testing.B) {
 	ctx := context.Background()
@@ -106,7 +220,7 @@ func BenchmarkJavaScriptEval(b *testing.B) {
 	defer sandbox.Close(ctx)
 
 	// Bind a function that returns large vectors
-	err = sandbox.Bind(ctx, "getVectors", func(data json.RawMessage) (json.RawMessage, error) {
+	err = sandbox.Bind(ctx, "getVectors", func(_ json.RawMessage) (json.RawMessage, error) {
 		// Return two vectors of 1000 elements each
 		type Vectors struct {
 			A []float64 `json:"a"`
@@ -149,6 +263,102 @@ func BenchmarkJavaScriptEval(b *testing.B) {
 	}
 }
 
+// BenchmarkPythonCompileExec benchmarks compile once + exec many times
+func BenchmarkPythonCompileExec(b *testing.B) {
+	ctx := context.Background()
+
+	interp, err := python.NewInterpreter(ctx)
+	if err != nil {
+		b.Fatal(err)
+	}
+	defer interp.Close(ctx)
+
+	sandbox, err := codesandbox.NewSandbox(ctx, interp)
+	if err != nil {
+		b.Fatal(err)
+	}
+	defer sandbox.Close(ctx)
+
+	err = sandbox.Bind(ctx, "getVectors", func(_ json.RawMessage) (json.RawMessage, error) {
+		type Vectors struct {
+			A []float64 `json:"a"`
+			B []float64 `json:"b"`
+		}
+		vectors := Vectors{
+			A: make([]float64, 1000),
+			B: make([]float64, 1000),
+		}
+		for i := range 1000 {
+			vectors.A[i] = float64(i)
+			vectors.B[i] = float64(i * 2)
+		}
+		return json.Marshal(vectors)
+	})
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	script := `(lambda v: sum(a * b for a, b in zip(v["a"], v["b"])))(getVectors(None))`
+
+	compiled, err := sandbox.Compile(ctx, script)
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	b.ResetTimer()
+	for b.Loop() {
+		_, err := sandbox.Exec(ctx, compiled)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+// BenchmarkPythonEvalBaseline benchmarks Eval for comparison with CompileExec
+func BenchmarkPythonEvalBaseline(b *testing.B) {
+	ctx := context.Background()
+
+	interp, err := python.NewInterpreter(ctx)
+	if err != nil {
+		b.Fatal(err)
+	}
+	defer interp.Close(ctx)
+
+	sandbox, err := codesandbox.NewSandbox(ctx, interp)
+	if err != nil {
+		b.Fatal(err)
+	}
+	defer sandbox.Close(ctx)
+
+	err = sandbox.Bind(ctx, "getVectors", func(_ json.RawMessage) (json.RawMessage, error) {
+		type Vectors struct {
+			A []float64 `json:"a"`
+			B []float64 `json:"b"`
+		}
+		vectors := Vectors{
+			A: make([]float64, 1000),
+			B: make([]float64, 1000),
+		}
+		for i := range 1000 {
+			vectors.A[i] = float64(i)
+			vectors.B[i] = float64(i * 2)
+		}
+		return json.Marshal(vectors)
+	})
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	script := `(lambda v: sum(a * b for a, b in zip(v["a"], v["b"])))(getVectors(None))`
+
+	for b.Loop() {
+		_, err := sandbox.Eval(ctx, script)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
 // BenchmarkPythonEval benchmarks Python evaluation with dot product computation
 func BenchmarkPythonEval(b *testing.B) {
 	ctx := context.Background()
@@ -166,7 +376,7 @@ func BenchmarkPythonEval(b *testing.B) {
 	defer sandbox.Close(ctx)
 
 	// Bind a function that returns large vectors
-	err = sandbox.Bind(ctx, "getVectors", func(data json.RawMessage) (json.RawMessage, error) {
+	err = sandbox.Bind(ctx, "getVectors", func(_ json.RawMessage) (json.RawMessage, error) {
 		// Return two vectors of 1000 elements each
 		type Vectors struct {
 			A []float64 `json:"a"`
