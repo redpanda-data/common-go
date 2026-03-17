@@ -12,6 +12,7 @@ package loader
 import (
 	"fmt"
 	"log/slog"
+	"sync"
 	"time"
 
 	"github.com/knadh/koanf/parsers/yaml"
@@ -51,6 +52,8 @@ func LoadPolicyFromBytes(data []byte) (authz.Policy, error) {
 
 // PolicyCallback is called when a policy is loaded or reloaded.
 // If an error occurs during loading, policy will be empty and err will be set.
+// The callback must be safe for concurrent use — it may be called from
+// multiple goroutines (e.g. during watcher restart).
 type PolicyCallback func(policy authz.Policy, err error)
 
 // PolicyUnwatch stops watching the policy file for changes.
@@ -149,8 +152,9 @@ func WatchPolicyFile(path string, callback PolicyCallback) (authz.Policy, Policy
 		}
 	}()
 
+	var closeOnce sync.Once
 	unwatch := func() error {
-		close(stopCh)
+		closeOnce.Do(func() { close(stopCh) })
 		return fp.Unwatch()
 	}
 
