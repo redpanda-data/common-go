@@ -58,7 +58,7 @@ func startTestServer(t *testing.T, svc policymaterializerv1connect.PolicyMateria
 	path, handler := policymaterializerv1connect.NewPolicyMaterializerServiceHandler(svc)
 	mux.Handle(path, handler)
 
-	lis, err := net.Listen("tcp", "127.0.0.1:0")
+	lis, err := (&net.ListenConfig{}).Listen(t.Context(), "tcp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -68,20 +68,20 @@ func startTestServer(t *testing.T, svc policymaterializerv1connect.PolicyMateria
 	return "http://" + lis.Addr().String()
 }
 
-func makePolicy(roleID, principal, scope string) *policymaterializerv1.DataplanePolicy {
+func makePolicy(roleID, principal string) *policymaterializerv1.DataplanePolicy {
 	return &policymaterializerv1.DataplanePolicy{
 		Roles: []*policymaterializerv1.DataplaneRole{
 			{Id: roleID, Permissions: []string{"read"}},
 		},
 		Bindings: []*policymaterializerv1.DataplaneRoleBinding{
-			{RoleId: roleID, Principal: principal, Scope: scope},
+			{RoleId: roleID, Principal: principal, Scope: "organizations/acme"},
 		},
 	}
 }
 
 func TestWatchPolicyFromEndpoint_InitialPolicy(t *testing.T) {
 	policies := make(chan *policymaterializerv1.DataplanePolicy, 1)
-	policies <- makePolicy("admin", "User:alice", "organizations/acme")
+	policies <- makePolicy("admin", "User:alice")
 
 	addr := startTestServer(t, &fakeServer{policies: policies})
 
@@ -101,8 +101,8 @@ func TestWatchPolicyFromEndpoint_InitialPolicy(t *testing.T) {
 
 func TestWatchPolicyFromEndpoint_Updates(t *testing.T) {
 	policies := make(chan *policymaterializerv1.DataplanePolicy, 2)
-	policies <- makePolicy("admin", "User:alice", "organizations/acme")
-	policies <- makePolicy("viewer", "User:bob", "organizations/acme")
+	policies <- makePolicy("admin", "User:alice")
+	policies <- makePolicy("viewer", "User:bob")
 
 	addr := startTestServer(t, &fakeServer{policies: policies})
 
@@ -129,7 +129,7 @@ func TestWatchPolicyFromEndpoint_Updates(t *testing.T) {
 
 func TestWatchPolicyFromEndpoint_Unwatch(t *testing.T) {
 	policies := make(chan *policymaterializerv1.DataplanePolicy, 1)
-	policies <- makePolicy("admin", "User:alice", "organizations/acme")
+	policies <- makePolicy("admin", "User:alice")
 
 	addr := startTestServer(t, &fakeServer{policies: policies})
 
