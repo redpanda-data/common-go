@@ -17,7 +17,6 @@ import (
 	"math/rand/v2"
 	"net"
 	"net/http"
-	"sync"
 	"time"
 
 	"buf.build/gen/go/redpandadata/common/connectrpc/go/redpanda/policymaterializer/v1/policymaterializerv1connect"
@@ -64,50 +63,39 @@ func WatchPolicyFromEndpoint(ctx context.Context, cfg EndpointConfig, callback P
 	httpClient := newHTTPClient(cfg.TLS)
 	client := policymaterializerv1connect.NewPolicyMaterializerServiceClient(httpClient, cfg.Address)
 
-	initPolicy := make(chan authz.Policy, 1)
-	initErr := make(chan error, 1)
+	// Phase 1: fetch the initial policy synchronously.
+	// A timeout context bounds how long we wait for the first message.
+	initCtx, cancelInit := context.WithTimeout(ctx, initTimeout)
+	defer cancelInit()
 
+	var initial authz.Policy
+	received := false
+	err := streamUntilDisconnect(initCtx, client, func(p authz.Policy) {
+		if !received {
+			received = true
+			initial = p
+			cancelInit() // got what we needed; stop the stream early
+		}
+	})
+	if !received {
+		if errors.Is(initCtx.Err(), context.DeadlineExceeded) {
+			return authz.Policy{}, &InitializeWatchError{Err: errors.New("timed out waiting for initial policy from endpoint")}
+		}
+		return authz.Policy{}, &InitializeWatchError{Err: err}
+	}
+
+	// Phase 2: stream updates in the background, reconnecting on disconnection.
 	go func() {
 		backoff := reconnectBackoffInitial
-		var initOnce sync.Once
-		initialized := false
-
-		for {
-			if ctx.Err() != nil {
-				return
-			}
-
-			err := streamOnce(ctx, client, func(p authz.Policy) {
-				if !initialized {
-					initOnce.Do(func() {
-						initialized = true
-						// Select with ctx.Done so we don't proceed with callbacks
-						// if the caller already abandoned init (timeout fired).
-						select {
-						case initPolicy <- p:
-						case <-ctx.Done():
-						}
-					})
-					backoff = reconnectBackoffInitial // reset on success
-				} else {
-					callback(p, nil)
-				}
+		for ctx.Err() == nil {
+			err := streamUntilDisconnect(ctx, client, func(p authz.Policy) {
+				callback(p, nil)
+				backoff = reconnectBackoffInitial // reset after a successful message
 			})
-
-			if !initialized {
-				// Failed before receiving even one message — report to caller.
-				initOnce.Do(func() {
-					initErr <- err
-				})
-				return
-			}
-
 			if ctx.Err() != nil {
 				return
 			}
-
 			callback(authz.Policy{}, fmt.Errorf("policy stream disconnected, reconnecting: %w", err))
-
 			select {
 			case <-ctx.Done():
 				return
@@ -117,16 +105,7 @@ func WatchPolicyFromEndpoint(ctx context.Context, cfg EndpointConfig, callback P
 		}
 	}()
 
-	select {
-	case p := <-initPolicy:
-		return p, nil
-	case err := <-initErr:
-		return authz.Policy{}, &InitializeWatchError{Err: err}
-	case <-time.After(initTimeout):
-		return authz.Policy{}, &InitializeWatchError{
-			Err: errors.New("timed out waiting for initial policy from endpoint"),
-		}
-	}
+	return initial, nil
 }
 
 // jitter returns d ±20% to spread reconnect attempts across multiple watchers.
@@ -136,10 +115,10 @@ func jitter(d time.Duration) time.Duration {
 	return time.Duration(float64(d) * factor)
 }
 
-// streamOnce opens a single WatchPolicy stream and calls onPolicy for each
+// streamUntilDisconnect opens a WatchPolicy stream and calls onPolicy for each
 // message until the stream ends or ctx is cancelled. It returns the stream
-// error (nil if ctx was cancelled cleanly).
-func streamOnce(
+// error (nil on clean cancellation).
+func streamUntilDisconnect(
 	ctx context.Context,
 	client policymaterializerv1connect.PolicyMaterializerServiceClient,
 	onPolicy func(authz.Policy),
