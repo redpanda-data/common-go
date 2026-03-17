@@ -151,7 +151,7 @@ func WatchPolicyFile(path string, callback PolicyCallback) (authz.Policy, Policy
 
 	unwatch := func() error {
 		close(stopCh)
-		return nil
+		return fp.Unwatch()
 	}
 
 	return policy, unwatch, nil
