@@ -80,7 +80,7 @@ func TestWatchUnwatch(t *testing.T) {
 	writeTestPolicy(t, path, 1)
 
 	var calls atomic.Int32
-	policy, unwatch, err := loader.WatchPolicyFile(path, func(p authz.Policy, err error) {
+	policy, unwatch, err := loader.WatchPolicyFile(path, func(_ authz.Policy, _ error) {
 		calls.Add(1)
 	})
 	require.NoError(t, err)

@@ -97,15 +97,13 @@ func TestSync_ConcurrentPuts(t *testing.T) {
 	errCount := make(chan struct{}, numWrites)
 
 	for i := 0; i < numWrites; i++ {
-		wg.Add(1)
-		go func(i int) {
-			defer wg.Done()
+		wg.Go(func() {
 			key := []byte(fmt.Sprintf("key-%d", i))
 			value := fmt.Sprintf("value-%d", i)
 			if err := client.Put(ctx, key, []byte(value)); err != nil {
 				errCount <- struct{}{}
 			}
-		}(i)
+		})
 	}
 
 	wg.Wait()
@@ -437,9 +435,7 @@ func TestMultiClient_ConcurrentWrites(t *testing.T) {
 	// Each client writes its own set of keys concurrently
 	var wg sync.WaitGroup
 	for clientID := 0; clientID < numClients; clientID++ {
-		wg.Add(1)
-		go func(clientID int) {
-			defer wg.Done()
+		wg.Go(func() {
 			client := clients[clientID]
 			for i := 0; i < writesPerClient; i++ {
 				key := []byte(fmt.Sprintf("client%d-key%d", clientID, i))
@@ -447,7 +443,7 @@ func TestMultiClient_ConcurrentWrites(t *testing.T) {
 				err := client.Put(ctx, key, value)
 				require.NoError(t, err)
 			}
-		}(clientID)
+		})
 	}
 
 	wg.Wait()
@@ -579,11 +575,8 @@ func TestSync_StressReadYourOwnWrites(t *testing.T) {
 	var totalOps atomic.Int64
 	var wg sync.WaitGroup
 
-	for p := 0; p < numProducers; p++ {
-		wg.Add(1)
-		go func(producerID int) {
-			defer wg.Done()
-
+	for producerID := 0; producerID < numProducers; producerID++ {
+		wg.Go(func() {
 			// Each producer has its own key - no concurrent writes to same key
 			key := []byte(fmt.Sprintf("producer-%d-key", producerID))
 
@@ -618,7 +611,7 @@ func TestSync_StressReadYourOwnWrites(t *testing.T) {
 
 				totalOps.Add(1)
 			}
-		}(p)
+		})
 	}
 
 	wg.Wait()

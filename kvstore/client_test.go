@@ -185,11 +185,9 @@ func TestSync_NoSpuriousWakeups(t *testing.T) {
 	// Send broadcasts at intermediate offsets
 	var wg sync.WaitGroup
 	for i := 1; i < 100; i++ {
-		wg.Add(1)
-		go func(offset int) {
-			defer wg.Done()
-			c.setOffset(int64(offset))
-		}(i)
+		wg.Go(func() {
+			c.setOffset(int64(i))
+		})
 	}
 	wg.Wait()
 
