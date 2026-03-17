@@ -94,6 +94,22 @@ func WatchPolicyFromEndpoint(ctx context.Context, cfg EndpointConfig, callback P
 	}
 }
 
+// PolicyWatchFunc returns a function compatible with [authzcore.PolicyWatchFunc]
+// that uses [WatchPolicyFromEndpoint] to stream policy updates. The returned
+// unwatch function cancels the background watcher; the caller must call it
+// (e.g. via [authzcore.Base.Close]) to release resources.
+func (cfg EndpointConfig) PolicyWatchFunc() func(func(authz.Policy, error)) (authz.Policy, func() error, error) {
+	return func(callback func(authz.Policy, error)) (authz.Policy, func() error, error) {
+		ctx, cancel := context.WithCancel(context.Background())
+		p, err := WatchPolicyFromEndpoint(ctx, cfg, callback)
+		if err != nil {
+			cancel()
+			return authz.Policy{}, nil, err
+		}
+		return p, func() error { cancel(); return nil }, nil
+	}
+}
+
 // maintainPolicyMaterializerStream sends the first received policy on initPolicy (or a stream
 // error on initErr), then calls callback on every subsequent update.
 // It reconnects with jittered exponential backoff on disconnection, and runs
