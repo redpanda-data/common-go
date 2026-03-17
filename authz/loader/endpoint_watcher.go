@@ -65,11 +65,16 @@ func WatchPolicyFromEndpoint(ctx context.Context, cfg EndpointConfig, callback P
 
 	// innerCtx lets us cancel the background goroutine immediately if init
 	// fails, without waiting for the caller to cancel their own context.
+	// cancel is also deferred inside the goroutine so it is always released
+	// when the goroutine exits; calling it twice is safe.
 	innerCtx, cancel := context.WithCancel(ctx)
 
 	initPolicy := make(chan authz.Policy, 1)
 	initErr := make(chan error, 1)
-	go maintainPolicyMaterializerStream(innerCtx, client, callback, initPolicy, initErr)
+	go func() {
+		defer cancel()
+		maintainPolicyMaterializerStream(innerCtx, client, callback, initPolicy, initErr)
+	}()
 
 	t := time.NewTimer(initTimeout)
 	defer t.Stop()
