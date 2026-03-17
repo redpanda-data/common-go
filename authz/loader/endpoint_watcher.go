@@ -14,6 +14,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"math/rand/v2"
 	"net"
 	"net/http"
 	"time"
@@ -99,7 +100,7 @@ func WatchPolicyFromEndpoint(ctx context.Context, cfg EndpointConfig, callback P
 			select {
 			case <-ctx.Done():
 				return
-			case <-time.After(backoff):
+			case <-time.After(jitter(backoff)):
 			}
 			backoff = min(backoff*2, reconnectBackoffMax)
 		}
@@ -115,6 +116,13 @@ func WatchPolicyFromEndpoint(ctx context.Context, cfg EndpointConfig, callback P
 			Err: errors.New("timed out waiting for initial policy from endpoint"),
 		}
 	}
+}
+
+// jitter returns d ±20% to spread reconnect attempts across multiple watchers.
+func jitter(d time.Duration) time.Duration {
+	// rand.Float64 returns [0, 1); scale to [-0.2, +0.2).
+	factor := 1.0 + (rand.Float64()*0.4 - 0.2) //nolint:gosec // non-cryptographic jitter
+	return time.Duration(float64(d) * factor)
 }
 
 // streamOnce opens a single WatchPolicy stream and calls onPolicy for each
