@@ -63,7 +63,7 @@ func startTestServer(t *testing.T, svc policymaterializerv1connect.PolicyMateria
 		t.Fatal(err)
 	}
 	srv := &http.Server{Handler: h2c.NewHandler(mux, &http2.Server{})}
-	go srv.Serve(lis) //nolint:errcheck
+	go srv.Serve(lis) //nolint:errcheck // test server, error irrelevant after t.Cleanup closes it
 	t.Cleanup(func() { srv.Close() })
 	return "http://" + lis.Addr().String()
 }
@@ -89,7 +89,7 @@ func TestWatchPolicyFromEndpoint_InitialPolicy(t *testing.T) {
 	if err != nil {
 		t.Fatalf("WatchPolicyFromEndpoint: %v", err)
 	}
-	defer unwatch() //nolint:errcheck
+	defer unwatch() //nolint:errcheck // unwatch always returns nil
 
 	if len(got.Roles) != 1 || string(got.Roles[0].ID) != "admin" {
 		t.Errorf("unexpected initial policy: %+v", got)
@@ -115,7 +115,7 @@ func TestWatchPolicyFromEndpoint_Updates(t *testing.T) {
 	if err != nil {
 		t.Fatalf("WatchPolicyFromEndpoint: %v", err)
 	}
-	defer unwatch() //nolint:errcheck
+	defer unwatch() //nolint:errcheck // unwatch always returns nil
 
 	select {
 	case p := <-updates:
