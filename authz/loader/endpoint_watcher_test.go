@@ -11,9 +11,12 @@ package loader
 
 import (
 	"context"
+	"errors"
 	"net"
 	"net/http"
+	"sync"
 	"testing"
+	"time"
 
 	"buf.build/gen/go/redpandadata/common/connectrpc/go/redpanda/policymaterializer/v1/policymaterializerv1connect"
 	policymaterializerv1 "buf.build/gen/go/redpandadata/common/protocolbuffers/go/redpanda/policymaterializer/v1"
@@ -122,6 +125,111 @@ func TestWatchPolicyFromEndpoint_Updates(t *testing.T) {
 		}
 	case <-t.Context().Done():
 		t.Error("timed out waiting for policy update")
+	}
+}
+
+// perConnServer dispatches each successive connection to a different handler function.
+type perConnServer struct {
+	mu       sync.Mutex
+	handlers []func(context.Context, *connect.ServerStream[policymaterializerv1.WatchPolicyResponse]) error
+	idx      int
+}
+
+func (s *perConnServer) WatchPolicy(
+	ctx context.Context,
+	_ *connect.Request[policymaterializerv1.WatchPolicyRequest],
+	stream *connect.ServerStream[policymaterializerv1.WatchPolicyResponse],
+) error {
+	s.mu.Lock()
+	i := s.idx
+	s.idx++
+	s.mu.Unlock()
+	if i < len(s.handlers) {
+		return s.handlers[i](ctx, stream)
+	}
+	<-ctx.Done()
+	return nil
+}
+
+func TestWatchPolicyFromEndpoint_Timeout(t *testing.T) {
+	old := initTimeout
+	initTimeout = 50 * time.Millisecond
+	t.Cleanup(func() { initTimeout = old })
+
+	// Server that never sends anything.
+	addr := startTestServer(t, &perConnServer{handlers: []func(context.Context, *connect.ServerStream[policymaterializerv1.WatchPolicyResponse]) error{
+		func(ctx context.Context, _ *connect.ServerStream[policymaterializerv1.WatchPolicyResponse]) error {
+			<-ctx.Done()
+			return nil
+		},
+	}})
+
+	_, err := WatchPolicyFromEndpoint(t.Context(), EndpointConfig{Address: addr}, func(authz.Policy, error) {})
+	var initErr *InitializeWatchError
+	if !errors.As(err, &initErr) {
+		t.Fatalf("expected *InitializeWatchError, got %T: %v", err, err)
+	}
+}
+
+func TestWatchPolicyFromEndpoint_Reconnect(t *testing.T) {
+	old := reconnectBackoffInitial
+	reconnectBackoffInitial = 10 * time.Millisecond
+	t.Cleanup(func() { reconnectBackoffInitial = old })
+
+	secondPolicy := make(chan *policymaterializerv1.DataplanePolicy, 1)
+	secondPolicy <- makePolicy("viewer", "User:bob")
+
+	addr := startTestServer(t, &perConnServer{handlers: []func(context.Context, *connect.ServerStream[policymaterializerv1.WatchPolicyResponse]) error{
+		// First connection: send initial policy then close.
+		func(_ context.Context, stream *connect.ServerStream[policymaterializerv1.WatchPolicyResponse]) error {
+			_ = stream.Send(&policymaterializerv1.WatchPolicyResponse{Policy: makePolicy("admin", "User:alice")})
+			return nil
+		},
+		// Second connection (after reconnect): send updated policy.
+		func(ctx context.Context, stream *connect.ServerStream[policymaterializerv1.WatchPolicyResponse]) error {
+			select {
+			case p := <-secondPolicy:
+				_ = stream.Send(&policymaterializerv1.WatchPolicyResponse{Policy: p})
+			case <-ctx.Done():
+			}
+			<-ctx.Done()
+			return nil
+		},
+	}})
+
+	updates := make(chan authz.Policy, 1)
+	_, err := WatchPolicyFromEndpoint(t.Context(), EndpointConfig{Address: addr}, func(p authz.Policy, _ error) {
+		updates <- p
+	})
+	if err != nil {
+		t.Fatalf("WatchPolicyFromEndpoint: %v", err)
+	}
+
+	select {
+	case p := <-updates:
+		if len(p.Roles) != 1 || string(p.Roles[0].ID) != "viewer" {
+			t.Errorf("unexpected reconnect policy: %+v", p)
+		}
+	case <-t.Context().Done():
+		t.Error("timed out waiting for reconnect policy")
+	}
+}
+
+func TestToAuthzPolicy_Empty(t *testing.T) {
+	// Empty proto — should return an empty policy without panicking.
+	p := toAuthzPolicy(&policymaterializerv1.DataplanePolicy{})
+	if len(p.Roles) != 0 || len(p.Bindings) != 0 {
+		t.Errorf("expected empty policy, got %+v", p)
+	}
+
+	// Role with no permissions.
+	p = toAuthzPolicy(&policymaterializerv1.DataplanePolicy{
+		Roles: []*policymaterializerv1.DataplaneRole{
+			{Id: "admin"},
+		},
+	})
+	if len(p.Roles) != 1 || len(p.Roles[0].Permissions) != 0 {
+		t.Errorf("unexpected policy: %+v", p)
 	}
 }
 

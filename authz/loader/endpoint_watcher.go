@@ -27,7 +27,7 @@ import (
 	"github.com/redpanda-data/common-go/authz"
 )
 
-const (
+var (
 	// initTimeout is how long WatchPolicyFromEndpoint waits for the first
 	// policy message before returning an InitializeWatchError.
 	initTimeout = 30 * time.Second
