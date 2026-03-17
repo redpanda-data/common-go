@@ -86,55 +86,63 @@ func WatchPolicyFile(path string, callback PolicyCallback) (authz.Policy, Policy
 		return authz.Policy{}, nil, fmt.Errorf("failed to load policy file %s: %w", path, err)
 	}
 
+	fp := file.Provider(path)
 	stopCh := make(chan struct{})
 	diedCh := make(chan struct{}, 1)
 
-	watchCb := func(_ any, watchErr error) {
-		if watchErr != nil {
+	watchFunc := func(_ any, err error) {
+		if err != nil {
 			slog.Warn("Policy file watcher exited, will restart",
-				"path", path, "error", watchErr)
+				"path", path, "error", err)
 			select {
 			case diedCh <- struct{}{}:
 			default:
 			}
 			return
 		}
-		p, err := LoadPolicyFromFile(path)
-		if err != nil {
-			callback(authz.Policy{}, fmt.Errorf("failed to reload policy file %s: %w", path, err))
+		p, loadErr := LoadPolicyFromFile(path)
+		if loadErr != nil {
+			callback(authz.Policy{}, fmt.Errorf("failed to reload policy file %s: %w", path, loadErr))
 			return
 		}
 		callback(p, nil)
 	}
 
-	// Watch loop: starts koanf's file watcher, blocks until it dies, restarts.
-	// Koanf's watcher exits on transient errors like symlink removal during
-	// Kubernetes ConfigMap updates.
+	// Start the initial watch synchronously so it's active before we return.
+	if err := fp.Watch(watchFunc); err != nil {
+		return authz.Policy{}, nil, &InitializeWatchError{Err: err}
+	}
+
+	// Restart loop: when the watcher dies, restart it after a backoff.
+	// Koanf sets isWatching=false when its goroutine exits, so fp.Watch
+	// can be called again on the same provider.
 	go func() {
 		for {
-			fp := file.Provider(path)
-			if err := fp.Watch(watchCb); err != nil {
-				slog.Warn("Failed to start policy file watcher, will retry",
-					"path", path, "error", err)
-			} else {
-				// Block until the watcher dies or we're told to stop.
-				select {
-				case <-stopCh:
-					fp.Unwatch()
-					return
-				case <-diedCh:
-				}
+			select {
+			case <-stopCh:
+				return
+			case <-diedCh:
 			}
 
-			// Backoff before restarting.
 			select {
 			case <-stopCh:
 				return
 			case <-time.After(time.Second):
 			}
 
-			// Reload after backoff — we may have missed updates while dead.
-			// By now the symlink should be back.
+			if err := fp.Watch(watchFunc); err != nil {
+				slog.Warn("Failed to restart policy file watcher, will retry",
+					"path", path, "error", err)
+				// Signal ourselves to retry next iteration.
+				select {
+				case diedCh <- struct{}{}:
+				default:
+				}
+				continue
+			}
+			slog.Info("Policy file watcher restarted", "path", path)
+
+			// Reload — we may have missed updates while dead.
 			if p, err := LoadPolicyFromFile(path); err == nil {
 				callback(p, nil)
 			}
