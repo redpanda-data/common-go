@@ -17,6 +17,7 @@ import (
 	"math/rand/v2"
 	"net"
 	"net/http"
+	"sync"
 	"time"
 
 	"buf.build/gen/go/redpandadata/common/connectrpc/go/redpanda/policymaterializer/v1/policymaterializerv1connect"
@@ -68,6 +69,7 @@ func WatchPolicyFromEndpoint(ctx context.Context, cfg EndpointConfig, callback P
 
 	go func() {
 		backoff := reconnectBackoffInitial
+		var initOnce sync.Once
 		initialized := false
 
 		for {
@@ -77,8 +79,15 @@ func WatchPolicyFromEndpoint(ctx context.Context, cfg EndpointConfig, callback P
 
 			err := streamOnce(ctx, client, func(p authz.Policy) {
 				if !initialized {
-					initialized = true
-					initPolicy <- p
+					initOnce.Do(func() {
+						initialized = true
+						// Select with ctx.Done so we don't proceed with callbacks
+						// if the caller already abandoned init (timeout fired).
+						select {
+						case initPolicy <- p:
+						case <-ctx.Done():
+						}
+					})
 					backoff = reconnectBackoffInitial // reset on success
 				} else {
 					callback(p, nil)
@@ -87,7 +96,9 @@ func WatchPolicyFromEndpoint(ctx context.Context, cfg EndpointConfig, callback P
 
 			if !initialized {
 				// Failed before receiving even one message — report to caller.
-				initErr <- err
+				initOnce.Do(func() {
+					initErr <- err
+				})
 				return
 			}
 
