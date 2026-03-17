@@ -75,53 +75,85 @@ func (e *InitializeWatchError) Unwrap() error {
 // WatchPolicyFile watches a YAML policy file for changes and calls the callback
 // when the file is modified. This is particularly useful for Kubernetes ConfigMap
 // mounted files which are updated via symlink changes.
+//
+// Koanf's file watcher exits on transient errors (e.g. symlink briefly removed
+// during a ConfigMap update). This function runs the watcher in a loop,
+// restarting it automatically when it exits. Call the returned PolicyUnwatch
+// to stop the loop and clean up.
 func WatchPolicyFile(path string, callback PolicyCallback) (authz.Policy, PolicyUnwatch, error) {
-	k := koanf.New(".")
-	fp := file.Provider(path)
-	if err := k.Load(fp, yaml.Parser()); err != nil {
+	policy, err := LoadPolicyFromFile(path)
+	if err != nil {
 		return authz.Policy{}, nil, fmt.Errorf("failed to load policy file %s: %w", path, err)
 	}
-	var policy authz.Policy
-	if err := k.Unmarshal("", &policy); err != nil {
-		return authz.Policy{}, nil, fmt.Errorf("failed to unmarshal file %s: %w", path, err)
-	}
-	// startWatch starts a koanf file watcher. On file change it reloads the
-	// policy and calls callback. On watcher error (e.g. transient symlink
-	// removal during a Kubernetes ConfigMap update, or neovim atomic save
-	// on Linux) it restarts the watch after a short delay.
-	var startWatch func()
-	startWatch = func() {
-		fp := file.Provider(path)
-		if err := fp.Watch(func(_ any, watchErr error) {
-			if watchErr != nil {
-				slog.Warn("Policy file watcher exited, will restart",
-					"path", path, "error", watchErr)
-				time.Sleep(time.Second)
-				startWatch()
-				// Reload immediately -- we may have missed updates while dead.
-				if p, err := LoadPolicyFromFile(path); err == nil {
-					slog.Info("Policy file watcher restarted",
-						"path", path)
-					callback(p, nil)
-				}
-				return
+
+	// restartCh is signalled by the watch callback when koanf's watcher exits.
+	restartCh := make(chan struct{}, 1)
+	stopCh := make(chan struct{})
+
+	watchCb := func(_ any, watchErr error) {
+		if watchErr != nil {
+			slog.Warn("Policy file watcher exited, will restart",
+				"path", path, "error", watchErr)
+			select {
+			case restartCh <- struct{}{}:
+			default:
 			}
-			k := koanf.New(".")
-			if err := k.Load(fp, yaml.Parser()); err != nil {
-				callback(authz.Policy{}, fmt.Errorf("failed to reload policy file %s: %w", path, err))
-				return
-			}
-			var p authz.Policy
-			if err := k.Unmarshal("", &p); err != nil {
-				callback(authz.Policy{}, fmt.Errorf("failed to unmarshal policy: %w", err))
-				return
-			}
-			callback(p, nil)
-		}); err != nil {
-			slog.Error("Failed to start policy file watcher",
-				"path", path, "error", err)
+			return
 		}
+		p, err := LoadPolicyFromFile(path)
+		if err != nil {
+			callback(authz.Policy{}, fmt.Errorf("failed to reload policy file %s: %w", path, err))
+			return
+		}
+		callback(p, nil)
 	}
-	startWatch()
-	return policy, func() error { return nil }, nil
+
+	// Initial watch.
+	fp := file.Provider(path)
+	if err := fp.Watch(watchCb); err != nil {
+		return authz.Policy{}, nil, &InitializeWatchError{Err: err}
+	}
+
+	// Restart loop: waits for the watcher to die, then restarts it.
+	go func() {
+		for {
+			select {
+			case <-stopCh:
+				return
+			case <-restartCh:
+			}
+
+			// Backoff to avoid busy-looping if the file is persistently gone.
+			select {
+			case <-stopCh:
+				return
+			case <-time.After(time.Second):
+			}
+
+			slog.Info("Restarting policy file watcher", "path", path)
+			fp := file.Provider(path)
+			if err := fp.Watch(watchCb); err != nil {
+				slog.Error("Failed to restart policy file watcher",
+					"path", path, "error", err)
+				// Signal ourselves to retry.
+				select {
+				case restartCh <- struct{}{}:
+				default:
+				}
+				continue
+			}
+
+			// Reload immediately -- we may have missed updates while dead.
+			if p, err := LoadPolicyFromFile(path); err == nil {
+				callback(p, nil)
+			}
+		}
+	}()
+
+	unwatch := func() error {
+		close(stopCh)
+		return nil
+	}
+
+	return policy, unwatch, nil
 }
