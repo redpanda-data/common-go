@@ -89,7 +89,6 @@ func WatchPolicyFile(path string, callback PolicyCallback) (authz.Policy, Policy
 		return authz.Policy{}, nil, fmt.Errorf("failed to load policy file %s: %w", path, err)
 	}
 
-	fp := file.Provider(path)
 	stopCh := make(chan struct{})
 	diedCh := make(chan struct{}, 1)
 
@@ -112,13 +111,19 @@ func WatchPolicyFile(path string, callback PolicyCallback) (authz.Policy, Policy
 	}
 
 	// Start the initial watch synchronously so it's active before we return.
+	// Each iteration uses a fresh file.Provider because koanf's internal
+	// mutex can deadlock if we reuse a provider whose goroutine is still
+	// cleaning up.
+	fp := file.Provider(path)
 	if err := fp.Watch(watchFunc); err != nil {
 		return authz.Policy{}, nil, &InitializeWatchError{Err: err}
 	}
 
+	// currentFP tracks the active provider so unwatch can stop it.
+	var mu sync.Mutex
+	currentFP := fp
+
 	// Restart loop: when the watcher dies, restart it after a backoff.
-	// Koanf sets isWatching=false when its goroutine exits, so fp.Watch
-	// can be called again on the same provider.
 	go func() {
 		for {
 			select {
@@ -133,16 +138,21 @@ func WatchPolicyFile(path string, callback PolicyCallback) (authz.Policy, Policy
 			case <-time.After(time.Second):
 			}
 
-			if err := fp.Watch(watchFunc); err != nil {
+			newFP := file.Provider(path)
+			if err := newFP.Watch(watchFunc); err != nil {
 				slog.Warn("Failed to restart policy file watcher, will retry",
 					"path", path, "error", err)
-				// Signal ourselves to retry next iteration.
 				select {
 				case diedCh <- struct{}{}:
 				default:
 				}
 				continue
 			}
+
+			mu.Lock()
+			currentFP = newFP
+			mu.Unlock()
+
 			slog.Info("Policy file watcher restarted", "path", path)
 
 			// Reload — we may have missed updates while dead.
@@ -155,7 +165,9 @@ func WatchPolicyFile(path string, callback PolicyCallback) (authz.Policy, Policy
 	var closeOnce sync.Once
 	unwatch := func() error {
 		closeOnce.Do(func() { close(stopCh) })
-		return fp.Unwatch()
+		mu.Lock()
+		defer mu.Unlock()
+		return currentFP.Unwatch()
 	}
 
 	return policy, unwatch, nil
