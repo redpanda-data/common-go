@@ -171,6 +171,45 @@ func TestWatchPolicyFromEndpoint_Timeout(t *testing.T) {
 	}
 }
 
+// TestWatchPolicyFromEndpoint_TimeoutCancelsGoroutine verifies that the background
+// goroutine is torn down when WatchPolicyFromEndpoint returns due to a timeout,
+// not left running until the caller eventually cancels their own context.
+func TestWatchPolicyFromEndpoint_TimeoutCancelsGoroutine(t *testing.T) {
+	old := initTimeout
+	initTimeout = 50 * time.Millisecond
+	t.Cleanup(func() { initTimeout = old })
+
+	// serverDone is closed when the server handler's ctx is cancelled.
+	// If the goroutine leak fix is working, this happens promptly after
+	// WatchPolicyFromEndpoint returns (innerCtx cancelled). Without the fix,
+	// it would only happen when the test's own context is cancelled.
+	serverDone := make(chan struct{})
+	addr := startTestServer(t, &perConnServer{handlers: []func(context.Context, *connect.ServerStream[policymaterializerv1.WatchPolicyResponse]) error{
+		func(ctx context.Context, _ *connect.ServerStream[policymaterializerv1.WatchPolicyResponse]) error {
+			defer close(serverDone)
+			<-ctx.Done()
+			return nil
+		},
+	}})
+
+	// Use a long-lived context to make a leaked goroutine observable.
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	_, err := WatchPolicyFromEndpoint(ctx, EndpointConfig{Address: addr}, func(authz.Policy, error) {})
+	var initErr *InitializeWatchError
+	if !errors.As(err, &initErr) {
+		t.Fatalf("expected *InitializeWatchError, got %T: %v", err, err)
+	}
+
+	select {
+	case <-serverDone:
+		// innerCtx was cancelled — goroutine cleaned up promptly.
+	case <-time.After(500 * time.Millisecond):
+		t.Error("background goroutine was not cancelled after WatchPolicyFromEndpoint returned")
+	}
+}
+
 func TestWatchPolicyFromEndpoint_Reconnect(t *testing.T) {
 	old := reconnectBackoffInitial
 	reconnectBackoffInitial = 10 * time.Millisecond

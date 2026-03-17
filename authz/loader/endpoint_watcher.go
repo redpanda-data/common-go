@@ -63,16 +63,25 @@ func WatchPolicyFromEndpoint(ctx context.Context, cfg EndpointConfig, callback P
 	httpClient := newHTTPClient(cfg.TLS)
 	client := policymaterializerv1connect.NewPolicyMaterializerServiceClient(httpClient, cfg.Address)
 
+	// innerCtx lets us cancel the background goroutine immediately if init
+	// fails, without waiting for the caller to cancel their own context.
+	innerCtx, cancel := context.WithCancel(ctx)
+
 	initPolicy := make(chan authz.Policy, 1)
 	initErr := make(chan error, 1)
-	go maintainPolicyMaterializerStream(ctx, client, callback, initPolicy, initErr)
+	go maintainPolicyMaterializerStream(innerCtx, client, callback, initPolicy, initErr)
+
+	t := time.NewTimer(initTimeout)
+	defer t.Stop()
 
 	select {
 	case p := <-initPolicy:
 		return p, nil
 	case err := <-initErr:
+		cancel()
 		return authz.Policy{}, &InitializeWatchError{Err: err}
-	case <-time.After(initTimeout):
+	case <-t.C:
+		cancel()
 		return authz.Policy{}, &InitializeWatchError{Err: errors.New("timed out waiting for initial policy from endpoint")}
 	}
 }
