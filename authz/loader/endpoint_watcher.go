@@ -50,18 +50,15 @@ type EndpointConfig struct {
 }
 
 // WatchPolicyFromEndpoint connects to a policy-materializer endpoint and
-// streams policy updates. It behaves like WatchPolicyFile: the first policy
-// received from the stream is returned immediately, and the callback is
-// invoked on every subsequent update.
+// streams policy updates. The first policy received from the stream is returned
+// immediately, and the callback is invoked on every subsequent update.
 //
 // The connection is maintained automatically: if the stream is interrupted,
 // WatchPolicyFromEndpoint reconnects with exponential backoff and calls the
 // callback with the error before retrying so callers can log or act on it.
 //
-// Call the returned PolicyUnwatch to stop watching and release resources.
-func WatchPolicyFromEndpoint(cfg EndpointConfig, callback PolicyCallback) (authz.Policy, PolicyUnwatch, error) {
-	ctx, cancel := context.WithCancel(context.Background())
-
+// Cancel ctx to stop watching and release resources.
+func WatchPolicyFromEndpoint(ctx context.Context, cfg EndpointConfig, callback PolicyCallback) (authz.Policy, error) {
 	httpClient := newHTTPClient(cfg.TLS)
 	client := policymaterializerv1connect.NewPolicyMaterializerServiceClient(httpClient, cfg.Address)
 
@@ -110,13 +107,11 @@ func WatchPolicyFromEndpoint(cfg EndpointConfig, callback PolicyCallback) (authz
 
 	select {
 	case p := <-initPolicy:
-		return p, func() error { cancel(); return nil }, nil
+		return p, nil
 	case err := <-initErr:
-		cancel()
-		return authz.Policy{}, nil, &InitializeWatchError{Err: err}
+		return authz.Policy{}, &InitializeWatchError{Err: err}
 	case <-time.After(initTimeout):
-		cancel()
-		return authz.Policy{}, nil, &InitializeWatchError{
+		return authz.Policy{}, &InitializeWatchError{
 			Err: errors.New("timed out waiting for initial policy from endpoint"),
 		}
 	}

@@ -85,11 +85,10 @@ func TestWatchPolicyFromEndpoint_InitialPolicy(t *testing.T) {
 
 	addr := startTestServer(t, &fakeServer{policies: policies})
 
-	got, unwatch, err := WatchPolicyFromEndpoint(EndpointConfig{Address: addr}, func(authz.Policy, error) {})
+	got, err := WatchPolicyFromEndpoint(t.Context(), EndpointConfig{Address: addr}, func(authz.Policy, error) {})
 	if err != nil {
 		t.Fatalf("WatchPolicyFromEndpoint: %v", err)
 	}
-	defer unwatch() //nolint:errcheck // unwatch always returns nil
 
 	if len(got.Roles) != 1 || string(got.Roles[0].ID) != "admin" {
 		t.Errorf("unexpected initial policy: %+v", got)
@@ -107,7 +106,7 @@ func TestWatchPolicyFromEndpoint_Updates(t *testing.T) {
 	addr := startTestServer(t, &fakeServer{policies: policies})
 
 	updates := make(chan authz.Policy, 1)
-	_, unwatch, err := WatchPolicyFromEndpoint(EndpointConfig{Address: addr}, func(p authz.Policy, err error) {
+	_, err := WatchPolicyFromEndpoint(t.Context(), EndpointConfig{Address: addr}, func(p authz.Policy, err error) {
 		if err == nil {
 			updates <- p
 		}
@@ -115,7 +114,6 @@ func TestWatchPolicyFromEndpoint_Updates(t *testing.T) {
 	if err != nil {
 		t.Fatalf("WatchPolicyFromEndpoint: %v", err)
 	}
-	defer unwatch() //nolint:errcheck // unwatch always returns nil
 
 	select {
 	case p := <-updates:
@@ -127,17 +125,16 @@ func TestWatchPolicyFromEndpoint_Updates(t *testing.T) {
 	}
 }
 
-func TestWatchPolicyFromEndpoint_Unwatch(t *testing.T) {
+func TestWatchPolicyFromEndpoint_Cancel(t *testing.T) {
 	policies := make(chan *policymaterializerv1.DataplanePolicy, 1)
 	policies <- makePolicy("admin", "User:alice")
 
 	addr := startTestServer(t, &fakeServer{policies: policies})
 
-	_, unwatch, err := WatchPolicyFromEndpoint(EndpointConfig{Address: addr}, func(authz.Policy, error) {})
+	ctx, cancel := context.WithCancel(t.Context())
+	_, err := WatchPolicyFromEndpoint(ctx, EndpointConfig{Address: addr}, func(authz.Policy, error) {})
 	if err != nil {
 		t.Fatalf("WatchPolicyFromEndpoint: %v", err)
 	}
-	if err := unwatch(); err != nil {
-		t.Errorf("unwatch returned error: %v", err)
-	}
+	cancel()
 }
