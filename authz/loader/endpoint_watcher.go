@@ -83,6 +83,9 @@ func WatchPolicyFromEndpoint(ctx context.Context, cfg EndpointConfig, callback P
 	case <-t.C:
 		cancel()
 		return authz.Policy{}, &InitializeWatchError{Err: errors.New("timed out waiting for initial policy from endpoint")}
+	case <-ctx.Done():
+		cancel()
+		return authz.Policy{}, ctx.Err()
 	}
 }
 

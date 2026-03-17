@@ -272,6 +272,25 @@ func TestToAuthzPolicy_Empty(t *testing.T) {
 	}
 }
 
+func TestWatchPolicyFromEndpoint_ContextCancelledDuringInit(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+
+	// Server that never sends anything; cancel the context after it connects.
+	addr := startTestServer(t, &perConnServer{handlers: []func(context.Context, *connect.ServerStream[policymaterializerv1.WatchPolicyResponse]) error{
+		func(_ context.Context, _ *connect.ServerStream[policymaterializerv1.WatchPolicyResponse]) error {
+			cancel()
+			// Block until our own ctx is cancelled so the stream stays open.
+			<-ctx.Done()
+			return nil
+		},
+	}})
+
+	_, err := WatchPolicyFromEndpoint(ctx, EndpointConfig{Address: addr}, func(authz.Policy, error) {})
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("expected context.Canceled, got %T: %v", err, err)
+	}
+}
+
 func TestWatchPolicyFromEndpoint_Cancel(t *testing.T) {
 	policies := make(chan *policymaterializerv1.DataplanePolicy, 1)
 	policies <- makePolicy("admin", "User:alice")
