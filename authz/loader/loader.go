@@ -108,13 +108,14 @@ func WatchPolicyFile(path string, callback PolicyCallback) (authz.Policy, Policy
 		callback(p, nil)
 	}
 
-	// Initial watch.
+	// Start the initial watch synchronously so the watcher is active before
+	// we return to the caller.
 	fp := file.Provider(path)
 	if err := fp.Watch(watchCb); err != nil {
 		return authz.Policy{}, nil, &InitializeWatchError{Err: err}
 	}
 
-	// Restart loop: waits for the watcher to die, then restarts it.
+	// Restart loop: when koanf's watcher dies, restart it after a short backoff.
 	go func() {
 		for {
 			select {
@@ -123,25 +124,23 @@ func WatchPolicyFile(path string, callback PolicyCallback) (authz.Policy, Policy
 			case <-restartCh:
 			}
 
-			// Backoff to avoid busy-looping if the file is persistently gone.
 			select {
 			case <-stopCh:
 				return
 			case <-time.After(time.Second):
 			}
 
-			slog.Info("Restarting policy file watcher", "path", path)
 			fp := file.Provider(path)
 			if err := fp.Watch(watchCb); err != nil {
-				slog.Error("Failed to restart policy file watcher",
+				slog.Warn("Failed to restart policy file watcher, will retry",
 					"path", path, "error", err)
-				// Signal ourselves to retry.
 				select {
 				case restartCh <- struct{}{}:
 				default:
 				}
 				continue
 			}
+			slog.Info("Policy file watcher restarted", "path", path)
 
 			// Reload immediately -- we may have missed updates while dead.
 			if p, err := LoadPolicyFromFile(path); err == nil {
