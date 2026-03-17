@@ -11,8 +11,8 @@ package loader
 
 import (
 	"fmt"
-	"runtime"
-	"strings"
+	"log/slog"
+	"time"
 
 	"github.com/knadh/koanf/parsers/yaml"
 	"github.com/knadh/koanf/providers/file"
@@ -85,43 +85,43 @@ func WatchPolicyFile(path string, callback PolicyCallback) (authz.Policy, Policy
 	if err := k.Unmarshal("", &policy); err != nil {
 		return authz.Policy{}, nil, fmt.Errorf("failed to unmarshal file %s: %w", path, err)
 	}
-	// Watch for changes using the file provider's Watch method
-	// The watchFunc will be called whenever the file changes
-	watchFunc := func(_ any, watchErr error) {
-		// On macOS (kqueue), fsnotify watches inodes. An atomic rename —
-		// write to a temp file then rename over the watched path — replaces
-		// the inode, so kqueue fires a REMOVE on the old inode and never
-		// fires a CREATE for the new one. koanf surfaces this as
-		// "file <path> was removed". On Linux (inotify), the same operation
-		// fires a CREATE on the destination path, so the reload succeeds
-		// without hitting this branch. We therefore only see this error in
-		// local macOS development, which is why it wasn't caught by CI.
-		//
-		// When we detect a REMOVE on darwin, try reloading from the path
-		// directly. If the file is there (atomic rename), we get the updated
-		// policy. If it's genuinely gone, the reload errors and we fall
-		// through to propagate the original watcher error.
-		isMacOSRemove := runtime.GOOS == "darwin" && watchErr != nil && strings.Contains(watchErr.Error(), "was removed")
-		if watchErr != nil && !isMacOSRemove {
-			callback(authz.Policy{}, fmt.Errorf("watcher error: %w", watchErr))
-			return
+	// startWatch starts a koanf file watcher. On file change it reloads the
+	// policy and calls callback. On watcher error (e.g. transient symlink
+	// removal during a Kubernetes ConfigMap update, or neovim atomic save
+	// on Linux) it restarts the watch after a short delay.
+	var startWatch func()
+	startWatch = func() {
+		fp := file.Provider(path)
+		if err := fp.Watch(func(_ any, watchErr error) {
+			if watchErr != nil {
+				slog.Warn("Policy file watcher exited, will restart",
+					"path", path, "error", watchErr)
+				time.Sleep(time.Second)
+				startWatch()
+				// Reload immediately -- we may have missed updates while dead.
+				if p, err := LoadPolicyFromFile(path); err == nil {
+					slog.Info("Policy file watcher restarted",
+						"path", path)
+					callback(p, nil)
+				}
+				return
+			}
+			k := koanf.New(".")
+			if err := k.Load(fp, yaml.Parser()); err != nil {
+				callback(authz.Policy{}, fmt.Errorf("failed to reload policy file %s: %w", path, err))
+				return
+			}
+			var p authz.Policy
+			if err := k.Unmarshal("", &p); err != nil {
+				callback(authz.Policy{}, fmt.Errorf("failed to unmarshal policy: %w", err))
+				return
+			}
+			callback(p, nil)
+		}); err != nil {
+			slog.Error("Failed to start policy file watcher",
+				"path", path, "error", err)
 		}
-		// Reload the policy
-		k := koanf.New(".")
-		if err := k.Load(fp, yaml.Parser()); err != nil {
-			callback(authz.Policy{}, fmt.Errorf("failed to reload policy file %s: %w", path, err))
-			return
-		}
-		var policy authz.Policy
-		if err := k.Unmarshal("", &policy); err != nil {
-			callback(authz.Policy{}, fmt.Errorf("failed to unmarshal policy: %w", err))
-			return
-		}
-		callback(policy, nil)
 	}
-	err := fp.Watch(watchFunc)
-	if err != nil {
-		return authz.Policy{}, nil, &InitializeWatchError{err}
-	}
-	return policy, fp.Unwatch, nil
+	startWatch()
+	return policy, func() error { return nil }, nil
 }
