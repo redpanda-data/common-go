@@ -11,6 +11,7 @@ package loader
 
 import (
 	"fmt"
+	"runtime"
 	"strings"
 
 	"github.com/knadh/koanf/parsers/yaml"
@@ -96,11 +97,12 @@ func WatchPolicyFile(path string, callback PolicyCallback) (authz.Policy, Policy
 		// without hitting this branch. We therefore only see this error in
 		// local macOS development, which is why it wasn't caught by CI.
 		//
-		// When we get a REMOVE error, try reloading from the path directly.
-		// If the file is there (atomic rename), we get the updated policy.
-		// If it's genuinely gone, LoadPolicyFromFile errors and we fall
+		// When we detect a REMOVE on darwin, try reloading from the path
+		// directly. If the file is there (atomic rename), we get the updated
+		// policy. If it's genuinely gone, the reload errors and we fall
 		// through to propagate the original watcher error.
-		if watchErr != nil && !strings.Contains(watchErr.Error(), "was removed") {
+		isMacOSRemove := runtime.GOOS == "darwin" && watchErr != nil && strings.Contains(watchErr.Error(), "was removed")
+		if watchErr != nil && !isMacOSRemove {
 			callback(authz.Policy{}, fmt.Errorf("watcher error: %w", watchErr))
 			return
 		}
