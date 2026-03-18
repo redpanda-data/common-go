@@ -87,26 +87,20 @@ func WatchPolicyFile(path string, callback PolicyCallback) (authz.Policy, Policy
 	// Watch for changes using the file provider's Watch method
 	// The watchFunc will be called whenever the file changes
 	watchFunc := func(_ any, watchErr error) {
-		if watchErr != nil {
-			// On macOS (kqueue), fsnotify watches inodes. An atomic rename —
-			// write to a temp file then rename over the watched path — replaces
-			// the inode, so kqueue fires a REMOVE on the old inode and never
-			// fires a CREATE for the new one. koanf surfaces this as
-			// "file <path> was removed". On Linux (inotify), the same operation
-			// fires a CREATE on the destination path, so the reload succeeds
-			// without hitting this branch. We therefore only see this error in
-			// local macOS development, which is why it wasn't caught by CI.
-			//
-			// When we get a REMOVE error, try reloading from the path directly.
-			// If the file is there (atomic rename), we get the updated policy.
-			// If it's genuinely gone, LoadPolicyFromFile errors and we fall
-			// through to propagate the original watcher error.
-			if strings.Contains(watchErr.Error(), "was removed") {
-				if reloaded, loadErr := LoadPolicyFromFile(path); loadErr == nil {
-					callback(reloaded, nil)
-					return
-				}
-			}
+		// On macOS (kqueue), fsnotify watches inodes. An atomic rename —
+		// write to a temp file then rename over the watched path — replaces
+		// the inode, so kqueue fires a REMOVE on the old inode and never
+		// fires a CREATE for the new one. koanf surfaces this as
+		// "file <path> was removed". On Linux (inotify), the same operation
+		// fires a CREATE on the destination path, so the reload succeeds
+		// without hitting this branch. We therefore only see this error in
+		// local macOS development, which is why it wasn't caught by CI.
+		//
+		// When we get a REMOVE error, try reloading from the path directly.
+		// If the file is there (atomic rename), we get the updated policy.
+		// If it's genuinely gone, LoadPolicyFromFile errors and we fall
+		// through to propagate the original watcher error.
+		if watchErr != nil && !strings.Contains(watchErr.Error(), "was removed") {
 			callback(authz.Policy{}, fmt.Errorf("watcher error: %w", watchErr))
 			return
 		}
