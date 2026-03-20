@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/redpanda-data/common-go/authz"
 )
@@ -130,6 +131,8 @@ func TestFileWatcher(t *testing.T) {
 	if !reflect.DeepEqual(policy, expectedPolicyOne) {
 		t.Errorf("expected %v, want %v", policy, expectedPolicyOne)
 	}
+	// Small delay to let the background watcher goroutine start.
+	time.Sleep(100 * time.Millisecond)
 	tmpPath := filepath.Join(dir, "rbac_policy.tmp.yaml")
 	if err := os.WriteFile(tmpPath, []byte(policyTwo), 0o644); err != nil {
 		t.Fatalf("failed to write file: %v", err)
