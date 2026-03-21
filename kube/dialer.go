@@ -20,6 +20,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync/atomic"
@@ -27,12 +28,15 @@ import (
 
 	"github.com/cockroachdb/errors"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/httpstream"
 	httpstreamspdy "k8s.io/apimachinery/pkg/util/httpstream/spdy"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/transport/spdy"
 )
@@ -51,8 +55,15 @@ var (
 	ErrInvalidPodFQDN = errors.New("invalid pod FQDN")
 	// ErrNoPort is returned when no port is specified in the address.
 	ErrNoPort = errors.New("no port specified")
+	// ErrPodNotFound is returned when a pod IP cannot be resolved to a pod.
+	ErrPodNotFound = errors.New("no pod found for IP")
 
 	negotiatedSerializer = serializer.NewCodecFactory(runtime.NewScheme()).WithoutConversion()
+
+	// dashedIPv4Pattern matches IPv4-like hostnames where dots are replaced
+	// with dashes (e.g. "10-42-0-7"), as used by Kubernetes for pod
+	// hostname-based addressing in StatefulSets on some K8s versions (1.32+).
+	dashedIPv4Pattern = regexp.MustCompile(`^\d{1,3}-\d{1,3}-\d{1,3}-\d{1,3}$`)
 )
 
 // PodDialer is a basic port-forwarding dialer that doesn't start
@@ -61,6 +72,7 @@ type PodDialer struct {
 	config        *rest.Config
 	clusterDomain string
 	requestID     int
+	clientset     kubernetes.Interface
 }
 
 // NewPodDialer create a PodDialer.
@@ -80,7 +92,7 @@ func (p *PodDialer) WithClusterDomain(domain string) *PodDialer {
 // DialContext dials the given pod's service-based DNS address and returns a
 // net.Conn that can be used to reach the pod directly. It uses the passed in
 // context to close the underlying connection when
-func (p *PodDialer) DialContext(_ context.Context, network string, address string) (net.Conn, error) {
+func (p *PodDialer) DialContext(ctx context.Context, network string, address string) (net.Conn, error) {
 	switch network {
 	case "tcp", "tcp4", "tcp6":
 	default:
@@ -92,9 +104,21 @@ func (p *PodDialer) DialContext(_ context.Context, network string, address strin
 		return nil, err
 	}
 
+	// If the parsed pod name looks like a dashed IPv4 address (e.g.
+	// "10-42-0-7"), resolve it to the actual pod via the K8s API.
+	// This handles Kafka brokers that advertise pod-IP-based hostnames,
+	// which changed behavior in Kubernetes 1.32+.
+	if dashedIPv4Pattern.MatchString(pod.Name) {
+		resolved, resolveErr := p.resolveIPToPod(ctx, pod.Name)
+		if resolveErr != nil {
+			return nil, fmt.Errorf("unable to dial: %w", resolveErr)
+		}
+		pod = resolved
+	}
+
 	conn, err := p.connectionForPod(pod)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to dial: %w", err)
 	}
 
 	p.requestID++
@@ -205,6 +229,48 @@ func (p *PodDialer) parseDNS(fqdn string) (types.NamespacedName, int, error) {
 	pod.Name = labels[0]
 
 	return pod, port, nil
+}
+
+// resolveIPToPod converts a dashed-IPv4 pod name (e.g. "10-42-0-7") back
+// to a dotted IP and queries the Kubernetes API for the actual pod at that
+// address. This is needed because some Kubernetes versions (1.32+) return
+// pod-IP-based hostnames in broker metadata, and the PodDialer needs the
+// real pod name and namespace for port-forwarding.
+func (p *PodDialer) resolveIPToPod(ctx context.Context, dashedIP string) (types.NamespacedName, error) {
+	cs, err := p.getClientset()
+	if err != nil {
+		return types.NamespacedName{}, fmt.Errorf("creating clientset for IP resolution: %w", err)
+	}
+
+	ip := strings.ReplaceAll(dashedIP, "-", ".")
+
+	pods, err := cs.CoreV1().Pods("").List(ctx, metav1.ListOptions{
+		FieldSelector: fields.OneTermEqualSelector("status.podIP", ip).String(),
+		Limit:         1,
+	})
+	if err != nil {
+		return types.NamespacedName{}, fmt.Errorf("listing pods for IP %s: %w", ip, err)
+	}
+
+	if len(pods.Items) == 0 {
+		return types.NamespacedName{}, fmt.Errorf("%w: %s", ErrPodNotFound, ip)
+	}
+
+	pod := pods.Items[0]
+	return types.NamespacedName{Name: pod.Name, Namespace: pod.Namespace}, nil
+}
+
+func (p *PodDialer) getClientset() (kubernetes.Interface, error) {
+	if p.clientset != nil {
+		return p.clientset, nil
+	}
+
+	cs, err := kubernetes.NewForConfig(p.config)
+	if err != nil {
+		return nil, err
+	}
+	p.clientset = cs
+	return cs, nil
 }
 
 func (p *PodDialer) connectionForPod(pod types.NamespacedName) (httpstream.Connection, error) {
