@@ -242,7 +242,7 @@ func TestDialer(t *testing.T) {
 // setupK3sCluster is a helper that starts a k3s container with the given image,
 // creates a caddy pod, waits for it to be running, and returns the rest config,
 // client, and pod.
-func setupK3sCluster(ctx context.Context, t *testing.T, image string) (*rest.Config, client.Client, *corev1.Pod) {
+func setupK3sCluster(ctx context.Context, t *testing.T, image string) (*rest.Config, *corev1.Pod) {
 	t.Helper()
 
 	container, err := k3s.Run(ctx, image)
@@ -297,7 +297,7 @@ func setupK3sCluster(ctx context.Context, t *testing.T, image string) (*rest.Con
 	// Re-fetch to get the pod IP.
 	require.NoError(t, c.Get(ctx, types.NamespacedName{Name: pod.Name, Namespace: pod.Namespace}, pod))
 
-	return restcfg, c, pod
+	return restcfg, pod
 }
 
 // TestDialerDashedIPResolution_K8s132 demonstrates that on Kubernetes 1.32+,
@@ -310,7 +310,7 @@ func TestDialerDashedIPResolution_K8s132(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
 	defer cancel()
 
-	restcfg, _, pod := setupK3sCluster(ctx, t, "rancher/k3s:v1.32.13-k3s1")
+	restcfg, pod := setupK3sCluster(ctx, t, "rancher/k3s:v1.32.13-k3s1")
 
 	// Convert the pod IP (e.g. "10.42.0.7") to the dashed format
 	// that Kafka brokers advertise in K8s 1.32+ (e.g. "10-42-0-7").
@@ -374,7 +374,7 @@ func TestDialerDashedIPResolution_K8s131(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
 	defer cancel()
 
-	restcfg, _, pod := setupK3sCluster(ctx, t, "rancher/k3s:v1.31.6-k3s1")
+	restcfg, pod := setupK3sCluster(ctx, t, "rancher/k3s:v1.31.6-k3s1")
 
 	t.Logf("Pod %s/%s has IP %s", pod.Namespace, pod.Name, pod.Status.PodIP)
 
