@@ -17,9 +17,11 @@ package kube_test
 import (
 	"context"
 	"crypto/tls"
+	"fmt"
 	"io"
 	"net"
 	"net/http"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -206,7 +208,7 @@ func TestDialer(t *testing.T) {
 		})
 	}
 
-	t.Run("roundTripperFor", func(t *testing.T) {
+	t.Run("roundTripperFor-v1.27", func(t *testing.T) {
 		const canary = "You've used the customized dialer!"
 
 		// Reuse the existing kube-apiserver so the initial request succeeds
@@ -234,5 +236,193 @@ func TestDialer(t *testing.T) {
 		_, err := dialer.DialContext(context.Background(), "tcp", "name:80")
 		require.Error(t, err)
 		require.Contains(t, err.Error(), canary)
+	})
+}
+
+// setupK3sCluster is a helper that starts a k3s container with the given image,
+// creates a caddy pod, waits for it to be running, and returns the rest config,
+// client, and pod.
+func setupK3sCluster(t *testing.T, ctx context.Context, image string) (*rest.Config, client.Client, *corev1.Pod) {
+	t.Helper()
+
+	container, err := k3s.Run(ctx, image)
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		_ = container.Terminate(context.Background())
+	})
+
+	config, err := container.GetKubeConfig(ctx)
+	require.NoError(t, err)
+	restcfg, err := clientcmd.RESTConfigFromKubeConfig(config)
+	require.NoError(t, err)
+	s := runtime.NewScheme()
+	require.NoError(t, clientgoscheme.AddToScheme(s))
+	c, err := client.New(restcfg, client.Options{Scheme: s})
+	require.NoError(t, err)
+
+	pod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "caddy-test",
+			Namespace: "default",
+		},
+		Spec: corev1.PodSpec{
+			Containers: []corev1.Container{
+				{
+					Image:   "caddy",
+					Name:    "caddy",
+					Command: []string{"caddy"},
+					Args: []string{
+						"file-server",
+						"--domain",
+						"localhost",
+					},
+					Ports: []corev1.ContainerPort{
+						{Name: "http", ContainerPort: 80},
+						{Name: "https", ContainerPort: 443},
+					},
+				},
+			},
+		},
+	}
+	require.NoError(t, c.Create(ctx, pod))
+
+	require.Eventually(t, func() bool {
+		var ready corev1.Pod
+		if err := c.Get(ctx, types.NamespacedName{Name: pod.Name, Namespace: pod.Namespace}, &ready); err != nil {
+			return false
+		}
+		return ready.Status.Phase == corev1.PodRunning && ready.Status.PodIP != ""
+	}, 60*time.Second, 100*time.Millisecond)
+
+	// Re-fetch to get the pod IP.
+	require.NoError(t, c.Get(ctx, types.NamespacedName{Name: pod.Name, Namespace: pod.Namespace}, pod))
+
+	return restcfg, c, pod
+}
+
+// TestDialerDashedIPResolution_K8s132 demonstrates that on Kubernetes 1.32+,
+// pod-IP-based hostnames with dashes (e.g. "10-42-0-7") require the
+// resolveIPToPod fix in PodDialer. Without the fix, the dialer would attempt
+// to look up a pod literally named "10-42-0-7" which doesn't exist.
+func TestDialerDashedIPResolution_K8s132(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+	defer cancel()
+
+	restcfg, _, pod := setupK3sCluster(t, ctx, "rancher/k3s:v1.32.13-k3s1")
+
+	// Convert the pod IP (e.g. "10.42.0.7") to the dashed format
+	// that Kafka brokers advertise in K8s 1.32+ (e.g. "10-42-0-7").
+	dashedIP := strings.ReplaceAll(pod.Status.PodIP, ".", "-")
+	t.Logf("Pod %s/%s has IP %s (dashed: %s)", pod.Namespace, pod.Name, pod.Status.PodIP, dashedIP)
+
+	dialer := kube.NewPodDialer(restcfg)
+	tlsConfig := &tls.Config{InsecureSkipVerify: true, ServerName: "localhost"}
+	httpClient := &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: tlsConfig,
+			DialContext:     dialer.DialContext,
+		},
+	}
+
+	// Dial using the dashed-IP format, simulating what a Kafka broker
+	// would advertise in K8s 1.32+. The fix resolves this dashed IP
+	// back to the actual pod via the K8s API.
+	for _, scheme := range []string{"http", "https"} {
+		t.Run(fmt.Sprintf("%s/dashed-ip", scheme), func(t *testing.T) {
+			url := fmt.Sprintf("%s://%s", scheme, dashedIP)
+			req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
+			require.NoError(t, err)
+
+			resp, err := httpClient.Do(req)
+			require.NoError(t, err)
+			defer resp.Body.Close()
+
+			_, err = io.ReadAll(resp.Body)
+			require.NoError(t, err)
+			require.Equal(t, http.StatusOK, resp.StatusCode)
+		})
+	}
+
+	// Also verify that regular pod-name dialing still works on 1.32+.
+	for _, host := range []string{
+		fmt.Sprintf("http://%s", pod.Name),
+		fmt.Sprintf("http://%s.%s", pod.Name, pod.Namespace),
+	} {
+		t.Run(host, func(t *testing.T) {
+			req, err := http.NewRequestWithContext(ctx, http.MethodGet, host, http.NoBody)
+			require.NoError(t, err)
+
+			resp, err := httpClient.Do(req)
+			require.NoError(t, err)
+			defer resp.Body.Close()
+
+			_, err = io.ReadAll(resp.Body)
+			require.NoError(t, err)
+			require.Equal(t, http.StatusOK, resp.StatusCode)
+		})
+	}
+}
+
+// TestDialerDashedIPResolution_K8s131 demonstrates that on Kubernetes 1.31.x
+// and lower, the standard pod-name-based dialing works without needing dashed-IP
+// resolution. This serves as a baseline showing the behavior prior to 1.32.
+func TestDialerDashedIPResolution_K8s131(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+	defer cancel()
+
+	restcfg, _, pod := setupK3sCluster(t, ctx, "rancher/k3s:v1.31.6-k3s1")
+
+	t.Logf("Pod %s/%s has IP %s", pod.Namespace, pod.Name, pod.Status.PodIP)
+
+	dialer := kube.NewPodDialer(restcfg)
+	tlsConfig := &tls.Config{InsecureSkipVerify: true, ServerName: "localhost"}
+	httpClient := &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: tlsConfig,
+			DialContext:     dialer.DialContext,
+		},
+	}
+
+	// On 1.31.x, pod-name-based dialing works normally. Dashes in pod
+	// names are just literal characters, not IP-derived hostnames.
+	for _, host := range []string{
+		fmt.Sprintf("http://%s", pod.Name),
+		fmt.Sprintf("http://%s.%s", pod.Name, pod.Namespace),
+		fmt.Sprintf("https://%s", pod.Name),
+		fmt.Sprintf("https://%s.%s", pod.Name, pod.Namespace),
+	} {
+		t.Run(host, func(t *testing.T) {
+			req, err := http.NewRequestWithContext(ctx, http.MethodGet, host, http.NoBody)
+			require.NoError(t, err)
+
+			resp, err := httpClient.Do(req)
+			require.NoError(t, err)
+			defer resp.Body.Close()
+
+			_, err = io.ReadAll(resp.Body)
+			require.NoError(t, err)
+			require.Equal(t, http.StatusOK, resp.StatusCode)
+		})
+	}
+
+	// Also verify that the dashed-IP resolution works on 1.31.x too
+	// (the fix is backwards compatible).
+	dashedIP := strings.ReplaceAll(pod.Status.PodIP, ".", "-")
+	t.Run(fmt.Sprintf("http/dashed-ip-%s", dashedIP), func(t *testing.T) {
+		url := fmt.Sprintf("http://%s", dashedIP)
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
+		require.NoError(t, err)
+
+		resp, err := httpClient.Do(req)
+		require.NoError(t, err)
+		defer resp.Body.Close()
+
+		_, err = io.ReadAll(resp.Body)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, resp.StatusCode)
 	})
 }
