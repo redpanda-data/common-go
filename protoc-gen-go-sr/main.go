@@ -11,8 +11,11 @@ import (
 	"sort"
 	"strings"
 
+	commonv1 "buf.build/gen/go/redpandadata/common/protocolbuffers/go/redpanda/api/common/v1"
 	"google.golang.org/protobuf/compiler/protogen"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
+	"google.golang.org/protobuf/types/descriptorpb"
 )
 
 func main() {
@@ -323,32 +326,14 @@ func relativeName(target, parent protoreflect.FullName) string {
 	return strings.Join(targetParts[common:], ".")
 }
 
-// getSROptions extracts the schema_registry option from a message descriptor.
-// Uses the raw protobuf descriptor to avoid depending on generated Go code
-// for the extension (which may not be published to BSR yet).
 func getSROptions(msg *protogen.Message) (subject string, ok bool) {
-	opts := msg.Desc.Options()
+	opts, _ := msg.Desc.Options().(*descriptorpb.MessageOptions)
 	if opts == nil {
 		return "", false
 	}
-
-	// The schema_registry extension is field 15360 on MessageOptions.
-	// Walk unknown fields / extensions to find it.
-	var found bool
-	opts.ProtoReflect().Range(func(fd protoreflect.FieldDescriptor, v protoreflect.Value) bool {
-		if fd.Number() == 15360 && fd.IsExtension() {
-			// The value is a SchemaRegistryOptions message.
-			srMsg := v.Message()
-			// Field 1 is "subject".
-			subjectFD := srMsg.Descriptor().Fields().ByNumber(1)
-			if subjectFD != nil {
-				subject = srMsg.Get(subjectFD).String()
-				found = true
-			}
-			return false
-		}
-		return true
-	})
-
-	return subject, found
+	if !proto.HasExtension(opts, commonv1.E_SchemaRegistry) {
+		return "", false
+	}
+	sr := proto.GetExtension(opts, commonv1.E_SchemaRegistry).(*commonv1.SchemaRegistryOptions)
+	return sr.GetSubject(), true
 }

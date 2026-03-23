@@ -1,0 +1,34 @@
+syntax = "proto3";
+
+package example.v1;
+
+import "google/protobuf/timestamp.proto";
+import "example/v1/product.proto";
+import "redpanda/api/common/v1/schema_registry.proto";
+
+option go_package = "github.com/redpanda-data/common-go/protoc-gen-go-sr/example/gen/go/example/v1;examplev1";
+
+// Order references Product from a different proto file. The generated schema
+// inlines the Product message (and its ProductStatus enum) as dependencies.
+message Order {
+  option (redpanda.api.common.v1.schema_registry) = {
+    subject: "example.orders-value"
+  };
+
+  string id = 1;
+  repeated OrderItem items = 2;
+  OrderStatus status = 3;
+  google.protobuf.Timestamp created_at = 4;
+}
+
+message OrderItem {
+  Product product = 1;
+  int32 quantity = 2;
+}
+
+enum OrderStatus {
+  ORDER_STATUS_UNSPECIFIED = 0;
+  ORDER_STATUS_PENDING = 1;
+  ORDER_STATUS_SHIPPED = 2;
+  ORDER_STATUS_DELIVERED = 3;
+}
