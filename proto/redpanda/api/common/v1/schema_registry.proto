@@ -13,9 +13,9 @@ extend google.protobuf.MessageOptions {
   // field sets the SR subject name used for registration.
   //
   // e.g.:
-  //   message LLMProvider {
+  //   message Product {
   //     option (redpanda.api.common.v1.schema_registry) = {
-  //       subject: "redpanda-aigw-llm-provider-value"
+  //       subject: "products-value"
   //     };
   //     ...
   //   }
@@ -24,6 +24,6 @@ extend google.protobuf.MessageOptions {
 
 message SchemaRegistryOptions {
   // subject is the Schema Registry subject name for this message.
-  // Typically "{topic}-value", e.g. "redpanda.aigw.llm-providers-value".
+  // Typically "{topic}-value", e.g. "products-value".
   string subject = 1;
 }
