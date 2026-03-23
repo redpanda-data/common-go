@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+package redpanda.api.common.v1;
+
+import "google/protobuf/descriptor.proto";
+
+option go_package = "buf.build/gen/go/redpandadata/common/protocolbuffers/go/redpanda/api/common/v1;commonv1";
+
+extend google.protobuf.MessageOptions {
+  // schema_registry marks a message for Schema Registry schema generation.
+  // The protoc-gen-go-sr plugin generates a self-contained .proto string
+  // (target message at index 0) and emits it as a Go constant. The subject
+  // field sets the SR subject name used for registration.
+  //
+  // e.g.:
+  //   message LLMProvider {
+  //     option (redpanda.api.common.v1.schema_registry) = {
+  //       subject: "redpanda-aigw-llm-provider-value"
+  //     };
+  //     ...
+  //   }
+  SchemaRegistryOptions schema_registry = 15360;
+}
+
+message SchemaRegistryOptions {
+  // subject is the Schema Registry subject name for this message.
+  // Typically "{topic}-value", e.g. "redpanda.aigw.llm-providers-value".
+  string subject = 1;
+}
