@@ -1,0 +1,51 @@
+syntax = "proto3";
+
+package example.v1;
+
+import "google/protobuf/timestamp.proto";
+import "redpanda/api/common/v1/schema_registry.proto";
+
+option go_package = "github.com/redpanda-data/common-go/protoc-gen-go-sr/example/gen/go/example/v1;examplev1";
+
+// ProductService manages products. The service definition is stripped from the
+// generated SR schema -- only the message types matter for serialization.
+service ProductService {
+  rpc CreateProduct(CreateProductRequest) returns (CreateProductResponse);
+  rpc GetProduct(GetProductRequest) returns (GetProductResponse);
+}
+
+enum ProductStatus {
+  PRODUCT_STATUS_UNSPECIFIED = 0;
+  PRODUCT_STATUS_ACTIVE = 1;
+  PRODUCT_STATUS_ARCHIVED = 2;
+}
+
+// Product is annotated for Schema Registry generation. The generated _sr.go
+// file will contain a self-contained proto with Product at index 0.
+message Product {
+  option (redpanda.api.common.v1.schema_registry) = {
+    subject: "example.products-value"
+  };
+
+  string id = 1;
+  string name = 2;
+  ProductStatus status = 3;
+  repeated string tags = 4;
+  google.protobuf.Timestamp created_at = 5;
+}
+
+message CreateProductRequest {
+  Product product = 1;
+}
+
+message CreateProductResponse {
+  Product product = 1;
+}
+
+message GetProductRequest {
+  string id = 1;
+}
+
+message GetProductResponse {
+  Product product = 1;
+}
