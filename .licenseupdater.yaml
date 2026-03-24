@@ -13,7 +13,7 @@ matches:
     license: Apache
   - extension: .go
     type: go
-    directory: protoc-gen-go-sr
+    directory: protoc-gen-go-sr-normalize
     license: Apache
   - extension: .go
     type: go
@@ -125,7 +125,7 @@ files:
   - name: rp-controller-utils/LICENSE
     license: Apache
     full: true
-  - name: protoc-gen-go-sr/LICENSE
+  - name: protoc-gen-go-sr-normalize/LICENSE
     license: Apache
     full: true
   - name: rp-controller-gen/LICENSE
