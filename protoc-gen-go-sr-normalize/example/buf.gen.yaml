@@ -1,0 +1,21 @@
+version: v2
+managed:
+  enabled: true
+  override:
+    - file_option: go_package_prefix
+      value: github.com/redpanda-data/common-go/protoc-gen-go-sr-normalize/example/gen/go
+  disable:
+    - file_option: go_package
+      module: buf.build/redpandadata/common
+plugins:
+  # Standard Go protobuf code generation.
+  - remote: buf.build/protocolbuffers/go
+    out: ./gen/go
+    opt: paths=source_relative
+
+  # Schema Registry schema generation.
+  # For each message with (redpanda.api.common.v1.schema_registry), emits a
+  # _sr.go file with the self-contained proto schema and subject name.
+  - local: ["go", "run", ".."]
+    out: ./gen/go
+    opt: paths=source_relative

@@ -56,6 +56,53 @@ func TestProtoSerde_InvalidData(t *testing.T) {
 	assert.Error(t, err)
 }
 
+func TestFindMessageIndex(t *testing.T) {
+	protoContent := `
+syntax = "proto3";
+package redpanda.api.aigw.v1alpha1;
+
+enum LLMProviderType {
+  LLM_PROVIDER_TYPE_UNSPECIFIED = 0;
+}
+
+message LLMProvider {
+  string name = 1;
+}
+
+message CreateLLMProviderRequest {
+  LLMProvider llm_provider = 1;
+}
+
+message CreateLLMProviderResponse {
+  LLMProvider llm_provider = 1;
+}
+`
+
+	tests := []struct {
+		name      string
+		msgName   string
+		wantIdx   int
+		wantError bool
+	}{
+		{"first message", "LLMProvider", 0, false},
+		{"second message", "CreateLLMProviderRequest", 1, false},
+		{"third message", "CreateLLMProviderResponse", 2, false},
+		{"not found", "DoesNotExist", 0, true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			idx, err := findMessageIndex(protoContent, tt.msgName)
+			if tt.wantError {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), "not found")
+			} else {
+				require.NoError(t, err)
+				assert.Equal(t, tt.wantIdx, idx)
+			}
+		})
+	}
+}
+
 func TestProtoSerde_WithSchemaRegistry(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
@@ -128,6 +175,72 @@ message StringValue {
 	assert.Equal(t, byte(0x00), data[0], "First byte should be magic byte 0x00")
 
 	// Deserialize (should decode wire format)
+	decoded, err := serde.Deserialize(data)
+	require.NoError(t, err)
+	assert.Equal(t, original.GetValue(), decoded.GetValue())
+}
+
+func TestProtoSerde_WithSchemaRegistry_MessageName(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+
+	ctx := context.Background()
+
+	container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
+		ContainerRequest: testcontainers.ContainerRequest{
+			Image:        "redpandadata/redpanda:latest",
+			ExposedPorts: []string{"9092/tcp", "8081/tcp"},
+			Cmd: []string{
+				"redpanda",
+				"start",
+				"--mode=dev-container",
+				"--smp=1",
+			},
+			WaitingFor: wait.ForAll(
+				wait.ForListeningPort("9092/tcp"),
+				wait.ForListeningPort("8081/tcp"),
+			),
+		},
+		Started: true,
+	})
+	require.NoError(t, err)
+	defer container.Terminate(ctx)
+
+	srHost, err := container.Host(ctx)
+	require.NoError(t, err)
+	srPort, err := container.MappedPort(ctx, "8081")
+	require.NoError(t, err)
+
+	srClient, err := sr.NewClient(sr.URLs(fmt.Sprintf("http://%s:%s", srHost, srPort.Port())))
+	require.NoError(t, err)
+
+	// Schema where StringValue is the SECOND message (index 1), not first.
+	schemaContent := `
+syntax = "proto3";
+package test;
+
+message Unused {
+  int32 x = 1;
+}
+
+message StringValue {
+  string value = 1;
+}
+`
+	// WithMessageName resolves "StringValue" to index 1.
+	serde, err := Proto(
+		func() *wrapperspb.StringValue { return &wrapperspb.StringValue{} },
+		WithSchemaRegistry(srClient, "test-msgname-subject", schemaContent,
+			WithMessageName("StringValue"),
+		),
+	)
+	require.NoError(t, err)
+
+	original := wrapperspb.String("non-zero index test")
+	data, err := serde.Serialize(original)
+	require.NoError(t, err)
+
 	decoded, err := serde.Deserialize(data)
 	require.NoError(t, err)
 	assert.Equal(t, original.GetValue(), decoded.GetValue())

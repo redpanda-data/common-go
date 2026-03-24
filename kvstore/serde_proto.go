@@ -17,6 +17,8 @@ package kvstore
 import (
 	"context"
 	"fmt"
+	"regexp"
+	"strings"
 	"time"
 
 	"github.com/twmb/franz-go/pkg/sr"
@@ -38,7 +40,8 @@ type protoConfig struct {
 }
 
 type srSerdeConfig struct {
-	schemaID int
+	schemaID     int
+	messageIndex int
 }
 
 // Proto returns a protobuf serde for type T.
@@ -80,7 +83,7 @@ func Proto[T proto.Message](factory func() T, opts ...ProtoOption) (Serde[T], er
 			sr.DecodeFn(func(b []byte, v any) error {
 				return proto.Unmarshal(b, v.(proto.Message))
 			}),
-			sr.Index(0), // Protobuf message index
+			sr.Index(cfg.srConfig.messageIndex),
 		)
 	}
 
@@ -153,7 +156,19 @@ func WithSchemaRegistry(
 		opt(cfg)
 	}
 
-	// Register schema immediately
+	// Resolve message index by name if specified.
+	messageIndex := 0
+	if cfg.messageName != "" {
+		idx, err := findMessageIndex(schemaContent, cfg.messageName)
+		if err != nil {
+			return func(c *protoConfig) {
+				c.err = fmt.Errorf("resolve message index for %q: %w", cfg.messageName, err)
+			}
+		}
+		messageIndex = idx
+	}
+
+	// Register schema immediately.
 	schema := sr.Schema{
 		Schema:     schemaContent,
 		Type:       sr.TypeProtobuf,
@@ -170,10 +185,11 @@ func WithSchemaRegistry(
 		}
 	}
 
-	// Store the schema ID config for sr.Serde creation in Proto()
+	// Store the schema ID and message index for sr.Serde creation in Proto().
 	return func(c *protoConfig) {
 		c.srConfig = &srSerdeConfig{
-			schemaID: result.ID,
+			schemaID:     result.ID,
+			messageIndex: messageIndex,
 		}
 	}
 }
@@ -182,7 +198,44 @@ func WithSchemaRegistry(
 type SchemaRegistryOption func(*srConfig)
 
 type srConfig struct {
-	refs []sr.SchemaReference
+	refs        []sr.SchemaReference
+	messageName string
+}
+
+// WithMessageName specifies which message in the proto file is the serialized payload.
+// The message index is resolved by scanning the proto content for top-level message
+// declarations. This avoids hardcoding indices that break when messages are reordered.
+//
+// If not specified, the first message (index 0) is used.
+//
+// Example:
+//
+//	kvstore.WithSchemaRegistry(srClient, "topic-value", protoSchema,
+//	    kvstore.WithMessageName("LLMProvider"),
+//	)
+func WithMessageName(name string) SchemaRegistryOption {
+	return func(c *srConfig) {
+		c.messageName = name
+	}
+}
+
+// findMessageIndex scans proto content for top-level "message <Name>" declarations
+// and returns the zero-based index of the named message.
+func findMessageIndex(protoContent, messageName string) (int, error) {
+	// Match top-level message declarations. This regex handles the common case;
+	// nested messages are not counted (they don't get their own wire-format index).
+	re := regexp.MustCompile(`(?m)^message\s+(\w+)\s*\{`)
+	matches := re.FindAllStringSubmatch(protoContent, -1)
+	for i, m := range matches {
+		if m[1] == messageName {
+			return i, nil
+		}
+	}
+	var found []string
+	for _, m := range matches {
+		found = append(found, m[1])
+	}
+	return 0, fmt.Errorf("message %q not found in proto; found: [%s]", messageName, strings.Join(found, ", "))
 }
 
 // WithSchemaReferences specifies proto import dependencies.
