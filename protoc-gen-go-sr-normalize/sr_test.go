@@ -28,7 +28,7 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	commonkvstore "github.com/redpanda-data/common-go/kvstore"
-	examplev1 "github.com/redpanda-data/common-go/protoc-gen-go-sr/example/gen/go/example/v1"
+	examplev1 "github.com/redpanda-data/common-go/protoc-gen-go-sr-normalize/example/gen/go/example/v1"
 )
 
 // TestGeneratedSchemas_SelfContained verifies that generated schemas are

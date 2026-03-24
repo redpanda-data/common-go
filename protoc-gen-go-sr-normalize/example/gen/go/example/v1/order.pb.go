@@ -234,7 +234,7 @@ const file_example_v1_order_proto_rawDesc = "" +
 	"\x14ORDER_STATUS_SHIPPED\x10\x02\x12\x1a\n" +
 	"\x16ORDER_STATUS_DELIVERED\x10\x03B\xbe\x01\n" +
 	"\x0ecom.example.v1B\n" +
-	"OrderProtoP\x01ZWgithub.com/redpanda-data/common-go/protoc-gen-go-sr/example/gen/go/example/v1;examplev1\xa2\x02\x03EXX\xaa\x02\n" +
+	"OrderProtoP\x01ZWgithub.com/redpanda-data/common-go/protoc-gen-go-sr-normalize/example/gen/go/example/v1;examplev1\xa2\x02\x03EXX\xaa\x02\n" +
 	"Example.V1\xca\x02\n" +
 	"Example\\V1\xe2\x02\x16Example\\V1\\GPBMetadata\xea\x02\vExample::V1b\x06proto3"
 

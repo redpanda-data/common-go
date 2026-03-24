@@ -371,7 +371,7 @@ const file_example_v1_product_proto_rawDesc = "" +
 	"\rCreateProduct\x12 .example.v1.CreateProductRequest\x1a!.example.v1.CreateProductResponse\x12K\n" +
 	"\n" +
 	"GetProduct\x12\x1d.example.v1.GetProductRequest\x1a\x1e.example.v1.GetProductResponseB\xc0\x01\n" +
-	"\x0ecom.example.v1B\fProductProtoP\x01ZWgithub.com/redpanda-data/common-go/protoc-gen-go-sr/example/gen/go/example/v1;examplev1\xa2\x02\x03EXX\xaa\x02\n" +
+	"\x0ecom.example.v1B\fProductProtoP\x01ZWgithub.com/redpanda-data/common-go/protoc-gen-go-sr-normalize/example/gen/go/example/v1;examplev1\xa2\x02\x03EXX\xaa\x02\n" +
 	"Example.V1\xca\x02\n" +
 	"Example\\V1\xe2\x02\x16Example\\V1\\GPBMetadata\xea\x02\vExample::V1b\x06proto3"
 

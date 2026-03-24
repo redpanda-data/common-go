@@ -3,7 +3,7 @@ managed:
   enabled: true
   override:
     - file_option: go_package_prefix
-      value: github.com/redpanda-data/common-go/protoc-gen-go-sr/example/gen/go
+      value: github.com/redpanda-data/common-go/protoc-gen-go-sr-normalize/example/gen/go
   disable:
     - file_option: go_package
       module: buf.build/redpandadata/common

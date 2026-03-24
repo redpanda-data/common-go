@@ -1,4 +1,4 @@
-module github.com/redpanda-data/common-go/protoc-gen-go-sr
+module github.com/redpanda-data/common-go/protoc-gen-go-sr-normalize
 
 go 1.25.6
 
