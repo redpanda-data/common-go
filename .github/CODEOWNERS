@@ -15,4 +15,5 @@
 /rp-controller-gen/ @andrewstucki @RafalKorepta @chrisseto
 /rp-controller-utils/ @andrewstucki @RafalKorepta @chrisseto
 /otelutil/ @andrewstucki @RafalKorepta @chrisseto
-/kube/example/ @andrewstucki/protoc-gen-go-sr/ @birdayz @simonswine
+/kube/example/ @andrewstucki
+/protoc-gen-go-sr-normalize/ @birdayz

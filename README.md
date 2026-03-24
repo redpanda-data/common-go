@@ -13,7 +13,7 @@ All packages contain their own licensing information and README about how they a
 |---------|---------|
 | [alias](./alias) | Apache |
 | [otelutil](./otelutil) | Apache |
-| [protoc-gen-go-sr](./protoc-gen-go-sr) | Apache |
+| [protoc-gen-go-sr-normalize](./protoc-gen-go-sr-normalize) | Apache |
 | [rp-controller-gen](./rp-controller-gen) | Apache |
 | [rp-controller-utils](./rp-controller-utils) | Apache |
 | [goldenfile](./goldenfile) | Apache |
