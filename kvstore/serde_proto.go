@@ -16,6 +16,7 @@ package kvstore
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"regexp"
 	"strings"
@@ -27,8 +28,10 @@ import (
 
 // ProtoSerde serializes values as protobuf, optionally with Schema Registry wire format.
 type ProtoSerde[T proto.Message] struct {
-	new   func() T
-	serde *sr.Serde
+	new      func() T
+	serde    *sr.Serde
+	srClient *sr.Client       // for fetching unknown schema IDs at decode time
+	regOpts  []sr.EncodingOpt // kept for lazy registration of unknown schema IDs
 }
 
 // ProtoOption configures a ProtoSerde.
@@ -40,6 +43,7 @@ type protoConfig struct {
 }
 
 type srSerdeConfig struct {
+	srClient     *sr.Client
 	schemaID     int
 	messageIndex int
 }
@@ -68,49 +72,67 @@ func Proto[T proto.Message](factory func() T, opts ...ProtoOption) (Serde[T], er
 	}
 
 	var serde *sr.Serde
+	var regOpts []sr.EncodingOpt
 	if cfg.srConfig != nil {
-		// Create sr.Serde with the factory for proper type instantiation
 		serde = sr.NewSerde()
-		serde.Register(
-			cfg.srConfig.schemaID,
-			factory(), // Pass concrete type instance
-			sr.GenerateFn(func() any {
-				return factory() // Tell sr.Serde how to create new instances
-			}),
-			sr.EncodeFn(func(v any) ([]byte, error) {
-				return proto.Marshal(v.(proto.Message))
-			}),
-			sr.DecodeFn(func(b []byte, v any) error {
-				return proto.Unmarshal(b, v.(proto.Message))
-			}),
+		regOpts = []sr.EncodingOpt{
+			sr.GenerateFn(func() any { return factory() }),
+			sr.EncodeFn(func(v any) ([]byte, error) { return proto.Marshal(v.(proto.Message)) }),
+			sr.DecodeFn(func(b []byte, v any) error { return proto.Unmarshal(b, v.(proto.Message)) }),
 			sr.Index(cfg.srConfig.messageIndex),
-		)
+		}
+		serde.Register(cfg.srConfig.schemaID, factory(), regOpts...)
+	}
+
+	var srClient *sr.Client
+	if cfg.srConfig != nil {
+		srClient = cfg.srConfig.srClient
 	}
 
 	return &ProtoSerde[T]{
-		new:   factory,
-		serde: serde,
+		new:      factory,
+		serde:    serde,
+		srClient: srClient,
+		regOpts:  regOpts,
 	}, nil
 }
 
 // Serialize marshals the protobuf message.
 // If Schema Registry is configured, wraps with Confluent wire format.
 func (s *ProtoSerde[T]) Serialize(v T) ([]byte, error) {
-	// If Schema Registry configured, use serde which handles wire format
 	if s.serde != nil {
 		return s.serde.Encode(v)
 	}
-
-	// Plain protobuf without Schema Registry
 	return proto.Marshal(v)
 }
 
 // Deserialize unmarshals protobuf bytes to the message.
 // If Schema Registry is configured, decodes Confluent wire format first.
+//
+// On an unknown schema ID (e.g. after a schema evolution), the ID is
+// validated against Schema Registry via SchemaByID, then registered
+// locally for subsequent decodes. The actual deserialization always uses
+// proto.Unmarshal with the compiled Go type -- unlike Avro, protobuf's
+// wire format is self-describing (field numbers + wire types), so the
+// schema from SR is not needed at decode time. SR's role for protobuf
+// is governance (compatibility checks at registration) and validation
+// (confirming the ID is legitimate), not driving deserialization.
 func (s *ProtoSerde[T]) Deserialize(b []byte) (T, error) {
-	// If Schema Registry configured, use serde which handles wire format
 	if s.serde != nil {
 		v, err := s.serde.DecodeNew(b)
+		if errors.Is(err, sr.ErrNotRegistered) && s.srClient != nil {
+			id, _, idErr := s.serde.DecodeID(b)
+			if idErr == nil {
+				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+				defer cancel()
+				if _, srErr := s.srClient.SchemaByID(ctx, id); srErr != nil {
+					var zero T
+					return zero, fmt.Errorf("schema ID %d not found in registry: %w", id, srErr)
+				}
+				s.serde.Register(id, s.new(), s.regOpts...)
+				v, err = s.serde.DecodeNew(b)
+			}
+		}
 		if err != nil {
 			var zero T
 			return zero, err
@@ -123,7 +145,6 @@ func (s *ProtoSerde[T]) Deserialize(b []byte) (T, error) {
 		return result, nil
 	}
 
-	// Plain protobuf without Schema Registry
 	v := s.new()
 	err := proto.Unmarshal(b, v)
 	return v, err
@@ -185,9 +206,9 @@ func WithSchemaRegistry(
 		}
 	}
 
-	// Store the schema ID and message index for sr.Serde creation in Proto().
 	return func(c *protoConfig) {
 		c.srConfig = &srSerdeConfig{
+			srClient:     srClient,
 			schemaID:     result.ID,
 			messageIndex: messageIndex,
 		}
