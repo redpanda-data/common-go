@@ -245,3 +245,91 @@ message StringValue {
 	require.NoError(t, err)
 	assert.Equal(t, original.GetValue(), decoded.GetValue())
 }
+
+func TestProtoSerde_SchemaEvolution_DecodeOldVersion(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+
+	ctx := context.Background()
+
+	container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
+		ContainerRequest: testcontainers.ContainerRequest{
+			Image:        "redpandadata/redpanda:latest",
+			ExposedPorts: []string{"9092/tcp", "8081/tcp"},
+			Cmd: []string{
+				"redpanda",
+				"start",
+				"--mode=dev-container",
+				"--smp=1",
+			},
+			WaitingFor: wait.ForAll(
+				wait.ForListeningPort("9092/tcp"),
+				wait.ForListeningPort("8081/tcp"),
+			),
+		},
+		Started: true,
+	})
+	require.NoError(t, err)
+	defer container.Terminate(ctx)
+
+	srHost, err := container.Host(ctx)
+	require.NoError(t, err)
+	srPort, err := container.MappedPort(ctx, "8081")
+	require.NoError(t, err)
+
+	srClient, err := sr.NewClient(sr.URLs(fmt.Sprintf("http://%s:%s", srHost, srPort.Port())))
+	require.NoError(t, err)
+
+	const subject = "test-evolution-value"
+
+	schemaV1 := `
+syntax = "proto3";
+package test;
+
+message StringValue {
+  string value = 1;
+}
+`
+	schemaV2 := `
+syntax = "proto3";
+package test;
+
+message StringValue {
+  string value = 1;
+  bool new_flag = 2;
+}
+`
+
+	// Encode with v1.
+	serdeV1, err := Proto(
+		func() *wrapperspb.StringValue { return &wrapperspb.StringValue{} },
+		WithSchemaRegistry(srClient, subject, schemaV1),
+	)
+	require.NoError(t, err)
+
+	original := wrapperspb.String("written with schema v1")
+	encoded, err := serdeV1.Serialize(original)
+	require.NoError(t, err)
+
+	// Create serde with v2 (simulates process restart with new proto).
+	serdeV2, err := Proto(
+		func() *wrapperspb.StringValue { return &wrapperspb.StringValue{} },
+		WithSchemaRegistry(srClient, subject, schemaV2),
+	)
+	require.NoError(t, err)
+
+	// v2 serde must decode data written by v1.
+	decoded2, err := serdeV2.Deserialize(encoded)
+	require.NoError(t, err, "v2 serde must decode data written with v1 schema")
+	assert.Equal(t, original.GetValue(), decoded2.GetValue())
+
+	// v2 serde must still encode/decode its own data.
+	v2Original := wrapperspb.String("written with schema v2")
+	v2Encoded, err := serdeV2.Serialize(v2Original)
+	require.NoError(t, err)
+
+	v2Decoded, err := serdeV2.Deserialize(v2Encoded)
+	require.NoError(t, err)
+	assert.Equal(t, v2Original.GetValue(), v2Decoded.GetValue())
+}
