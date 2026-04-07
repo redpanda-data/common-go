@@ -54,6 +54,14 @@ type Broker struct {
 	IsAlive            *bool              `json:"is_alive"`
 	Version            string             `json:"version"`
 	Maintenance        *MaintenanceStatus `json:"maintenance_status"`
+	DiskSpace          []DiskSpace        `json:"disk_space"`
+}
+
+// DiskSpace disk space information per directory path.
+type DiskSpace struct {
+	Free  int    `json:"free"`
+	Total int    `json:"total"`
+	Path  string `json:"path"`
 }
 
 // DecommissionPartitions holds decommission partitions info.
