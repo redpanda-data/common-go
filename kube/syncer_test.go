@@ -204,6 +204,50 @@ func TestSyncer(t *testing.T) {
 		require.NoError(t, err)
 	})
 
+	t.Run("GCBypass", func(t *testing.T) {
+		gcSyncer := syncer
+		gcSyncer.GCLabel = "gc"
+
+		// Create an out-of-band ConfigMap with ownership labels, owner ref, and
+		// gc=false. This simulates a resource managed externally that should
+		// retain ownership labels for tracking but not be GC'd during Sync.
+		bypass := &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "gc-bypass-cm",
+				Namespace: ns.Name,
+				Labels: map[string]string{
+					"owned_by": "syncer",
+					"gc":       "false",
+				},
+				OwnerReferences: []metav1.OwnerReference{{
+					Name:       ns.Name,
+					APIVersion: "v1",
+					Kind:       "Namespace",
+					UID:        ns.UID,
+				}},
+			},
+		}
+		require.NoError(t, ctl.Create(t.Context(), bypass))
+
+		// Sync should not delete the bypass object even though the renderer
+		// doesn't return it.
+		_, err := gcSyncer.Sync(t.Context())
+		require.NoError(t, err)
+
+		var cm corev1.ConfigMap
+		require.NoError(t, ctl.Get(t.Context(), kube.AsKey(bypass), &cm))
+
+		// DeleteAll should still delete it.
+		_, err = gcSyncer.DeleteAll(t.Context())
+		require.NoError(t, err)
+
+		ctx := t.Context()
+		require.EventuallyWithT(t, func(ct *assert.CollectT) {
+			err := ctl.Get(ctx, kube.AsKey(bypass), &cm)
+			assert.True(ct, apierrors.IsNotFound(err) || !cm.DeletionTimestamp.IsZero())
+		}, 30*time.Second, time.Second)
+	})
+
 	t.Run("DeleteAll", func(t *testing.T) {
 		ctx := t.Context()
 
