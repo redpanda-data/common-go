@@ -41,7 +41,6 @@ var IntoContext = log.IntoContext
 
 // FromContext returns a logger with predefined values from a context.Context.
 func FromContext(ctx context.Context, keysAndValues ...any) logr.Logger {
-	keysAndValues = append(keysAndValues, "ctx", ctx)
 	return log.FromContext(ctx, keysAndValues...)
 }
 
