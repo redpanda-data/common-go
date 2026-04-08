@@ -190,7 +190,8 @@ func TestSyncer(t *testing.T) {
 
 		// NB: This must be on the same key that's referenced in renderer to
 		// actually generate a conflict.
-		cm := objs[0].(*corev1.ConfigMap)
+		cm, ok := objs[0].(*corev1.ConfigMap)
+		require.True(t, ok)
 		cm.Data["some"] = "update"
 
 		err = ctl.Apply(t.Context(), objs[0], client.FieldOwner("conflicter"))
