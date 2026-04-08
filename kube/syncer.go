@@ -65,6 +65,12 @@ type Syncer struct {
 	// Preprocess, if provided, is run ahead of applying Objects. It may be
 	// used to add additional labels, annotation, etc uniformly.
 	Preprocess func(Object)
+
+	// GCLabel, if set, is checked on existing resources during the GC phase.
+	// Resources with this label set to "false" are skipped (not deleted) but
+	// are still included in DeleteAll. This allows out-of-band resources to
+	// retain ownership labels for tracking without being garbage collected.
+	GCLabel string
 }
 
 // Sync synchronizes the rendered objects into the Kubernetes API, applying
@@ -127,6 +133,13 @@ func (s *Syncer) Sync(ctx context.Context) ([]Object, error) {
 	}
 
 	for key, obj := range toDelete {
+		// Resources labeled with gc=false are managed out-of-band (e.g. by a
+		// controller rather than the renderer) and should not be garbage collected
+		// during sync. They retain ownership labels for tracking and cleanup via
+		// DeleteAll.
+		if s.GCLabel != "" && obj.GetLabels()[s.GCLabel] == "false" {
+			continue
+		}
 		logger.Info("GC'ing object", "key", key.key.String(), "gvk", key.gvk.String())
 		if err := s.Ctl.Delete(ctx, obj); err != nil {
 			return nil, err
