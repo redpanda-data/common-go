@@ -1,5 +1,5 @@
 /net/ @sago2k8
-/license/ @andrewstucki
+/license/ @redpanda-data/k8s
 /proto/ @birdayz @weeco
 /redpanda-otel-exporter/ @redpanda-data/team-ai
 /secrets/ @tomasz-sadura
@@ -7,13 +7,13 @@
 /rpsr/ @r-vasquez
 /kvstore/ @birdayz
 /api/ @sago2k8 @weeco
-/kube/ @andrewstucki @RafalKorepta @chrisseto
+/kube/ @redpanda-data/k8s
 /authz/ @redpanda-data/team-ai
-/licenseupdater/ @andrewstucki
-/alias/ @andrewstucki @RafalKorepta @chrisseto
-/goldenfile/ @andrewstucki @RafalKorepta @chrisseto
-/rp-controller-gen/ @andrewstucki @RafalKorepta @chrisseto
-/rp-controller-utils/ @andrewstucki @RafalKorepta @chrisseto
-/otelutil/ @andrewstucki @RafalKorepta @chrisseto
-/kube/example/ @andrewstucki
+/licenseupdater/ @redpanda-data/k8s
+/alias/ @redpanda-data/k8s
+/goldenfile/ @redpanda-data/k8s
+/rp-controller-gen/ @redpanda-data/k8s
+/rp-controller-utils/ @redpanda-data/k8s
+/otelutil/ @redpanda-data/k8s
+/kube/example/ @redpanda-data/k8s
 /protoc-gen-go-sr-normalize/ @birdayz
