@@ -36,6 +36,10 @@ func (l contextFreeSink) WithValues(kvList ...any) logr.LogSink {
 	return ContextFree(l.LogSink.WithValues(filterContexts(kvList)...))
 }
 
+func (l contextFreeSink) WithName(name string) logr.LogSink {
+	return ContextFree(l.LogSink.WithName(name))
+}
+
 func (l contextFreeSink) Info(level int, msg string, kvList ...any) {
 	l.LogSink.Info(level, msg, filterContexts(kvList)...)
 }
