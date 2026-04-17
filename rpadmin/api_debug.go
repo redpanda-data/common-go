@@ -177,7 +177,7 @@ type DebugPartition struct {
 // debug bundle process.
 // See rpk debug bundle --help
 type debugBundleStartConfigParameters struct {
-	// one of DebugBundleSCRAMAuthentication or DebugBundleOIDCAuthentication
+	// one of debugBundleSCRAMAuthentication or debugBundleOAuthBearerAuthentication
 	Authentication               any                        `json:"authentication,omitempty"`
 	ControllerLogsSizeLimitBytes int32                      `json:"controller_logs_size_limit_bytes,omitempty"`
 	LogsSizeLimitBytes           int32                      `json:"logs_size_limit_bytes,omitempty"`
@@ -206,6 +206,14 @@ type debugBundleSCRAMAuthentication struct {
 	Password  string `json:"password,omitempty"` //nolint:gosec // G117: field holds SCRAM credentials for debug bundle API
 }
 
+// debugBundleOAuthBearerAuthentication are the OAUTHBEARER authentication
+// parameters. The token is the raw OIDC bearer token that the broker-side rpk
+// subprocess will present to Kafka.
+type debugBundleOAuthBearerAuthentication struct {
+	Mechanism string `json:"mechanism,omitempty"`
+	Token     string `json:"token,omitempty"` //nolint:gosec // G117: field holds OIDC bearer token for debug bundle API
+}
+
 type debugBundleStartConfig struct {
 	JobID  string                           `json:"job_id,omitempty"`
 	Config debugBundleStartConfigParameters `json:"config,omitempty"`
@@ -227,6 +235,17 @@ func WithSCRAMAuthentication(username, password, mechanism string) DebugBundleOp
 	return debugBundleOpt{func(param *debugBundleStartConfigParameters) {
 		param.Authentication = debugBundleSCRAMAuthentication{
 			Username: username, Password: password, Mechanism: mechanism,
+		}
+	}}
+}
+
+// WithOAuthBearerAuthentication sets OAUTHBEARER authentication using the
+// given OIDC bearer token.
+func WithOAuthBearerAuthentication(token string) DebugBundleOption {
+	return debugBundleOpt{func(param *debugBundleStartConfigParameters) {
+		param.Authentication = debugBundleOAuthBearerAuthentication{
+			Mechanism: OAuthBearer,
+			Token:     token,
 		}
 	}}
 }
