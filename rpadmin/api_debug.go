@@ -211,7 +211,7 @@ type debugBundleSCRAMAuthentication struct {
 // subprocess will present to Kafka.
 type debugBundleOAuthBearerAuthentication struct {
 	Mechanism string `json:"mechanism,omitempty"`
-	Token     string `json:"token,omitempty"` //nolint:gosec // G117: field holds OIDC bearer token for debug bundle API
+	Token     string `json:"token,omitempty"`
 }
 
 type debugBundleStartConfig struct {
