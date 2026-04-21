@@ -76,4 +76,22 @@ func TestDebugBundleOption(t *testing.T) {
 		pj, _ := json.Marshal(params)
 		assert.Equal(t, `{"authentication":{"mechanism":"SCRAM-SHA-256","username":"user1","password":"pass1"}}`, string(pj))
 	})
+
+	t.Run("oauthbearer auth", func(t *testing.T) {
+		opts := []DebugBundleOption{
+			WithOAuthBearerAuthentication("my-jwt-token"),
+		}
+		params := &debugBundleStartConfigParameters{}
+		for _, o := range opts {
+			o.apply(params)
+		}
+
+		authBearer, ok := params.Authentication.(debugBundleOAuthBearerAuthentication)
+		assert.True(t, ok)
+		assert.Equal(t, OAuthBearer, authBearer.Mechanism)
+		assert.Equal(t, "my-jwt-token", authBearer.Token)
+
+		pj, _ := json.Marshal(params)
+		assert.Equal(t, `{"authentication":{"mechanism":"OAUTHBEARER","token":"my-jwt-token"}}`, string(pj))
+	})
 }

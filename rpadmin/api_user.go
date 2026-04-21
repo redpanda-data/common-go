@@ -32,6 +32,8 @@ const (
 	ScramSha512 = "SCRAM-SHA-512"
 	// CloudOIDC is the constant for CLOUD-OIDC.
 	CloudOIDC = "CLOUD-OIDC"
+	// OAuthBearer is the constant for OAUTHBEARER.
+	OAuthBearer = "OAUTHBEARER"
 )
 
 // CreateUser creates a user with the given username and password using the
