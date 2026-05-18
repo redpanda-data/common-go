@@ -1,6 +1,6 @@
 module github.com/redpanda-data/common-go/rp-controller-utils
 
-go 1.25.1
+go 1.25.10
 
 require (
 	k8s.io/apimachinery v0.35.1
