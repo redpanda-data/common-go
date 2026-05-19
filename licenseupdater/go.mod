@@ -1,6 +1,6 @@
 module github.com/redpanda-data/common-go/licenseupdater
 
-go 1.24.3
+go 1.25.10
 
 require (
 	github.com/cockroachdb/errors v1.12.0
