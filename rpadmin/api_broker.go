@@ -214,8 +214,11 @@ func (a *AdminAPI) GetBrokerUuids(ctx context.Context) ([]BrokerUuids, error) {
 // broker, arranged by risk type. Each list is truncated to the limit
 // requested by the caller (default 128 partitions per category).
 //
-// See Redpanda /v1/broker/pre_restart_probe (introduced in 25.1) for the
-// authoritative definition of each category.
+// See the Redpanda admin API spec for /v1/broker/pre_restart_probe
+// (introduced in 25.1) for the authoritative definition of each
+// category:
+//
+//	https://github.com/redpanda-data/redpanda/blob/dev/src/v/redpanda/admin/api-doc/broker.json
 type RestartRisks struct {
 	// RF1Offline are partitions in RF=1 topics whose only replica is
 	// hosted on the local broker. Restarting the broker takes these
@@ -255,7 +258,10 @@ type PostRestartCheckResult struct {
 // limit caps the number of partitions returned per risk category; pass
 // 0 to use the server-side default (128).
 //
-// Added in Redpanda 25.1.
+// Added in Redpanda 25.1. See the admin API spec for the authoritative
+// definition of the response:
+//
+//	https://github.com/redpanda-data/redpanda/blob/dev/src/v/redpanda/admin/api-doc/broker.json
 func (a *AdminAPI) PreRestartProbe(ctx context.Context, limit int) (PreRestartCheckResult, error) {
 	path := preRestartProbeEndpoint
 	if limit > 0 {
@@ -274,7 +280,10 @@ func (a *AdminAPI) PreRestartProbe(ctx context.Context, limit int) (PreRestartCh
 // limit caps the number of partitions inspected by the probe; pass 0 to
 // use the server-side default (128).
 //
-// Added in Redpanda 25.1.
+// Added in Redpanda 25.1. See the admin API spec for the authoritative
+// definition of the response:
+//
+//	https://github.com/redpanda-data/redpanda/blob/dev/src/v/redpanda/admin/api-doc/broker.json
 func (a *AdminAPI) PostRestartProbe(ctx context.Context, limit int) (PostRestartCheckResult, error) {
 	path := postRestartProbeEndpoint
 	if limit > 0 {
