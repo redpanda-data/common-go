@@ -22,9 +22,10 @@ import (
 	"github.com/twmb/franz-go/pkg/kgo"
 )
 
-// testRedpandaImage tracks the latest 26.1.x nightly so the
+// testRedpandaImage tracks the current Redpanda nightly so the
 // pre/post-restart probe endpoints (introduced in 25.1) plus any
-// in-development changes to them are covered.
+// in-development changes to them are covered. The exact release line
+// floats with whatever dev is shipping.
 const testRedpandaImage = "redpandadata/redpanda-nightly:latest"
 
 // startTestBroker spins up a single-node Redpanda container and returns
