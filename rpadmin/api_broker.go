@@ -17,9 +17,11 @@ import (
 )
 
 const (
-	brokersEndpoint     = "/v1/brokers"
-	brokerEndpoint      = "/v1/brokers/%d"
-	brokerUuidsEndpoint = "/v1/broker_uuids"
+	brokersEndpoint          = "/v1/brokers"
+	brokerEndpoint           = "/v1/brokers/%d"
+	brokerUuidsEndpoint      = "/v1/broker_uuids"
+	preRestartProbeEndpoint  = "/v1/broker/pre_restart_probe"
+	postRestartProbeEndpoint = "/v1/broker/post_restart_probe"
 )
 
 // MaintenanceStatus is the maintenance status.
@@ -206,4 +208,78 @@ func (a *AdminAPI) CancelNodePartitionsMovement(ctx context.Context, node int) (
 func (a *AdminAPI) GetBrokerUuids(ctx context.Context) ([]BrokerUuids, error) {
 	var response []BrokerUuids
 	return response, a.sendAny(ctx, http.MethodGet, brokerUuidsEndpoint, nil, &response)
+}
+
+// RestartRisks lists the partitions affected by restarting the local
+// broker, arranged by risk type. Each list is truncated to the limit
+// requested by the caller (default 128 partitions per category).
+//
+// See Redpanda /v1/broker/pre_restart_probe (introduced in 25.1) for the
+// authoritative definition of each category.
+type RestartRisks struct {
+	// RF1Offline are partitions in RF=1 topics whose only replica is
+	// hosted on the local broker. Restarting the broker takes these
+	// partitions offline for the duration of the restart — generally
+	// acceptable risk, since RF=1 already implies no redundancy.
+	RF1Offline []string `json:"rf1_offline"`
+	// FullAcksProduceUnavailable are partitions that may reject produce
+	// requests with acks=-1 if the local broker is restarted.
+	FullAcksProduceUnavailable []string `json:"full_acks_produce_unavailable"`
+	// Unavailable are partitions that may reject both consume and
+	// produce requests if the local broker is restarted.
+	Unavailable []string `json:"unavailable"`
+	// Acks1DataLoss are partitions that may lose data produced with
+	// acks=1 if the local broker is restarted.
+	Acks1DataLoss []string `json:"acks1_data_loss"`
+}
+
+// PreRestartCheckResult is the response from the broker's pre-restart probe.
+type PreRestartCheckResult struct {
+	Risks RestartRisks `json:"risks"`
+}
+
+// PostRestartCheckResult is the response from the broker's post-restart probe.
+type PostRestartCheckResult struct {
+	// LoadReclaimedPercent measures the load the broker has reclaimed
+	// after a restart as a percentage of in-sync replicas (0 to 100).
+	// A value of 100 indicates the broker has fully caught up.
+	LoadReclaimedPercent int `json:"load_reclaimed_pc"`
+}
+
+// PreRestartProbe queries the broker's pre-restart probe, which returns
+// the partitions affected by restarting it grouped by risk type. The
+// probe answers for the broker that handles the request, so callers
+// generally scope the client to a specific broker (via ForHost) before
+// invoking this method.
+//
+// limit caps the number of partitions returned per risk category; pass
+// 0 to use the server-side default (128).
+//
+// Added in Redpanda 25.1.
+func (a *AdminAPI) PreRestartProbe(ctx context.Context, limit int) (PreRestartCheckResult, error) {
+	path := preRestartProbeEndpoint
+	if limit > 0 {
+		path = fmt.Sprintf("%s?limit=%d", preRestartProbeEndpoint, limit)
+	}
+	var r PreRestartCheckResult
+	return r, a.sendAny(ctx, http.MethodGet, path, nil, &r)
+}
+
+// PostRestartProbe queries the broker's post-restart probe, which reports
+// how much load this broker has reclaimed since the most recent restart
+// as a percentage of in-sync replicas. The probe answers for the broker
+// that handles the request, so callers generally scope the client to a
+// specific broker (via ForHost) before invoking this method.
+//
+// limit caps the number of partitions inspected by the probe; pass 0 to
+// use the server-side default (128).
+//
+// Added in Redpanda 25.1.
+func (a *AdminAPI) PostRestartProbe(ctx context.Context, limit int) (PostRestartCheckResult, error) {
+	path := postRestartProbeEndpoint
+	if limit > 0 {
+		path = fmt.Sprintf("%s?limit=%d", postRestartProbeEndpoint, limit)
+	}
+	var r PostRestartCheckResult
+	return r, a.sendAny(ctx, http.MethodGet, path, nil, &r)
 }
