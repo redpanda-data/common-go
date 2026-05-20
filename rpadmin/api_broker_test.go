@@ -99,7 +99,7 @@ func TestPostRestartProbe(t *testing.T) {
 		limit     int
 		wantQuery string
 	}{
-		"no limit": {limit: 0, wantQuery: ""},
+		"no limit":         {limit: 0, wantQuery: ""},
 		"limit propagated": {limit: 64, wantQuery: "limit=64"},
 	} {
 		t.Run(name, func(t *testing.T) {
