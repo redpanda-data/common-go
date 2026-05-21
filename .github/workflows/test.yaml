@@ -6,10 +6,14 @@ on:
       - main
     paths:
       - '**.go'
+      - '**/go.mod'
+      - '**/go.sum'
       - '.github/workflows/test.yaml'
   pull_request:
     paths:
       - '**.go'
+      - '**/go.mod'
+      - '**/go.sum'
       - '.github/workflows/test.yaml'
 jobs:
   gotests:
