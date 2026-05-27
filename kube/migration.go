@@ -106,8 +106,14 @@ func MigrateManifest(scheme *runtime.Scheme, r io.Reader, gk schema.GroupKind) (
 		if err != nil {
 			return nil, err
 		}
-		converter := obj.(conversion.Convertible)     //nolint:revive // this was already checked above
-		convertedObject := hubObject.(conversion.Hub) //nolint:revive // this was already checked above
+		converter, ok := obj.(conversion.Convertible)
+		if !ok {
+			return nil, fmt.Errorf("scheme returned non-Convertible type for %q", gvk)
+		}
+		convertedObject, ok := hubObject.(conversion.Hub)
+		if !ok {
+			return nil, fmt.Errorf("scheme returned non-Hub type for %q", hub)
+		}
 		if err := converter.ConvertTo(convertedObject); err != nil {
 			return nil, err
 		}
