@@ -30,7 +30,7 @@ type fakeLogger struct {
 	msgs []string
 }
 
-func (f *fakeLogger) Debug(msg string, kv ...any) {
+func (f *fakeLogger) Debug(msg string, _ ...any) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.msgs = append(f.msgs, msg)
@@ -51,7 +51,7 @@ func TestReporterRunSendsPeriodically(t *testing.T) {
 	var sends int32
 	r := &Reporter{
 		Client: &Client{disabled: true},
-		Collector: func(ctx context.Context) (any, error) {
+		Collector: func(_ context.Context) (any, error) {
 			atomic.AddInt32(&sends, 1)
 			return map[string]string{"a": "b"}, nil
 		},
@@ -72,7 +72,7 @@ func TestReporterRunSurvivesCollectorError(t *testing.T) {
 	var calls int32
 	r := &Reporter{
 		Client: &Client{disabled: true},
-		Collector: func(ctx context.Context) (any, error) {
+		Collector: func(_ context.Context) (any, error) {
 			n := atomic.AddInt32(&calls, 1)
 			if n == 1 {
 				return nil, context.DeadlineExceeded
@@ -95,7 +95,7 @@ func TestReporterLogsCollectorError(t *testing.T) {
 	fl := &fakeLogger{}
 	r := &Reporter{
 		Client: &Client{disabled: true},
-		Collector: func(ctx context.Context) (any, error) {
+		Collector: func(_ context.Context) (any, error) {
 			return nil, errors.New("boom")
 		},
 		Delay:  5 * time.Millisecond,
