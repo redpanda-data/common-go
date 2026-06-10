@@ -52,7 +52,10 @@ type Config struct {
 	SigningKeyPEM []byte
 	JWTHeaders    map[string]any
 	Timeout       time.Duration
-	RetryCount    int
+	// RetryCount is the number of transport-level retries (connection errors).
+	// Defaults to 3. Note: resty only retries on transport errors, not on HTTP
+	// error responses; the Reporter re-attempts the whole payload each Period.
+	RetryCount int
 }
 
 // Client signs a payload as an RS256 JWT and POSTs it to Endpoint+Path.
@@ -122,18 +125,18 @@ func (c *Client) Send(ctx context.Context, payload any) error {
 	if c.disabled {
 		return nil
 	}
-	
+
 	tokenStr, err := josejwt.Signed(c.signer).Claims(payload).Serialize()
 	if err != nil {
 		return fmt.Errorf("serializing telemetry: %w", err)
 	}
 
-	resp, err := c.resty.NewRequest().SetContext(ctx).SetBody(tokenStr).Post(c.path)
+	resp, err := c.resty.R().SetContext(ctx).SetBody(tokenStr).Post(c.path)
 	if err != nil {
 		return fmt.Errorf("sending telemetry: %w", err)
 	}
 
-	if resp.IsError() {
+	if !resp.IsSuccess() {
 		return fmt.Errorf("telemetry endpoint returned status %d", resp.StatusCode())
 	}
 	return nil
@@ -151,7 +154,7 @@ func parseRSAPrivateKey(pemBytes []byte) (*rsa.PrivateKey, error) {
 
 	parsed, err := x509.ParsePKCS8PrivateKey(block.Bytes)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("parsing private key (tried PKCS1 and PKCS8): %w", err)
 	}
 
 	key, ok := parsed.(*rsa.PrivateKey)

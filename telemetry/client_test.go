@@ -20,6 +20,7 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -82,6 +83,84 @@ func TestClientSendSignsAndPosts(t *testing.T) {
 	require.NoError(t, tok.Claims(pub, &claims))
 	require.Equal(t, "abc", claims.ID)
 	require.Equal(t, 7, claims.Foo)
+}
+
+func TestClientAcceptsPKCS1Key(t *testing.T) {
+	key, err := rsa.GenerateKey(rand.Reader, 2048)
+	require.NoError(t, err)
+	privPEM := pem.EncodeToMemory(&pem.Block{
+		Type:  "RSA PRIVATE KEY",
+		Bytes: x509.MarshalPKCS1PrivateKey(key),
+	})
+	pub := &key.PublicKey
+
+	var gotBody []byte
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotBody, _ = io.ReadAll(r.Body)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	c, err := New(Config{
+		Endpoint:      srv.URL,
+		Path:          "/kubernetes",
+		UserAgent:     "RedpandaOperator/test",
+		SigningKeyPEM: privPEM,
+	})
+	require.NoError(t, err)
+	require.False(t, c.Disabled())
+
+	type payload struct {
+		ID string `json:"id"`
+	}
+	require.NoError(t, c.Send(context.Background(), payload{ID: "pkcs1"}))
+
+	tok, err := josejwt.ParseSigned(string(gotBody), []jose.SignatureAlgorithm{jose.RS256})
+	require.NoError(t, err)
+	var claims struct {
+		ID string `json:"id"`
+	}
+	require.NoError(t, tok.Claims(pub, &claims))
+	require.Equal(t, "pkcs1", claims.ID)
+}
+
+func TestClientAppliesJWTHeaders(t *testing.T) {
+	privPEM, pub := genKeyPEM(t)
+
+	var gotBody []byte
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotBody, _ = io.ReadAll(r.Body)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	c, err := New(Config{
+		Endpoint:      srv.URL,
+		Path:          "/kubernetes",
+		SigningKeyPEM: privPEM,
+		JWTHeaders:    map[string]any{"key_generation": 1},
+	})
+	require.NoError(t, err)
+
+	type payload struct {
+		A string `json:"a"`
+	}
+	require.NoError(t, c.Send(context.Background(), payload{A: "b"}))
+
+	tok, err := josejwt.ParseSigned(string(gotBody), []jose.SignatureAlgorithm{jose.RS256})
+	require.NoError(t, err)
+	require.NotEmpty(t, tok.Headers)
+	// The parsed protected header carries the extra JWT headers configured via
+	// JWTHeaders. The numeric value is decoded as a JSON number, so assert on
+	// its presence and string form robustly.
+	v, ok := tok.Headers[0].ExtraHeaders[jose.HeaderKey("key_generation")]
+	require.True(t, ok, "expected key_generation header to be present")
+	require.Equal(t, "1", fmt.Sprint(v))
+
+	// Sanity check the claims still verify with the public key.
+	var claims payload
+	require.NoError(t, tok.Claims(pub, &claims))
+	require.Equal(t, "b", claims.A)
 }
 
 func TestClientSendErrorsOnNon2xx(t *testing.T) {

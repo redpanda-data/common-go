@@ -16,6 +16,7 @@ package telemetry
 
 import (
 	"context"
+	"errors"
 	"time"
 )
 
@@ -25,6 +26,9 @@ const (
 )
 
 // Reporter runs a periodic collect→send loop with drop-on-error semantics.
+//
+// Client and Collector are required and must be non-nil; Run returns an error
+// if either is missing.
 type Reporter struct {
 	Client    *Client
 	Collector func(ctx context.Context) (any, error)
@@ -42,6 +46,13 @@ func (r *Reporter) debug(msg string, kv ...any) {
 // Run blocks until ctx is cancelled, returning nil on cancellation. Collection
 // and send errors are debug-logged and dropped; the loop continues.
 func (r *Reporter) Run(ctx context.Context) error {
+	if r.Client == nil {
+		return errors.New("telemetry: Reporter.Client is required")
+	}
+	if r.Collector == nil {
+		return errors.New("telemetry: Reporter.Collector is required")
+	}
+
 	delay := r.Delay
 	if delay == 0 {
 		delay = defaultDelay
