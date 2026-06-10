@@ -165,7 +165,7 @@ func TestClientAppliesJWTHeaders(t *testing.T) {
 
 func TestClientSendErrorsOnNon2xx(t *testing.T) {
 	privPEM, _ := genKeyPEM(t)
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 	}))
 	defer srv.Close()
