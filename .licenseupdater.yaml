@@ -79,6 +79,10 @@ matches:
     type: go
     directory: kube/example
     license: Apache
+  - extension: .go
+    type: go
+    directory: telemetry
+    license: Apache
 files:
   - name: api/LICENSE
     license: BSL
@@ -135,5 +139,8 @@ files:
     license: Apache
     full: true
   - name: kube/example/LICENSE
+    license: Apache
+    full: true
+  - name: telemetry/LICENSE
     license: Apache
     full: true

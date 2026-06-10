@@ -30,3 +30,4 @@ All packages contain their own licensing information and README about how they a
 | [licenseupdater](./licenseupdater) | Apache |
 | [kube](./kube) | Apache |
 | [kube/example](./kube/example) | Apache |
+| [telemetry](./telemetry) | Apache |
