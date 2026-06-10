@@ -1,4 +1,5 @@
 /net/ @sago2k8
+/telemetry/ @redpanda-data/k8s
 /license/ @redpanda-data/k8s
 /proto/ @birdayz @weeco
 /redpanda-otel-exporter/ @redpanda-data/team-ai
