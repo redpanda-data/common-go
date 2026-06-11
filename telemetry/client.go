@@ -18,6 +18,7 @@
 package telemetry
 
 import (
+	"cmp"
 	"context"
 	"crypto/rsa"
 	"crypto/x509"
@@ -71,21 +72,14 @@ type Client struct {
 // New parses the signing key (if any) and builds the resty client + JOSE signer.
 // An empty SigningKeyPEM yields a disabled Client whose Send is a no-op.
 func New(cfg Config) (*Client, error) {
-	endpoint := cfg.Endpoint
-	if endpoint == "" {
-		endpoint = DefaultEndpoint
-	}
-	timeout := cfg.Timeout
-	if timeout == 0 {
-		timeout = defaultTimeout
-	}
+	endpoint := cmp.Or(cfg.Endpoint, DefaultEndpoint)
+	timeout := cmp.Or(cfg.Timeout, defaultTimeout)
+
 	// Zero means "use the default"; a negative value disables retries (resty's
 	// SetRetryCount(0)). This keeps "no retries" expressible without colliding
 	// with the unset zero value. A positive value is used as-is.
-	retries := cfg.RetryCount
-	if retries == 0 {
-		retries = defaultRetries
-	} else if retries < 0 {
+	retries := cmp.Or(cfg.RetryCount, defaultRetries)
+	if retries < 0 {
 		retries = 0
 	}
 

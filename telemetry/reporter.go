@@ -15,6 +15,7 @@
 package telemetry
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"time"
@@ -65,14 +66,8 @@ func (r *Reporter) Run(ctx context.Context) error {
 		return nil
 	}
 
-	delay := r.Delay
-	if delay == 0 {
-		delay = defaultDelay
-	}
-	period := r.Period
-	if period == 0 {
-		period = defaultPeriod
-	}
+	delay := cmp.Or(r.Delay, defaultDelay)
+	period := cmp.Or(r.Period, defaultPeriod)
 
 	// No jitter is applied to Delay/Period: process start times already
 	// decorrelate installs. Do not switch this to a fixed wall-clock schedule
