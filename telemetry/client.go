@@ -81,12 +81,11 @@ func New(cfg Config) (*Client, error) {
 	}
 	// Zero means "use the default"; a negative value disables retries (resty's
 	// SetRetryCount(0)). This keeps "no retries" expressible without colliding
-	// with the unset zero value.
+	// with the unset zero value. A positive value is used as-is.
 	retries := cfg.RetryCount
-	switch {
-	case retries == 0:
+	if retries == 0 {
 		retries = defaultRetries
-	case retries < 0:
+	} else if retries < 0 {
 		retries = 0
 	}
 
