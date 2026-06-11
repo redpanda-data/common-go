@@ -53,8 +53,10 @@ type Config struct {
 	JWTHeaders    map[string]any
 	Timeout       time.Duration
 	// RetryCount is the number of transport-level retries (connection errors).
-	// Defaults to 3. Note: resty only retries on transport errors, not on HTTP
-	// error responses; the Reporter re-attempts the whole payload each Period.
+	// The zero value means "use the default" (3); a negative value disables
+	// retries entirely. Note: resty only retries on transport errors, not on
+	// HTTP error responses; the Reporter re-attempts the whole payload each
+	// Period regardless.
 	RetryCount int
 }
 
@@ -77,9 +79,15 @@ func New(cfg Config) (*Client, error) {
 	if timeout == 0 {
 		timeout = defaultTimeout
 	}
+	// Zero means "use the default"; a negative value disables retries (resty's
+	// SetRetryCount(0)). This keeps "no retries" expressible without colliding
+	// with the unset zero value.
 	retries := cfg.RetryCount
-	if retries == 0 {
+	switch {
+	case retries == 0:
 		retries = defaultRetries
+	case retries < 0:
+		retries = 0
 	}
 
 	rc := resty.New().

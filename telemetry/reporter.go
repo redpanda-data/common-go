@@ -43,6 +43,9 @@ func (r *Reporter) debug(msg string, kv ...any) {
 	}
 }
 
+// maxCollectTimeout caps the per-cycle collection timeout.
+const maxCollectTimeout = 5 * time.Minute
+
 // Run blocks until ctx is cancelled, returning nil on cancellation. Collection
 // and send errors are debug-logged and dropped; the loop continues.
 func (r *Reporter) Run(ctx context.Context) error {
@@ -51,6 +54,15 @@ func (r *Reporter) Run(ctx context.Context) error {
 	}
 	if r.Collector == nil {
 		return errors.New("telemetry: Reporter.Collector is required")
+	}
+
+	// A disabled client (no signing key) can never become enabled — Config is
+	// immutable after New — so skip the loop entirely rather than running the
+	// (potentially expensive, cluster-wide) Collector every period only to
+	// no-op the Send. Just wait for shutdown.
+	if r.Client.Disabled() {
+		<-ctx.Done()
+		return nil
 	}
 
 	delay := r.Delay
@@ -62,16 +74,28 @@ func (r *Reporter) Run(ctx context.Context) error {
 		period = defaultPeriod
 	}
 
+	// No jitter is applied to Delay/Period: process start times already
+	// decorrelate installs. Do not switch this to a fixed wall-clock schedule
+	// without adding jitter, or every install would report in lockstep.
+	timer := time.NewTimer(delay)
+	defer timer.Stop()
 	select {
 	case <-ctx.Done():
 		return nil
-	case <-time.After(delay):
+	case <-timer.C:
+	}
+
+	// Bound each collection so a consumer Collector that ignores ctx and hangs
+	// cannot wedge the loop forever. Half the period, capped at maxCollectTimeout.
+	collectTimeout := period / 2
+	if collectTimeout > maxCollectTimeout {
+		collectTimeout = maxCollectTimeout
 	}
 
 	ticker := time.NewTicker(period)
 	defer ticker.Stop()
 	for {
-		r.collectAndSend(ctx)
+		r.collectAndSend(ctx, collectTimeout)
 		select {
 		case <-ctx.Done():
 			return nil
@@ -80,7 +104,10 @@ func (r *Reporter) Run(ctx context.Context) error {
 	}
 }
 
-func (r *Reporter) collectAndSend(ctx context.Context) {
+func (r *Reporter) collectAndSend(ctx context.Context, timeout time.Duration) {
+	ctx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+
 	payload, err := r.Collector(ctx)
 	if err != nil {
 		r.debug("failed to collect telemetry", "error", err)
