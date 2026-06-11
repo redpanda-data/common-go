@@ -169,7 +169,9 @@ func TestClientSendErrorsOnNon2xx(t *testing.T) {
 		w.WriteHeader(http.StatusInternalServerError)
 	}))
 	defer srv.Close()
-	c, err := New(Config{Endpoint: srv.URL, Path: "/x", SigningKeyPEM: privPEM, RetryCount: 0})
+	// RetryCount: -1 disables retries (the zero value would mean "default" = 3),
+	// so this exercises a single attempt against the 500 and asserts the error.
+	c, err := New(Config{Endpoint: srv.URL, Path: "/x", SigningKeyPEM: privPEM, RetryCount: -1})
 	require.NoError(t, err)
 	require.Error(t, c.Send(context.Background(), map[string]string{"a": "b"}))
 }
