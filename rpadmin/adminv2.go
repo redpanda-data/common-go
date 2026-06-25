@@ -36,6 +36,11 @@ func (a *AdminAPI) SecurityService(opts ...connect.ClientOption) adminv2connect.
 	return adminv2connect.NewSecurityServiceClient(a, "/", withDefaultClientOpts(opts)...)
 }
 
+// FeaturesService returns a client for the FeaturesService of the Admin API V2.
+func (a *AdminAPI) FeaturesService(opts ...connect.ClientOption) adminv2connect.FeaturesServiceClient {
+	return adminv2connect.NewFeaturesServiceClient(a, "/", withDefaultClientOpts(opts)...)
+}
+
 // newContentTypeInterceptor is a Connect interceptor that sets the Content-Type
 // and Accept headers to "application/proto" for all requests. This ensures that
 // we override the default "application/json" used by some of our shared
