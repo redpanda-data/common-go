@@ -75,10 +75,12 @@ jobs:
             --old /tmp/old-field-numbers.json \
             --new cmd/ocsf-protogen/testdata/field-numbers.json
 
-      # Verify the committed proto baseline (api_entity.proto + field-numbers.json)
-      # exactly matches what the generator would produce today from the committed
-      # schema fixture.  Drift here means someone edited the baseline by hand or
-      # forgot to regenerate after a schema/generator change.
+      # Verify the committed proto baseline tree (ocsf/v1/*.proto +
+      # field-numbers.json) exactly matches what the generator would produce today
+      # from the committed schema fixture.  --out is a module root directory; the
+      # generator writes one file per class plus a shared objects.proto under
+      # ocsf/v1/.  Drift here means someone edited the baseline by hand or forgot
+      # to regenerate after a schema/generator change.
       - name: ocsf-protogen --check (baseline drift detection)
         working-directory: ocsf
         run: |
@@ -87,7 +89,7 @@ jobs:
             --schema  internal/ocsf/schema/testdata/ocsf-1.8.0.json \
             --classes api_activity,entity_management \
             --version 1.8.0 \
-            --out     cmd/ocsf-protogen/testdata/api_entity.proto \
+            --out     cmd/ocsf-protogen/testdata \
             --tagmap  cmd/ocsf-protogen/testdata/field-numbers.json
 
       # buf lint + build on the committed proto baseline.

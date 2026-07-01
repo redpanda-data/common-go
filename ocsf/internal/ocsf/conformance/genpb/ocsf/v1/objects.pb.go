@@ -14,7 +14,7 @@
 // versions:
 // 	protoc-gen-go v1.36.6
 // 	protoc        (unknown)
-// source: api_entity.proto
+// source: ocsf/v1/objects.proto
 
 package ocsfv1
 
@@ -35,1310 +35,6 @@ const (
 	// Verify that runtime/protoimpl is sufficiently up-to-date.
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
-
-type ApiActivity_ActionId int32
-
-const (
-	ApiActivity_ACTION_ID_UNKNOWN  ApiActivity_ActionId = 0
-	ApiActivity_ACTION_ID_ALLOWED  ApiActivity_ActionId = 1
-	ApiActivity_ACTION_ID_DENIED   ApiActivity_ActionId = 2
-	ApiActivity_ACTION_ID_OBSERVED ApiActivity_ActionId = 3
-	ApiActivity_ACTION_ID_MODIFIED ApiActivity_ActionId = 4
-	ApiActivity_ACTION_ID_OTHER    ApiActivity_ActionId = 99
-)
-
-// Enum value maps for ApiActivity_ActionId.
-var (
-	ApiActivity_ActionId_name = map[int32]string{
-		0:  "ACTION_ID_UNKNOWN",
-		1:  "ACTION_ID_ALLOWED",
-		2:  "ACTION_ID_DENIED",
-		3:  "ACTION_ID_OBSERVED",
-		4:  "ACTION_ID_MODIFIED",
-		99: "ACTION_ID_OTHER",
-	}
-	ApiActivity_ActionId_value = map[string]int32{
-		"ACTION_ID_UNKNOWN":  0,
-		"ACTION_ID_ALLOWED":  1,
-		"ACTION_ID_DENIED":   2,
-		"ACTION_ID_OBSERVED": 3,
-		"ACTION_ID_MODIFIED": 4,
-		"ACTION_ID_OTHER":    99,
-	}
-)
-
-func (x ApiActivity_ActionId) Enum() *ApiActivity_ActionId {
-	p := new(ApiActivity_ActionId)
-	*p = x
-	return p
-}
-
-func (x ApiActivity_ActionId) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (ApiActivity_ActionId) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[0].Descriptor()
-}
-
-func (ApiActivity_ActionId) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[0]
-}
-
-func (x ApiActivity_ActionId) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use ApiActivity_ActionId.Descriptor instead.
-func (ApiActivity_ActionId) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{0, 0}
-}
-
-type ApiActivity_ActivityId int32
-
-const (
-	ApiActivity_ACTIVITY_ID_UNKNOWN ApiActivity_ActivityId = 0
-	ApiActivity_ACTIVITY_ID_CREATE  ApiActivity_ActivityId = 1
-	ApiActivity_ACTIVITY_ID_READ    ApiActivity_ActivityId = 2
-	ApiActivity_ACTIVITY_ID_UPDATE  ApiActivity_ActivityId = 3
-	ApiActivity_ACTIVITY_ID_DELETE  ApiActivity_ActivityId = 4
-	ApiActivity_ACTIVITY_ID_OTHER   ApiActivity_ActivityId = 99
-)
-
-// Enum value maps for ApiActivity_ActivityId.
-var (
-	ApiActivity_ActivityId_name = map[int32]string{
-		0:  "ACTIVITY_ID_UNKNOWN",
-		1:  "ACTIVITY_ID_CREATE",
-		2:  "ACTIVITY_ID_READ",
-		3:  "ACTIVITY_ID_UPDATE",
-		4:  "ACTIVITY_ID_DELETE",
-		99: "ACTIVITY_ID_OTHER",
-	}
-	ApiActivity_ActivityId_value = map[string]int32{
-		"ACTIVITY_ID_UNKNOWN": 0,
-		"ACTIVITY_ID_CREATE":  1,
-		"ACTIVITY_ID_READ":    2,
-		"ACTIVITY_ID_UPDATE":  3,
-		"ACTIVITY_ID_DELETE":  4,
-		"ACTIVITY_ID_OTHER":   99,
-	}
-)
-
-func (x ApiActivity_ActivityId) Enum() *ApiActivity_ActivityId {
-	p := new(ApiActivity_ActivityId)
-	*p = x
-	return p
-}
-
-func (x ApiActivity_ActivityId) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (ApiActivity_ActivityId) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[1].Descriptor()
-}
-
-func (ApiActivity_ActivityId) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[1]
-}
-
-func (x ApiActivity_ActivityId) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use ApiActivity_ActivityId.Descriptor instead.
-func (ApiActivity_ActivityId) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{0, 1}
-}
-
-type ApiActivity_CategoryUid int32
-
-const (
-	ApiActivity_CATEGORY_UID_UNKNOWN              ApiActivity_CategoryUid = 0
-	ApiActivity_CATEGORY_UID_APPLICATION_ACTIVITY ApiActivity_CategoryUid = 6
-)
-
-// Enum value maps for ApiActivity_CategoryUid.
-var (
-	ApiActivity_CategoryUid_name = map[int32]string{
-		0: "CATEGORY_UID_UNKNOWN",
-		6: "CATEGORY_UID_APPLICATION_ACTIVITY",
-	}
-	ApiActivity_CategoryUid_value = map[string]int32{
-		"CATEGORY_UID_UNKNOWN":              0,
-		"CATEGORY_UID_APPLICATION_ACTIVITY": 6,
-	}
-)
-
-func (x ApiActivity_CategoryUid) Enum() *ApiActivity_CategoryUid {
-	p := new(ApiActivity_CategoryUid)
-	*p = x
-	return p
-}
-
-func (x ApiActivity_CategoryUid) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (ApiActivity_CategoryUid) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[2].Descriptor()
-}
-
-func (ApiActivity_CategoryUid) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[2]
-}
-
-func (x ApiActivity_CategoryUid) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use ApiActivity_CategoryUid.Descriptor instead.
-func (ApiActivity_CategoryUid) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{0, 2}
-}
-
-type ApiActivity_ClassUid int32
-
-const (
-	ApiActivity_CLASS_UID_UNKNOWN      ApiActivity_ClassUid = 0
-	ApiActivity_CLASS_UID_API_ACTIVITY ApiActivity_ClassUid = 6003
-)
-
-// Enum value maps for ApiActivity_ClassUid.
-var (
-	ApiActivity_ClassUid_name = map[int32]string{
-		0:    "CLASS_UID_UNKNOWN",
-		6003: "CLASS_UID_API_ACTIVITY",
-	}
-	ApiActivity_ClassUid_value = map[string]int32{
-		"CLASS_UID_UNKNOWN":      0,
-		"CLASS_UID_API_ACTIVITY": 6003,
-	}
-)
-
-func (x ApiActivity_ClassUid) Enum() *ApiActivity_ClassUid {
-	p := new(ApiActivity_ClassUid)
-	*p = x
-	return p
-}
-
-func (x ApiActivity_ClassUid) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (ApiActivity_ClassUid) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[3].Descriptor()
-}
-
-func (ApiActivity_ClassUid) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[3]
-}
-
-func (x ApiActivity_ClassUid) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use ApiActivity_ClassUid.Descriptor instead.
-func (ApiActivity_ClassUid) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{0, 3}
-}
-
-type ApiActivity_ConfidenceId int32
-
-const (
-	ApiActivity_CONFIDENCE_ID_UNKNOWN ApiActivity_ConfidenceId = 0
-	ApiActivity_CONFIDENCE_ID_LOW     ApiActivity_ConfidenceId = 1
-	ApiActivity_CONFIDENCE_ID_MEDIUM  ApiActivity_ConfidenceId = 2
-	ApiActivity_CONFIDENCE_ID_HIGH    ApiActivity_ConfidenceId = 3
-	ApiActivity_CONFIDENCE_ID_OTHER   ApiActivity_ConfidenceId = 99
-)
-
-// Enum value maps for ApiActivity_ConfidenceId.
-var (
-	ApiActivity_ConfidenceId_name = map[int32]string{
-		0:  "CONFIDENCE_ID_UNKNOWN",
-		1:  "CONFIDENCE_ID_LOW",
-		2:  "CONFIDENCE_ID_MEDIUM",
-		3:  "CONFIDENCE_ID_HIGH",
-		99: "CONFIDENCE_ID_OTHER",
-	}
-	ApiActivity_ConfidenceId_value = map[string]int32{
-		"CONFIDENCE_ID_UNKNOWN": 0,
-		"CONFIDENCE_ID_LOW":     1,
-		"CONFIDENCE_ID_MEDIUM":  2,
-		"CONFIDENCE_ID_HIGH":    3,
-		"CONFIDENCE_ID_OTHER":   99,
-	}
-)
-
-func (x ApiActivity_ConfidenceId) Enum() *ApiActivity_ConfidenceId {
-	p := new(ApiActivity_ConfidenceId)
-	*p = x
-	return p
-}
-
-func (x ApiActivity_ConfidenceId) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (ApiActivity_ConfidenceId) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[4].Descriptor()
-}
-
-func (ApiActivity_ConfidenceId) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[4]
-}
-
-func (x ApiActivity_ConfidenceId) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use ApiActivity_ConfidenceId.Descriptor instead.
-func (ApiActivity_ConfidenceId) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{0, 4}
-}
-
-type ApiActivity_DispositionId int32
-
-const (
-	ApiActivity_DISPOSITION_ID_UNKNOWN             ApiActivity_DispositionId = 0
-	ApiActivity_DISPOSITION_ID_ALLOWED             ApiActivity_DispositionId = 1
-	ApiActivity_DISPOSITION_ID_BLOCKED             ApiActivity_DispositionId = 2
-	ApiActivity_DISPOSITION_ID_QUARANTINED         ApiActivity_DispositionId = 3
-	ApiActivity_DISPOSITION_ID_ISOLATED            ApiActivity_DispositionId = 4
-	ApiActivity_DISPOSITION_ID_DELETED             ApiActivity_DispositionId = 5
-	ApiActivity_DISPOSITION_ID_DROPPED             ApiActivity_DispositionId = 6
-	ApiActivity_DISPOSITION_ID_CUSTOM_ACTION       ApiActivity_DispositionId = 7
-	ApiActivity_DISPOSITION_ID_APPROVED            ApiActivity_DispositionId = 8
-	ApiActivity_DISPOSITION_ID_RESTORED            ApiActivity_DispositionId = 9
-	ApiActivity_DISPOSITION_ID_EXONERATED          ApiActivity_DispositionId = 10
-	ApiActivity_DISPOSITION_ID_CORRECTED           ApiActivity_DispositionId = 11
-	ApiActivity_DISPOSITION_ID_PARTIALLY_CORRECTED ApiActivity_DispositionId = 12
-	ApiActivity_DISPOSITION_ID_UNCORRECTED         ApiActivity_DispositionId = 13
-	ApiActivity_DISPOSITION_ID_DELAYED             ApiActivity_DispositionId = 14
-	ApiActivity_DISPOSITION_ID_DETECTED            ApiActivity_DispositionId = 15
-	ApiActivity_DISPOSITION_ID_NO_ACTION           ApiActivity_DispositionId = 16
-	ApiActivity_DISPOSITION_ID_LOGGED              ApiActivity_DispositionId = 17
-	ApiActivity_DISPOSITION_ID_TAGGED              ApiActivity_DispositionId = 18
-	ApiActivity_DISPOSITION_ID_ALERT               ApiActivity_DispositionId = 19
-	ApiActivity_DISPOSITION_ID_COUNT               ApiActivity_DispositionId = 20
-	ApiActivity_DISPOSITION_ID_RESET               ApiActivity_DispositionId = 21
-	ApiActivity_DISPOSITION_ID_CAPTCHA             ApiActivity_DispositionId = 22
-	ApiActivity_DISPOSITION_ID_CHALLENGE           ApiActivity_DispositionId = 23
-	ApiActivity_DISPOSITION_ID_ACCESS_REVOKED      ApiActivity_DispositionId = 24
-	ApiActivity_DISPOSITION_ID_REJECTED            ApiActivity_DispositionId = 25
-	ApiActivity_DISPOSITION_ID_UNAUTHORIZED        ApiActivity_DispositionId = 26
-	ApiActivity_DISPOSITION_ID_ERROR               ApiActivity_DispositionId = 27
-	ApiActivity_DISPOSITION_ID_OTHER               ApiActivity_DispositionId = 99
-)
-
-// Enum value maps for ApiActivity_DispositionId.
-var (
-	ApiActivity_DispositionId_name = map[int32]string{
-		0:  "DISPOSITION_ID_UNKNOWN",
-		1:  "DISPOSITION_ID_ALLOWED",
-		2:  "DISPOSITION_ID_BLOCKED",
-		3:  "DISPOSITION_ID_QUARANTINED",
-		4:  "DISPOSITION_ID_ISOLATED",
-		5:  "DISPOSITION_ID_DELETED",
-		6:  "DISPOSITION_ID_DROPPED",
-		7:  "DISPOSITION_ID_CUSTOM_ACTION",
-		8:  "DISPOSITION_ID_APPROVED",
-		9:  "DISPOSITION_ID_RESTORED",
-		10: "DISPOSITION_ID_EXONERATED",
-		11: "DISPOSITION_ID_CORRECTED",
-		12: "DISPOSITION_ID_PARTIALLY_CORRECTED",
-		13: "DISPOSITION_ID_UNCORRECTED",
-		14: "DISPOSITION_ID_DELAYED",
-		15: "DISPOSITION_ID_DETECTED",
-		16: "DISPOSITION_ID_NO_ACTION",
-		17: "DISPOSITION_ID_LOGGED",
-		18: "DISPOSITION_ID_TAGGED",
-		19: "DISPOSITION_ID_ALERT",
-		20: "DISPOSITION_ID_COUNT",
-		21: "DISPOSITION_ID_RESET",
-		22: "DISPOSITION_ID_CAPTCHA",
-		23: "DISPOSITION_ID_CHALLENGE",
-		24: "DISPOSITION_ID_ACCESS_REVOKED",
-		25: "DISPOSITION_ID_REJECTED",
-		26: "DISPOSITION_ID_UNAUTHORIZED",
-		27: "DISPOSITION_ID_ERROR",
-		99: "DISPOSITION_ID_OTHER",
-	}
-	ApiActivity_DispositionId_value = map[string]int32{
-		"DISPOSITION_ID_UNKNOWN":             0,
-		"DISPOSITION_ID_ALLOWED":             1,
-		"DISPOSITION_ID_BLOCKED":             2,
-		"DISPOSITION_ID_QUARANTINED":         3,
-		"DISPOSITION_ID_ISOLATED":            4,
-		"DISPOSITION_ID_DELETED":             5,
-		"DISPOSITION_ID_DROPPED":             6,
-		"DISPOSITION_ID_CUSTOM_ACTION":       7,
-		"DISPOSITION_ID_APPROVED":            8,
-		"DISPOSITION_ID_RESTORED":            9,
-		"DISPOSITION_ID_EXONERATED":          10,
-		"DISPOSITION_ID_CORRECTED":           11,
-		"DISPOSITION_ID_PARTIALLY_CORRECTED": 12,
-		"DISPOSITION_ID_UNCORRECTED":         13,
-		"DISPOSITION_ID_DELAYED":             14,
-		"DISPOSITION_ID_DETECTED":            15,
-		"DISPOSITION_ID_NO_ACTION":           16,
-		"DISPOSITION_ID_LOGGED":              17,
-		"DISPOSITION_ID_TAGGED":              18,
-		"DISPOSITION_ID_ALERT":               19,
-		"DISPOSITION_ID_COUNT":               20,
-		"DISPOSITION_ID_RESET":               21,
-		"DISPOSITION_ID_CAPTCHA":             22,
-		"DISPOSITION_ID_CHALLENGE":           23,
-		"DISPOSITION_ID_ACCESS_REVOKED":      24,
-		"DISPOSITION_ID_REJECTED":            25,
-		"DISPOSITION_ID_UNAUTHORIZED":        26,
-		"DISPOSITION_ID_ERROR":               27,
-		"DISPOSITION_ID_OTHER":               99,
-	}
-)
-
-func (x ApiActivity_DispositionId) Enum() *ApiActivity_DispositionId {
-	p := new(ApiActivity_DispositionId)
-	*p = x
-	return p
-}
-
-func (x ApiActivity_DispositionId) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (ApiActivity_DispositionId) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[5].Descriptor()
-}
-
-func (ApiActivity_DispositionId) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[5]
-}
-
-func (x ApiActivity_DispositionId) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use ApiActivity_DispositionId.Descriptor instead.
-func (ApiActivity_DispositionId) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{0, 5}
-}
-
-type ApiActivity_RiskLevelId int32
-
-const (
-	ApiActivity_RISK_LEVEL_ID_INFO     ApiActivity_RiskLevelId = 0
-	ApiActivity_RISK_LEVEL_ID_LOW      ApiActivity_RiskLevelId = 1
-	ApiActivity_RISK_LEVEL_ID_MEDIUM   ApiActivity_RiskLevelId = 2
-	ApiActivity_RISK_LEVEL_ID_HIGH     ApiActivity_RiskLevelId = 3
-	ApiActivity_RISK_LEVEL_ID_CRITICAL ApiActivity_RiskLevelId = 4
-	ApiActivity_RISK_LEVEL_ID_OTHER    ApiActivity_RiskLevelId = 99
-)
-
-// Enum value maps for ApiActivity_RiskLevelId.
-var (
-	ApiActivity_RiskLevelId_name = map[int32]string{
-		0:  "RISK_LEVEL_ID_INFO",
-		1:  "RISK_LEVEL_ID_LOW",
-		2:  "RISK_LEVEL_ID_MEDIUM",
-		3:  "RISK_LEVEL_ID_HIGH",
-		4:  "RISK_LEVEL_ID_CRITICAL",
-		99: "RISK_LEVEL_ID_OTHER",
-	}
-	ApiActivity_RiskLevelId_value = map[string]int32{
-		"RISK_LEVEL_ID_INFO":     0,
-		"RISK_LEVEL_ID_LOW":      1,
-		"RISK_LEVEL_ID_MEDIUM":   2,
-		"RISK_LEVEL_ID_HIGH":     3,
-		"RISK_LEVEL_ID_CRITICAL": 4,
-		"RISK_LEVEL_ID_OTHER":    99,
-	}
-)
-
-func (x ApiActivity_RiskLevelId) Enum() *ApiActivity_RiskLevelId {
-	p := new(ApiActivity_RiskLevelId)
-	*p = x
-	return p
-}
-
-func (x ApiActivity_RiskLevelId) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (ApiActivity_RiskLevelId) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[6].Descriptor()
-}
-
-func (ApiActivity_RiskLevelId) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[6]
-}
-
-func (x ApiActivity_RiskLevelId) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use ApiActivity_RiskLevelId.Descriptor instead.
-func (ApiActivity_RiskLevelId) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{0, 6}
-}
-
-type ApiActivity_SeverityId int32
-
-const (
-	ApiActivity_SEVERITY_ID_UNKNOWN       ApiActivity_SeverityId = 0
-	ApiActivity_SEVERITY_ID_INFORMATIONAL ApiActivity_SeverityId = 1
-	ApiActivity_SEVERITY_ID_LOW           ApiActivity_SeverityId = 2
-	ApiActivity_SEVERITY_ID_MEDIUM        ApiActivity_SeverityId = 3
-	ApiActivity_SEVERITY_ID_HIGH          ApiActivity_SeverityId = 4
-	ApiActivity_SEVERITY_ID_CRITICAL      ApiActivity_SeverityId = 5
-	ApiActivity_SEVERITY_ID_FATAL         ApiActivity_SeverityId = 6
-	ApiActivity_SEVERITY_ID_OTHER         ApiActivity_SeverityId = 99
-)
-
-// Enum value maps for ApiActivity_SeverityId.
-var (
-	ApiActivity_SeverityId_name = map[int32]string{
-		0:  "SEVERITY_ID_UNKNOWN",
-		1:  "SEVERITY_ID_INFORMATIONAL",
-		2:  "SEVERITY_ID_LOW",
-		3:  "SEVERITY_ID_MEDIUM",
-		4:  "SEVERITY_ID_HIGH",
-		5:  "SEVERITY_ID_CRITICAL",
-		6:  "SEVERITY_ID_FATAL",
-		99: "SEVERITY_ID_OTHER",
-	}
-	ApiActivity_SeverityId_value = map[string]int32{
-		"SEVERITY_ID_UNKNOWN":       0,
-		"SEVERITY_ID_INFORMATIONAL": 1,
-		"SEVERITY_ID_LOW":           2,
-		"SEVERITY_ID_MEDIUM":        3,
-		"SEVERITY_ID_HIGH":          4,
-		"SEVERITY_ID_CRITICAL":      5,
-		"SEVERITY_ID_FATAL":         6,
-		"SEVERITY_ID_OTHER":         99,
-	}
-)
-
-func (x ApiActivity_SeverityId) Enum() *ApiActivity_SeverityId {
-	p := new(ApiActivity_SeverityId)
-	*p = x
-	return p
-}
-
-func (x ApiActivity_SeverityId) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (ApiActivity_SeverityId) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[7].Descriptor()
-}
-
-func (ApiActivity_SeverityId) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[7]
-}
-
-func (x ApiActivity_SeverityId) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use ApiActivity_SeverityId.Descriptor instead.
-func (ApiActivity_SeverityId) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{0, 7}
-}
-
-type ApiActivity_StatusId int32
-
-const (
-	ApiActivity_STATUS_ID_UNKNOWN ApiActivity_StatusId = 0
-	ApiActivity_STATUS_ID_SUCCESS ApiActivity_StatusId = 1
-	ApiActivity_STATUS_ID_FAILURE ApiActivity_StatusId = 2
-	ApiActivity_STATUS_ID_OTHER   ApiActivity_StatusId = 99
-)
-
-// Enum value maps for ApiActivity_StatusId.
-var (
-	ApiActivity_StatusId_name = map[int32]string{
-		0:  "STATUS_ID_UNKNOWN",
-		1:  "STATUS_ID_SUCCESS",
-		2:  "STATUS_ID_FAILURE",
-		99: "STATUS_ID_OTHER",
-	}
-	ApiActivity_StatusId_value = map[string]int32{
-		"STATUS_ID_UNKNOWN": 0,
-		"STATUS_ID_SUCCESS": 1,
-		"STATUS_ID_FAILURE": 2,
-		"STATUS_ID_OTHER":   99,
-	}
-)
-
-func (x ApiActivity_StatusId) Enum() *ApiActivity_StatusId {
-	p := new(ApiActivity_StatusId)
-	*p = x
-	return p
-}
-
-func (x ApiActivity_StatusId) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (ApiActivity_StatusId) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[8].Descriptor()
-}
-
-func (ApiActivity_StatusId) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[8]
-}
-
-func (x ApiActivity_StatusId) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use ApiActivity_StatusId.Descriptor instead.
-func (ApiActivity_StatusId) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{0, 8}
-}
-
-type ApiActivity_TypeUid int32
-
-const (
-	ApiActivity_TYPE_UID_UNKNOWN              ApiActivity_TypeUid = 0
-	ApiActivity_TYPE_UID_API_ACTIVITY_UNKNOWN ApiActivity_TypeUid = 600300
-	ApiActivity_TYPE_UID_API_ACTIVITY_CREATE  ApiActivity_TypeUid = 600301
-	ApiActivity_TYPE_UID_API_ACTIVITY_READ    ApiActivity_TypeUid = 600302
-	ApiActivity_TYPE_UID_API_ACTIVITY_UPDATE  ApiActivity_TypeUid = 600303
-	ApiActivity_TYPE_UID_API_ACTIVITY_DELETE  ApiActivity_TypeUid = 600304
-	ApiActivity_TYPE_UID_API_ACTIVITY_OTHER   ApiActivity_TypeUid = 600399
-)
-
-// Enum value maps for ApiActivity_TypeUid.
-var (
-	ApiActivity_TypeUid_name = map[int32]string{
-		0:      "TYPE_UID_UNKNOWN",
-		600300: "TYPE_UID_API_ACTIVITY_UNKNOWN",
-		600301: "TYPE_UID_API_ACTIVITY_CREATE",
-		600302: "TYPE_UID_API_ACTIVITY_READ",
-		600303: "TYPE_UID_API_ACTIVITY_UPDATE",
-		600304: "TYPE_UID_API_ACTIVITY_DELETE",
-		600399: "TYPE_UID_API_ACTIVITY_OTHER",
-	}
-	ApiActivity_TypeUid_value = map[string]int32{
-		"TYPE_UID_UNKNOWN":              0,
-		"TYPE_UID_API_ACTIVITY_UNKNOWN": 600300,
-		"TYPE_UID_API_ACTIVITY_CREATE":  600301,
-		"TYPE_UID_API_ACTIVITY_READ":    600302,
-		"TYPE_UID_API_ACTIVITY_UPDATE":  600303,
-		"TYPE_UID_API_ACTIVITY_DELETE":  600304,
-		"TYPE_UID_API_ACTIVITY_OTHER":   600399,
-	}
-)
-
-func (x ApiActivity_TypeUid) Enum() *ApiActivity_TypeUid {
-	p := new(ApiActivity_TypeUid)
-	*p = x
-	return p
-}
-
-func (x ApiActivity_TypeUid) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (ApiActivity_TypeUid) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[9].Descriptor()
-}
-
-func (ApiActivity_TypeUid) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[9]
-}
-
-func (x ApiActivity_TypeUid) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use ApiActivity_TypeUid.Descriptor instead.
-func (ApiActivity_TypeUid) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{0, 9}
-}
-
-type EntityManagement_ActionId int32
-
-const (
-	EntityManagement_ACTION_ID_UNKNOWN  EntityManagement_ActionId = 0
-	EntityManagement_ACTION_ID_ALLOWED  EntityManagement_ActionId = 1
-	EntityManagement_ACTION_ID_DENIED   EntityManagement_ActionId = 2
-	EntityManagement_ACTION_ID_OBSERVED EntityManagement_ActionId = 3
-	EntityManagement_ACTION_ID_MODIFIED EntityManagement_ActionId = 4
-	EntityManagement_ACTION_ID_OTHER    EntityManagement_ActionId = 99
-)
-
-// Enum value maps for EntityManagement_ActionId.
-var (
-	EntityManagement_ActionId_name = map[int32]string{
-		0:  "ACTION_ID_UNKNOWN",
-		1:  "ACTION_ID_ALLOWED",
-		2:  "ACTION_ID_DENIED",
-		3:  "ACTION_ID_OBSERVED",
-		4:  "ACTION_ID_MODIFIED",
-		99: "ACTION_ID_OTHER",
-	}
-	EntityManagement_ActionId_value = map[string]int32{
-		"ACTION_ID_UNKNOWN":  0,
-		"ACTION_ID_ALLOWED":  1,
-		"ACTION_ID_DENIED":   2,
-		"ACTION_ID_OBSERVED": 3,
-		"ACTION_ID_MODIFIED": 4,
-		"ACTION_ID_OTHER":    99,
-	}
-)
-
-func (x EntityManagement_ActionId) Enum() *EntityManagement_ActionId {
-	p := new(EntityManagement_ActionId)
-	*p = x
-	return p
-}
-
-func (x EntityManagement_ActionId) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (EntityManagement_ActionId) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[10].Descriptor()
-}
-
-func (EntityManagement_ActionId) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[10]
-}
-
-func (x EntityManagement_ActionId) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use EntityManagement_ActionId.Descriptor instead.
-func (EntityManagement_ActionId) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{1, 0}
-}
-
-type EntityManagement_ActivityId int32
-
-const (
-	EntityManagement_ACTIVITY_ID_UNKNOWN    EntityManagement_ActivityId = 0
-	EntityManagement_ACTIVITY_ID_CREATE     EntityManagement_ActivityId = 1
-	EntityManagement_ACTIVITY_ID_READ       EntityManagement_ActivityId = 2
-	EntityManagement_ACTIVITY_ID_UPDATE     EntityManagement_ActivityId = 3
-	EntityManagement_ACTIVITY_ID_DELETE     EntityManagement_ActivityId = 4
-	EntityManagement_ACTIVITY_ID_MOVE       EntityManagement_ActivityId = 5
-	EntityManagement_ACTIVITY_ID_ENROLL     EntityManagement_ActivityId = 6
-	EntityManagement_ACTIVITY_ID_UNENROLL   EntityManagement_ActivityId = 7
-	EntityManagement_ACTIVITY_ID_ENABLE     EntityManagement_ActivityId = 8
-	EntityManagement_ACTIVITY_ID_DISABLE    EntityManagement_ActivityId = 9
-	EntityManagement_ACTIVITY_ID_ACTIVATE   EntityManagement_ActivityId = 10
-	EntityManagement_ACTIVITY_ID_DEACTIVATE EntityManagement_ActivityId = 11
-	EntityManagement_ACTIVITY_ID_SUSPEND    EntityManagement_ActivityId = 12
-	EntityManagement_ACTIVITY_ID_RESUME     EntityManagement_ActivityId = 13
-	EntityManagement_ACTIVITY_ID_OTHER      EntityManagement_ActivityId = 99
-)
-
-// Enum value maps for EntityManagement_ActivityId.
-var (
-	EntityManagement_ActivityId_name = map[int32]string{
-		0:  "ACTIVITY_ID_UNKNOWN",
-		1:  "ACTIVITY_ID_CREATE",
-		2:  "ACTIVITY_ID_READ",
-		3:  "ACTIVITY_ID_UPDATE",
-		4:  "ACTIVITY_ID_DELETE",
-		5:  "ACTIVITY_ID_MOVE",
-		6:  "ACTIVITY_ID_ENROLL",
-		7:  "ACTIVITY_ID_UNENROLL",
-		8:  "ACTIVITY_ID_ENABLE",
-		9:  "ACTIVITY_ID_DISABLE",
-		10: "ACTIVITY_ID_ACTIVATE",
-		11: "ACTIVITY_ID_DEACTIVATE",
-		12: "ACTIVITY_ID_SUSPEND",
-		13: "ACTIVITY_ID_RESUME",
-		99: "ACTIVITY_ID_OTHER",
-	}
-	EntityManagement_ActivityId_value = map[string]int32{
-		"ACTIVITY_ID_UNKNOWN":    0,
-		"ACTIVITY_ID_CREATE":     1,
-		"ACTIVITY_ID_READ":       2,
-		"ACTIVITY_ID_UPDATE":     3,
-		"ACTIVITY_ID_DELETE":     4,
-		"ACTIVITY_ID_MOVE":       5,
-		"ACTIVITY_ID_ENROLL":     6,
-		"ACTIVITY_ID_UNENROLL":   7,
-		"ACTIVITY_ID_ENABLE":     8,
-		"ACTIVITY_ID_DISABLE":    9,
-		"ACTIVITY_ID_ACTIVATE":   10,
-		"ACTIVITY_ID_DEACTIVATE": 11,
-		"ACTIVITY_ID_SUSPEND":    12,
-		"ACTIVITY_ID_RESUME":     13,
-		"ACTIVITY_ID_OTHER":      99,
-	}
-)
-
-func (x EntityManagement_ActivityId) Enum() *EntityManagement_ActivityId {
-	p := new(EntityManagement_ActivityId)
-	*p = x
-	return p
-}
-
-func (x EntityManagement_ActivityId) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (EntityManagement_ActivityId) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[11].Descriptor()
-}
-
-func (EntityManagement_ActivityId) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[11]
-}
-
-func (x EntityManagement_ActivityId) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use EntityManagement_ActivityId.Descriptor instead.
-func (EntityManagement_ActivityId) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{1, 1}
-}
-
-type EntityManagement_CategoryUid int32
-
-const (
-	EntityManagement_CATEGORY_UID_UNKNOWN                    EntityManagement_CategoryUid = 0
-	EntityManagement_CATEGORY_UID_IDENTITY_ACCESS_MANAGEMENT EntityManagement_CategoryUid = 3
-)
-
-// Enum value maps for EntityManagement_CategoryUid.
-var (
-	EntityManagement_CategoryUid_name = map[int32]string{
-		0: "CATEGORY_UID_UNKNOWN",
-		3: "CATEGORY_UID_IDENTITY_ACCESS_MANAGEMENT",
-	}
-	EntityManagement_CategoryUid_value = map[string]int32{
-		"CATEGORY_UID_UNKNOWN":                    0,
-		"CATEGORY_UID_IDENTITY_ACCESS_MANAGEMENT": 3,
-	}
-)
-
-func (x EntityManagement_CategoryUid) Enum() *EntityManagement_CategoryUid {
-	p := new(EntityManagement_CategoryUid)
-	*p = x
-	return p
-}
-
-func (x EntityManagement_CategoryUid) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (EntityManagement_CategoryUid) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[12].Descriptor()
-}
-
-func (EntityManagement_CategoryUid) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[12]
-}
-
-func (x EntityManagement_CategoryUid) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use EntityManagement_CategoryUid.Descriptor instead.
-func (EntityManagement_CategoryUid) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{1, 2}
-}
-
-type EntityManagement_ClassUid int32
-
-const (
-	EntityManagement_CLASS_UID_UNKNOWN           EntityManagement_ClassUid = 0
-	EntityManagement_CLASS_UID_ENTITY_MANAGEMENT EntityManagement_ClassUid = 3004
-)
-
-// Enum value maps for EntityManagement_ClassUid.
-var (
-	EntityManagement_ClassUid_name = map[int32]string{
-		0:    "CLASS_UID_UNKNOWN",
-		3004: "CLASS_UID_ENTITY_MANAGEMENT",
-	}
-	EntityManagement_ClassUid_value = map[string]int32{
-		"CLASS_UID_UNKNOWN":           0,
-		"CLASS_UID_ENTITY_MANAGEMENT": 3004,
-	}
-)
-
-func (x EntityManagement_ClassUid) Enum() *EntityManagement_ClassUid {
-	p := new(EntityManagement_ClassUid)
-	*p = x
-	return p
-}
-
-func (x EntityManagement_ClassUid) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (EntityManagement_ClassUid) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[13].Descriptor()
-}
-
-func (EntityManagement_ClassUid) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[13]
-}
-
-func (x EntityManagement_ClassUid) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use EntityManagement_ClassUid.Descriptor instead.
-func (EntityManagement_ClassUid) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{1, 3}
-}
-
-type EntityManagement_ConfidenceId int32
-
-const (
-	EntityManagement_CONFIDENCE_ID_UNKNOWN EntityManagement_ConfidenceId = 0
-	EntityManagement_CONFIDENCE_ID_LOW     EntityManagement_ConfidenceId = 1
-	EntityManagement_CONFIDENCE_ID_MEDIUM  EntityManagement_ConfidenceId = 2
-	EntityManagement_CONFIDENCE_ID_HIGH    EntityManagement_ConfidenceId = 3
-	EntityManagement_CONFIDENCE_ID_OTHER   EntityManagement_ConfidenceId = 99
-)
-
-// Enum value maps for EntityManagement_ConfidenceId.
-var (
-	EntityManagement_ConfidenceId_name = map[int32]string{
-		0:  "CONFIDENCE_ID_UNKNOWN",
-		1:  "CONFIDENCE_ID_LOW",
-		2:  "CONFIDENCE_ID_MEDIUM",
-		3:  "CONFIDENCE_ID_HIGH",
-		99: "CONFIDENCE_ID_OTHER",
-	}
-	EntityManagement_ConfidenceId_value = map[string]int32{
-		"CONFIDENCE_ID_UNKNOWN": 0,
-		"CONFIDENCE_ID_LOW":     1,
-		"CONFIDENCE_ID_MEDIUM":  2,
-		"CONFIDENCE_ID_HIGH":    3,
-		"CONFIDENCE_ID_OTHER":   99,
-	}
-)
-
-func (x EntityManagement_ConfidenceId) Enum() *EntityManagement_ConfidenceId {
-	p := new(EntityManagement_ConfidenceId)
-	*p = x
-	return p
-}
-
-func (x EntityManagement_ConfidenceId) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (EntityManagement_ConfidenceId) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[14].Descriptor()
-}
-
-func (EntityManagement_ConfidenceId) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[14]
-}
-
-func (x EntityManagement_ConfidenceId) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use EntityManagement_ConfidenceId.Descriptor instead.
-func (EntityManagement_ConfidenceId) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{1, 4}
-}
-
-type EntityManagement_DispositionId int32
-
-const (
-	EntityManagement_DISPOSITION_ID_UNKNOWN             EntityManagement_DispositionId = 0
-	EntityManagement_DISPOSITION_ID_ALLOWED             EntityManagement_DispositionId = 1
-	EntityManagement_DISPOSITION_ID_BLOCKED             EntityManagement_DispositionId = 2
-	EntityManagement_DISPOSITION_ID_QUARANTINED         EntityManagement_DispositionId = 3
-	EntityManagement_DISPOSITION_ID_ISOLATED            EntityManagement_DispositionId = 4
-	EntityManagement_DISPOSITION_ID_DELETED             EntityManagement_DispositionId = 5
-	EntityManagement_DISPOSITION_ID_DROPPED             EntityManagement_DispositionId = 6
-	EntityManagement_DISPOSITION_ID_CUSTOM_ACTION       EntityManagement_DispositionId = 7
-	EntityManagement_DISPOSITION_ID_APPROVED            EntityManagement_DispositionId = 8
-	EntityManagement_DISPOSITION_ID_RESTORED            EntityManagement_DispositionId = 9
-	EntityManagement_DISPOSITION_ID_EXONERATED          EntityManagement_DispositionId = 10
-	EntityManagement_DISPOSITION_ID_CORRECTED           EntityManagement_DispositionId = 11
-	EntityManagement_DISPOSITION_ID_PARTIALLY_CORRECTED EntityManagement_DispositionId = 12
-	EntityManagement_DISPOSITION_ID_UNCORRECTED         EntityManagement_DispositionId = 13
-	EntityManagement_DISPOSITION_ID_DELAYED             EntityManagement_DispositionId = 14
-	EntityManagement_DISPOSITION_ID_DETECTED            EntityManagement_DispositionId = 15
-	EntityManagement_DISPOSITION_ID_NO_ACTION           EntityManagement_DispositionId = 16
-	EntityManagement_DISPOSITION_ID_LOGGED              EntityManagement_DispositionId = 17
-	EntityManagement_DISPOSITION_ID_TAGGED              EntityManagement_DispositionId = 18
-	EntityManagement_DISPOSITION_ID_ALERT               EntityManagement_DispositionId = 19
-	EntityManagement_DISPOSITION_ID_COUNT               EntityManagement_DispositionId = 20
-	EntityManagement_DISPOSITION_ID_RESET               EntityManagement_DispositionId = 21
-	EntityManagement_DISPOSITION_ID_CAPTCHA             EntityManagement_DispositionId = 22
-	EntityManagement_DISPOSITION_ID_CHALLENGE           EntityManagement_DispositionId = 23
-	EntityManagement_DISPOSITION_ID_ACCESS_REVOKED      EntityManagement_DispositionId = 24
-	EntityManagement_DISPOSITION_ID_REJECTED            EntityManagement_DispositionId = 25
-	EntityManagement_DISPOSITION_ID_UNAUTHORIZED        EntityManagement_DispositionId = 26
-	EntityManagement_DISPOSITION_ID_ERROR               EntityManagement_DispositionId = 27
-	EntityManagement_DISPOSITION_ID_OTHER               EntityManagement_DispositionId = 99
-)
-
-// Enum value maps for EntityManagement_DispositionId.
-var (
-	EntityManagement_DispositionId_name = map[int32]string{
-		0:  "DISPOSITION_ID_UNKNOWN",
-		1:  "DISPOSITION_ID_ALLOWED",
-		2:  "DISPOSITION_ID_BLOCKED",
-		3:  "DISPOSITION_ID_QUARANTINED",
-		4:  "DISPOSITION_ID_ISOLATED",
-		5:  "DISPOSITION_ID_DELETED",
-		6:  "DISPOSITION_ID_DROPPED",
-		7:  "DISPOSITION_ID_CUSTOM_ACTION",
-		8:  "DISPOSITION_ID_APPROVED",
-		9:  "DISPOSITION_ID_RESTORED",
-		10: "DISPOSITION_ID_EXONERATED",
-		11: "DISPOSITION_ID_CORRECTED",
-		12: "DISPOSITION_ID_PARTIALLY_CORRECTED",
-		13: "DISPOSITION_ID_UNCORRECTED",
-		14: "DISPOSITION_ID_DELAYED",
-		15: "DISPOSITION_ID_DETECTED",
-		16: "DISPOSITION_ID_NO_ACTION",
-		17: "DISPOSITION_ID_LOGGED",
-		18: "DISPOSITION_ID_TAGGED",
-		19: "DISPOSITION_ID_ALERT",
-		20: "DISPOSITION_ID_COUNT",
-		21: "DISPOSITION_ID_RESET",
-		22: "DISPOSITION_ID_CAPTCHA",
-		23: "DISPOSITION_ID_CHALLENGE",
-		24: "DISPOSITION_ID_ACCESS_REVOKED",
-		25: "DISPOSITION_ID_REJECTED",
-		26: "DISPOSITION_ID_UNAUTHORIZED",
-		27: "DISPOSITION_ID_ERROR",
-		99: "DISPOSITION_ID_OTHER",
-	}
-	EntityManagement_DispositionId_value = map[string]int32{
-		"DISPOSITION_ID_UNKNOWN":             0,
-		"DISPOSITION_ID_ALLOWED":             1,
-		"DISPOSITION_ID_BLOCKED":             2,
-		"DISPOSITION_ID_QUARANTINED":         3,
-		"DISPOSITION_ID_ISOLATED":            4,
-		"DISPOSITION_ID_DELETED":             5,
-		"DISPOSITION_ID_DROPPED":             6,
-		"DISPOSITION_ID_CUSTOM_ACTION":       7,
-		"DISPOSITION_ID_APPROVED":            8,
-		"DISPOSITION_ID_RESTORED":            9,
-		"DISPOSITION_ID_EXONERATED":          10,
-		"DISPOSITION_ID_CORRECTED":           11,
-		"DISPOSITION_ID_PARTIALLY_CORRECTED": 12,
-		"DISPOSITION_ID_UNCORRECTED":         13,
-		"DISPOSITION_ID_DELAYED":             14,
-		"DISPOSITION_ID_DETECTED":            15,
-		"DISPOSITION_ID_NO_ACTION":           16,
-		"DISPOSITION_ID_LOGGED":              17,
-		"DISPOSITION_ID_TAGGED":              18,
-		"DISPOSITION_ID_ALERT":               19,
-		"DISPOSITION_ID_COUNT":               20,
-		"DISPOSITION_ID_RESET":               21,
-		"DISPOSITION_ID_CAPTCHA":             22,
-		"DISPOSITION_ID_CHALLENGE":           23,
-		"DISPOSITION_ID_ACCESS_REVOKED":      24,
-		"DISPOSITION_ID_REJECTED":            25,
-		"DISPOSITION_ID_UNAUTHORIZED":        26,
-		"DISPOSITION_ID_ERROR":               27,
-		"DISPOSITION_ID_OTHER":               99,
-	}
-)
-
-func (x EntityManagement_DispositionId) Enum() *EntityManagement_DispositionId {
-	p := new(EntityManagement_DispositionId)
-	*p = x
-	return p
-}
-
-func (x EntityManagement_DispositionId) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (EntityManagement_DispositionId) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[15].Descriptor()
-}
-
-func (EntityManagement_DispositionId) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[15]
-}
-
-func (x EntityManagement_DispositionId) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use EntityManagement_DispositionId.Descriptor instead.
-func (EntityManagement_DispositionId) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{1, 5}
-}
-
-type EntityManagement_RiskLevelId int32
-
-const (
-	EntityManagement_RISK_LEVEL_ID_INFO     EntityManagement_RiskLevelId = 0
-	EntityManagement_RISK_LEVEL_ID_LOW      EntityManagement_RiskLevelId = 1
-	EntityManagement_RISK_LEVEL_ID_MEDIUM   EntityManagement_RiskLevelId = 2
-	EntityManagement_RISK_LEVEL_ID_HIGH     EntityManagement_RiskLevelId = 3
-	EntityManagement_RISK_LEVEL_ID_CRITICAL EntityManagement_RiskLevelId = 4
-	EntityManagement_RISK_LEVEL_ID_OTHER    EntityManagement_RiskLevelId = 99
-)
-
-// Enum value maps for EntityManagement_RiskLevelId.
-var (
-	EntityManagement_RiskLevelId_name = map[int32]string{
-		0:  "RISK_LEVEL_ID_INFO",
-		1:  "RISK_LEVEL_ID_LOW",
-		2:  "RISK_LEVEL_ID_MEDIUM",
-		3:  "RISK_LEVEL_ID_HIGH",
-		4:  "RISK_LEVEL_ID_CRITICAL",
-		99: "RISK_LEVEL_ID_OTHER",
-	}
-	EntityManagement_RiskLevelId_value = map[string]int32{
-		"RISK_LEVEL_ID_INFO":     0,
-		"RISK_LEVEL_ID_LOW":      1,
-		"RISK_LEVEL_ID_MEDIUM":   2,
-		"RISK_LEVEL_ID_HIGH":     3,
-		"RISK_LEVEL_ID_CRITICAL": 4,
-		"RISK_LEVEL_ID_OTHER":    99,
-	}
-)
-
-func (x EntityManagement_RiskLevelId) Enum() *EntityManagement_RiskLevelId {
-	p := new(EntityManagement_RiskLevelId)
-	*p = x
-	return p
-}
-
-func (x EntityManagement_RiskLevelId) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (EntityManagement_RiskLevelId) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[16].Descriptor()
-}
-
-func (EntityManagement_RiskLevelId) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[16]
-}
-
-func (x EntityManagement_RiskLevelId) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use EntityManagement_RiskLevelId.Descriptor instead.
-func (EntityManagement_RiskLevelId) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{1, 6}
-}
-
-type EntityManagement_SeverityId int32
-
-const (
-	EntityManagement_SEVERITY_ID_UNKNOWN       EntityManagement_SeverityId = 0
-	EntityManagement_SEVERITY_ID_INFORMATIONAL EntityManagement_SeverityId = 1
-	EntityManagement_SEVERITY_ID_LOW           EntityManagement_SeverityId = 2
-	EntityManagement_SEVERITY_ID_MEDIUM        EntityManagement_SeverityId = 3
-	EntityManagement_SEVERITY_ID_HIGH          EntityManagement_SeverityId = 4
-	EntityManagement_SEVERITY_ID_CRITICAL      EntityManagement_SeverityId = 5
-	EntityManagement_SEVERITY_ID_FATAL         EntityManagement_SeverityId = 6
-	EntityManagement_SEVERITY_ID_OTHER         EntityManagement_SeverityId = 99
-)
-
-// Enum value maps for EntityManagement_SeverityId.
-var (
-	EntityManagement_SeverityId_name = map[int32]string{
-		0:  "SEVERITY_ID_UNKNOWN",
-		1:  "SEVERITY_ID_INFORMATIONAL",
-		2:  "SEVERITY_ID_LOW",
-		3:  "SEVERITY_ID_MEDIUM",
-		4:  "SEVERITY_ID_HIGH",
-		5:  "SEVERITY_ID_CRITICAL",
-		6:  "SEVERITY_ID_FATAL",
-		99: "SEVERITY_ID_OTHER",
-	}
-	EntityManagement_SeverityId_value = map[string]int32{
-		"SEVERITY_ID_UNKNOWN":       0,
-		"SEVERITY_ID_INFORMATIONAL": 1,
-		"SEVERITY_ID_LOW":           2,
-		"SEVERITY_ID_MEDIUM":        3,
-		"SEVERITY_ID_HIGH":          4,
-		"SEVERITY_ID_CRITICAL":      5,
-		"SEVERITY_ID_FATAL":         6,
-		"SEVERITY_ID_OTHER":         99,
-	}
-)
-
-func (x EntityManagement_SeverityId) Enum() *EntityManagement_SeverityId {
-	p := new(EntityManagement_SeverityId)
-	*p = x
-	return p
-}
-
-func (x EntityManagement_SeverityId) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (EntityManagement_SeverityId) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[17].Descriptor()
-}
-
-func (EntityManagement_SeverityId) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[17]
-}
-
-func (x EntityManagement_SeverityId) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use EntityManagement_SeverityId.Descriptor instead.
-func (EntityManagement_SeverityId) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{1, 7}
-}
-
-type EntityManagement_StatusId int32
-
-const (
-	EntityManagement_STATUS_ID_UNKNOWN EntityManagement_StatusId = 0
-	EntityManagement_STATUS_ID_SUCCESS EntityManagement_StatusId = 1
-	EntityManagement_STATUS_ID_FAILURE EntityManagement_StatusId = 2
-	EntityManagement_STATUS_ID_OTHER   EntityManagement_StatusId = 99
-)
-
-// Enum value maps for EntityManagement_StatusId.
-var (
-	EntityManagement_StatusId_name = map[int32]string{
-		0:  "STATUS_ID_UNKNOWN",
-		1:  "STATUS_ID_SUCCESS",
-		2:  "STATUS_ID_FAILURE",
-		99: "STATUS_ID_OTHER",
-	}
-	EntityManagement_StatusId_value = map[string]int32{
-		"STATUS_ID_UNKNOWN": 0,
-		"STATUS_ID_SUCCESS": 1,
-		"STATUS_ID_FAILURE": 2,
-		"STATUS_ID_OTHER":   99,
-	}
-)
-
-func (x EntityManagement_StatusId) Enum() *EntityManagement_StatusId {
-	p := new(EntityManagement_StatusId)
-	*p = x
-	return p
-}
-
-func (x EntityManagement_StatusId) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (EntityManagement_StatusId) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[18].Descriptor()
-}
-
-func (EntityManagement_StatusId) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[18]
-}
-
-func (x EntityManagement_StatusId) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use EntityManagement_StatusId.Descriptor instead.
-func (EntityManagement_StatusId) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{1, 8}
-}
-
-type EntityManagement_TypeUid int32
-
-const (
-	EntityManagement_TYPE_UID_UNKNOWN                      EntityManagement_TypeUid = 0
-	EntityManagement_TYPE_UID_ENTITY_MANAGEMENT_UNKNOWN    EntityManagement_TypeUid = 300400
-	EntityManagement_TYPE_UID_ENTITY_MANAGEMENT_CREATE     EntityManagement_TypeUid = 300401
-	EntityManagement_TYPE_UID_ENTITY_MANAGEMENT_READ       EntityManagement_TypeUid = 300402
-	EntityManagement_TYPE_UID_ENTITY_MANAGEMENT_UPDATE     EntityManagement_TypeUid = 300403
-	EntityManagement_TYPE_UID_ENTITY_MANAGEMENT_DELETE     EntityManagement_TypeUid = 300404
-	EntityManagement_TYPE_UID_ENTITY_MANAGEMENT_MOVE       EntityManagement_TypeUid = 300405
-	EntityManagement_TYPE_UID_ENTITY_MANAGEMENT_ENROLL     EntityManagement_TypeUid = 300406
-	EntityManagement_TYPE_UID_ENTITY_MANAGEMENT_UNENROLL   EntityManagement_TypeUid = 300407
-	EntityManagement_TYPE_UID_ENTITY_MANAGEMENT_ENABLE     EntityManagement_TypeUid = 300408
-	EntityManagement_TYPE_UID_ENTITY_MANAGEMENT_DISABLE    EntityManagement_TypeUid = 300409
-	EntityManagement_TYPE_UID_ENTITY_MANAGEMENT_ACTIVATE   EntityManagement_TypeUid = 300410
-	EntityManagement_TYPE_UID_ENTITY_MANAGEMENT_DEACTIVATE EntityManagement_TypeUid = 300411
-	EntityManagement_TYPE_UID_ENTITY_MANAGEMENT_SUSPEND    EntityManagement_TypeUid = 300412
-	EntityManagement_TYPE_UID_ENTITY_MANAGEMENT_RESUME     EntityManagement_TypeUid = 300413
-	EntityManagement_TYPE_UID_ENTITY_MANAGEMENT_OTHER      EntityManagement_TypeUid = 300499
-)
-
-// Enum value maps for EntityManagement_TypeUid.
-var (
-	EntityManagement_TypeUid_name = map[int32]string{
-		0:      "TYPE_UID_UNKNOWN",
-		300400: "TYPE_UID_ENTITY_MANAGEMENT_UNKNOWN",
-		300401: "TYPE_UID_ENTITY_MANAGEMENT_CREATE",
-		300402: "TYPE_UID_ENTITY_MANAGEMENT_READ",
-		300403: "TYPE_UID_ENTITY_MANAGEMENT_UPDATE",
-		300404: "TYPE_UID_ENTITY_MANAGEMENT_DELETE",
-		300405: "TYPE_UID_ENTITY_MANAGEMENT_MOVE",
-		300406: "TYPE_UID_ENTITY_MANAGEMENT_ENROLL",
-		300407: "TYPE_UID_ENTITY_MANAGEMENT_UNENROLL",
-		300408: "TYPE_UID_ENTITY_MANAGEMENT_ENABLE",
-		300409: "TYPE_UID_ENTITY_MANAGEMENT_DISABLE",
-		300410: "TYPE_UID_ENTITY_MANAGEMENT_ACTIVATE",
-		300411: "TYPE_UID_ENTITY_MANAGEMENT_DEACTIVATE",
-		300412: "TYPE_UID_ENTITY_MANAGEMENT_SUSPEND",
-		300413: "TYPE_UID_ENTITY_MANAGEMENT_RESUME",
-		300499: "TYPE_UID_ENTITY_MANAGEMENT_OTHER",
-	}
-	EntityManagement_TypeUid_value = map[string]int32{
-		"TYPE_UID_UNKNOWN":                      0,
-		"TYPE_UID_ENTITY_MANAGEMENT_UNKNOWN":    300400,
-		"TYPE_UID_ENTITY_MANAGEMENT_CREATE":     300401,
-		"TYPE_UID_ENTITY_MANAGEMENT_READ":       300402,
-		"TYPE_UID_ENTITY_MANAGEMENT_UPDATE":     300403,
-		"TYPE_UID_ENTITY_MANAGEMENT_DELETE":     300404,
-		"TYPE_UID_ENTITY_MANAGEMENT_MOVE":       300405,
-		"TYPE_UID_ENTITY_MANAGEMENT_ENROLL":     300406,
-		"TYPE_UID_ENTITY_MANAGEMENT_UNENROLL":   300407,
-		"TYPE_UID_ENTITY_MANAGEMENT_ENABLE":     300408,
-		"TYPE_UID_ENTITY_MANAGEMENT_DISABLE":    300409,
-		"TYPE_UID_ENTITY_MANAGEMENT_ACTIVATE":   300410,
-		"TYPE_UID_ENTITY_MANAGEMENT_DEACTIVATE": 300411,
-		"TYPE_UID_ENTITY_MANAGEMENT_SUSPEND":    300412,
-		"TYPE_UID_ENTITY_MANAGEMENT_RESUME":     300413,
-		"TYPE_UID_ENTITY_MANAGEMENT_OTHER":      300499,
-	}
-)
-
-func (x EntityManagement_TypeUid) Enum() *EntityManagement_TypeUid {
-	p := new(EntityManagement_TypeUid)
-	*p = x
-	return p
-}
-
-func (x EntityManagement_TypeUid) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (EntityManagement_TypeUid) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[19].Descriptor()
-}
-
-func (EntityManagement_TypeUid) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[19]
-}
-
-func (x EntityManagement_TypeUid) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use EntityManagement_TypeUid.Descriptor instead.
-func (EntityManagement_TypeUid) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{1, 9}
-}
 
 type Account_TypeId int32
 
@@ -1427,11 +123,11 @@ func (x Account_TypeId) String() string {
 }
 
 func (Account_TypeId) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[20].Descriptor()
+	return file_ocsf_v1_objects_proto_enumTypes[0].Descriptor()
 }
 
 func (Account_TypeId) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[20]
+	return &file_ocsf_v1_objects_proto_enumTypes[0]
 }
 
 func (x Account_TypeId) Number() protoreflect.EnumNumber {
@@ -1440,7 +136,7 @@ func (x Account_TypeId) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use Account_TypeId.Descriptor instead.
 func (Account_TypeId) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{2, 0}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{0, 0}
 }
 
 type Advisory_InstallStateId int32
@@ -1482,11 +178,11 @@ func (x Advisory_InstallStateId) String() string {
 }
 
 func (Advisory_InstallStateId) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[21].Descriptor()
+	return file_ocsf_v1_objects_proto_enumTypes[1].Descriptor()
 }
 
 func (Advisory_InstallStateId) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[21]
+	return &file_ocsf_v1_objects_proto_enumTypes[1]
 }
 
 func (x Advisory_InstallStateId) Number() protoreflect.EnumNumber {
@@ -1495,7 +191,7 @@ func (x Advisory_InstallStateId) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use Advisory_InstallStateId.Descriptor instead.
 func (Advisory_InstallStateId) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{4, 0}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{2, 0}
 }
 
 type AffectedPackage_TypeId int32
@@ -1534,11 +230,11 @@ func (x AffectedPackage_TypeId) String() string {
 }
 
 func (AffectedPackage_TypeId) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[22].Descriptor()
+	return file_ocsf_v1_objects_proto_enumTypes[2].Descriptor()
 }
 
 func (AffectedPackage_TypeId) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[22]
+	return &file_ocsf_v1_objects_proto_enumTypes[2]
 }
 
 func (x AffectedPackage_TypeId) Number() protoreflect.EnumNumber {
@@ -1547,7 +243,7 @@ func (x AffectedPackage_TypeId) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use AffectedPackage_TypeId.Descriptor instead.
 func (AffectedPackage_TypeId) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{6, 0}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{4, 0}
 }
 
 type Agent_TypeId int32
@@ -1607,11 +303,11 @@ func (x Agent_TypeId) String() string {
 }
 
 func (Agent_TypeId) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[23].Descriptor()
+	return file_ocsf_v1_objects_proto_enumTypes[3].Descriptor()
 }
 
 func (Agent_TypeId) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[23]
+	return &file_ocsf_v1_objects_proto_enumTypes[3]
 }
 
 func (x Agent_TypeId) Number() protoreflect.EnumNumber {
@@ -1620,7 +316,7 @@ func (x Agent_TypeId) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use Agent_TypeId.Descriptor instead.
 func (Agent_TypeId) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{7, 0}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{5, 0}
 }
 
 type Analytic_StateId int32
@@ -1662,11 +358,11 @@ func (x Analytic_StateId) String() string {
 }
 
 func (Analytic_StateId) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[24].Descriptor()
+	return file_ocsf_v1_objects_proto_enumTypes[4].Descriptor()
 }
 
 func (Analytic_StateId) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[24]
+	return &file_ocsf_v1_objects_proto_enumTypes[4]
 }
 
 func (x Analytic_StateId) Number() protoreflect.EnumNumber {
@@ -1675,7 +371,7 @@ func (x Analytic_StateId) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use Analytic_StateId.Descriptor instead.
 func (Analytic_StateId) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{9, 0}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{7, 0}
 }
 
 type Analytic_TypeId int32
@@ -1741,11 +437,11 @@ func (x Analytic_TypeId) String() string {
 }
 
 func (Analytic_TypeId) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[25].Descriptor()
+	return file_ocsf_v1_objects_proto_enumTypes[5].Descriptor()
 }
 
 func (Analytic_TypeId) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[25]
+	return &file_ocsf_v1_objects_proto_enumTypes[5]
 }
 
 func (x Analytic_TypeId) Number() protoreflect.EnumNumber {
@@ -1754,7 +450,7 @@ func (x Analytic_TypeId) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use Analytic_TypeId.Descriptor instead.
 func (Analytic_TypeId) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{9, 1}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{7, 1}
 }
 
 type Application_RiskLevelId int32
@@ -1799,11 +495,11 @@ func (x Application_RiskLevelId) String() string {
 }
 
 func (Application_RiskLevelId) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[26].Descriptor()
+	return file_ocsf_v1_objects_proto_enumTypes[6].Descriptor()
 }
 
 func (Application_RiskLevelId) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[26]
+	return &file_ocsf_v1_objects_proto_enumTypes[6]
 }
 
 func (x Application_RiskLevelId) Number() protoreflect.EnumNumber {
@@ -1812,7 +508,7 @@ func (x Application_RiskLevelId) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use Application_RiskLevelId.Descriptor instead.
 func (Application_RiskLevelId) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{11, 0}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{9, 0}
 }
 
 type AuthFactor_FactorTypeId int32
@@ -1878,11 +574,11 @@ func (x AuthFactor_FactorTypeId) String() string {
 }
 
 func (AuthFactor_FactorTypeId) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[27].Descriptor()
+	return file_ocsf_v1_objects_proto_enumTypes[7].Descriptor()
 }
 
 func (AuthFactor_FactorTypeId) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[27]
+	return &file_ocsf_v1_objects_proto_enumTypes[7]
 }
 
 func (x AuthFactor_FactorTypeId) Number() protoreflect.EnumNumber {
@@ -1891,7 +587,7 @@ func (x AuthFactor_FactorTypeId) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use AuthFactor_FactorTypeId.Descriptor instead.
 func (AuthFactor_FactorTypeId) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{13, 0}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{11, 0}
 }
 
 type DataClassification_CategoryId int32
@@ -1942,11 +638,11 @@ func (x DataClassification_CategoryId) String() string {
 }
 
 func (DataClassification_CategoryId) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[28].Descriptor()
+	return file_ocsf_v1_objects_proto_enumTypes[8].Descriptor()
 }
 
 func (DataClassification_CategoryId) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[28]
+	return &file_ocsf_v1_objects_proto_enumTypes[8]
 }
 
 func (x DataClassification_CategoryId) Number() protoreflect.EnumNumber {
@@ -1955,7 +651,7 @@ func (x DataClassification_CategoryId) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use DataClassification_CategoryId.Descriptor instead.
 func (DataClassification_CategoryId) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{28, 0}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{26, 0}
 }
 
 type DataClassification_ConfidentialityId int32
@@ -2006,11 +702,11 @@ func (x DataClassification_ConfidentialityId) String() string {
 }
 
 func (DataClassification_ConfidentialityId) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[29].Descriptor()
+	return file_ocsf_v1_objects_proto_enumTypes[9].Descriptor()
 }
 
 func (DataClassification_ConfidentialityId) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[29]
+	return &file_ocsf_v1_objects_proto_enumTypes[9]
 }
 
 func (x DataClassification_ConfidentialityId) Number() protoreflect.EnumNumber {
@@ -2019,7 +715,7 @@ func (x DataClassification_ConfidentialityId) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use DataClassification_ConfidentialityId.Descriptor instead.
 func (DataClassification_ConfidentialityId) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{28, 1}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{26, 1}
 }
 
 type DataClassification_StatusId int32
@@ -2061,11 +757,11 @@ func (x DataClassification_StatusId) String() string {
 }
 
 func (DataClassification_StatusId) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[30].Descriptor()
+	return file_ocsf_v1_objects_proto_enumTypes[10].Descriptor()
 }
 
 func (DataClassification_StatusId) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[30]
+	return &file_ocsf_v1_objects_proto_enumTypes[10]
 }
 
 func (x DataClassification_StatusId) Number() protoreflect.EnumNumber {
@@ -2074,7 +770,7 @@ func (x DataClassification_StatusId) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use DataClassification_StatusId.Descriptor instead.
 func (DataClassification_StatusId) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{28, 2}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{26, 2}
 }
 
 type Device_RiskLevelId int32
@@ -2119,11 +815,11 @@ func (x Device_RiskLevelId) String() string {
 }
 
 func (Device_RiskLevelId) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[31].Descriptor()
+	return file_ocsf_v1_objects_proto_enumTypes[11].Descriptor()
 }
 
 func (Device_RiskLevelId) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[31]
+	return &file_ocsf_v1_objects_proto_enumTypes[11]
 }
 
 func (x Device_RiskLevelId) Number() protoreflect.EnumNumber {
@@ -2132,7 +828,7 @@ func (x Device_RiskLevelId) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use Device_RiskLevelId.Descriptor instead.
 func (Device_RiskLevelId) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{29, 0}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{27, 0}
 }
 
 type Device_TypeId int32
@@ -2210,11 +906,11 @@ func (x Device_TypeId) String() string {
 }
 
 func (Device_TypeId) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[32].Descriptor()
+	return file_ocsf_v1_objects_proto_enumTypes[12].Descriptor()
 }
 
 func (Device_TypeId) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[32]
+	return &file_ocsf_v1_objects_proto_enumTypes[12]
 }
 
 func (x Device_TypeId) Number() protoreflect.EnumNumber {
@@ -2223,7 +919,7 @@ func (x Device_TypeId) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use Device_TypeId.Descriptor instead.
 func (Device_TypeId) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{29, 1}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{27, 1}
 }
 
 type DeviceHwInfo_CpuArchitectureId int32
@@ -2265,11 +961,11 @@ func (x DeviceHwInfo_CpuArchitectureId) String() string {
 }
 
 func (DeviceHwInfo_CpuArchitectureId) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[33].Descriptor()
+	return file_ocsf_v1_objects_proto_enumTypes[13].Descriptor()
 }
 
 func (DeviceHwInfo_CpuArchitectureId) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[33]
+	return &file_ocsf_v1_objects_proto_enumTypes[13]
 }
 
 func (x DeviceHwInfo_CpuArchitectureId) Number() protoreflect.EnumNumber {
@@ -2278,7 +974,7 @@ func (x DeviceHwInfo_CpuArchitectureId) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use DeviceHwInfo_CpuArchitectureId.Descriptor instead.
 func (DeviceHwInfo_CpuArchitectureId) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{30, 0}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{28, 0}
 }
 
 type DigitalSignature_AlgorithmId int32
@@ -2323,11 +1019,11 @@ func (x DigitalSignature_AlgorithmId) String() string {
 }
 
 func (DigitalSignature_AlgorithmId) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[34].Descriptor()
+	return file_ocsf_v1_objects_proto_enumTypes[14].Descriptor()
 }
 
 func (DigitalSignature_AlgorithmId) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[34]
+	return &file_ocsf_v1_objects_proto_enumTypes[14]
 }
 
 func (x DigitalSignature_AlgorithmId) Number() protoreflect.EnumNumber {
@@ -2336,7 +1032,7 @@ func (x DigitalSignature_AlgorithmId) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use DigitalSignature_AlgorithmId.Descriptor instead.
 func (DigitalSignature_AlgorithmId) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{31, 0}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{29, 0}
 }
 
 type DigitalSignature_StateId int32
@@ -2399,11 +1095,11 @@ func (x DigitalSignature_StateId) String() string {
 }
 
 func (DigitalSignature_StateId) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[35].Descriptor()
+	return file_ocsf_v1_objects_proto_enumTypes[15].Descriptor()
 }
 
 func (DigitalSignature_StateId) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[35]
+	return &file_ocsf_v1_objects_proto_enumTypes[15]
 }
 
 func (x DigitalSignature_StateId) Number() protoreflect.EnumNumber {
@@ -2412,7 +1108,7 @@ func (x DigitalSignature_StateId) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use DigitalSignature_StateId.Descriptor instead.
 func (DigitalSignature_StateId) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{31, 1}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{29, 1}
 }
 
 type DnsAnswer_FlagIds int32
@@ -2463,11 +1159,11 @@ func (x DnsAnswer_FlagIds) String() string {
 }
 
 func (DnsAnswer_FlagIds) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[36].Descriptor()
+	return file_ocsf_v1_objects_proto_enumTypes[16].Descriptor()
 }
 
 func (DnsAnswer_FlagIds) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[36]
+	return &file_ocsf_v1_objects_proto_enumTypes[16]
 }
 
 func (x DnsAnswer_FlagIds) Number() protoreflect.EnumNumber {
@@ -2476,7 +1172,7 @@ func (x DnsAnswer_FlagIds) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use DnsAnswer_FlagIds.Descriptor instead.
 func (DnsAnswer_FlagIds) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{34, 0}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{32, 0}
 }
 
 type DomainContact_TypeId int32
@@ -2524,11 +1220,11 @@ func (x DomainContact_TypeId) String() string {
 }
 
 func (DomainContact_TypeId) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[37].Descriptor()
+	return file_ocsf_v1_objects_proto_enumTypes[17].Descriptor()
 }
 
 func (DomainContact_TypeId) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[37]
+	return &file_ocsf_v1_objects_proto_enumTypes[17]
 }
 
 func (x DomainContact_TypeId) Number() protoreflect.EnumNumber {
@@ -2537,7 +1233,7 @@ func (x DomainContact_TypeId) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use DomainContact_TypeId.Descriptor instead.
 func (DomainContact_TypeId) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{35, 0}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{33, 0}
 }
 
 type EncryptionDetails_AlgorithmId int32
@@ -2588,11 +1284,11 @@ func (x EncryptionDetails_AlgorithmId) String() string {
 }
 
 func (EncryptionDetails_AlgorithmId) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[38].Descriptor()
+	return file_ocsf_v1_objects_proto_enumTypes[18].Descriptor()
 }
 
 func (EncryptionDetails_AlgorithmId) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[38]
+	return &file_ocsf_v1_objects_proto_enumTypes[18]
 }
 
 func (x EncryptionDetails_AlgorithmId) Number() protoreflect.EnumNumber {
@@ -2601,7 +1297,7 @@ func (x EncryptionDetails_AlgorithmId) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use EncryptionDetails_AlgorithmId.Descriptor instead.
 func (EncryptionDetails_AlgorithmId) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{39, 0}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{37, 0}
 }
 
 type File_ConfidentialityId int32
@@ -2652,11 +1348,11 @@ func (x File_ConfidentialityId) String() string {
 }
 
 func (File_ConfidentialityId) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[39].Descriptor()
+	return file_ocsf_v1_objects_proto_enumTypes[19].Descriptor()
 }
 
 func (File_ConfidentialityId) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[39]
+	return &file_ocsf_v1_objects_proto_enumTypes[19]
 }
 
 func (x File_ConfidentialityId) Number() protoreflect.EnumNumber {
@@ -2665,7 +1361,7 @@ func (x File_ConfidentialityId) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use File_ConfidentialityId.Descriptor instead.
 func (File_ConfidentialityId) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{45, 0}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{43, 0}
 }
 
 type File_DriveTypeId int32
@@ -2713,11 +1409,11 @@ func (x File_DriveTypeId) String() string {
 }
 
 func (File_DriveTypeId) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[40].Descriptor()
+	return file_ocsf_v1_objects_proto_enumTypes[20].Descriptor()
 }
 
 func (File_DriveTypeId) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[40]
+	return &file_ocsf_v1_objects_proto_enumTypes[20]
 }
 
 func (x File_DriveTypeId) Number() protoreflect.EnumNumber {
@@ -2726,7 +1422,7 @@ func (x File_DriveTypeId) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use File_DriveTypeId.Descriptor instead.
 func (File_DriveTypeId) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{45, 1}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{43, 1}
 }
 
 type File_TypeId int32
@@ -2783,11 +1479,11 @@ func (x File_TypeId) String() string {
 }
 
 func (File_TypeId) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[41].Descriptor()
+	return file_ocsf_v1_objects_proto_enumTypes[21].Descriptor()
 }
 
 func (File_TypeId) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[41]
+	return &file_ocsf_v1_objects_proto_enumTypes[21]
 }
 
 func (x File_TypeId) Number() protoreflect.EnumNumber {
@@ -2796,7 +1492,7 @@ func (x File_TypeId) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use File_TypeId.Descriptor instead.
 func (File_TypeId) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{45, 2}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{43, 2}
 }
 
 type Fingerprint_AlgorithmId int32
@@ -2889,11 +1585,11 @@ func (x Fingerprint_AlgorithmId) String() string {
 }
 
 func (Fingerprint_AlgorithmId) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[42].Descriptor()
+	return file_ocsf_v1_objects_proto_enumTypes[22].Descriptor()
 }
 
 func (Fingerprint_AlgorithmId) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[42]
+	return &file_ocsf_v1_objects_proto_enumTypes[22]
 }
 
 func (x Fingerprint_AlgorithmId) Number() protoreflect.EnumNumber {
@@ -2902,7 +1598,7 @@ func (x Fingerprint_AlgorithmId) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use Fingerprint_AlgorithmId.Descriptor instead.
 func (Fingerprint_AlgorithmId) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{46, 0}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{44, 0}
 }
 
 type GpuInfo_BusTypeId int32
@@ -2956,11 +1652,11 @@ func (x GpuInfo_BusTypeId) String() string {
 }
 
 func (GpuInfo_BusTypeId) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[43].Descriptor()
+	return file_ocsf_v1_objects_proto_enumTypes[23].Descriptor()
 }
 
 func (GpuInfo_BusTypeId) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[43]
+	return &file_ocsf_v1_objects_proto_enumTypes[23]
 }
 
 func (x GpuInfo_BusTypeId) Number() protoreflect.EnumNumber {
@@ -2969,7 +1665,7 @@ func (x GpuInfo_BusTypeId) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use GpuInfo_BusTypeId.Descriptor instead.
 func (GpuInfo_BusTypeId) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{48, 0}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{46, 0}
 }
 
 type GpuInfo_VramModeId int32
@@ -3008,11 +1704,11 @@ func (x GpuInfo_VramModeId) String() string {
 }
 
 func (GpuInfo_VramModeId) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[44].Descriptor()
+	return file_ocsf_v1_objects_proto_enumTypes[24].Descriptor()
 }
 
 func (GpuInfo_VramModeId) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[44]
+	return &file_ocsf_v1_objects_proto_enumTypes[24]
 }
 
 func (x GpuInfo_VramModeId) Number() protoreflect.EnumNumber {
@@ -3021,7 +1717,7 @@ func (x GpuInfo_VramModeId) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use GpuInfo_VramModeId.Descriptor instead.
 func (GpuInfo_VramModeId) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{48, 1}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{46, 1}
 }
 
 type Graph_QueryLanguageId int32
@@ -3075,11 +1771,11 @@ func (x Graph_QueryLanguageId) String() string {
 }
 
 func (Graph_QueryLanguageId) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[45].Descriptor()
+	return file_ocsf_v1_objects_proto_enumTypes[25].Descriptor()
 }
 
 func (Graph_QueryLanguageId) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[45]
+	return &file_ocsf_v1_objects_proto_enumTypes[25]
 }
 
 func (x Graph_QueryLanguageId) Number() protoreflect.EnumNumber {
@@ -3088,7 +1784,7 @@ func (x Graph_QueryLanguageId) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use Graph_QueryLanguageId.Descriptor instead.
 func (Graph_QueryLanguageId) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{49, 0}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{47, 0}
 }
 
 type Idp_StateId int32
@@ -3133,11 +1829,11 @@ func (x Idp_StateId) String() string {
 }
 
 func (Idp_StateId) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[46].Descriptor()
+	return file_ocsf_v1_objects_proto_enumTypes[26].Descriptor()
 }
 
 func (Idp_StateId) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[46]
+	return &file_ocsf_v1_objects_proto_enumTypes[26]
 }
 
 func (x Idp_StateId) Number() protoreflect.EnumNumber {
@@ -3146,7 +1842,7 @@ func (x Idp_StateId) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use Idp_StateId.Descriptor instead.
 func (Idp_StateId) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{54, 0}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{52, 0}
 }
 
 type KbArticle_InstallStateId int32
@@ -3188,11 +1884,11 @@ func (x KbArticle_InstallStateId) String() string {
 }
 
 func (KbArticle_InstallStateId) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[47].Descriptor()
+	return file_ocsf_v1_objects_proto_enumTypes[27].Descriptor()
 }
 
 func (KbArticle_InstallStateId) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[47]
+	return &file_ocsf_v1_objects_proto_enumTypes[27]
 }
 
 func (x KbArticle_InstallStateId) Number() protoreflect.EnumNumber {
@@ -3201,7 +1897,7 @@ func (x KbArticle_InstallStateId) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use KbArticle_InstallStateId.Descriptor instead.
 func (KbArticle_InstallStateId) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{56, 0}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{54, 0}
 }
 
 type KillChainPhase_PhaseId int32
@@ -3255,11 +1951,11 @@ func (x KillChainPhase_PhaseId) String() string {
 }
 
 func (KillChainPhase_PhaseId) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[48].Descriptor()
+	return file_ocsf_v1_objects_proto_enumTypes[28].Descriptor()
 }
 
 func (KillChainPhase_PhaseId) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[48]
+	return &file_ocsf_v1_objects_proto_enumTypes[28]
 }
 
 func (x KillChainPhase_PhaseId) Number() protoreflect.EnumNumber {
@@ -3268,7 +1964,7 @@ func (x KillChainPhase_PhaseId) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use KillChainPhase_PhaseId.Descriptor instead.
 func (KillChainPhase_PhaseId) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{59, 0}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{57, 0}
 }
 
 type Malware_ClassificationIds int32
@@ -3364,11 +2060,11 @@ func (x Malware_ClassificationIds) String() string {
 }
 
 func (Malware_ClassificationIds) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[49].Descriptor()
+	return file_ocsf_v1_objects_proto_enumTypes[29].Descriptor()
 }
 
 func (Malware_ClassificationIds) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[49]
+	return &file_ocsf_v1_objects_proto_enumTypes[29]
 }
 
 func (x Malware_ClassificationIds) Number() protoreflect.EnumNumber {
@@ -3377,7 +2073,7 @@ func (x Malware_ClassificationIds) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use Malware_ClassificationIds.Descriptor instead.
 func (Malware_ClassificationIds) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{64, 0}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{62, 0}
 }
 
 type Malware_SeverityId int32
@@ -3428,11 +2124,11 @@ func (x Malware_SeverityId) String() string {
 }
 
 func (Malware_SeverityId) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[50].Descriptor()
+	return file_ocsf_v1_objects_proto_enumTypes[30].Descriptor()
 }
 
 func (Malware_SeverityId) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[50]
+	return &file_ocsf_v1_objects_proto_enumTypes[30]
 }
 
 func (x Malware_SeverityId) Number() protoreflect.EnumNumber {
@@ -3441,7 +2137,7 @@ func (x Malware_SeverityId) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use Malware_SeverityId.Descriptor instead.
 func (Malware_SeverityId) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{64, 1}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{62, 1}
 }
 
 type MalwareScanInfo_TypeId int32
@@ -3495,11 +2191,11 @@ func (x MalwareScanInfo_TypeId) String() string {
 }
 
 func (MalwareScanInfo_TypeId) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[51].Descriptor()
+	return file_ocsf_v1_objects_proto_enumTypes[31].Descriptor()
 }
 
 func (MalwareScanInfo_TypeId) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[51]
+	return &file_ocsf_v1_objects_proto_enumTypes[31]
 }
 
 func (x MalwareScanInfo_TypeId) Number() protoreflect.EnumNumber {
@@ -3508,7 +2204,7 @@ func (x MalwareScanInfo_TypeId) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use MalwareScanInfo_TypeId.Descriptor instead.
 func (MalwareScanInfo_TypeId) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{65, 0}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{63, 0}
 }
 
 type ManagedEntity_TypeId int32
@@ -3562,11 +2258,11 @@ func (x ManagedEntity_TypeId) String() string {
 }
 
 func (ManagedEntity_TypeId) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[52].Descriptor()
+	return file_ocsf_v1_objects_proto_enumTypes[32].Descriptor()
 }
 
 func (ManagedEntity_TypeId) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[52]
+	return &file_ocsf_v1_objects_proto_enumTypes[32]
 }
 
 func (x ManagedEntity_TypeId) Number() protoreflect.EnumNumber {
@@ -3575,7 +2271,7 @@ func (x ManagedEntity_TypeId) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use ManagedEntity_TypeId.Descriptor instead.
 func (ManagedEntity_TypeId) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{66, 0}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{64, 0}
 }
 
 type MessageContext_AiRoleId int32
@@ -3626,11 +2322,11 @@ func (x MessageContext_AiRoleId) String() string {
 }
 
 func (MessageContext_AiRoleId) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[53].Descriptor()
+	return file_ocsf_v1_objects_proto_enumTypes[33].Descriptor()
 }
 
 func (MessageContext_AiRoleId) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[53]
+	return &file_ocsf_v1_objects_proto_enumTypes[33]
 }
 
 func (x MessageContext_AiRoleId) Number() protoreflect.EnumNumber {
@@ -3639,7 +2335,7 @@ func (x MessageContext_AiRoleId) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use MessageContext_AiRoleId.Descriptor instead.
 func (MessageContext_AiRoleId) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{67, 0}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{65, 0}
 }
 
 type NetworkEndpoint_NetworkScopeId int32
@@ -3678,11 +2374,11 @@ func (x NetworkEndpoint_NetworkScopeId) String() string {
 }
 
 func (NetworkEndpoint_NetworkScopeId) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[54].Descriptor()
+	return file_ocsf_v1_objects_proto_enumTypes[34].Descriptor()
 }
 
 func (NetworkEndpoint_NetworkScopeId) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[54]
+	return &file_ocsf_v1_objects_proto_enumTypes[34]
 }
 
 func (x NetworkEndpoint_NetworkScopeId) Number() protoreflect.EnumNumber {
@@ -3691,7 +2387,7 @@ func (x NetworkEndpoint_NetworkScopeId) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use NetworkEndpoint_NetworkScopeId.Descriptor instead.
 func (NetworkEndpoint_NetworkScopeId) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{71, 0}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{69, 0}
 }
 
 type NetworkEndpoint_TypeId int32
@@ -3769,11 +2465,11 @@ func (x NetworkEndpoint_TypeId) String() string {
 }
 
 func (NetworkEndpoint_TypeId) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[55].Descriptor()
+	return file_ocsf_v1_objects_proto_enumTypes[35].Descriptor()
 }
 
 func (NetworkEndpoint_TypeId) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[55]
+	return &file_ocsf_v1_objects_proto_enumTypes[35]
 }
 
 func (x NetworkEndpoint_TypeId) Number() protoreflect.EnumNumber {
@@ -3782,7 +2478,7 @@ func (x NetworkEndpoint_TypeId) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use NetworkEndpoint_TypeId.Descriptor instead.
 func (NetworkEndpoint_TypeId) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{71, 1}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{69, 1}
 }
 
 type NetworkInterface_TypeId int32
@@ -3827,11 +2523,11 @@ func (x NetworkInterface_TypeId) String() string {
 }
 
 func (NetworkInterface_TypeId) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[56].Descriptor()
+	return file_ocsf_v1_objects_proto_enumTypes[36].Descriptor()
 }
 
 func (NetworkInterface_TypeId) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[56]
+	return &file_ocsf_v1_objects_proto_enumTypes[36]
 }
 
 func (x NetworkInterface_TypeId) Number() protoreflect.EnumNumber {
@@ -3840,7 +2536,7 @@ func (x NetworkInterface_TypeId) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use NetworkInterface_TypeId.Descriptor instead.
 func (NetworkInterface_TypeId) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{72, 0}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{70, 0}
 }
 
 type NetworkProxy_NetworkScopeId int32
@@ -3879,11 +2575,11 @@ func (x NetworkProxy_NetworkScopeId) String() string {
 }
 
 func (NetworkProxy_NetworkScopeId) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[57].Descriptor()
+	return file_ocsf_v1_objects_proto_enumTypes[37].Descriptor()
 }
 
 func (NetworkProxy_NetworkScopeId) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[57]
+	return &file_ocsf_v1_objects_proto_enumTypes[37]
 }
 
 func (x NetworkProxy_NetworkScopeId) Number() protoreflect.EnumNumber {
@@ -3892,7 +2588,7 @@ func (x NetworkProxy_NetworkScopeId) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use NetworkProxy_NetworkScopeId.Descriptor instead.
 func (NetworkProxy_NetworkScopeId) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{73, 0}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{71, 0}
 }
 
 type NetworkProxy_TypeId int32
@@ -3970,11 +2666,11 @@ func (x NetworkProxy_TypeId) String() string {
 }
 
 func (NetworkProxy_TypeId) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[58].Descriptor()
+	return file_ocsf_v1_objects_proto_enumTypes[38].Descriptor()
 }
 
 func (NetworkProxy_TypeId) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[58]
+	return &file_ocsf_v1_objects_proto_enumTypes[38]
 }
 
 func (x NetworkProxy_TypeId) Number() protoreflect.EnumNumber {
@@ -3983,7 +2679,7 @@ func (x NetworkProxy_TypeId) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use NetworkProxy_TypeId.Descriptor instead.
 func (NetworkProxy_TypeId) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{73, 1}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{71, 1}
 }
 
 type Observable_TypeId int32
@@ -4160,11 +2856,11 @@ func (x Observable_TypeId) String() string {
 }
 
 func (Observable_TypeId) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[59].Descriptor()
+	return file_ocsf_v1_objects_proto_enumTypes[39].Descriptor()
 }
 
 func (Observable_TypeId) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[59]
+	return &file_ocsf_v1_objects_proto_enumTypes[39]
 }
 
 func (x Observable_TypeId) Number() protoreflect.EnumNumber {
@@ -4173,7 +2869,7 @@ func (x Observable_TypeId) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use Observable_TypeId.Descriptor instead.
 func (Observable_TypeId) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{75, 0}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{73, 0}
 }
 
 type Os_TypeId int32
@@ -4236,11 +2932,11 @@ func (x Os_TypeId) String() string {
 }
 
 func (Os_TypeId) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[60].Descriptor()
+	return file_ocsf_v1_objects_proto_enumTypes[40].Descriptor()
 }
 
 func (Os_TypeId) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[60]
+	return &file_ocsf_v1_objects_proto_enumTypes[40]
 }
 
 func (x Os_TypeId) Number() protoreflect.EnumNumber {
@@ -4249,7 +2945,7 @@ func (x Os_TypeId) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use Os_TypeId.Descriptor instead.
 func (Os_TypeId) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{78, 0}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{76, 0}
 }
 
 type Osint_ConfidenceId int32
@@ -4291,11 +2987,11 @@ func (x Osint_ConfidenceId) String() string {
 }
 
 func (Osint_ConfidenceId) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[61].Descriptor()
+	return file_ocsf_v1_objects_proto_enumTypes[41].Descriptor()
 }
 
 func (Osint_ConfidenceId) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[61]
+	return &file_ocsf_v1_objects_proto_enumTypes[41]
 }
 
 func (x Osint_ConfidenceId) Number() protoreflect.EnumNumber {
@@ -4304,7 +3000,7 @@ func (x Osint_ConfidenceId) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use Osint_ConfidenceId.Descriptor instead.
 func (Osint_ConfidenceId) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{79, 0}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{77, 0}
 }
 
 type Osint_DetectionPatternTypeId int32
@@ -4355,11 +3051,11 @@ func (x Osint_DetectionPatternTypeId) String() string {
 }
 
 func (Osint_DetectionPatternTypeId) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[62].Descriptor()
+	return file_ocsf_v1_objects_proto_enumTypes[42].Descriptor()
 }
 
 func (Osint_DetectionPatternTypeId) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[62]
+	return &file_ocsf_v1_objects_proto_enumTypes[42]
 }
 
 func (x Osint_DetectionPatternTypeId) Number() protoreflect.EnumNumber {
@@ -4368,7 +3064,7 @@ func (x Osint_DetectionPatternTypeId) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use Osint_DetectionPatternTypeId.Descriptor instead.
 func (Osint_DetectionPatternTypeId) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{79, 1}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{77, 1}
 }
 
 type Osint_SeverityId int32
@@ -4419,11 +3115,11 @@ func (x Osint_SeverityId) String() string {
 }
 
 func (Osint_SeverityId) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[63].Descriptor()
+	return file_ocsf_v1_objects_proto_enumTypes[43].Descriptor()
 }
 
 func (Osint_SeverityId) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[63]
+	return &file_ocsf_v1_objects_proto_enumTypes[43]
 }
 
 func (x Osint_SeverityId) Number() protoreflect.EnumNumber {
@@ -4432,7 +3128,7 @@ func (x Osint_SeverityId) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use Osint_SeverityId.Descriptor instead.
 func (Osint_SeverityId) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{79, 2}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{77, 2}
 }
 
 type Osint_TypeId int32
@@ -4507,11 +3203,11 @@ func (x Osint_TypeId) String() string {
 }
 
 func (Osint_TypeId) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[64].Descriptor()
+	return file_ocsf_v1_objects_proto_enumTypes[44].Descriptor()
 }
 
 func (Osint_TypeId) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[64]
+	return &file_ocsf_v1_objects_proto_enumTypes[44]
 }
 
 func (x Osint_TypeId) Number() protoreflect.EnumNumber {
@@ -4520,7 +3216,7 @@ func (x Osint_TypeId) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use Osint_TypeId.Descriptor instead.
 func (Osint_TypeId) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{79, 3}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{77, 3}
 }
 
 type Package_TypeId int32
@@ -4559,11 +3255,11 @@ func (x Package_TypeId) String() string {
 }
 
 func (Package_TypeId) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[65].Descriptor()
+	return file_ocsf_v1_objects_proto_enumTypes[45].Descriptor()
 }
 
 func (Package_TypeId) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[65]
+	return &file_ocsf_v1_objects_proto_enumTypes[45]
 }
 
 func (x Package_TypeId) Number() protoreflect.EnumNumber {
@@ -4572,7 +3268,7 @@ func (x Package_TypeId) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use Package_TypeId.Descriptor instead.
 func (Package_TypeId) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{80, 0}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{78, 0}
 }
 
 type Process_IntegrityId int32
@@ -4623,11 +3319,11 @@ func (x Process_IntegrityId) String() string {
 }
 
 func (Process_IntegrityId) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[66].Descriptor()
+	return file_ocsf_v1_objects_proto_enumTypes[46].Descriptor()
 }
 
 func (Process_IntegrityId) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[66]
+	return &file_ocsf_v1_objects_proto_enumTypes[46]
 }
 
 func (x Process_IntegrityId) Number() protoreflect.EnumNumber {
@@ -4636,7 +3332,7 @@ func (x Process_IntegrityId) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use Process_IntegrityId.Descriptor instead.
 func (Process_IntegrityId) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{83, 0}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{81, 0}
 }
 
 type Reputation_ScoreId int32
@@ -4699,11 +3395,11 @@ func (x Reputation_ScoreId) String() string {
 }
 
 func (Reputation_ScoreId) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[67].Descriptor()
+	return file_ocsf_v1_objects_proto_enumTypes[47].Descriptor()
 }
 
 func (Reputation_ScoreId) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[67]
+	return &file_ocsf_v1_objects_proto_enumTypes[47]
 }
 
 func (x Reputation_ScoreId) Number() protoreflect.EnumNumber {
@@ -4712,7 +3408,7 @@ func (x Reputation_ScoreId) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use Reputation_ScoreId.Descriptor instead.
 func (Reputation_ScoreId) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{89, 0}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{87, 0}
 }
 
 type ResourceDetails_RoleId int32
@@ -4757,11 +3453,11 @@ func (x ResourceDetails_RoleId) String() string {
 }
 
 func (ResourceDetails_RoleId) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[68].Descriptor()
+	return file_ocsf_v1_objects_proto_enumTypes[48].Descriptor()
 }
 
 func (ResourceDetails_RoleId) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[68]
+	return &file_ocsf_v1_objects_proto_enumTypes[48]
 }
 
 func (x ResourceDetails_RoleId) Number() protoreflect.EnumNumber {
@@ -4770,7 +3466,7 @@ func (x ResourceDetails_RoleId) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use ResourceDetails_RoleId.Descriptor instead.
 func (ResourceDetails_RoleId) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{91, 0}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{89, 0}
 }
 
 type Sbom_TypeId int32
@@ -4812,11 +3508,11 @@ func (x Sbom_TypeId) String() string {
 }
 
 func (Sbom_TypeId) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[69].Descriptor()
+	return file_ocsf_v1_objects_proto_enumTypes[49].Descriptor()
 }
 
 func (Sbom_TypeId) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[69]
+	return &file_ocsf_v1_objects_proto_enumTypes[49]
 }
 
 func (x Sbom_TypeId) Number() protoreflect.EnumNumber {
@@ -4825,7 +3521,7 @@ func (x Sbom_TypeId) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use Sbom_TypeId.Descriptor instead.
 func (Sbom_TypeId) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{95, 0}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{93, 0}
 }
 
 type Scim_AuthProtocolId int32
@@ -4894,11 +3590,11 @@ func (x Scim_AuthProtocolId) String() string {
 }
 
 func (Scim_AuthProtocolId) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[70].Descriptor()
+	return file_ocsf_v1_objects_proto_enumTypes[50].Descriptor()
 }
 
 func (Scim_AuthProtocolId) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[70]
+	return &file_ocsf_v1_objects_proto_enumTypes[50]
 }
 
 func (x Scim_AuthProtocolId) Number() protoreflect.EnumNumber {
@@ -4907,7 +3603,7 @@ func (x Scim_AuthProtocolId) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use Scim_AuthProtocolId.Descriptor instead.
 func (Scim_AuthProtocolId) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{96, 0}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{94, 0}
 }
 
 type Scim_StateId int32
@@ -4952,11 +3648,11 @@ func (x Scim_StateId) String() string {
 }
 
 func (Scim_StateId) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[71].Descriptor()
+	return file_ocsf_v1_objects_proto_enumTypes[51].Descriptor()
 }
 
 func (Scim_StateId) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[71]
+	return &file_ocsf_v1_objects_proto_enumTypes[51]
 }
 
 func (x Scim_StateId) Number() protoreflect.EnumNumber {
@@ -4965,7 +3661,7 @@ func (x Scim_StateId) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use Scim_StateId.Descriptor instead.
 func (Scim_StateId) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{96, 1}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{94, 1}
 }
 
 type Script_TypeId int32
@@ -5019,11 +3715,11 @@ func (x Script_TypeId) String() string {
 }
 
 func (Script_TypeId) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[72].Descriptor()
+	return file_ocsf_v1_objects_proto_enumTypes[52].Descriptor()
 }
 
 func (Script_TypeId) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[72]
+	return &file_ocsf_v1_objects_proto_enumTypes[52]
 }
 
 func (x Script_TypeId) Number() protoreflect.EnumNumber {
@@ -5032,7 +3728,7 @@ func (x Script_TypeId) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use Script_TypeId.Descriptor instead.
 func (Script_TypeId) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{97, 0}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{95, 0}
 }
 
 type SoftwareComponent_RelationshipId int32
@@ -5068,11 +3764,11 @@ func (x SoftwareComponent_RelationshipId) String() string {
 }
 
 func (SoftwareComponent_RelationshipId) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[73].Descriptor()
+	return file_ocsf_v1_objects_proto_enumTypes[53].Descriptor()
 }
 
 func (SoftwareComponent_RelationshipId) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[73]
+	return &file_ocsf_v1_objects_proto_enumTypes[53]
 }
 
 func (x SoftwareComponent_RelationshipId) Number() protoreflect.EnumNumber {
@@ -5081,7 +3777,7 @@ func (x SoftwareComponent_RelationshipId) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use SoftwareComponent_RelationshipId.Descriptor instead.
 func (SoftwareComponent_RelationshipId) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{100, 0}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{98, 0}
 }
 
 type SoftwareComponent_TypeId int32
@@ -5123,11 +3819,11 @@ func (x SoftwareComponent_TypeId) String() string {
 }
 
 func (SoftwareComponent_TypeId) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[74].Descriptor()
+	return file_ocsf_v1_objects_proto_enumTypes[54].Descriptor()
 }
 
 func (SoftwareComponent_TypeId) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[74]
+	return &file_ocsf_v1_objects_proto_enumTypes[54]
 }
 
 func (x SoftwareComponent_TypeId) Number() protoreflect.EnumNumber {
@@ -5136,7 +3832,7 @@ func (x SoftwareComponent_TypeId) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use SoftwareComponent_TypeId.Descriptor instead.
 func (SoftwareComponent_TypeId) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{100, 1}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{98, 1}
 }
 
 type Sso_AuthProtocolId int32
@@ -5205,11 +3901,11 @@ func (x Sso_AuthProtocolId) String() string {
 }
 
 func (Sso_AuthProtocolId) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[75].Descriptor()
+	return file_ocsf_v1_objects_proto_enumTypes[55].Descriptor()
 }
 
 func (Sso_AuthProtocolId) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[75]
+	return &file_ocsf_v1_objects_proto_enumTypes[55]
 }
 
 func (x Sso_AuthProtocolId) Number() protoreflect.EnumNumber {
@@ -5218,7 +3914,7 @@ func (x Sso_AuthProtocolId) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use Sso_AuthProtocolId.Descriptor instead.
 func (Sso_AuthProtocolId) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{102, 0}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{100, 0}
 }
 
 type ThreatActor_TypeId int32
@@ -5263,11 +3959,11 @@ func (x ThreatActor_TypeId) String() string {
 }
 
 func (ThreatActor_TypeId) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[76].Descriptor()
+	return file_ocsf_v1_objects_proto_enumTypes[56].Descriptor()
 }
 
 func (ThreatActor_TypeId) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[76]
+	return &file_ocsf_v1_objects_proto_enumTypes[56]
 }
 
 func (x ThreatActor_TypeId) Number() protoreflect.EnumNumber {
@@ -5276,7 +3972,7 @@ func (x ThreatActor_TypeId) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use ThreatActor_TypeId.Descriptor instead.
 func (ThreatActor_TypeId) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{106, 0}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{104, 0}
 }
 
 type Timespan_TypeId int32
@@ -5336,11 +4032,11 @@ func (x Timespan_TypeId) String() string {
 }
 
 func (Timespan_TypeId) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[77].Descriptor()
+	return file_ocsf_v1_objects_proto_enumTypes[57].Descriptor()
 }
 
 func (Timespan_TypeId) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[77]
+	return &file_ocsf_v1_objects_proto_enumTypes[57]
 }
 
 func (x Timespan_TypeId) Number() protoreflect.EnumNumber {
@@ -5349,7 +4045,7 @@ func (x Timespan_TypeId) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use Timespan_TypeId.Descriptor instead.
 func (Timespan_TypeId) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{107, 0}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{105, 0}
 }
 
 type Token_TypeId int32
@@ -5403,11 +4099,11 @@ func (x Token_TypeId) String() string {
 }
 
 func (Token_TypeId) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[78].Descriptor()
+	return file_ocsf_v1_objects_proto_enumTypes[58].Descriptor()
 }
 
 func (Token_TypeId) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[78]
+	return &file_ocsf_v1_objects_proto_enumTypes[58]
 }
 
 func (x Token_TypeId) Number() protoreflect.EnumNumber {
@@ -5416,7 +4112,7 @@ func (x Token_TypeId) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use Token_TypeId.Descriptor instead.
 func (Token_TypeId) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{108, 0}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{106, 0}
 }
 
 type Url_CategoryIds int32
@@ -5704,11 +4400,11 @@ func (x Url_CategoryIds) String() string {
 }
 
 func (Url_CategoryIds) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[79].Descriptor()
+	return file_ocsf_v1_objects_proto_enumTypes[59].Descriptor()
 }
 
 func (Url_CategoryIds) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[79]
+	return &file_ocsf_v1_objects_proto_enumTypes[59]
 }
 
 func (x Url_CategoryIds) Number() protoreflect.EnumNumber {
@@ -5717,7 +4413,7 @@ func (x Url_CategoryIds) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use Url_CategoryIds.Descriptor instead.
 func (Url_CategoryIds) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{111, 0}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{109, 0}
 }
 
 type User_RiskLevelId int32
@@ -5762,11 +4458,11 @@ func (x User_RiskLevelId) String() string {
 }
 
 func (User_RiskLevelId) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[80].Descriptor()
+	return file_ocsf_v1_objects_proto_enumTypes[60].Descriptor()
 }
 
 func (User_RiskLevelId) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[80]
+	return &file_ocsf_v1_objects_proto_enumTypes[60]
 }
 
 func (x User_RiskLevelId) Number() protoreflect.EnumNumber {
@@ -5775,7 +4471,7 @@ func (x User_RiskLevelId) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use User_RiskLevelId.Descriptor instead.
 func (User_RiskLevelId) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{112, 0}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{110, 0}
 }
 
 type User_TypeId int32
@@ -5820,11 +4516,11 @@ func (x User_TypeId) String() string {
 }
 
 func (User_TypeId) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[81].Descriptor()
+	return file_ocsf_v1_objects_proto_enumTypes[61].Descriptor()
 }
 
 func (User_TypeId) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[81]
+	return &file_ocsf_v1_objects_proto_enumTypes[61]
 }
 
 func (x User_TypeId) Number() protoreflect.EnumNumber {
@@ -5833,7 +4529,7 @@ func (x User_TypeId) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use User_TypeId.Descriptor instead.
 func (User_TypeId) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{112, 1}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{110, 1}
 }
 
 type Vulnerability_FixCoverageId int32
@@ -5875,11 +4571,11 @@ func (x Vulnerability_FixCoverageId) String() string {
 }
 
 func (Vulnerability_FixCoverageId) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[82].Descriptor()
+	return file_ocsf_v1_objects_proto_enumTypes[62].Descriptor()
 }
 
 func (Vulnerability_FixCoverageId) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[82]
+	return &file_ocsf_v1_objects_proto_enumTypes[62]
 }
 
 func (x Vulnerability_FixCoverageId) Number() protoreflect.EnumNumber {
@@ -5888,7 +4584,7 @@ func (x Vulnerability_FixCoverageId) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use Vulnerability_FixCoverageId.Descriptor instead.
 func (Vulnerability_FixCoverageId) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{113, 0}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{111, 0}
 }
 
 type Whois_DnssecStatusId int32
@@ -5927,11 +4623,11 @@ func (x Whois_DnssecStatusId) String() string {
 }
 
 func (Whois_DnssecStatusId) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[83].Descriptor()
+	return file_ocsf_v1_objects_proto_enumTypes[63].Descriptor()
 }
 
 func (Whois_DnssecStatusId) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[83]
+	return &file_ocsf_v1_objects_proto_enumTypes[63]
 }
 
 func (x Whois_DnssecStatusId) Number() protoreflect.EnumNumber {
@@ -5940,7 +4636,7 @@ func (x Whois_DnssecStatusId) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use Whois_DnssecStatusId.Descriptor instead.
 func (Whois_DnssecStatusId) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{114, 0}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{112, 0}
 }
 
 type WinService_ServiceCategoryId int32
@@ -5979,11 +4675,11 @@ func (x WinService_ServiceCategoryId) String() string {
 }
 
 func (WinService_ServiceCategoryId) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[84].Descriptor()
+	return file_ocsf_v1_objects_proto_enumTypes[64].Descriptor()
 }
 
 func (WinService_ServiceCategoryId) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[84]
+	return &file_ocsf_v1_objects_proto_enumTypes[64]
 }
 
 func (x WinService_ServiceCategoryId) Number() protoreflect.EnumNumber {
@@ -5992,7 +4688,7 @@ func (x WinService_ServiceCategoryId) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use WinService_ServiceCategoryId.Descriptor instead.
 func (WinService_ServiceCategoryId) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{115, 0}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{113, 0}
 }
 
 type WinService_ServiceErrorControlId int32
@@ -6037,11 +4733,11 @@ func (x WinService_ServiceErrorControlId) String() string {
 }
 
 func (WinService_ServiceErrorControlId) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[85].Descriptor()
+	return file_ocsf_v1_objects_proto_enumTypes[65].Descriptor()
 }
 
 func (WinService_ServiceErrorControlId) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[85]
+	return &file_ocsf_v1_objects_proto_enumTypes[65]
 }
 
 func (x WinService_ServiceErrorControlId) Number() protoreflect.EnumNumber {
@@ -6050,7 +4746,7 @@ func (x WinService_ServiceErrorControlId) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use WinService_ServiceErrorControlId.Descriptor instead.
 func (WinService_ServiceErrorControlId) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{115, 1}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{113, 1}
 }
 
 type WinService_ServiceStartTypeId int32
@@ -6098,11 +4794,11 @@ func (x WinService_ServiceStartTypeId) String() string {
 }
 
 func (WinService_ServiceStartTypeId) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[86].Descriptor()
+	return file_ocsf_v1_objects_proto_enumTypes[66].Descriptor()
 }
 
 func (WinService_ServiceStartTypeId) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[86]
+	return &file_ocsf_v1_objects_proto_enumTypes[66]
 }
 
 func (x WinService_ServiceStartTypeId) Number() protoreflect.EnumNumber {
@@ -6111,7 +4807,7 @@ func (x WinService_ServiceStartTypeId) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use WinService_ServiceStartTypeId.Descriptor instead.
 func (WinService_ServiceStartTypeId) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{115, 2}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{113, 2}
 }
 
 type WinService_ServiceTypeId int32
@@ -6156,11 +4852,11 @@ func (x WinService_ServiceTypeId) String() string {
 }
 
 func (WinService_ServiceTypeId) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_entity_proto_enumTypes[87].Descriptor()
+	return file_ocsf_v1_objects_proto_enumTypes[67].Descriptor()
 }
 
 func (WinService_ServiceTypeId) Type() protoreflect.EnumType {
-	return &file_api_entity_proto_enumTypes[87]
+	return &file_ocsf_v1_objects_proto_enumTypes[67]
 }
 
 func (x WinService_ServiceTypeId) Number() protoreflect.EnumNumber {
@@ -6169,1071 +4865,7 @@ func (x WinService_ServiceTypeId) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use WinService_ServiceTypeId.Descriptor instead.
 func (WinService_ServiceTypeId) EnumDescriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{115, 3}
-}
-
-type ApiActivity struct {
-	state           protoimpl.MessageState    `protogen:"open.v1"`
-	Action          string                    `protobuf:"bytes,1,opt,name=action,proto3" json:"action,omitempty"`
-	ActionId        ApiActivity_ActionId      `protobuf:"varint,2,opt,name=action_id,json=actionId,proto3,enum=ocsf.v1.ApiActivity_ActionId" json:"action_id,omitempty"`
-	ActivityId      ApiActivity_ActivityId    `protobuf:"varint,3,opt,name=activity_id,json=activityId,proto3,enum=ocsf.v1.ApiActivity_ActivityId" json:"activity_id,omitempty"`
-	ActivityName    string                    `protobuf:"bytes,4,opt,name=activity_name,json=activityName,proto3" json:"activity_name,omitempty"`
-	Actor           *Actor                    `protobuf:"bytes,5,opt,name=actor,proto3" json:"actor,omitempty"`
-	AiModel         *AiModel                  `protobuf:"bytes,6,opt,name=ai_model,json=aiModel,proto3" json:"ai_model,omitempty"`
-	Api             *Api                      `protobuf:"bytes,7,opt,name=api,proto3" json:"api,omitempty"`
-	Attacks         []*Attack                 `protobuf:"bytes,8,rep,name=attacks,proto3" json:"attacks,omitempty"`
-	Authorizations  []*Authorization          `protobuf:"bytes,9,rep,name=authorizations,proto3" json:"authorizations,omitempty"`
-	CategoryName    string                    `protobuf:"bytes,10,opt,name=category_name,json=categoryName,proto3" json:"category_name,omitempty"`
-	CategoryUid     ApiActivity_CategoryUid   `protobuf:"varint,11,opt,name=category_uid,json=categoryUid,proto3,enum=ocsf.v1.ApiActivity_CategoryUid" json:"category_uid,omitempty"`
-	ClassName       string                    `protobuf:"bytes,12,opt,name=class_name,json=className,proto3" json:"class_name,omitempty"`
-	ClassUid        ApiActivity_ClassUid      `protobuf:"varint,13,opt,name=class_uid,json=classUid,proto3,enum=ocsf.v1.ApiActivity_ClassUid" json:"class_uid,omitempty"`
-	Cloud           *Cloud                    `protobuf:"bytes,14,opt,name=cloud,proto3" json:"cloud,omitempty"`
-	Confidence      string                    `protobuf:"bytes,15,opt,name=confidence,proto3" json:"confidence,omitempty"`
-	ConfidenceId    ApiActivity_ConfidenceId  `protobuf:"varint,16,opt,name=confidence_id,json=confidenceId,proto3,enum=ocsf.v1.ApiActivity_ConfidenceId" json:"confidence_id,omitempty"`
-	ConfidenceScore int32                     `protobuf:"varint,17,opt,name=confidence_score,json=confidenceScore,proto3" json:"confidence_score,omitempty"`
-	Count           int32                     `protobuf:"varint,18,opt,name=count,proto3" json:"count,omitempty"`
-	Device          *Device                   `protobuf:"bytes,19,opt,name=device,proto3" json:"device,omitempty"`
-	Disposition     string                    `protobuf:"bytes,20,opt,name=disposition,proto3" json:"disposition,omitempty"`
-	DispositionId   ApiActivity_DispositionId `protobuf:"varint,21,opt,name=disposition_id,json=dispositionId,proto3,enum=ocsf.v1.ApiActivity_DispositionId" json:"disposition_id,omitempty"`
-	DstEndpoint     *NetworkEndpoint          `protobuf:"bytes,22,opt,name=dst_endpoint,json=dstEndpoint,proto3" json:"dst_endpoint,omitempty"`
-	Duration        int64                     `protobuf:"varint,23,opt,name=duration,proto3" json:"duration,omitempty"`
-	EndTime         int64                     `protobuf:"varint,24,opt,name=end_time,json=endTime,proto3" json:"end_time,omitempty"`
-	EndTimeDt       string                    `protobuf:"bytes,25,opt,name=end_time_dt,json=endTimeDt,proto3" json:"end_time_dt,omitempty"`
-	Enrichments     []*Enrichment             `protobuf:"bytes,26,rep,name=enrichments,proto3" json:"enrichments,omitempty"`
-	FirewallRule    *FirewallRule             `protobuf:"bytes,27,opt,name=firewall_rule,json=firewallRule,proto3" json:"firewall_rule,omitempty"`
-	HttpRequest     *HttpRequest              `protobuf:"bytes,28,opt,name=http_request,json=httpRequest,proto3" json:"http_request,omitempty"`
-	HttpResponse    *HttpResponse             `protobuf:"bytes,29,opt,name=http_response,json=httpResponse,proto3" json:"http_response,omitempty"`
-	IsAlert         bool                      `protobuf:"varint,30,opt,name=is_alert,json=isAlert,proto3" json:"is_alert,omitempty"`
-	Malware         []*Malware                `protobuf:"bytes,31,rep,name=malware,proto3" json:"malware,omitempty"`
-	MalwareScanInfo *MalwareScanInfo          `protobuf:"bytes,32,opt,name=malware_scan_info,json=malwareScanInfo,proto3" json:"malware_scan_info,omitempty"`
-	Message         string                    `protobuf:"bytes,33,opt,name=message,proto3" json:"message,omitempty"`
-	MessageContext  *MessageContext           `protobuf:"bytes,34,opt,name=message_context,json=messageContext,proto3" json:"message_context,omitempty"`
-	Metadata        *Metadata                 `protobuf:"bytes,35,opt,name=metadata,proto3" json:"metadata,omitempty"`
-	Observables     []*Observable             `protobuf:"bytes,36,rep,name=observables,proto3" json:"observables,omitempty"`
-	Osint           []*Osint                  `protobuf:"bytes,37,rep,name=osint,proto3" json:"osint,omitempty"`
-	Policy          *Policy                   `protobuf:"bytes,38,opt,name=policy,proto3" json:"policy,omitempty"`
-	RawData         string                    `protobuf:"bytes,39,opt,name=raw_data,json=rawData,proto3" json:"raw_data,omitempty"`
-	RawDataHash     *Fingerprint              `protobuf:"bytes,40,opt,name=raw_data_hash,json=rawDataHash,proto3" json:"raw_data_hash,omitempty"`
-	RawDataSize     int64                     `protobuf:"varint,41,opt,name=raw_data_size,json=rawDataSize,proto3" json:"raw_data_size,omitempty"`
-	Resources       []*ResourceDetails        `protobuf:"bytes,42,rep,name=resources,proto3" json:"resources,omitempty"`
-	RiskDetails     string                    `protobuf:"bytes,43,opt,name=risk_details,json=riskDetails,proto3" json:"risk_details,omitempty"`
-	RiskLevel       string                    `protobuf:"bytes,44,opt,name=risk_level,json=riskLevel,proto3" json:"risk_level,omitempty"`
-	RiskLevelId     ApiActivity_RiskLevelId   `protobuf:"varint,45,opt,name=risk_level_id,json=riskLevelId,proto3,enum=ocsf.v1.ApiActivity_RiskLevelId" json:"risk_level_id,omitempty"`
-	RiskScore       int32                     `protobuf:"varint,46,opt,name=risk_score,json=riskScore,proto3" json:"risk_score,omitempty"`
-	Severity        string                    `protobuf:"bytes,47,opt,name=severity,proto3" json:"severity,omitempty"`
-	SeverityId      ApiActivity_SeverityId    `protobuf:"varint,48,opt,name=severity_id,json=severityId,proto3,enum=ocsf.v1.ApiActivity_SeverityId" json:"severity_id,omitempty"`
-	SrcEndpoint     *NetworkEndpoint          `protobuf:"bytes,49,opt,name=src_endpoint,json=srcEndpoint,proto3" json:"src_endpoint,omitempty"`
-	StartTime       int64                     `protobuf:"varint,50,opt,name=start_time,json=startTime,proto3" json:"start_time,omitempty"`
-	StartTimeDt     string                    `protobuf:"bytes,51,opt,name=start_time_dt,json=startTimeDt,proto3" json:"start_time_dt,omitempty"`
-	Status          string                    `protobuf:"bytes,52,opt,name=status,proto3" json:"status,omitempty"`
-	StatusCode      string                    `protobuf:"bytes,53,opt,name=status_code,json=statusCode,proto3" json:"status_code,omitempty"`
-	StatusDetail    string                    `protobuf:"bytes,54,opt,name=status_detail,json=statusDetail,proto3" json:"status_detail,omitempty"`
-	StatusId        ApiActivity_StatusId      `protobuf:"varint,55,opt,name=status_id,json=statusId,proto3,enum=ocsf.v1.ApiActivity_StatusId" json:"status_id,omitempty"`
-	Time            int64                     `protobuf:"varint,56,opt,name=time,proto3" json:"time,omitempty"`
-	TimeDt          string                    `protobuf:"bytes,57,opt,name=time_dt,json=timeDt,proto3" json:"time_dt,omitempty"`
-	TimezoneOffset  int32                     `protobuf:"varint,58,opt,name=timezone_offset,json=timezoneOffset,proto3" json:"timezone_offset,omitempty"`
-	Trace           *Trace                    `protobuf:"bytes,59,opt,name=trace,proto3" json:"trace,omitempty"`
-	TypeName        string                    `protobuf:"bytes,60,opt,name=type_name,json=typeName,proto3" json:"type_name,omitempty"`
-	TypeUid         ApiActivity_TypeUid       `protobuf:"varint,61,opt,name=type_uid,json=typeUid,proto3,enum=ocsf.v1.ApiActivity_TypeUid" json:"type_uid,omitempty"`
-	Unmapped        *structpb.Value           `protobuf:"bytes,62,opt,name=unmapped,proto3" json:"unmapped,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
-}
-
-func (x *ApiActivity) Reset() {
-	*x = ApiActivity{}
-	mi := &file_api_entity_proto_msgTypes[0]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ApiActivity) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ApiActivity) ProtoMessage() {}
-
-func (x *ApiActivity) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[0]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ApiActivity.ProtoReflect.Descriptor instead.
-func (*ApiActivity) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{0}
-}
-
-func (x *ApiActivity) GetAction() string {
-	if x != nil {
-		return x.Action
-	}
-	return ""
-}
-
-func (x *ApiActivity) GetActionId() ApiActivity_ActionId {
-	if x != nil {
-		return x.ActionId
-	}
-	return ApiActivity_ACTION_ID_UNKNOWN
-}
-
-func (x *ApiActivity) GetActivityId() ApiActivity_ActivityId {
-	if x != nil {
-		return x.ActivityId
-	}
-	return ApiActivity_ACTIVITY_ID_UNKNOWN
-}
-
-func (x *ApiActivity) GetActivityName() string {
-	if x != nil {
-		return x.ActivityName
-	}
-	return ""
-}
-
-func (x *ApiActivity) GetActor() *Actor {
-	if x != nil {
-		return x.Actor
-	}
-	return nil
-}
-
-func (x *ApiActivity) GetAiModel() *AiModel {
-	if x != nil {
-		return x.AiModel
-	}
-	return nil
-}
-
-func (x *ApiActivity) GetApi() *Api {
-	if x != nil {
-		return x.Api
-	}
-	return nil
-}
-
-func (x *ApiActivity) GetAttacks() []*Attack {
-	if x != nil {
-		return x.Attacks
-	}
-	return nil
-}
-
-func (x *ApiActivity) GetAuthorizations() []*Authorization {
-	if x != nil {
-		return x.Authorizations
-	}
-	return nil
-}
-
-func (x *ApiActivity) GetCategoryName() string {
-	if x != nil {
-		return x.CategoryName
-	}
-	return ""
-}
-
-func (x *ApiActivity) GetCategoryUid() ApiActivity_CategoryUid {
-	if x != nil {
-		return x.CategoryUid
-	}
-	return ApiActivity_CATEGORY_UID_UNKNOWN
-}
-
-func (x *ApiActivity) GetClassName() string {
-	if x != nil {
-		return x.ClassName
-	}
-	return ""
-}
-
-func (x *ApiActivity) GetClassUid() ApiActivity_ClassUid {
-	if x != nil {
-		return x.ClassUid
-	}
-	return ApiActivity_CLASS_UID_UNKNOWN
-}
-
-func (x *ApiActivity) GetCloud() *Cloud {
-	if x != nil {
-		return x.Cloud
-	}
-	return nil
-}
-
-func (x *ApiActivity) GetConfidence() string {
-	if x != nil {
-		return x.Confidence
-	}
-	return ""
-}
-
-func (x *ApiActivity) GetConfidenceId() ApiActivity_ConfidenceId {
-	if x != nil {
-		return x.ConfidenceId
-	}
-	return ApiActivity_CONFIDENCE_ID_UNKNOWN
-}
-
-func (x *ApiActivity) GetConfidenceScore() int32 {
-	if x != nil {
-		return x.ConfidenceScore
-	}
-	return 0
-}
-
-func (x *ApiActivity) GetCount() int32 {
-	if x != nil {
-		return x.Count
-	}
-	return 0
-}
-
-func (x *ApiActivity) GetDevice() *Device {
-	if x != nil {
-		return x.Device
-	}
-	return nil
-}
-
-func (x *ApiActivity) GetDisposition() string {
-	if x != nil {
-		return x.Disposition
-	}
-	return ""
-}
-
-func (x *ApiActivity) GetDispositionId() ApiActivity_DispositionId {
-	if x != nil {
-		return x.DispositionId
-	}
-	return ApiActivity_DISPOSITION_ID_UNKNOWN
-}
-
-func (x *ApiActivity) GetDstEndpoint() *NetworkEndpoint {
-	if x != nil {
-		return x.DstEndpoint
-	}
-	return nil
-}
-
-func (x *ApiActivity) GetDuration() int64 {
-	if x != nil {
-		return x.Duration
-	}
-	return 0
-}
-
-func (x *ApiActivity) GetEndTime() int64 {
-	if x != nil {
-		return x.EndTime
-	}
-	return 0
-}
-
-func (x *ApiActivity) GetEndTimeDt() string {
-	if x != nil {
-		return x.EndTimeDt
-	}
-	return ""
-}
-
-func (x *ApiActivity) GetEnrichments() []*Enrichment {
-	if x != nil {
-		return x.Enrichments
-	}
-	return nil
-}
-
-func (x *ApiActivity) GetFirewallRule() *FirewallRule {
-	if x != nil {
-		return x.FirewallRule
-	}
-	return nil
-}
-
-func (x *ApiActivity) GetHttpRequest() *HttpRequest {
-	if x != nil {
-		return x.HttpRequest
-	}
-	return nil
-}
-
-func (x *ApiActivity) GetHttpResponse() *HttpResponse {
-	if x != nil {
-		return x.HttpResponse
-	}
-	return nil
-}
-
-func (x *ApiActivity) GetIsAlert() bool {
-	if x != nil {
-		return x.IsAlert
-	}
-	return false
-}
-
-func (x *ApiActivity) GetMalware() []*Malware {
-	if x != nil {
-		return x.Malware
-	}
-	return nil
-}
-
-func (x *ApiActivity) GetMalwareScanInfo() *MalwareScanInfo {
-	if x != nil {
-		return x.MalwareScanInfo
-	}
-	return nil
-}
-
-func (x *ApiActivity) GetMessage() string {
-	if x != nil {
-		return x.Message
-	}
-	return ""
-}
-
-func (x *ApiActivity) GetMessageContext() *MessageContext {
-	if x != nil {
-		return x.MessageContext
-	}
-	return nil
-}
-
-func (x *ApiActivity) GetMetadata() *Metadata {
-	if x != nil {
-		return x.Metadata
-	}
-	return nil
-}
-
-func (x *ApiActivity) GetObservables() []*Observable {
-	if x != nil {
-		return x.Observables
-	}
-	return nil
-}
-
-func (x *ApiActivity) GetOsint() []*Osint {
-	if x != nil {
-		return x.Osint
-	}
-	return nil
-}
-
-func (x *ApiActivity) GetPolicy() *Policy {
-	if x != nil {
-		return x.Policy
-	}
-	return nil
-}
-
-func (x *ApiActivity) GetRawData() string {
-	if x != nil {
-		return x.RawData
-	}
-	return ""
-}
-
-func (x *ApiActivity) GetRawDataHash() *Fingerprint {
-	if x != nil {
-		return x.RawDataHash
-	}
-	return nil
-}
-
-func (x *ApiActivity) GetRawDataSize() int64 {
-	if x != nil {
-		return x.RawDataSize
-	}
-	return 0
-}
-
-func (x *ApiActivity) GetResources() []*ResourceDetails {
-	if x != nil {
-		return x.Resources
-	}
-	return nil
-}
-
-func (x *ApiActivity) GetRiskDetails() string {
-	if x != nil {
-		return x.RiskDetails
-	}
-	return ""
-}
-
-func (x *ApiActivity) GetRiskLevel() string {
-	if x != nil {
-		return x.RiskLevel
-	}
-	return ""
-}
-
-func (x *ApiActivity) GetRiskLevelId() ApiActivity_RiskLevelId {
-	if x != nil {
-		return x.RiskLevelId
-	}
-	return ApiActivity_RISK_LEVEL_ID_INFO
-}
-
-func (x *ApiActivity) GetRiskScore() int32 {
-	if x != nil {
-		return x.RiskScore
-	}
-	return 0
-}
-
-func (x *ApiActivity) GetSeverity() string {
-	if x != nil {
-		return x.Severity
-	}
-	return ""
-}
-
-func (x *ApiActivity) GetSeverityId() ApiActivity_SeverityId {
-	if x != nil {
-		return x.SeverityId
-	}
-	return ApiActivity_SEVERITY_ID_UNKNOWN
-}
-
-func (x *ApiActivity) GetSrcEndpoint() *NetworkEndpoint {
-	if x != nil {
-		return x.SrcEndpoint
-	}
-	return nil
-}
-
-func (x *ApiActivity) GetStartTime() int64 {
-	if x != nil {
-		return x.StartTime
-	}
-	return 0
-}
-
-func (x *ApiActivity) GetStartTimeDt() string {
-	if x != nil {
-		return x.StartTimeDt
-	}
-	return ""
-}
-
-func (x *ApiActivity) GetStatus() string {
-	if x != nil {
-		return x.Status
-	}
-	return ""
-}
-
-func (x *ApiActivity) GetStatusCode() string {
-	if x != nil {
-		return x.StatusCode
-	}
-	return ""
-}
-
-func (x *ApiActivity) GetStatusDetail() string {
-	if x != nil {
-		return x.StatusDetail
-	}
-	return ""
-}
-
-func (x *ApiActivity) GetStatusId() ApiActivity_StatusId {
-	if x != nil {
-		return x.StatusId
-	}
-	return ApiActivity_STATUS_ID_UNKNOWN
-}
-
-func (x *ApiActivity) GetTime() int64 {
-	if x != nil {
-		return x.Time
-	}
-	return 0
-}
-
-func (x *ApiActivity) GetTimeDt() string {
-	if x != nil {
-		return x.TimeDt
-	}
-	return ""
-}
-
-func (x *ApiActivity) GetTimezoneOffset() int32 {
-	if x != nil {
-		return x.TimezoneOffset
-	}
-	return 0
-}
-
-func (x *ApiActivity) GetTrace() *Trace {
-	if x != nil {
-		return x.Trace
-	}
-	return nil
-}
-
-func (x *ApiActivity) GetTypeName() string {
-	if x != nil {
-		return x.TypeName
-	}
-	return ""
-}
-
-func (x *ApiActivity) GetTypeUid() ApiActivity_TypeUid {
-	if x != nil {
-		return x.TypeUid
-	}
-	return ApiActivity_TYPE_UID_UNKNOWN
-}
-
-func (x *ApiActivity) GetUnmapped() *structpb.Value {
-	if x != nil {
-		return x.Unmapped
-	}
-	return nil
-}
-
-type EntityManagement struct {
-	state           protoimpl.MessageState         `protogen:"open.v1"`
-	AccessList      []string                       `protobuf:"bytes,1,rep,name=access_list,json=accessList,proto3" json:"access_list,omitempty"`
-	AccessMask      int32                          `protobuf:"varint,2,opt,name=access_mask,json=accessMask,proto3" json:"access_mask,omitempty"`
-	Action          string                         `protobuf:"bytes,3,opt,name=action,proto3" json:"action,omitempty"`
-	ActionId        EntityManagement_ActionId      `protobuf:"varint,4,opt,name=action_id,json=actionId,proto3,enum=ocsf.v1.EntityManagement_ActionId" json:"action_id,omitempty"`
-	ActivityId      EntityManagement_ActivityId    `protobuf:"varint,5,opt,name=activity_id,json=activityId,proto3,enum=ocsf.v1.EntityManagement_ActivityId" json:"activity_id,omitempty"`
-	ActivityName    string                         `protobuf:"bytes,6,opt,name=activity_name,json=activityName,proto3" json:"activity_name,omitempty"`
-	Actor           *Actor                         `protobuf:"bytes,7,opt,name=actor,proto3" json:"actor,omitempty"`
-	Api             *Api                           `protobuf:"bytes,8,opt,name=api,proto3" json:"api,omitempty"`
-	Attacks         []*Attack                      `protobuf:"bytes,9,rep,name=attacks,proto3" json:"attacks,omitempty"`
-	Authorizations  []*Authorization               `protobuf:"bytes,10,rep,name=authorizations,proto3" json:"authorizations,omitempty"`
-	CategoryName    string                         `protobuf:"bytes,11,opt,name=category_name,json=categoryName,proto3" json:"category_name,omitempty"`
-	CategoryUid     EntityManagement_CategoryUid   `protobuf:"varint,12,opt,name=category_uid,json=categoryUid,proto3,enum=ocsf.v1.EntityManagement_CategoryUid" json:"category_uid,omitempty"`
-	ClassName       string                         `protobuf:"bytes,13,opt,name=class_name,json=className,proto3" json:"class_name,omitempty"`
-	ClassUid        EntityManagement_ClassUid      `protobuf:"varint,14,opt,name=class_uid,json=classUid,proto3,enum=ocsf.v1.EntityManagement_ClassUid" json:"class_uid,omitempty"`
-	Cloud           *Cloud                         `protobuf:"bytes,15,opt,name=cloud,proto3" json:"cloud,omitempty"`
-	Comment         string                         `protobuf:"bytes,16,opt,name=comment,proto3" json:"comment,omitempty"`
-	Confidence      string                         `protobuf:"bytes,17,opt,name=confidence,proto3" json:"confidence,omitempty"`
-	ConfidenceId    EntityManagement_ConfidenceId  `protobuf:"varint,18,opt,name=confidence_id,json=confidenceId,proto3,enum=ocsf.v1.EntityManagement_ConfidenceId" json:"confidence_id,omitempty"`
-	ConfidenceScore int32                          `protobuf:"varint,19,opt,name=confidence_score,json=confidenceScore,proto3" json:"confidence_score,omitempty"`
-	Count           int32                          `protobuf:"varint,20,opt,name=count,proto3" json:"count,omitempty"`
-	Device          *Device                        `protobuf:"bytes,21,opt,name=device,proto3" json:"device,omitempty"`
-	Disposition     string                         `protobuf:"bytes,22,opt,name=disposition,proto3" json:"disposition,omitempty"`
-	DispositionId   EntityManagement_DispositionId `protobuf:"varint,23,opt,name=disposition_id,json=dispositionId,proto3,enum=ocsf.v1.EntityManagement_DispositionId" json:"disposition_id,omitempty"`
-	Duration        int64                          `protobuf:"varint,24,opt,name=duration,proto3" json:"duration,omitempty"`
-	EndTime         int64                          `protobuf:"varint,25,opt,name=end_time,json=endTime,proto3" json:"end_time,omitempty"`
-	EndTimeDt       string                         `protobuf:"bytes,26,opt,name=end_time_dt,json=endTimeDt,proto3" json:"end_time_dt,omitempty"`
-	Enrichments     []*Enrichment                  `protobuf:"bytes,27,rep,name=enrichments,proto3" json:"enrichments,omitempty"`
-	Entity          *ManagedEntity                 `protobuf:"bytes,28,opt,name=entity,proto3" json:"entity,omitempty"`
-	EntityResult    *ManagedEntity                 `protobuf:"bytes,29,opt,name=entity_result,json=entityResult,proto3" json:"entity_result,omitempty"`
-	FirewallRule    *FirewallRule                  `protobuf:"bytes,30,opt,name=firewall_rule,json=firewallRule,proto3" json:"firewall_rule,omitempty"`
-	HttpRequest     *HttpRequest                   `protobuf:"bytes,31,opt,name=http_request,json=httpRequest,proto3" json:"http_request,omitempty"`
-	HttpResponse    *HttpResponse                  `protobuf:"bytes,32,opt,name=http_response,json=httpResponse,proto3" json:"http_response,omitempty"`
-	IsAlert         bool                           `protobuf:"varint,33,opt,name=is_alert,json=isAlert,proto3" json:"is_alert,omitempty"`
-	Malware         []*Malware                     `protobuf:"bytes,34,rep,name=malware,proto3" json:"malware,omitempty"`
-	MalwareScanInfo *MalwareScanInfo               `protobuf:"bytes,35,opt,name=malware_scan_info,json=malwareScanInfo,proto3" json:"malware_scan_info,omitempty"`
-	Message         string                         `protobuf:"bytes,36,opt,name=message,proto3" json:"message,omitempty"`
-	Metadata        *Metadata                      `protobuf:"bytes,37,opt,name=metadata,proto3" json:"metadata,omitempty"`
-	Observables     []*Observable                  `protobuf:"bytes,38,rep,name=observables,proto3" json:"observables,omitempty"`
-	Osint           []*Osint                       `protobuf:"bytes,39,rep,name=osint,proto3" json:"osint,omitempty"`
-	Policy          *Policy                        `protobuf:"bytes,40,opt,name=policy,proto3" json:"policy,omitempty"`
-	RawData         string                         `protobuf:"bytes,41,opt,name=raw_data,json=rawData,proto3" json:"raw_data,omitempty"`
-	RawDataHash     *Fingerprint                   `protobuf:"bytes,42,opt,name=raw_data_hash,json=rawDataHash,proto3" json:"raw_data_hash,omitempty"`
-	RawDataSize     int64                          `protobuf:"varint,43,opt,name=raw_data_size,json=rawDataSize,proto3" json:"raw_data_size,omitempty"`
-	RiskDetails     string                         `protobuf:"bytes,44,opt,name=risk_details,json=riskDetails,proto3" json:"risk_details,omitempty"`
-	RiskLevel       string                         `protobuf:"bytes,45,opt,name=risk_level,json=riskLevel,proto3" json:"risk_level,omitempty"`
-	RiskLevelId     EntityManagement_RiskLevelId   `protobuf:"varint,46,opt,name=risk_level_id,json=riskLevelId,proto3,enum=ocsf.v1.EntityManagement_RiskLevelId" json:"risk_level_id,omitempty"`
-	RiskScore       int32                          `protobuf:"varint,47,opt,name=risk_score,json=riskScore,proto3" json:"risk_score,omitempty"`
-	Severity        string                         `protobuf:"bytes,48,opt,name=severity,proto3" json:"severity,omitempty"`
-	SeverityId      EntityManagement_SeverityId    `protobuf:"varint,49,opt,name=severity_id,json=severityId,proto3,enum=ocsf.v1.EntityManagement_SeverityId" json:"severity_id,omitempty"`
-	SrcEndpoint     *NetworkEndpoint               `protobuf:"bytes,50,opt,name=src_endpoint,json=srcEndpoint,proto3" json:"src_endpoint,omitempty"`
-	StartTime       int64                          `protobuf:"varint,51,opt,name=start_time,json=startTime,proto3" json:"start_time,omitempty"`
-	StartTimeDt     string                         `protobuf:"bytes,52,opt,name=start_time_dt,json=startTimeDt,proto3" json:"start_time_dt,omitempty"`
-	Status          string                         `protobuf:"bytes,53,opt,name=status,proto3" json:"status,omitempty"`
-	StatusCode      string                         `protobuf:"bytes,54,opt,name=status_code,json=statusCode,proto3" json:"status_code,omitempty"`
-	StatusDetail    string                         `protobuf:"bytes,55,opt,name=status_detail,json=statusDetail,proto3" json:"status_detail,omitempty"`
-	StatusId        EntityManagement_StatusId      `protobuf:"varint,56,opt,name=status_id,json=statusId,proto3,enum=ocsf.v1.EntityManagement_StatusId" json:"status_id,omitempty"`
-	Time            int64                          `protobuf:"varint,57,opt,name=time,proto3" json:"time,omitempty"`
-	TimeDt          string                         `protobuf:"bytes,58,opt,name=time_dt,json=timeDt,proto3" json:"time_dt,omitempty"`
-	TimezoneOffset  int32                          `protobuf:"varint,59,opt,name=timezone_offset,json=timezoneOffset,proto3" json:"timezone_offset,omitempty"`
-	TypeName        string                         `protobuf:"bytes,60,opt,name=type_name,json=typeName,proto3" json:"type_name,omitempty"`
-	TypeUid         EntityManagement_TypeUid       `protobuf:"varint,61,opt,name=type_uid,json=typeUid,proto3,enum=ocsf.v1.EntityManagement_TypeUid" json:"type_uid,omitempty"`
-	Unmapped        *structpb.Value                `protobuf:"bytes,62,opt,name=unmapped,proto3" json:"unmapped,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
-}
-
-func (x *EntityManagement) Reset() {
-	*x = EntityManagement{}
-	mi := &file_api_entity_proto_msgTypes[1]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *EntityManagement) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*EntityManagement) ProtoMessage() {}
-
-func (x *EntityManagement) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[1]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use EntityManagement.ProtoReflect.Descriptor instead.
-func (*EntityManagement) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{1}
-}
-
-func (x *EntityManagement) GetAccessList() []string {
-	if x != nil {
-		return x.AccessList
-	}
-	return nil
-}
-
-func (x *EntityManagement) GetAccessMask() int32 {
-	if x != nil {
-		return x.AccessMask
-	}
-	return 0
-}
-
-func (x *EntityManagement) GetAction() string {
-	if x != nil {
-		return x.Action
-	}
-	return ""
-}
-
-func (x *EntityManagement) GetActionId() EntityManagement_ActionId {
-	if x != nil {
-		return x.ActionId
-	}
-	return EntityManagement_ACTION_ID_UNKNOWN
-}
-
-func (x *EntityManagement) GetActivityId() EntityManagement_ActivityId {
-	if x != nil {
-		return x.ActivityId
-	}
-	return EntityManagement_ACTIVITY_ID_UNKNOWN
-}
-
-func (x *EntityManagement) GetActivityName() string {
-	if x != nil {
-		return x.ActivityName
-	}
-	return ""
-}
-
-func (x *EntityManagement) GetActor() *Actor {
-	if x != nil {
-		return x.Actor
-	}
-	return nil
-}
-
-func (x *EntityManagement) GetApi() *Api {
-	if x != nil {
-		return x.Api
-	}
-	return nil
-}
-
-func (x *EntityManagement) GetAttacks() []*Attack {
-	if x != nil {
-		return x.Attacks
-	}
-	return nil
-}
-
-func (x *EntityManagement) GetAuthorizations() []*Authorization {
-	if x != nil {
-		return x.Authorizations
-	}
-	return nil
-}
-
-func (x *EntityManagement) GetCategoryName() string {
-	if x != nil {
-		return x.CategoryName
-	}
-	return ""
-}
-
-func (x *EntityManagement) GetCategoryUid() EntityManagement_CategoryUid {
-	if x != nil {
-		return x.CategoryUid
-	}
-	return EntityManagement_CATEGORY_UID_UNKNOWN
-}
-
-func (x *EntityManagement) GetClassName() string {
-	if x != nil {
-		return x.ClassName
-	}
-	return ""
-}
-
-func (x *EntityManagement) GetClassUid() EntityManagement_ClassUid {
-	if x != nil {
-		return x.ClassUid
-	}
-	return EntityManagement_CLASS_UID_UNKNOWN
-}
-
-func (x *EntityManagement) GetCloud() *Cloud {
-	if x != nil {
-		return x.Cloud
-	}
-	return nil
-}
-
-func (x *EntityManagement) GetComment() string {
-	if x != nil {
-		return x.Comment
-	}
-	return ""
-}
-
-func (x *EntityManagement) GetConfidence() string {
-	if x != nil {
-		return x.Confidence
-	}
-	return ""
-}
-
-func (x *EntityManagement) GetConfidenceId() EntityManagement_ConfidenceId {
-	if x != nil {
-		return x.ConfidenceId
-	}
-	return EntityManagement_CONFIDENCE_ID_UNKNOWN
-}
-
-func (x *EntityManagement) GetConfidenceScore() int32 {
-	if x != nil {
-		return x.ConfidenceScore
-	}
-	return 0
-}
-
-func (x *EntityManagement) GetCount() int32 {
-	if x != nil {
-		return x.Count
-	}
-	return 0
-}
-
-func (x *EntityManagement) GetDevice() *Device {
-	if x != nil {
-		return x.Device
-	}
-	return nil
-}
-
-func (x *EntityManagement) GetDisposition() string {
-	if x != nil {
-		return x.Disposition
-	}
-	return ""
-}
-
-func (x *EntityManagement) GetDispositionId() EntityManagement_DispositionId {
-	if x != nil {
-		return x.DispositionId
-	}
-	return EntityManagement_DISPOSITION_ID_UNKNOWN
-}
-
-func (x *EntityManagement) GetDuration() int64 {
-	if x != nil {
-		return x.Duration
-	}
-	return 0
-}
-
-func (x *EntityManagement) GetEndTime() int64 {
-	if x != nil {
-		return x.EndTime
-	}
-	return 0
-}
-
-func (x *EntityManagement) GetEndTimeDt() string {
-	if x != nil {
-		return x.EndTimeDt
-	}
-	return ""
-}
-
-func (x *EntityManagement) GetEnrichments() []*Enrichment {
-	if x != nil {
-		return x.Enrichments
-	}
-	return nil
-}
-
-func (x *EntityManagement) GetEntity() *ManagedEntity {
-	if x != nil {
-		return x.Entity
-	}
-	return nil
-}
-
-func (x *EntityManagement) GetEntityResult() *ManagedEntity {
-	if x != nil {
-		return x.EntityResult
-	}
-	return nil
-}
-
-func (x *EntityManagement) GetFirewallRule() *FirewallRule {
-	if x != nil {
-		return x.FirewallRule
-	}
-	return nil
-}
-
-func (x *EntityManagement) GetHttpRequest() *HttpRequest {
-	if x != nil {
-		return x.HttpRequest
-	}
-	return nil
-}
-
-func (x *EntityManagement) GetHttpResponse() *HttpResponse {
-	if x != nil {
-		return x.HttpResponse
-	}
-	return nil
-}
-
-func (x *EntityManagement) GetIsAlert() bool {
-	if x != nil {
-		return x.IsAlert
-	}
-	return false
-}
-
-func (x *EntityManagement) GetMalware() []*Malware {
-	if x != nil {
-		return x.Malware
-	}
-	return nil
-}
-
-func (x *EntityManagement) GetMalwareScanInfo() *MalwareScanInfo {
-	if x != nil {
-		return x.MalwareScanInfo
-	}
-	return nil
-}
-
-func (x *EntityManagement) GetMessage() string {
-	if x != nil {
-		return x.Message
-	}
-	return ""
-}
-
-func (x *EntityManagement) GetMetadata() *Metadata {
-	if x != nil {
-		return x.Metadata
-	}
-	return nil
-}
-
-func (x *EntityManagement) GetObservables() []*Observable {
-	if x != nil {
-		return x.Observables
-	}
-	return nil
-}
-
-func (x *EntityManagement) GetOsint() []*Osint {
-	if x != nil {
-		return x.Osint
-	}
-	return nil
-}
-
-func (x *EntityManagement) GetPolicy() *Policy {
-	if x != nil {
-		return x.Policy
-	}
-	return nil
-}
-
-func (x *EntityManagement) GetRawData() string {
-	if x != nil {
-		return x.RawData
-	}
-	return ""
-}
-
-func (x *EntityManagement) GetRawDataHash() *Fingerprint {
-	if x != nil {
-		return x.RawDataHash
-	}
-	return nil
-}
-
-func (x *EntityManagement) GetRawDataSize() int64 {
-	if x != nil {
-		return x.RawDataSize
-	}
-	return 0
-}
-
-func (x *EntityManagement) GetRiskDetails() string {
-	if x != nil {
-		return x.RiskDetails
-	}
-	return ""
-}
-
-func (x *EntityManagement) GetRiskLevel() string {
-	if x != nil {
-		return x.RiskLevel
-	}
-	return ""
-}
-
-func (x *EntityManagement) GetRiskLevelId() EntityManagement_RiskLevelId {
-	if x != nil {
-		return x.RiskLevelId
-	}
-	return EntityManagement_RISK_LEVEL_ID_INFO
-}
-
-func (x *EntityManagement) GetRiskScore() int32 {
-	if x != nil {
-		return x.RiskScore
-	}
-	return 0
-}
-
-func (x *EntityManagement) GetSeverity() string {
-	if x != nil {
-		return x.Severity
-	}
-	return ""
-}
-
-func (x *EntityManagement) GetSeverityId() EntityManagement_SeverityId {
-	if x != nil {
-		return x.SeverityId
-	}
-	return EntityManagement_SEVERITY_ID_UNKNOWN
-}
-
-func (x *EntityManagement) GetSrcEndpoint() *NetworkEndpoint {
-	if x != nil {
-		return x.SrcEndpoint
-	}
-	return nil
-}
-
-func (x *EntityManagement) GetStartTime() int64 {
-	if x != nil {
-		return x.StartTime
-	}
-	return 0
-}
-
-func (x *EntityManagement) GetStartTimeDt() string {
-	if x != nil {
-		return x.StartTimeDt
-	}
-	return ""
-}
-
-func (x *EntityManagement) GetStatus() string {
-	if x != nil {
-		return x.Status
-	}
-	return ""
-}
-
-func (x *EntityManagement) GetStatusCode() string {
-	if x != nil {
-		return x.StatusCode
-	}
-	return ""
-}
-
-func (x *EntityManagement) GetStatusDetail() string {
-	if x != nil {
-		return x.StatusDetail
-	}
-	return ""
-}
-
-func (x *EntityManagement) GetStatusId() EntityManagement_StatusId {
-	if x != nil {
-		return x.StatusId
-	}
-	return EntityManagement_STATUS_ID_UNKNOWN
-}
-
-func (x *EntityManagement) GetTime() int64 {
-	if x != nil {
-		return x.Time
-	}
-	return 0
-}
-
-func (x *EntityManagement) GetTimeDt() string {
-	if x != nil {
-		return x.TimeDt
-	}
-	return ""
-}
-
-func (x *EntityManagement) GetTimezoneOffset() int32 {
-	if x != nil {
-		return x.TimezoneOffset
-	}
-	return 0
-}
-
-func (x *EntityManagement) GetTypeName() string {
-	if x != nil {
-		return x.TypeName
-	}
-	return ""
-}
-
-func (x *EntityManagement) GetTypeUid() EntityManagement_TypeUid {
-	if x != nil {
-		return x.TypeUid
-	}
-	return EntityManagement_TYPE_UID_UNKNOWN
-}
-
-func (x *EntityManagement) GetUnmapped() *structpb.Value {
-	if x != nil {
-		return x.Unmapped
-	}
-	return nil
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{113, 3}
 }
 
 type Account struct {
@@ -7253,7 +4885,7 @@ type Account struct {
 
 func (x *Account) Reset() {
 	*x = Account{}
-	mi := &file_api_entity_proto_msgTypes[2]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7265,7 +4897,7 @@ func (x *Account) String() string {
 func (*Account) ProtoMessage() {}
 
 func (x *Account) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[2]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7278,7 +4910,7 @@ func (x *Account) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Account.ProtoReflect.Descriptor instead.
 func (*Account) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{2}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *Account) GetIsDisabled() bool {
@@ -7360,7 +4992,7 @@ type Actor struct {
 
 func (x *Actor) Reset() {
 	*x = Actor{}
-	mi := &file_api_entity_proto_msgTypes[3]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7372,7 +5004,7 @@ func (x *Actor) String() string {
 func (*Actor) ProtoMessage() {}
 
 func (x *Actor) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[3]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7385,7 +5017,7 @@ func (x *Actor) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Actor.ProtoReflect.Descriptor instead.
 func (*Actor) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{3}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *Actor) GetAppName() string {
@@ -7472,7 +5104,7 @@ type Advisory struct {
 
 func (x *Advisory) Reset() {
 	*x = Advisory{}
-	mi := &file_api_entity_proto_msgTypes[4]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7484,7 +5116,7 @@ func (x *Advisory) String() string {
 func (*Advisory) ProtoMessage() {}
 
 func (x *Advisory) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[4]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7497,7 +5129,7 @@ func (x *Advisory) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Advisory.ProtoReflect.Descriptor instead.
 func (*Advisory) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{4}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *Advisory) GetAvgTimespan() *Timespan {
@@ -7656,7 +5288,7 @@ type AffectedCode struct {
 
 func (x *AffectedCode) Reset() {
 	*x = AffectedCode{}
-	mi := &file_api_entity_proto_msgTypes[5]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7668,7 +5300,7 @@ func (x *AffectedCode) String() string {
 func (*AffectedCode) ProtoMessage() {}
 
 func (x *AffectedCode) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[5]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7681,7 +5313,7 @@ func (x *AffectedCode) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AffectedCode.ProtoReflect.Descriptor instead.
 func (*AffectedCode) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{5}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *AffectedCode) GetEndColumn() int32 {
@@ -7768,7 +5400,7 @@ type AffectedPackage struct {
 
 func (x *AffectedPackage) Reset() {
 	*x = AffectedPackage{}
-	mi := &file_api_entity_proto_msgTypes[6]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7780,7 +5412,7 @@ func (x *AffectedPackage) String() string {
 func (*AffectedPackage) ProtoMessage() {}
 
 func (x *AffectedPackage) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[6]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7793,7 +5425,7 @@ func (x *AffectedPackage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AffectedPackage.ProtoReflect.Descriptor instead.
 func (*AffectedPackage) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{6}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *AffectedPackage) GetArchitecture() string {
@@ -7952,7 +5584,7 @@ type Agent struct {
 
 func (x *Agent) Reset() {
 	*x = Agent{}
-	mi := &file_api_entity_proto_msgTypes[7]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7964,7 +5596,7 @@ func (x *Agent) String() string {
 func (*Agent) ProtoMessage() {}
 
 func (x *Agent) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[7]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7977,7 +5609,7 @@ func (x *Agent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Agent.ProtoReflect.Descriptor instead.
 func (*Agent) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{7}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *Agent) GetName() string {
@@ -8048,7 +5680,7 @@ type AiModel struct {
 
 func (x *AiModel) Reset() {
 	*x = AiModel{}
-	mi := &file_api_entity_proto_msgTypes[8]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8060,7 +5692,7 @@ func (x *AiModel) String() string {
 func (*AiModel) ProtoMessage() {}
 
 func (x *AiModel) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[8]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8073,7 +5705,7 @@ func (x *AiModel) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AiModel.ProtoReflect.Descriptor instead.
 func (*AiModel) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{8}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *AiModel) GetAiProvider() string {
@@ -8123,7 +5755,7 @@ type Analytic struct {
 
 func (x *Analytic) Reset() {
 	*x = Analytic{}
-	mi := &file_api_entity_proto_msgTypes[9]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8135,7 +5767,7 @@ func (x *Analytic) String() string {
 func (*Analytic) ProtoMessage() {}
 
 func (x *Analytic) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[9]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8148,7 +5780,7 @@ func (x *Analytic) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Analytic.ProtoReflect.Descriptor instead.
 func (*Analytic) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{9}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *Analytic) GetAlgorithm() string {
@@ -8243,7 +5875,7 @@ type Api struct {
 
 func (x *Api) Reset() {
 	*x = Api{}
-	mi := &file_api_entity_proto_msgTypes[10]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8255,7 +5887,7 @@ func (x *Api) String() string {
 func (*Api) ProtoMessage() {}
 
 func (x *Api) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[10]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8268,7 +5900,7 @@ func (x *Api) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Api.ProtoReflect.Descriptor instead.
 func (*Api) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{10}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *Api) GetGroup() *Group {
@@ -8348,7 +5980,7 @@ type Application struct {
 
 func (x *Application) Reset() {
 	*x = Application{}
-	mi := &file_api_entity_proto_msgTypes[11]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8360,7 +5992,7 @@ func (x *Application) String() string {
 func (*Application) ProtoMessage() {}
 
 func (x *Application) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[11]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8373,7 +6005,7 @@ func (x *Application) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Application.ProtoReflect.Descriptor instead.
 func (*Application) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{11}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *Application) GetCriticality() string {
@@ -8530,7 +6162,7 @@ type Attack struct {
 
 func (x *Attack) Reset() {
 	*x = Attack{}
-	mi := &file_api_entity_proto_msgTypes[12]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8542,7 +6174,7 @@ func (x *Attack) String() string {
 func (*Attack) ProtoMessage() {}
 
 func (x *Attack) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[12]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8555,7 +6187,7 @@ func (x *Attack) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Attack.ProtoReflect.Descriptor instead.
 func (*Attack) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{12}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *Attack) GetMitigation() *Mitigation {
@@ -8617,7 +6249,7 @@ type AuthFactor struct {
 
 func (x *AuthFactor) Reset() {
 	*x = AuthFactor{}
-	mi := &file_api_entity_proto_msgTypes[13]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8629,7 +6261,7 @@ func (x *AuthFactor) String() string {
 func (*AuthFactor) ProtoMessage() {}
 
 func (x *AuthFactor) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[13]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8642,7 +6274,7 @@ func (x *AuthFactor) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AuthFactor.ProtoReflect.Descriptor instead.
 func (*AuthFactor) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{13}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *AuthFactor) GetDevice() *Device {
@@ -8718,7 +6350,7 @@ type Authorization struct {
 
 func (x *Authorization) Reset() {
 	*x = Authorization{}
-	mi := &file_api_entity_proto_msgTypes[14]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8730,7 +6362,7 @@ func (x *Authorization) String() string {
 func (*Authorization) ProtoMessage() {}
 
 func (x *Authorization) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[14]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8743,7 +6375,7 @@ func (x *Authorization) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Authorization.ProtoReflect.Descriptor instead.
 func (*Authorization) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{14}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *Authorization) GetDecision() string {
@@ -8770,7 +6402,7 @@ type AutonomousSystem struct {
 
 func (x *AutonomousSystem) Reset() {
 	*x = AutonomousSystem{}
-	mi := &file_api_entity_proto_msgTypes[15]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8782,7 +6414,7 @@ func (x *AutonomousSystem) String() string {
 func (*AutonomousSystem) ProtoMessage() {}
 
 func (x *AutonomousSystem) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[15]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8795,7 +6427,7 @@ func (x *AutonomousSystem) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AutonomousSystem.ProtoReflect.Descriptor instead.
 func (*AutonomousSystem) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{15}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *AutonomousSystem) GetName() string {
@@ -8821,7 +6453,7 @@ type Campaign struct {
 
 func (x *Campaign) Reset() {
 	*x = Campaign{}
-	mi := &file_api_entity_proto_msgTypes[16]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8833,7 +6465,7 @@ func (x *Campaign) String() string {
 func (*Campaign) ProtoMessage() {}
 
 func (x *Campaign) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[16]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8846,7 +6478,7 @@ func (x *Campaign) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Campaign.ProtoReflect.Descriptor instead.
 func (*Campaign) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{16}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *Campaign) GetName() string {
@@ -8876,7 +6508,7 @@ type Certificate struct {
 
 func (x *Certificate) Reset() {
 	*x = Certificate{}
-	mi := &file_api_entity_proto_msgTypes[17]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8888,7 +6520,7 @@ func (x *Certificate) String() string {
 func (*Certificate) ProtoMessage() {}
 
 func (x *Certificate) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[17]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8901,7 +6533,7 @@ func (x *Certificate) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Certificate.ProtoReflect.Descriptor instead.
 func (*Certificate) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{17}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *Certificate) GetCreatedTime() int64 {
@@ -8999,7 +6631,7 @@ type CisControl struct {
 
 func (x *CisControl) Reset() {
 	*x = CisControl{}
-	mi := &file_api_entity_proto_msgTypes[18]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9011,7 +6643,7 @@ func (x *CisControl) String() string {
 func (*CisControl) ProtoMessage() {}
 
 func (x *CisControl) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[18]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9024,7 +6656,7 @@ func (x *CisControl) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CisControl.ProtoReflect.Descriptor instead.
 func (*CisControl) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{18}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *CisControl) GetDesc() string {
@@ -9059,7 +6691,7 @@ type ClassifierDetails struct {
 
 func (x *ClassifierDetails) Reset() {
 	*x = ClassifierDetails{}
-	mi := &file_api_entity_proto_msgTypes[19]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9071,7 +6703,7 @@ func (x *ClassifierDetails) String() string {
 func (*ClassifierDetails) ProtoMessage() {}
 
 func (x *ClassifierDetails) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[19]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9084,7 +6716,7 @@ func (x *ClassifierDetails) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ClassifierDetails.ProtoReflect.Descriptor instead.
 func (*ClassifierDetails) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{19}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *ClassifierDetails) GetName() string {
@@ -9123,7 +6755,7 @@ type Cloud struct {
 
 func (x *Cloud) Reset() {
 	*x = Cloud{}
-	mi := &file_api_entity_proto_msgTypes[20]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9135,7 +6767,7 @@ func (x *Cloud) String() string {
 func (*Cloud) ProtoMessage() {}
 
 func (x *Cloud) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[20]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9148,7 +6780,7 @@ func (x *Cloud) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Cloud.ProtoReflect.Descriptor instead.
 func (*Cloud) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{20}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *Cloud) GetAccount() *Account {
@@ -9220,7 +6852,7 @@ type Container struct {
 
 func (x *Container) Reset() {
 	*x = Container{}
-	mi := &file_api_entity_proto_msgTypes[21]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9232,7 +6864,7 @@ func (x *Container) String() string {
 func (*Container) ProtoMessage() {}
 
 func (x *Container) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[21]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9245,7 +6877,7 @@ func (x *Container) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Container.ProtoReflect.Descriptor instead.
 func (*Container) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{21}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *Container) GetHash() *Fingerprint {
@@ -9356,7 +6988,7 @@ type Cve struct {
 
 func (x *Cve) Reset() {
 	*x = Cve{}
-	mi := &file_api_entity_proto_msgTypes[22]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9368,7 +7000,7 @@ func (x *Cve) String() string {
 func (*Cve) ProtoMessage() {}
 
 func (x *Cve) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[22]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9381,7 +7013,7 @@ func (x *Cve) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Cve.ProtoReflect.Descriptor instead.
 func (*Cve) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{22}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *Cve) GetCreatedTime() int64 {
@@ -9513,7 +7145,7 @@ type Cvss struct {
 
 func (x *Cvss) Reset() {
 	*x = Cvss{}
-	mi := &file_api_entity_proto_msgTypes[23]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9525,7 +7157,7 @@ func (x *Cvss) String() string {
 func (*Cvss) ProtoMessage() {}
 
 func (x *Cvss) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[23]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9538,7 +7170,7 @@ func (x *Cvss) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Cvss.ProtoReflect.Descriptor instead.
 func (*Cvss) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{23}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *Cvss) GetBaseScore() float64 {
@@ -9615,7 +7247,7 @@ type Cwe struct {
 
 func (x *Cwe) Reset() {
 	*x = Cwe{}
-	mi := &file_api_entity_proto_msgTypes[24]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9627,7 +7259,7 @@ func (x *Cwe) String() string {
 func (*Cwe) ProtoMessage() {}
 
 func (x *Cwe) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[24]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9640,7 +7272,7 @@ func (x *Cwe) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Cwe.ProtoReflect.Descriptor instead.
 func (*Cwe) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{24}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *Cwe) GetCaption() string {
@@ -9675,7 +7307,7 @@ type D3FTactic struct {
 
 func (x *D3FTactic) Reset() {
 	*x = D3FTactic{}
-	mi := &file_api_entity_proto_msgTypes[25]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9687,7 +7319,7 @@ func (x *D3FTactic) String() string {
 func (*D3FTactic) ProtoMessage() {}
 
 func (x *D3FTactic) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[25]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9700,7 +7332,7 @@ func (x *D3FTactic) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use D3FTactic.ProtoReflect.Descriptor instead.
 func (*D3FTactic) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{25}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *D3FTactic) GetName() string {
@@ -9735,7 +7367,7 @@ type D3FTechnique struct {
 
 func (x *D3FTechnique) Reset() {
 	*x = D3FTechnique{}
-	mi := &file_api_entity_proto_msgTypes[26]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9747,7 +7379,7 @@ func (x *D3FTechnique) String() string {
 func (*D3FTechnique) ProtoMessage() {}
 
 func (x *D3FTechnique) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[26]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9760,7 +7392,7 @@ func (x *D3FTechnique) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use D3FTechnique.ProtoReflect.Descriptor instead.
 func (*D3FTechnique) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{26}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *D3FTechnique) GetName() string {
@@ -9795,7 +7427,7 @@ type D3Fend struct {
 
 func (x *D3Fend) Reset() {
 	*x = D3Fend{}
-	mi := &file_api_entity_proto_msgTypes[27]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9807,7 +7439,7 @@ func (x *D3Fend) String() string {
 func (*D3Fend) ProtoMessage() {}
 
 func (x *D3Fend) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[27]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9820,7 +7452,7 @@ func (x *D3Fend) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use D3Fend.ProtoReflect.Descriptor instead.
 func (*D3Fend) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{27}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *D3Fend) GetD3FTactic() *D3FTactic {
@@ -9866,7 +7498,7 @@ type DataClassification struct {
 
 func (x *DataClassification) Reset() {
 	*x = DataClassification{}
-	mi := &file_api_entity_proto_msgTypes[28]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9878,7 +7510,7 @@ func (x *DataClassification) String() string {
 func (*DataClassification) ProtoMessage() {}
 
 func (x *DataClassification) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[28]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9891,7 +7523,7 @@ func (x *DataClassification) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DataClassification.ProtoReflect.Descriptor instead.
 func (*DataClassification) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{28}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *DataClassification) GetCategory() string {
@@ -10065,7 +7697,7 @@ type Device struct {
 
 func (x *Device) Reset() {
 	*x = Device{}
-	mi := &file_api_entity_proto_msgTypes[29]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10077,7 +7709,7 @@ func (x *Device) String() string {
 func (*Device) ProtoMessage() {}
 
 func (x *Device) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[29]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10090,7 +7722,7 @@ func (x *Device) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Device.ProtoReflect.Descriptor instead.
 func (*Device) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{29}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *Device) GetAgentList() []*Agent {
@@ -10575,7 +8207,7 @@ type DeviceHwInfo struct {
 
 func (x *DeviceHwInfo) Reset() {
 	*x = DeviceHwInfo{}
-	mi := &file_api_entity_proto_msgTypes[30]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10587,7 +8219,7 @@ func (x *DeviceHwInfo) String() string {
 func (*DeviceHwInfo) ProtoMessage() {}
 
 func (x *DeviceHwInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[30]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10600,7 +8232,7 @@ func (x *DeviceHwInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeviceHwInfo.ProtoReflect.Descriptor instead.
 func (*DeviceHwInfo) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{30}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *DeviceHwInfo) GetBiosDate() string {
@@ -10753,7 +8385,7 @@ type DigitalSignature struct {
 
 func (x *DigitalSignature) Reset() {
 	*x = DigitalSignature{}
-	mi := &file_api_entity_proto_msgTypes[31]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10765,7 +8397,7 @@ func (x *DigitalSignature) String() string {
 func (*DigitalSignature) ProtoMessage() {}
 
 func (x *DigitalSignature) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[31]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10778,7 +8410,7 @@ func (x *DigitalSignature) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DigitalSignature.ProtoReflect.Descriptor instead.
 func (*DigitalSignature) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{31}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *DigitalSignature) GetAlgorithm() string {
@@ -10857,7 +8489,7 @@ type DiscoveryDetails struct {
 
 func (x *DiscoveryDetails) Reset() {
 	*x = DiscoveryDetails{}
-	mi := &file_api_entity_proto_msgTypes[32]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10869,7 +8501,7 @@ func (x *DiscoveryDetails) String() string {
 func (*DiscoveryDetails) ProtoMessage() {}
 
 func (x *DiscoveryDetails) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[32]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10882,7 +8514,7 @@ func (x *DiscoveryDetails) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DiscoveryDetails.ProtoReflect.Descriptor instead.
 func (*DiscoveryDetails) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{32}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *DiscoveryDetails) GetCount() int32 {
@@ -10933,7 +8565,7 @@ type Display struct {
 
 func (x *Display) Reset() {
 	*x = Display{}
-	mi := &file_api_entity_proto_msgTypes[33]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -10945,7 +8577,7 @@ func (x *Display) String() string {
 func (*Display) ProtoMessage() {}
 
 func (x *Display) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[33]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -10958,7 +8590,7 @@ func (x *Display) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Display.ProtoReflect.Descriptor instead.
 func (*Display) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{33}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *Display) GetColorDepth() int32 {
@@ -11011,7 +8643,7 @@ type DnsAnswer struct {
 
 func (x *DnsAnswer) Reset() {
 	*x = DnsAnswer{}
-	mi := &file_api_entity_proto_msgTypes[34]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11023,7 +8655,7 @@ func (x *DnsAnswer) String() string {
 func (*DnsAnswer) ProtoMessage() {}
 
 func (x *DnsAnswer) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[34]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11036,7 +8668,7 @@ func (x *DnsAnswer) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DnsAnswer.ProtoReflect.Descriptor instead.
 func (*DnsAnswer) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{34}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *DnsAnswer) GetClass() string {
@@ -11103,7 +8735,7 @@ type DomainContact struct {
 
 func (x *DomainContact) Reset() {
 	*x = DomainContact{}
-	mi := &file_api_entity_proto_msgTypes[35]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11115,7 +8747,7 @@ func (x *DomainContact) String() string {
 func (*DomainContact) ProtoMessage() {}
 
 func (x *DomainContact) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[35]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11128,7 +8760,7 @@ func (x *DomainContact) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DomainContact.ProtoReflect.Descriptor instead.
 func (*DomainContact) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{35}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{33}
 }
 
 func (x *DomainContact) GetEmailAddr() string {
@@ -11195,7 +8827,7 @@ type Edge struct {
 
 func (x *Edge) Reset() {
 	*x = Edge{}
-	mi := &file_api_entity_proto_msgTypes[36]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11207,7 +8839,7 @@ func (x *Edge) String() string {
 func (*Edge) ProtoMessage() {}
 
 func (x *Edge) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[36]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11220,7 +8852,7 @@ func (x *Edge) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Edge.ProtoReflect.Descriptor instead.
 func (*Edge) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{36}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *Edge) GetData() *structpb.Value {
@@ -11310,7 +8942,7 @@ type Email struct {
 
 func (x *Email) Reset() {
 	*x = Email{}
-	mi := &file_api_entity_proto_msgTypes[37]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11322,7 +8954,7 @@ func (x *Email) String() string {
 func (*Email) ProtoMessage() {}
 
 func (x *Email) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[37]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11335,7 +8967,7 @@ func (x *Email) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Email.ProtoReflect.Descriptor instead.
 func (*Email) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{37}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *Email) GetCc() []string {
@@ -11563,7 +9195,7 @@ type EmailAuth struct {
 
 func (x *EmailAuth) Reset() {
 	*x = EmailAuth{}
-	mi := &file_api_entity_proto_msgTypes[38]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11575,7 +9207,7 @@ func (x *EmailAuth) String() string {
 func (*EmailAuth) ProtoMessage() {}
 
 func (x *EmailAuth) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[38]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11588,7 +9220,7 @@ func (x *EmailAuth) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EmailAuth.ProtoReflect.Descriptor instead.
 func (*EmailAuth) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{38}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{36}
 }
 
 func (x *EmailAuth) GetDkim() string {
@@ -11653,7 +9285,7 @@ type EncryptionDetails struct {
 
 func (x *EncryptionDetails) Reset() {
 	*x = EncryptionDetails{}
-	mi := &file_api_entity_proto_msgTypes[39]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11665,7 +9297,7 @@ func (x *EncryptionDetails) String() string {
 func (*EncryptionDetails) ProtoMessage() {}
 
 func (x *EncryptionDetails) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[39]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11678,7 +9310,7 @@ func (x *EncryptionDetails) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EncryptionDetails.ProtoReflect.Descriptor instead.
 func (*EncryptionDetails) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{39}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{37}
 }
 
 func (x *EncryptionDetails) GetAlgorithm() string {
@@ -11735,7 +9367,7 @@ type Enrichment struct {
 
 func (x *Enrichment) Reset() {
 	*x = Enrichment{}
-	mi := &file_api_entity_proto_msgTypes[40]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11747,7 +9379,7 @@ func (x *Enrichment) String() string {
 func (*Enrichment) ProtoMessage() {}
 
 func (x *Enrichment) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[40]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11760,7 +9392,7 @@ func (x *Enrichment) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Enrichment.ProtoReflect.Descriptor instead.
 func (*Enrichment) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{40}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{38}
 }
 
 func (x *Enrichment) GetCreatedTime() int64 {
@@ -11850,7 +9482,7 @@ type EnvironmentVariable struct {
 
 func (x *EnvironmentVariable) Reset() {
 	*x = EnvironmentVariable{}
-	mi := &file_api_entity_proto_msgTypes[41]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11862,7 +9494,7 @@ func (x *EnvironmentVariable) String() string {
 func (*EnvironmentVariable) ProtoMessage() {}
 
 func (x *EnvironmentVariable) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[41]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11875,7 +9507,7 @@ func (x *EnvironmentVariable) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EnvironmentVariable.ProtoReflect.Descriptor instead.
 func (*EnvironmentVariable) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{41}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{39}
 }
 
 func (x *EnvironmentVariable) GetName() string {
@@ -11905,7 +9537,7 @@ type Epss struct {
 
 func (x *Epss) Reset() {
 	*x = Epss{}
-	mi := &file_api_entity_proto_msgTypes[42]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[40]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11917,7 +9549,7 @@ func (x *Epss) String() string {
 func (*Epss) ProtoMessage() {}
 
 func (x *Epss) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[42]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[40]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11930,7 +9562,7 @@ func (x *Epss) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Epss.ProtoReflect.Descriptor instead.
 func (*Epss) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{42}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{40}
 }
 
 func (x *Epss) GetCreatedTime() int64 {
@@ -11979,7 +9611,7 @@ type Extension struct {
 
 func (x *Extension) Reset() {
 	*x = Extension{}
-	mi := &file_api_entity_proto_msgTypes[43]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[41]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11991,7 +9623,7 @@ func (x *Extension) String() string {
 func (*Extension) ProtoMessage() {}
 
 func (x *Extension) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[43]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[41]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12004,7 +9636,7 @@ func (x *Extension) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Extension.ProtoReflect.Descriptor instead.
 func (*Extension) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{43}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{41}
 }
 
 func (x *Extension) GetName() string {
@@ -12039,7 +9671,7 @@ type Feature struct {
 
 func (x *Feature) Reset() {
 	*x = Feature{}
-	mi := &file_api_entity_proto_msgTypes[44]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[42]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12051,7 +9683,7 @@ func (x *Feature) String() string {
 func (*Feature) ProtoMessage() {}
 
 func (x *Feature) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[44]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[42]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12064,7 +9696,7 @@ func (x *Feature) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Feature.ProtoReflect.Descriptor instead.
 func (*Feature) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{44}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{42}
 }
 
 func (x *Feature) GetName() string {
@@ -12144,7 +9776,7 @@ type File struct {
 
 func (x *File) Reset() {
 	*x = File{}
-	mi := &file_api_entity_proto_msgTypes[45]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[43]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12156,7 +9788,7 @@ func (x *File) String() string {
 func (*File) ProtoMessage() {}
 
 func (x *File) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[45]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[43]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12169,7 +9801,7 @@ func (x *File) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use File.ProtoReflect.Descriptor instead.
 func (*File) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{45}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{43}
 }
 
 func (x *File) GetAccessedTime() int64 {
@@ -12519,7 +10151,7 @@ type Fingerprint struct {
 
 func (x *Fingerprint) Reset() {
 	*x = Fingerprint{}
-	mi := &file_api_entity_proto_msgTypes[46]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[44]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12531,7 +10163,7 @@ func (x *Fingerprint) String() string {
 func (*Fingerprint) ProtoMessage() {}
 
 func (x *Fingerprint) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[46]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[44]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12544,7 +10176,7 @@ func (x *Fingerprint) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Fingerprint.ProtoReflect.Descriptor instead.
 func (*Fingerprint) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{46}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{44}
 }
 
 func (x *Fingerprint) GetAlgorithm() string {
@@ -12588,7 +10220,7 @@ type FirewallRule struct {
 
 func (x *FirewallRule) Reset() {
 	*x = FirewallRule{}
-	mi := &file_api_entity_proto_msgTypes[47]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[45]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12600,7 +10232,7 @@ func (x *FirewallRule) String() string {
 func (*FirewallRule) ProtoMessage() {}
 
 func (x *FirewallRule) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[47]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[45]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12613,7 +10245,7 @@ func (x *FirewallRule) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FirewallRule.ProtoReflect.Descriptor instead.
 func (*FirewallRule) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{47}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{45}
 }
 
 func (x *FirewallRule) GetCategory() string {
@@ -12716,7 +10348,7 @@ type GpuInfo struct {
 
 func (x *GpuInfo) Reset() {
 	*x = GpuInfo{}
-	mi := &file_api_entity_proto_msgTypes[48]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[46]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12728,7 +10360,7 @@ func (x *GpuInfo) String() string {
 func (*GpuInfo) ProtoMessage() {}
 
 func (x *GpuInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[48]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[46]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12741,7 +10373,7 @@ func (x *GpuInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GpuInfo.ProtoReflect.Descriptor instead.
 func (*GpuInfo) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{48}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{46}
 }
 
 func (x *GpuInfo) GetBusType() string {
@@ -12817,7 +10449,7 @@ type Graph struct {
 
 func (x *Graph) Reset() {
 	*x = Graph{}
-	mi := &file_api_entity_proto_msgTypes[49]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[47]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12829,7 +10461,7 @@ func (x *Graph) String() string {
 func (*Graph) ProtoMessage() {}
 
 func (x *Graph) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[49]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[47]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12842,7 +10474,7 @@ func (x *Graph) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Graph.ProtoReflect.Descriptor instead.
 func (*Graph) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{49}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{47}
 }
 
 func (x *Graph) GetDesc() string {
@@ -12923,7 +10555,7 @@ type Group struct {
 
 func (x *Group) Reset() {
 	*x = Group{}
-	mi := &file_api_entity_proto_msgTypes[50]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[48]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12935,7 +10567,7 @@ func (x *Group) String() string {
 func (*Group) ProtoMessage() {}
 
 func (x *Group) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[50]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[48]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12948,7 +10580,7 @@ func (x *Group) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Group.ProtoReflect.Descriptor instead.
 func (*Group) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{50}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{48}
 }
 
 func (x *Group) GetDesc() string {
@@ -13010,7 +10642,7 @@ type HttpHeader struct {
 
 func (x *HttpHeader) Reset() {
 	*x = HttpHeader{}
-	mi := &file_api_entity_proto_msgTypes[51]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[49]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13022,7 +10654,7 @@ func (x *HttpHeader) String() string {
 func (*HttpHeader) ProtoMessage() {}
 
 func (x *HttpHeader) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[51]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[49]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13035,7 +10667,7 @@ func (x *HttpHeader) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HttpHeader.ProtoReflect.Descriptor instead.
 func (*HttpHeader) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{51}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{49}
 }
 
 func (x *HttpHeader) GetName() string {
@@ -13071,7 +10703,7 @@ type HttpRequest struct {
 
 func (x *HttpRequest) Reset() {
 	*x = HttpRequest{}
-	mi := &file_api_entity_proto_msgTypes[52]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[50]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13083,7 +10715,7 @@ func (x *HttpRequest) String() string {
 func (*HttpRequest) ProtoMessage() {}
 
 func (x *HttpRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[52]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[50]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13096,7 +10728,7 @@ func (x *HttpRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HttpRequest.ProtoReflect.Descriptor instead.
 func (*HttpRequest) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{52}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{50}
 }
 
 func (x *HttpRequest) GetArgs() string {
@@ -13192,7 +10824,7 @@ type HttpResponse struct {
 
 func (x *HttpResponse) Reset() {
 	*x = HttpResponse{}
-	mi := &file_api_entity_proto_msgTypes[53]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[51]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13204,7 +10836,7 @@ func (x *HttpResponse) String() string {
 func (*HttpResponse) ProtoMessage() {}
 
 func (x *HttpResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[53]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[51]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13217,7 +10849,7 @@ func (x *HttpResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HttpResponse.ProtoReflect.Descriptor instead.
 func (*HttpResponse) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{53}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{51}
 }
 
 func (x *HttpResponse) GetBodyLength() int32 {
@@ -13298,7 +10930,7 @@ type Idp struct {
 
 func (x *Idp) Reset() {
 	*x = Idp{}
-	mi := &file_api_entity_proto_msgTypes[54]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[52]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13310,7 +10942,7 @@ func (x *Idp) String() string {
 func (*Idp) ProtoMessage() {}
 
 func (x *Idp) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[54]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[52]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13323,7 +10955,7 @@ func (x *Idp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Idp.ProtoReflect.Descriptor instead.
 func (*Idp) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{54}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{52}
 }
 
 func (x *Idp) GetAuthFactors() []*AuthFactor {
@@ -13438,7 +11070,7 @@ type Image struct {
 
 func (x *Image) Reset() {
 	*x = Image{}
-	mi := &file_api_entity_proto_msgTypes[55]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[53]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13450,7 +11082,7 @@ func (x *Image) String() string {
 func (*Image) ProtoMessage() {}
 
 func (x *Image) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[55]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[53]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13463,7 +11095,7 @@ func (x *Image) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Image.ProtoReflect.Descriptor instead.
 func (*Image) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{55}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{53}
 }
 
 func (x *Image) GetLabels() []string {
@@ -13531,7 +11163,7 @@ type KbArticle struct {
 
 func (x *KbArticle) Reset() {
 	*x = KbArticle{}
-	mi := &file_api_entity_proto_msgTypes[56]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[54]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13543,7 +11175,7 @@ func (x *KbArticle) String() string {
 func (*KbArticle) ProtoMessage() {}
 
 func (x *KbArticle) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[56]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[54]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13556,7 +11188,7 @@ func (x *KbArticle) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use KbArticle.ProtoReflect.Descriptor instead.
 func (*KbArticle) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{56}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{54}
 }
 
 func (x *KbArticle) GetAvgTimespan() *Timespan {
@@ -13675,7 +11307,7 @@ type KeyValueObject struct {
 
 func (x *KeyValueObject) Reset() {
 	*x = KeyValueObject{}
-	mi := &file_api_entity_proto_msgTypes[57]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[55]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13687,7 +11319,7 @@ func (x *KeyValueObject) String() string {
 func (*KeyValueObject) ProtoMessage() {}
 
 func (x *KeyValueObject) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[57]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[55]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13700,7 +11332,7 @@ func (x *KeyValueObject) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use KeyValueObject.ProtoReflect.Descriptor instead.
 func (*KeyValueObject) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{57}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{55}
 }
 
 func (x *KeyValueObject) GetName() string {
@@ -13737,7 +11369,7 @@ type KeyboardInfo struct {
 
 func (x *KeyboardInfo) Reset() {
 	*x = KeyboardInfo{}
-	mi := &file_api_entity_proto_msgTypes[58]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[56]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13749,7 +11381,7 @@ func (x *KeyboardInfo) String() string {
 func (*KeyboardInfo) ProtoMessage() {}
 
 func (x *KeyboardInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[58]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[56]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13762,7 +11394,7 @@ func (x *KeyboardInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use KeyboardInfo.ProtoReflect.Descriptor instead.
 func (*KeyboardInfo) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{58}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{56}
 }
 
 func (x *KeyboardInfo) GetFunctionKeys() int32 {
@@ -13810,7 +11442,7 @@ type KillChainPhase struct {
 
 func (x *KillChainPhase) Reset() {
 	*x = KillChainPhase{}
-	mi := &file_api_entity_proto_msgTypes[59]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[57]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13822,7 +11454,7 @@ func (x *KillChainPhase) String() string {
 func (*KillChainPhase) ProtoMessage() {}
 
 func (x *KillChainPhase) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[59]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[57]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13835,7 +11467,7 @@ func (x *KillChainPhase) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use KillChainPhase.ProtoReflect.Descriptor instead.
 func (*KillChainPhase) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{59}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{57}
 }
 
 func (x *KillChainPhase) GetPhase() string {
@@ -13888,7 +11520,7 @@ type LdapPerson struct {
 
 func (x *LdapPerson) Reset() {
 	*x = LdapPerson{}
-	mi := &file_api_entity_proto_msgTypes[60]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[58]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13900,7 +11532,7 @@ func (x *LdapPerson) String() string {
 func (*LdapPerson) ProtoMessage() {}
 
 func (x *LdapPerson) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[60]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[58]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13913,7 +11545,7 @@ func (x *LdapPerson) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LdapPerson.ProtoReflect.Descriptor instead.
 func (*LdapPerson) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{60}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{58}
 }
 
 func (x *LdapPerson) GetCostCenter() string {
@@ -14138,7 +11770,7 @@ type Location struct {
 
 func (x *Location) Reset() {
 	*x = Location{}
-	mi := &file_api_entity_proto_msgTypes[61]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[59]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -14150,7 +11782,7 @@ func (x *Location) String() string {
 func (*Location) ProtoMessage() {}
 
 func (x *Location) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[61]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[59]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -14163,7 +11795,7 @@ func (x *Location) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Location.ProtoReflect.Descriptor instead.
 func (*Location) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{61}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{59}
 }
 
 func (x *Location) GetAerialHeight() string {
@@ -14317,7 +11949,7 @@ type Logger struct {
 
 func (x *Logger) Reset() {
 	*x = Logger{}
-	mi := &file_api_entity_proto_msgTypes[62]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[60]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -14329,7 +11961,7 @@ func (x *Logger) String() string {
 func (*Logger) ProtoMessage() {}
 
 func (x *Logger) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[62]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[60]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -14342,7 +11974,7 @@ func (x *Logger) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Logger.ProtoReflect.Descriptor instead.
 func (*Logger) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{62}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{60}
 }
 
 func (x *Logger) GetDevice() *Device {
@@ -14475,7 +12107,7 @@ type LongString struct {
 
 func (x *LongString) Reset() {
 	*x = LongString{}
-	mi := &file_api_entity_proto_msgTypes[63]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[61]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -14487,7 +12119,7 @@ func (x *LongString) String() string {
 func (*LongString) ProtoMessage() {}
 
 func (x *LongString) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[63]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[61]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -14500,7 +12132,7 @@ func (x *LongString) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LongString.ProtoReflect.Descriptor instead.
 func (*LongString) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{63}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{61}
 }
 
 func (x *LongString) GetIsTruncated() bool {
@@ -14543,7 +12175,7 @@ type Malware struct {
 
 func (x *Malware) Reset() {
 	*x = Malware{}
-	mi := &file_api_entity_proto_msgTypes[64]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[62]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -14555,7 +12187,7 @@ func (x *Malware) String() string {
 func (*Malware) ProtoMessage() {}
 
 func (x *Malware) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[64]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[62]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -14568,7 +12200,7 @@ func (x *Malware) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Malware.ProtoReflect.Descriptor instead.
 func (*Malware) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{64}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{62}
 }
 
 func (x *Malware) GetClassificationIds() []Malware_ClassificationIds {
@@ -14669,7 +12301,7 @@ type MalwareScanInfo struct {
 
 func (x *MalwareScanInfo) Reset() {
 	*x = MalwareScanInfo{}
-	mi := &file_api_entity_proto_msgTypes[65]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[63]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -14681,7 +12313,7 @@ func (x *MalwareScanInfo) String() string {
 func (*MalwareScanInfo) ProtoMessage() {}
 
 func (x *MalwareScanInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[65]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[63]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -14694,7 +12326,7 @@ func (x *MalwareScanInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MalwareScanInfo.ProtoReflect.Descriptor instead.
 func (*MalwareScanInfo) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{65}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{63}
 }
 
 func (x *MalwareScanInfo) GetEndTime() int64 {
@@ -14809,7 +12441,7 @@ type ManagedEntity struct {
 
 func (x *ManagedEntity) Reset() {
 	*x = ManagedEntity{}
-	mi := &file_api_entity_proto_msgTypes[66]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[64]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -14821,7 +12453,7 @@ func (x *ManagedEntity) String() string {
 func (*ManagedEntity) ProtoMessage() {}
 
 func (x *ManagedEntity) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[66]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[64]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -14834,7 +12466,7 @@ func (x *ManagedEntity) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ManagedEntity.ProtoReflect.Descriptor instead.
 func (*ManagedEntity) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{66}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{64}
 }
 
 func (x *ManagedEntity) GetData() *structpb.Value {
@@ -14945,7 +12577,7 @@ type MessageContext struct {
 
 func (x *MessageContext) Reset() {
 	*x = MessageContext{}
-	mi := &file_api_entity_proto_msgTypes[67]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[65]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -14957,7 +12589,7 @@ func (x *MessageContext) String() string {
 func (*MessageContext) ProtoMessage() {}
 
 func (x *MessageContext) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[67]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[65]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -14970,7 +12602,7 @@ func (x *MessageContext) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MessageContext.ProtoReflect.Descriptor instead.
 func (*MessageContext) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{67}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{65}
 }
 
 func (x *MessageContext) GetAiRole() string {
@@ -15083,7 +12715,7 @@ type Metadata struct {
 
 func (x *Metadata) Reset() {
 	*x = Metadata{}
-	mi := &file_api_entity_proto_msgTypes[68]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[66]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -15095,7 +12727,7 @@ func (x *Metadata) String() string {
 func (*Metadata) ProtoMessage() {}
 
 func (x *Metadata) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[68]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[66]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -15108,7 +12740,7 @@ func (x *Metadata) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Metadata.ProtoReflect.Descriptor instead.
 func (*Metadata) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{68}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{66}
 }
 
 func (x *Metadata) GetCorrelationUid() string {
@@ -15394,7 +13026,7 @@ type Metric struct {
 
 func (x *Metric) Reset() {
 	*x = Metric{}
-	mi := &file_api_entity_proto_msgTypes[69]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[67]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -15406,7 +13038,7 @@ func (x *Metric) String() string {
 func (*Metric) ProtoMessage() {}
 
 func (x *Metric) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[69]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[67]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -15419,7 +13051,7 @@ func (x *Metric) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Metric.ProtoReflect.Descriptor instead.
 func (*Metric) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{69}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{67}
 }
 
 func (x *Metric) GetName() string {
@@ -15448,7 +13080,7 @@ type Mitigation struct {
 
 func (x *Mitigation) Reset() {
 	*x = Mitigation{}
-	mi := &file_api_entity_proto_msgTypes[70]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[68]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -15460,7 +13092,7 @@ func (x *Mitigation) String() string {
 func (*Mitigation) ProtoMessage() {}
 
 func (x *Mitigation) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[70]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[68]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -15473,7 +13105,7 @@ func (x *Mitigation) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Mitigation.ProtoReflect.Descriptor instead.
 func (*Mitigation) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{70}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{68}
 }
 
 func (x *Mitigation) GetCountermeasures() []*D3Fend {
@@ -15546,7 +13178,7 @@ type NetworkEndpoint struct {
 
 func (x *NetworkEndpoint) Reset() {
 	*x = NetworkEndpoint{}
-	mi := &file_api_entity_proto_msgTypes[71]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[69]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -15558,7 +13190,7 @@ func (x *NetworkEndpoint) String() string {
 func (*NetworkEndpoint) ProtoMessage() {}
 
 func (x *NetworkEndpoint) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[71]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[69]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -15571,7 +13203,7 @@ func (x *NetworkEndpoint) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use NetworkEndpoint.ProtoReflect.Descriptor instead.
 func (*NetworkEndpoint) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{71}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{69}
 }
 
 func (x *NetworkEndpoint) GetAgentList() []*Agent {
@@ -15830,7 +13462,7 @@ type NetworkInterface struct {
 
 func (x *NetworkInterface) Reset() {
 	*x = NetworkInterface{}
-	mi := &file_api_entity_proto_msgTypes[72]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[70]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -15842,7 +13474,7 @@ func (x *NetworkInterface) String() string {
 func (*NetworkInterface) ProtoMessage() {}
 
 func (x *NetworkInterface) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[72]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[70]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -15855,7 +13487,7 @@ func (x *NetworkInterface) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use NetworkInterface.ProtoReflect.Descriptor instead.
 func (*NetworkInterface) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{72}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{70}
 }
 
 func (x *NetworkInterface) GetHostname() string {
@@ -15970,7 +13602,7 @@ type NetworkProxy struct {
 
 func (x *NetworkProxy) Reset() {
 	*x = NetworkProxy{}
-	mi := &file_api_entity_proto_msgTypes[73]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[71]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -15982,7 +13614,7 @@ func (x *NetworkProxy) String() string {
 func (*NetworkProxy) ProtoMessage() {}
 
 func (x *NetworkProxy) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[73]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[71]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -15995,7 +13627,7 @@ func (x *NetworkProxy) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use NetworkProxy.ProtoReflect.Descriptor instead.
 func (*NetworkProxy) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{73}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{71}
 }
 
 func (x *NetworkProxy) GetAgentList() []*Agent {
@@ -16249,7 +13881,7 @@ type Node struct {
 
 func (x *Node) Reset() {
 	*x = Node{}
-	mi := &file_api_entity_proto_msgTypes[74]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[72]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -16261,7 +13893,7 @@ func (x *Node) String() string {
 func (*Node) ProtoMessage() {}
 
 func (x *Node) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[74]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[72]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -16274,7 +13906,7 @@ func (x *Node) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Node.ProtoReflect.Descriptor instead.
 func (*Node) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{74}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{72}
 }
 
 func (x *Node) GetData() *structpb.Value {
@@ -16327,7 +13959,7 @@ type Observable struct {
 
 func (x *Observable) Reset() {
 	*x = Observable{}
-	mi := &file_api_entity_proto_msgTypes[75]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[73]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -16339,7 +13971,7 @@ func (x *Observable) String() string {
 func (*Observable) ProtoMessage() {}
 
 func (x *Observable) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[75]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[73]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -16352,7 +13984,7 @@ func (x *Observable) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Observable.ProtoReflect.Descriptor instead.
 func (*Observable) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{75}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{73}
 }
 
 func (x *Observable) GetEventUid() string {
@@ -16421,7 +14053,7 @@ type OccurrenceDetails struct {
 
 func (x *OccurrenceDetails) Reset() {
 	*x = OccurrenceDetails{}
-	mi := &file_api_entity_proto_msgTypes[76]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[74]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -16433,7 +14065,7 @@ func (x *OccurrenceDetails) String() string {
 func (*OccurrenceDetails) ProtoMessage() {}
 
 func (x *OccurrenceDetails) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[76]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[74]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -16446,7 +14078,7 @@ func (x *OccurrenceDetails) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OccurrenceDetails.ProtoReflect.Descriptor instead.
 func (*OccurrenceDetails) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{76}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{74}
 }
 
 func (x *OccurrenceDetails) GetCellName() string {
@@ -16524,7 +14156,7 @@ type Organization struct {
 
 func (x *Organization) Reset() {
 	*x = Organization{}
-	mi := &file_api_entity_proto_msgTypes[77]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[75]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -16536,7 +14168,7 @@ func (x *Organization) String() string {
 func (*Organization) ProtoMessage() {}
 
 func (x *Organization) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[77]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[75]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -16549,7 +14181,7 @@ func (x *Organization) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Organization.ProtoReflect.Descriptor instead.
 func (*Organization) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{77}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{75}
 }
 
 func (x *Organization) GetName() string {
@@ -16601,7 +14233,7 @@ type Os struct {
 
 func (x *Os) Reset() {
 	*x = Os{}
-	mi := &file_api_entity_proto_msgTypes[78]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[76]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -16613,7 +14245,7 @@ func (x *Os) String() string {
 func (*Os) ProtoMessage() {}
 
 func (x *Os) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[78]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[76]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -16626,7 +14258,7 @@ func (x *Os) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Os.ProtoReflect.Descriptor instead.
 func (*Os) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{78}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{76}
 }
 
 func (x *Os) GetBuild() string {
@@ -16779,7 +14411,7 @@ type Osint struct {
 
 func (x *Osint) Reset() {
 	*x = Osint{}
-	mi := &file_api_entity_proto_msgTypes[79]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[77]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -16791,7 +14423,7 @@ func (x *Osint) String() string {
 func (*Osint) ProtoMessage() {}
 
 func (x *Osint) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[79]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[77]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -16804,7 +14436,7 @@ func (x *Osint) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Osint.ProtoReflect.Descriptor instead.
 func (*Osint) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{79}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{77}
 }
 
 func (x *Osint) GetAnswers() []*DnsAnswer {
@@ -17189,7 +14821,7 @@ type Package struct {
 
 func (x *Package) Reset() {
 	*x = Package{}
-	mi := &file_api_entity_proto_msgTypes[80]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[78]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -17201,7 +14833,7 @@ func (x *Package) String() string {
 func (*Package) ProtoMessage() {}
 
 func (x *Package) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[80]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[78]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -17214,7 +14846,7 @@ func (x *Package) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Package.ProtoReflect.Descriptor instead.
 func (*Package) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{80}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{78}
 }
 
 func (x *Package) GetArchitecture() string {
@@ -17352,7 +14984,7 @@ type Policy struct {
 
 func (x *Policy) Reset() {
 	*x = Policy{}
-	mi := &file_api_entity_proto_msgTypes[81]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[79]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -17364,7 +14996,7 @@ func (x *Policy) String() string {
 func (*Policy) ProtoMessage() {}
 
 func (x *Policy) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[81]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[79]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -17377,7 +15009,7 @@ func (x *Policy) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Policy.ProtoReflect.Descriptor instead.
 func (*Policy) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{81}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{79}
 }
 
 func (x *Policy) GetData() *structpb.Value {
@@ -17447,7 +15079,7 @@ type PortInfo struct {
 
 func (x *PortInfo) Reset() {
 	*x = PortInfo{}
-	mi := &file_api_entity_proto_msgTypes[82]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[80]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -17459,7 +15091,7 @@ func (x *PortInfo) String() string {
 func (*PortInfo) ProtoMessage() {}
 
 func (x *PortInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[82]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[80]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -17472,7 +15104,7 @@ func (x *PortInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PortInfo.ProtoReflect.Descriptor instead.
 func (*PortInfo) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{82}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{80}
 }
 
 func (x *PortInfo) GetPort() int32 {
@@ -17536,7 +15168,7 @@ type Process struct {
 
 func (x *Process) Reset() {
 	*x = Process{}
-	mi := &file_api_entity_proto_msgTypes[83]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[81]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -17548,7 +15180,7 @@ func (x *Process) String() string {
 func (*Process) ProtoMessage() {}
 
 func (x *Process) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[83]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[81]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -17561,7 +15193,7 @@ func (x *Process) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Process.ProtoReflect.Descriptor instead.
 func (*Process) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{83}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{81}
 }
 
 func (x *Process) GetAncestry() []*ProcessEntity {
@@ -17804,7 +15436,7 @@ type ProcessEntity struct {
 
 func (x *ProcessEntity) Reset() {
 	*x = ProcessEntity{}
-	mi := &file_api_entity_proto_msgTypes[84]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[82]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -17816,7 +15448,7 @@ func (x *ProcessEntity) String() string {
 func (*ProcessEntity) ProtoMessage() {}
 
 func (x *ProcessEntity) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[84]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[82]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -17829,7 +15461,7 @@ func (x *ProcessEntity) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ProcessEntity.ProtoReflect.Descriptor instead.
 func (*ProcessEntity) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{84}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{82}
 }
 
 func (x *ProcessEntity) GetCmdLine() string {
@@ -17907,7 +15539,7 @@ type Product struct {
 
 func (x *Product) Reset() {
 	*x = Product{}
-	mi := &file_api_entity_proto_msgTypes[85]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[83]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -17919,7 +15551,7 @@ func (x *Product) String() string {
 func (*Product) ProtoMessage() {}
 
 func (x *Product) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[85]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[83]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -17932,7 +15564,7 @@ func (x *Product) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Product.ProtoReflect.Descriptor instead.
 func (*Product) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{85}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{83}
 }
 
 func (x *Product) GetCpeName() string {
@@ -18024,7 +15656,7 @@ type ProgrammaticCredential struct {
 
 func (x *ProgrammaticCredential) Reset() {
 	*x = ProgrammaticCredential{}
-	mi := &file_api_entity_proto_msgTypes[86]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[84]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -18036,7 +15668,7 @@ func (x *ProgrammaticCredential) String() string {
 func (*ProgrammaticCredential) ProtoMessage() {}
 
 func (x *ProgrammaticCredential) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[86]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[84]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -18049,7 +15681,7 @@ func (x *ProgrammaticCredential) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ProgrammaticCredential.ProtoReflect.Descriptor instead.
 func (*ProgrammaticCredential) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{86}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{84}
 }
 
 func (x *ProgrammaticCredential) GetLastUsedTime() int64 {
@@ -18093,7 +15725,7 @@ type Remediation struct {
 
 func (x *Remediation) Reset() {
 	*x = Remediation{}
-	mi := &file_api_entity_proto_msgTypes[87]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[85]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -18105,7 +15737,7 @@ func (x *Remediation) String() string {
 func (*Remediation) ProtoMessage() {}
 
 func (x *Remediation) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[87]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[85]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -18118,7 +15750,7 @@ func (x *Remediation) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Remediation.ProtoReflect.Descriptor instead.
 func (*Remediation) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{87}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{85}
 }
 
 func (x *Remediation) GetCisControls() []*CisControl {
@@ -18169,7 +15801,7 @@ type Reporter struct {
 
 func (x *Reporter) Reset() {
 	*x = Reporter{}
-	mi := &file_api_entity_proto_msgTypes[88]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[86]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -18181,7 +15813,7 @@ func (x *Reporter) String() string {
 func (*Reporter) ProtoMessage() {}
 
 func (x *Reporter) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[88]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[86]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -18194,7 +15826,7 @@ func (x *Reporter) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Reporter.ProtoReflect.Descriptor instead.
 func (*Reporter) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{88}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{86}
 }
 
 func (x *Reporter) GetHostname() string {
@@ -18244,7 +15876,7 @@ type Reputation struct {
 
 func (x *Reputation) Reset() {
 	*x = Reputation{}
-	mi := &file_api_entity_proto_msgTypes[89]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[87]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -18256,7 +15888,7 @@ func (x *Reputation) String() string {
 func (*Reputation) ProtoMessage() {}
 
 func (x *Reputation) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[89]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[87]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -18269,7 +15901,7 @@ func (x *Reputation) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Reputation.ProtoReflect.Descriptor instead.
 func (*Reputation) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{89}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{87}
 }
 
 func (x *Reputation) GetBaseScore() float64 {
@@ -18312,7 +15944,7 @@ type Request struct {
 
 func (x *Request) Reset() {
 	*x = Request{}
-	mi := &file_api_entity_proto_msgTypes[90]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[88]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -18324,7 +15956,7 @@ func (x *Request) String() string {
 func (*Request) ProtoMessage() {}
 
 func (x *Request) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[90]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[88]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -18337,7 +15969,7 @@ func (x *Request) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Request.ProtoReflect.Descriptor instead.
 func (*Request) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{90}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{88}
 }
 
 func (x *Request) GetContainers() []*Container {
@@ -18405,7 +16037,7 @@ type ResourceDetails struct {
 
 func (x *ResourceDetails) Reset() {
 	*x = ResourceDetails{}
-	mi := &file_api_entity_proto_msgTypes[91]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[89]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -18417,7 +16049,7 @@ func (x *ResourceDetails) String() string {
 func (*ResourceDetails) ProtoMessage() {}
 
 func (x *ResourceDetails) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[91]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[89]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -18430,7 +16062,7 @@ func (x *ResourceDetails) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResourceDetails.ProtoReflect.Descriptor instead.
 func (*ResourceDetails) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{91}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{89}
 }
 
 func (x *ResourceDetails) GetAgentList() []*Agent {
@@ -18651,7 +16283,7 @@ type Response struct {
 
 func (x *Response) Reset() {
 	*x = Response{}
-	mi := &file_api_entity_proto_msgTypes[92]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[90]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -18663,7 +16295,7 @@ func (x *Response) String() string {
 func (*Response) ProtoMessage() {}
 
 func (x *Response) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[92]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[90]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -18676,7 +16308,7 @@ func (x *Response) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Response.ProtoReflect.Descriptor instead.
 func (*Response) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{92}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{90}
 }
 
 func (x *Response) GetCode() int32 {
@@ -18742,7 +16374,7 @@ type Rule struct {
 
 func (x *Rule) Reset() {
 	*x = Rule{}
-	mi := &file_api_entity_proto_msgTypes[93]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[91]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -18754,7 +16386,7 @@ func (x *Rule) String() string {
 func (*Rule) ProtoMessage() {}
 
 func (x *Rule) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[93]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[91]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -18767,7 +16399,7 @@ func (x *Rule) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Rule.ProtoReflect.Descriptor instead.
 func (*Rule) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{93}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{91}
 }
 
 func (x *Rule) GetCategory() string {
@@ -18822,7 +16454,7 @@ type San struct {
 
 func (x *San) Reset() {
 	*x = San{}
-	mi := &file_api_entity_proto_msgTypes[94]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[92]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -18834,7 +16466,7 @@ func (x *San) String() string {
 func (*San) ProtoMessage() {}
 
 func (x *San) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[94]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[92]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -18847,7 +16479,7 @@ func (x *San) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use San.ProtoReflect.Descriptor instead.
 func (*San) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{94}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{92}
 }
 
 func (x *San) GetName() string {
@@ -18881,7 +16513,7 @@ type Sbom struct {
 
 func (x *Sbom) Reset() {
 	*x = Sbom{}
-	mi := &file_api_entity_proto_msgTypes[95]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[93]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -18893,7 +16525,7 @@ func (x *Sbom) String() string {
 func (*Sbom) ProtoMessage() {}
 
 func (x *Sbom) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[95]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[93]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -18906,7 +16538,7 @@ func (x *Sbom) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Sbom.ProtoReflect.Descriptor instead.
 func (*Sbom) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{95}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{93}
 }
 
 func (x *Sbom) GetCreatedTime() int64 {
@@ -19003,7 +16635,7 @@ type Scim struct {
 
 func (x *Scim) Reset() {
 	*x = Scim{}
-	mi := &file_api_entity_proto_msgTypes[96]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[94]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -19015,7 +16647,7 @@ func (x *Scim) String() string {
 func (*Scim) ProtoMessage() {}
 
 func (x *Scim) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[96]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[94]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -19028,7 +16660,7 @@ func (x *Scim) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Scim.ProtoReflect.Descriptor instead.
 func (*Scim) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{96}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{94}
 }
 
 func (x *Scim) GetAuthProtocol() string {
@@ -19208,7 +16840,7 @@ type Script struct {
 
 func (x *Script) Reset() {
 	*x = Script{}
-	mi := &file_api_entity_proto_msgTypes[97]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[95]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -19220,7 +16852,7 @@ func (x *Script) String() string {
 func (*Script) ProtoMessage() {}
 
 func (x *Script) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[97]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[95]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -19233,7 +16865,7 @@ func (x *Script) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Script.ProtoReflect.Descriptor instead.
 func (*Script) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{97}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{95}
 }
 
 func (x *Script) GetFile() *File {
@@ -19305,7 +16937,7 @@ type Service struct {
 
 func (x *Service) Reset() {
 	*x = Service{}
-	mi := &file_api_entity_proto_msgTypes[98]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[96]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -19317,7 +16949,7 @@ func (x *Service) String() string {
 func (*Service) ProtoMessage() {}
 
 func (x *Service) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[98]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[96]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -19330,7 +16962,7 @@ func (x *Service) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Service.ProtoReflect.Descriptor instead.
 func (*Service) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{98}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{96}
 }
 
 func (x *Service) GetLabels() []string {
@@ -19391,7 +17023,7 @@ type Session struct {
 
 func (x *Session) Reset() {
 	*x = Session{}
-	mi := &file_api_entity_proto_msgTypes[99]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[97]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -19403,7 +17035,7 @@ func (x *Session) String() string {
 func (*Session) ProtoMessage() {}
 
 func (x *Session) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[99]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[97]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -19416,7 +17048,7 @@ func (x *Session) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Session.ProtoReflect.Descriptor instead.
 func (*Session) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{99}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{97}
 }
 
 func (x *Session) GetCount() int32 {
@@ -19543,7 +17175,7 @@ type SoftwareComponent struct {
 
 func (x *SoftwareComponent) Reset() {
 	*x = SoftwareComponent{}
-	mi := &file_api_entity_proto_msgTypes[100]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[98]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -19555,7 +17187,7 @@ func (x *SoftwareComponent) String() string {
 func (*SoftwareComponent) ProtoMessage() {}
 
 func (x *SoftwareComponent) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[100]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[98]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -19568,7 +17200,7 @@ func (x *SoftwareComponent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SoftwareComponent.ProtoReflect.Descriptor instead.
 func (*SoftwareComponent) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{100}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{98}
 }
 
 func (x *SoftwareComponent) GetAuthor() string {
@@ -19667,7 +17299,7 @@ type Span struct {
 
 func (x *Span) Reset() {
 	*x = Span{}
-	mi := &file_api_entity_proto_msgTypes[101]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[99]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -19679,7 +17311,7 @@ func (x *Span) String() string {
 func (*Span) ProtoMessage() {}
 
 func (x *Span) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[101]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[99]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -19692,7 +17324,7 @@ func (x *Span) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Span.ProtoReflect.Descriptor instead.
 func (*Span) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{101}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{99}
 }
 
 func (x *Span) GetDuration() int64 {
@@ -19797,7 +17429,7 @@ type Sso struct {
 
 func (x *Sso) Reset() {
 	*x = Sso{}
-	mi := &file_api_entity_proto_msgTypes[102]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[100]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -19809,7 +17441,7 @@ func (x *Sso) String() string {
 func (*Sso) ProtoMessage() {}
 
 func (x *Sso) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[102]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[100]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -19822,7 +17454,7 @@ func (x *Sso) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Sso.ProtoReflect.Descriptor instead.
 func (*Sso) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{102}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{100}
 }
 
 func (x *Sso) GetAuthProtocol() string {
@@ -19955,7 +17587,7 @@ type SubTechnique struct {
 
 func (x *SubTechnique) Reset() {
 	*x = SubTechnique{}
-	mi := &file_api_entity_proto_msgTypes[103]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[101]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -19967,7 +17599,7 @@ func (x *SubTechnique) String() string {
 func (*SubTechnique) ProtoMessage() {}
 
 func (x *SubTechnique) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[103]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[101]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -19980,7 +17612,7 @@ func (x *SubTechnique) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SubTechnique.ProtoReflect.Descriptor instead.
 func (*SubTechnique) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{103}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{101}
 }
 
 func (x *SubTechnique) GetName() string {
@@ -20015,7 +17647,7 @@ type Tactic struct {
 
 func (x *Tactic) Reset() {
 	*x = Tactic{}
-	mi := &file_api_entity_proto_msgTypes[104]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[102]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -20027,7 +17659,7 @@ func (x *Tactic) String() string {
 func (*Tactic) ProtoMessage() {}
 
 func (x *Tactic) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[104]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[102]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -20040,7 +17672,7 @@ func (x *Tactic) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Tactic.ProtoReflect.Descriptor instead.
 func (*Tactic) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{104}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{102}
 }
 
 func (x *Tactic) GetName() string {
@@ -20075,7 +17707,7 @@ type Technique struct {
 
 func (x *Technique) Reset() {
 	*x = Technique{}
-	mi := &file_api_entity_proto_msgTypes[105]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[103]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -20087,7 +17719,7 @@ func (x *Technique) String() string {
 func (*Technique) ProtoMessage() {}
 
 func (x *Technique) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[105]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[103]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -20100,7 +17732,7 @@ func (x *Technique) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Technique.ProtoReflect.Descriptor instead.
 func (*Technique) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{105}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{103}
 }
 
 func (x *Technique) GetName() string {
@@ -20135,7 +17767,7 @@ type ThreatActor struct {
 
 func (x *ThreatActor) Reset() {
 	*x = ThreatActor{}
-	mi := &file_api_entity_proto_msgTypes[106]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[104]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -20147,7 +17779,7 @@ func (x *ThreatActor) String() string {
 func (*ThreatActor) ProtoMessage() {}
 
 func (x *ThreatActor) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[106]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[104]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -20160,7 +17792,7 @@ func (x *ThreatActor) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ThreatActor.ProtoReflect.Descriptor instead.
 func (*ThreatActor) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{106}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{104}
 }
 
 func (x *ThreatActor) GetName() string {
@@ -20206,7 +17838,7 @@ type Timespan struct {
 
 func (x *Timespan) Reset() {
 	*x = Timespan{}
-	mi := &file_api_entity_proto_msgTypes[107]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[105]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -20218,7 +17850,7 @@ func (x *Timespan) String() string {
 func (*Timespan) ProtoMessage() {}
 
 func (x *Timespan) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[107]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[105]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -20231,7 +17863,7 @@ func (x *Timespan) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Timespan.ProtoReflect.Descriptor instead.
 func (*Timespan) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{107}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{105}
 }
 
 func (x *Timespan) GetDuration() int64 {
@@ -20353,7 +17985,7 @@ type Token struct {
 
 func (x *Token) Reset() {
 	*x = Token{}
-	mi := &file_api_entity_proto_msgTypes[108]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[106]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -20365,7 +17997,7 @@ func (x *Token) String() string {
 func (*Token) ProtoMessage() {}
 
 func (x *Token) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[108]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[106]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -20378,7 +18010,7 @@ func (x *Token) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Token.ProtoReflect.Descriptor instead.
 func (*Token) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{108}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{106}
 }
 
 func (x *Token) GetCreatedTime() int64 {
@@ -20489,7 +18121,7 @@ type Trace struct {
 
 func (x *Trace) Reset() {
 	*x = Trace{}
-	mi := &file_api_entity_proto_msgTypes[109]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[107]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -20501,7 +18133,7 @@ func (x *Trace) String() string {
 func (*Trace) ProtoMessage() {}
 
 func (x *Trace) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[109]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[107]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -20514,7 +18146,7 @@ func (x *Trace) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Trace.ProtoReflect.Descriptor instead.
 func (*Trace) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{109}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{107}
 }
 
 func (x *Trace) GetDuration() int64 {
@@ -20595,7 +18227,7 @@ type TransformationInfo struct {
 
 func (x *TransformationInfo) Reset() {
 	*x = TransformationInfo{}
-	mi := &file_api_entity_proto_msgTypes[110]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[108]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -20607,7 +18239,7 @@ func (x *TransformationInfo) String() string {
 func (*TransformationInfo) ProtoMessage() {}
 
 func (x *TransformationInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[110]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[108]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -20620,7 +18252,7 @@ func (x *TransformationInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TransformationInfo.ProtoReflect.Descriptor instead.
 func (*TransformationInfo) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{110}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{108}
 }
 
 func (x *TransformationInfo) GetLang() string {
@@ -20691,7 +18323,7 @@ type Url struct {
 
 func (x *Url) Reset() {
 	*x = Url{}
-	mi := &file_api_entity_proto_msgTypes[111]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[109]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -20703,7 +18335,7 @@ func (x *Url) String() string {
 func (*Url) ProtoMessage() {}
 
 func (x *Url) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[111]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[109]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -20716,7 +18348,7 @@ func (x *Url) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Url.ProtoReflect.Descriptor instead.
 func (*Url) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{111}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{109}
 }
 
 func (x *Url) GetCategories() []string {
@@ -20825,7 +18457,7 @@ type User struct {
 
 func (x *User) Reset() {
 	*x = User{}
-	mi := &file_api_entity_proto_msgTypes[112]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[110]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -20837,7 +18469,7 @@ func (x *User) String() string {
 func (*User) ProtoMessage() {}
 
 func (x *User) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[112]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[110]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -20850,7 +18482,7 @@ func (x *User) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use User.ProtoReflect.Descriptor instead.
 func (*User) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{112}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{110}
 }
 
 func (x *User) GetAccount() *Account {
@@ -21039,7 +18671,7 @@ type Vulnerability struct {
 
 func (x *Vulnerability) Reset() {
 	*x = Vulnerability{}
-	mi := &file_api_entity_proto_msgTypes[113]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[111]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -21051,7 +18683,7 @@ func (x *Vulnerability) String() string {
 func (*Vulnerability) ProtoMessage() {}
 
 func (x *Vulnerability) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[113]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[111]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -21064,7 +18696,7 @@ func (x *Vulnerability) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Vulnerability.ProtoReflect.Descriptor instead.
 func (*Vulnerability) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{113}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{111}
 }
 
 func (x *Vulnerability) GetAdvisory() *Advisory {
@@ -21310,7 +18942,7 @@ type Whois struct {
 
 func (x *Whois) Reset() {
 	*x = Whois{}
-	mi := &file_api_entity_proto_msgTypes[114]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[112]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -21322,7 +18954,7 @@ func (x *Whois) String() string {
 func (*Whois) ProtoMessage() {}
 
 func (x *Whois) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[114]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[112]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -21335,7 +18967,7 @@ func (x *Whois) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Whois.ProtoReflect.Descriptor instead.
 func (*Whois) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{114}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{112}
 }
 
 func (x *Whois) GetAutonomousSystem() *AutonomousSystem {
@@ -21492,7 +19124,7 @@ type WinService struct {
 
 func (x *WinService) Reset() {
 	*x = WinService{}
-	mi := &file_api_entity_proto_msgTypes[115]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[113]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -21504,7 +19136,7 @@ func (x *WinService) String() string {
 func (*WinService) ProtoMessage() {}
 
 func (x *WinService) ProtoReflect() protoreflect.Message {
-	mi := &file_api_entity_proto_msgTypes[115]
+	mi := &file_ocsf_v1_objects_proto_msgTypes[113]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -21517,7 +19149,7 @@ func (x *WinService) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WinService.ProtoReflect.Descriptor instead.
 func (*WinService) Descriptor() ([]byte, []int) {
-	return file_api_entity_proto_rawDescGZIP(), []int{115}
+	return file_ocsf_v1_objects_proto_rawDescGZIP(), []int{113}
 }
 
 func (x *WinService) GetCmdLine() string {
@@ -21660,354 +19292,11 @@ func (x *WinService) GetVersion() string {
 	return ""
 }
 
-var File_api_entity_proto protoreflect.FileDescriptor
+var File_ocsf_v1_objects_proto protoreflect.FileDescriptor
 
-const file_api_entity_proto_rawDesc = "" +
+const file_ocsf_v1_objects_proto_rawDesc = "" +
 	"\n" +
-	"\x10api_entity.proto\x12\aocsf.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\"\xa5'\n" +
-	"\vApiActivity\x12\x16\n" +
-	"\x06action\x18\x01 \x01(\tR\x06action\x12:\n" +
-	"\taction_id\x18\x02 \x01(\x0e2\x1d.ocsf.v1.ApiActivity.ActionIdR\bactionId\x12H\n" +
-	"\vactivity_id\x18\x03 \x01(\x0e2\x1f.ocsf.v1.ApiActivity.ActivityIdB\x06\xbaH\x03\xc8\x01\x01R\n" +
-	"activityId\x12#\n" +
-	"\ractivity_name\x18\x04 \x01(\tR\factivityName\x12,\n" +
-	"\x05actor\x18\x05 \x01(\v2\x0e.ocsf.v1.ActorB\x06\xbaH\x03\xc8\x01\x01R\x05actor\x12+\n" +
-	"\bai_model\x18\x06 \x01(\v2\x10.ocsf.v1.AiModelR\aaiModel\x12&\n" +
-	"\x03api\x18\a \x01(\v2\f.ocsf.v1.ApiB\x06\xbaH\x03\xc8\x01\x01R\x03api\x12)\n" +
-	"\aattacks\x18\b \x03(\v2\x0f.ocsf.v1.AttackR\aattacks\x12>\n" +
-	"\x0eauthorizations\x18\t \x03(\v2\x16.ocsf.v1.AuthorizationR\x0eauthorizations\x12#\n" +
-	"\rcategory_name\x18\n" +
-	" \x01(\tR\fcategoryName\x12K\n" +
-	"\fcategory_uid\x18\v \x01(\x0e2 .ocsf.v1.ApiActivity.CategoryUidB\x06\xbaH\x03\xc8\x01\x01R\vcategoryUid\x12\x1d\n" +
-	"\n" +
-	"class_name\x18\f \x01(\tR\tclassName\x12B\n" +
-	"\tclass_uid\x18\r \x01(\x0e2\x1d.ocsf.v1.ApiActivity.ClassUidB\x06\xbaH\x03\xc8\x01\x01R\bclassUid\x12,\n" +
-	"\x05cloud\x18\x0e \x01(\v2\x0e.ocsf.v1.CloudB\x06\xbaH\x03\xc8\x01\x01R\x05cloud\x12\x1e\n" +
-	"\n" +
-	"confidence\x18\x0f \x01(\tR\n" +
-	"confidence\x12F\n" +
-	"\rconfidence_id\x18\x10 \x01(\x0e2!.ocsf.v1.ApiActivity.ConfidenceIdR\fconfidenceId\x12)\n" +
-	"\x10confidence_score\x18\x11 \x01(\x05R\x0fconfidenceScore\x12\x14\n" +
-	"\x05count\x18\x12 \x01(\x05R\x05count\x12'\n" +
-	"\x06device\x18\x13 \x01(\v2\x0f.ocsf.v1.DeviceR\x06device\x12 \n" +
-	"\vdisposition\x18\x14 \x01(\tR\vdisposition\x12I\n" +
-	"\x0edisposition_id\x18\x15 \x01(\x0e2\".ocsf.v1.ApiActivity.DispositionIdR\rdispositionId\x12;\n" +
-	"\fdst_endpoint\x18\x16 \x01(\v2\x18.ocsf.v1.NetworkEndpointR\vdstEndpoint\x12\x1a\n" +
-	"\bduration\x18\x17 \x01(\x03R\bduration\x12\x19\n" +
-	"\bend_time\x18\x18 \x01(\x03R\aendTime\x12\x1e\n" +
-	"\vend_time_dt\x18\x19 \x01(\tR\tendTimeDt\x125\n" +
-	"\venrichments\x18\x1a \x03(\v2\x13.ocsf.v1.EnrichmentR\venrichments\x12:\n" +
-	"\rfirewall_rule\x18\x1b \x01(\v2\x15.ocsf.v1.FirewallRuleR\ffirewallRule\x127\n" +
-	"\fhttp_request\x18\x1c \x01(\v2\x14.ocsf.v1.HttpRequestR\vhttpRequest\x12:\n" +
-	"\rhttp_response\x18\x1d \x01(\v2\x15.ocsf.v1.HttpResponseR\fhttpResponse\x12\x19\n" +
-	"\bis_alert\x18\x1e \x01(\bR\aisAlert\x12*\n" +
-	"\amalware\x18\x1f \x03(\v2\x10.ocsf.v1.MalwareR\amalware\x12D\n" +
-	"\x11malware_scan_info\x18  \x01(\v2\x18.ocsf.v1.MalwareScanInfoR\x0fmalwareScanInfo\x12\x18\n" +
-	"\amessage\x18! \x01(\tR\amessage\x12@\n" +
-	"\x0fmessage_context\x18\" \x01(\v2\x17.ocsf.v1.MessageContextR\x0emessageContext\x125\n" +
-	"\bmetadata\x18# \x01(\v2\x11.ocsf.v1.MetadataB\x06\xbaH\x03\xc8\x01\x01R\bmetadata\x125\n" +
-	"\vobservables\x18$ \x03(\v2\x13.ocsf.v1.ObservableR\vobservables\x12$\n" +
-	"\x05osint\x18% \x03(\v2\x0e.ocsf.v1.OsintR\x05osint\x12'\n" +
-	"\x06policy\x18& \x01(\v2\x0f.ocsf.v1.PolicyR\x06policy\x12\x19\n" +
-	"\braw_data\x18' \x01(\tR\arawData\x128\n" +
-	"\rraw_data_hash\x18( \x01(\v2\x14.ocsf.v1.FingerprintR\vrawDataHash\x12\"\n" +
-	"\rraw_data_size\x18) \x01(\x03R\vrawDataSize\x126\n" +
-	"\tresources\x18* \x03(\v2\x18.ocsf.v1.ResourceDetailsR\tresources\x12!\n" +
-	"\frisk_details\x18+ \x01(\tR\vriskDetails\x12\x1d\n" +
-	"\n" +
-	"risk_level\x18, \x01(\tR\triskLevel\x12D\n" +
-	"\rrisk_level_id\x18- \x01(\x0e2 .ocsf.v1.ApiActivity.RiskLevelIdR\vriskLevelId\x12\x1d\n" +
-	"\n" +
-	"risk_score\x18. \x01(\x05R\triskScore\x12\x1a\n" +
-	"\bseverity\x18/ \x01(\tR\bseverity\x12H\n" +
-	"\vseverity_id\x180 \x01(\x0e2\x1f.ocsf.v1.ApiActivity.SeverityIdB\x06\xbaH\x03\xc8\x01\x01R\n" +
-	"severityId\x12C\n" +
-	"\fsrc_endpoint\x181 \x01(\v2\x18.ocsf.v1.NetworkEndpointB\x06\xbaH\x03\xc8\x01\x01R\vsrcEndpoint\x12\x1d\n" +
-	"\n" +
-	"start_time\x182 \x01(\x03R\tstartTime\x12\"\n" +
-	"\rstart_time_dt\x183 \x01(\tR\vstartTimeDt\x12\x16\n" +
-	"\x06status\x184 \x01(\tR\x06status\x12\x1f\n" +
-	"\vstatus_code\x185 \x01(\tR\n" +
-	"statusCode\x12#\n" +
-	"\rstatus_detail\x186 \x01(\tR\fstatusDetail\x12:\n" +
-	"\tstatus_id\x187 \x01(\x0e2\x1d.ocsf.v1.ApiActivity.StatusIdR\bstatusId\x12\x1a\n" +
-	"\x04time\x188 \x01(\x03B\x06\xbaH\x03\xc8\x01\x01R\x04time\x12\x17\n" +
-	"\atime_dt\x189 \x01(\tR\x06timeDt\x12'\n" +
-	"\x0ftimezone_offset\x18: \x01(\x05R\x0etimezoneOffset\x12$\n" +
-	"\x05trace\x18; \x01(\v2\x0e.ocsf.v1.TraceR\x05trace\x12\x1b\n" +
-	"\ttype_name\x18< \x01(\tR\btypeName\x12?\n" +
-	"\btype_uid\x18= \x01(\x0e2\x1c.ocsf.v1.ApiActivity.TypeUidB\x06\xbaH\x03\xc8\x01\x01R\atypeUid\x122\n" +
-	"\bunmapped\x18> \x01(\v2\x16.google.protobuf.ValueR\bunmapped\"\x93\x01\n" +
-	"\bActionId\x12\x15\n" +
-	"\x11ACTION_ID_UNKNOWN\x10\x00\x12\x15\n" +
-	"\x11ACTION_ID_ALLOWED\x10\x01\x12\x14\n" +
-	"\x10ACTION_ID_DENIED\x10\x02\x12\x16\n" +
-	"\x12ACTION_ID_OBSERVED\x10\x03\x12\x16\n" +
-	"\x12ACTION_ID_MODIFIED\x10\x04\x12\x13\n" +
-	"\x0fACTION_ID_OTHER\x10c\"\x9a\x01\n" +
-	"\n" +
-	"ActivityId\x12\x17\n" +
-	"\x13ACTIVITY_ID_UNKNOWN\x10\x00\x12\x16\n" +
-	"\x12ACTIVITY_ID_CREATE\x10\x01\x12\x14\n" +
-	"\x10ACTIVITY_ID_READ\x10\x02\x12\x16\n" +
-	"\x12ACTIVITY_ID_UPDATE\x10\x03\x12\x16\n" +
-	"\x12ACTIVITY_ID_DELETE\x10\x04\x12\x15\n" +
-	"\x11ACTIVITY_ID_OTHER\x10c\"N\n" +
-	"\vCategoryUid\x12\x18\n" +
-	"\x14CATEGORY_UID_UNKNOWN\x10\x00\x12%\n" +
-	"!CATEGORY_UID_APPLICATION_ACTIVITY\x10\x06\">\n" +
-	"\bClassUid\x12\x15\n" +
-	"\x11CLASS_UID_UNKNOWN\x10\x00\x12\x1b\n" +
-	"\x16CLASS_UID_API_ACTIVITY\x10\xf3.\"\x8b\x01\n" +
-	"\fConfidenceId\x12\x19\n" +
-	"\x15CONFIDENCE_ID_UNKNOWN\x10\x00\x12\x15\n" +
-	"\x11CONFIDENCE_ID_LOW\x10\x01\x12\x18\n" +
-	"\x14CONFIDENCE_ID_MEDIUM\x10\x02\x12\x16\n" +
-	"\x12CONFIDENCE_ID_HIGH\x10\x03\x12\x17\n" +
-	"\x13CONFIDENCE_ID_OTHER\x10c\"\xe3\x06\n" +
-	"\rDispositionId\x12\x1a\n" +
-	"\x16DISPOSITION_ID_UNKNOWN\x10\x00\x12\x1a\n" +
-	"\x16DISPOSITION_ID_ALLOWED\x10\x01\x12\x1a\n" +
-	"\x16DISPOSITION_ID_BLOCKED\x10\x02\x12\x1e\n" +
-	"\x1aDISPOSITION_ID_QUARANTINED\x10\x03\x12\x1b\n" +
-	"\x17DISPOSITION_ID_ISOLATED\x10\x04\x12\x1a\n" +
-	"\x16DISPOSITION_ID_DELETED\x10\x05\x12\x1a\n" +
-	"\x16DISPOSITION_ID_DROPPED\x10\x06\x12 \n" +
-	"\x1cDISPOSITION_ID_CUSTOM_ACTION\x10\a\x12\x1b\n" +
-	"\x17DISPOSITION_ID_APPROVED\x10\b\x12\x1b\n" +
-	"\x17DISPOSITION_ID_RESTORED\x10\t\x12\x1d\n" +
-	"\x19DISPOSITION_ID_EXONERATED\x10\n" +
-	"\x12\x1c\n" +
-	"\x18DISPOSITION_ID_CORRECTED\x10\v\x12&\n" +
-	"\"DISPOSITION_ID_PARTIALLY_CORRECTED\x10\f\x12\x1e\n" +
-	"\x1aDISPOSITION_ID_UNCORRECTED\x10\r\x12\x1a\n" +
-	"\x16DISPOSITION_ID_DELAYED\x10\x0e\x12\x1b\n" +
-	"\x17DISPOSITION_ID_DETECTED\x10\x0f\x12\x1c\n" +
-	"\x18DISPOSITION_ID_NO_ACTION\x10\x10\x12\x19\n" +
-	"\x15DISPOSITION_ID_LOGGED\x10\x11\x12\x19\n" +
-	"\x15DISPOSITION_ID_TAGGED\x10\x12\x12\x18\n" +
-	"\x14DISPOSITION_ID_ALERT\x10\x13\x12\x18\n" +
-	"\x14DISPOSITION_ID_COUNT\x10\x14\x12\x18\n" +
-	"\x14DISPOSITION_ID_RESET\x10\x15\x12\x1a\n" +
-	"\x16DISPOSITION_ID_CAPTCHA\x10\x16\x12\x1c\n" +
-	"\x18DISPOSITION_ID_CHALLENGE\x10\x17\x12!\n" +
-	"\x1dDISPOSITION_ID_ACCESS_REVOKED\x10\x18\x12\x1b\n" +
-	"\x17DISPOSITION_ID_REJECTED\x10\x19\x12\x1f\n" +
-	"\x1bDISPOSITION_ID_UNAUTHORIZED\x10\x1a\x12\x18\n" +
-	"\x14DISPOSITION_ID_ERROR\x10\x1b\x12\x18\n" +
-	"\x14DISPOSITION_ID_OTHER\x10c\"\xa3\x01\n" +
-	"\vRiskLevelId\x12\x16\n" +
-	"\x12RISK_LEVEL_ID_INFO\x10\x00\x12\x15\n" +
-	"\x11RISK_LEVEL_ID_LOW\x10\x01\x12\x18\n" +
-	"\x14RISK_LEVEL_ID_MEDIUM\x10\x02\x12\x16\n" +
-	"\x12RISK_LEVEL_ID_HIGH\x10\x03\x12\x1a\n" +
-	"\x16RISK_LEVEL_ID_CRITICAL\x10\x04\x12\x17\n" +
-	"\x13RISK_LEVEL_ID_OTHER\x10c\"\xcf\x01\n" +
-	"\n" +
-	"SeverityId\x12\x17\n" +
-	"\x13SEVERITY_ID_UNKNOWN\x10\x00\x12\x1d\n" +
-	"\x19SEVERITY_ID_INFORMATIONAL\x10\x01\x12\x13\n" +
-	"\x0fSEVERITY_ID_LOW\x10\x02\x12\x16\n" +
-	"\x12SEVERITY_ID_MEDIUM\x10\x03\x12\x14\n" +
-	"\x10SEVERITY_ID_HIGH\x10\x04\x12\x18\n" +
-	"\x14SEVERITY_ID_CRITICAL\x10\x05\x12\x15\n" +
-	"\x11SEVERITY_ID_FATAL\x10\x06\x12\x15\n" +
-	"\x11SEVERITY_ID_OTHER\x10c\"d\n" +
-	"\bStatusId\x12\x15\n" +
-	"\x11STATUS_ID_UNKNOWN\x10\x00\x12\x15\n" +
-	"\x11STATUS_ID_SUCCESS\x10\x01\x12\x15\n" +
-	"\x11STATUS_ID_FAILURE\x10\x02\x12\x13\n" +
-	"\x0fSTATUS_ID_OTHER\x10c\"\xf5\x01\n" +
-	"\aTypeUid\x12\x14\n" +
-	"\x10TYPE_UID_UNKNOWN\x10\x00\x12#\n" +
-	"\x1dTYPE_UID_API_ACTIVITY_UNKNOWN\x10\xec\xd1$\x12\"\n" +
-	"\x1cTYPE_UID_API_ACTIVITY_CREATE\x10\xed\xd1$\x12 \n" +
-	"\x1aTYPE_UID_API_ACTIVITY_READ\x10\xee\xd1$\x12\"\n" +
-	"\x1cTYPE_UID_API_ACTIVITY_UPDATE\x10\xef\xd1$\x12\"\n" +
-	"\x1cTYPE_UID_API_ACTIVITY_DELETE\x10\xf0\xd1$\x12!\n" +
-	"\x1bTYPE_UID_API_ACTIVITY_OTHER\x10\xcf\xd2$\"\x8d,\n" +
-	"\x10EntityManagement\x12\x1f\n" +
-	"\vaccess_list\x18\x01 \x03(\tR\n" +
-	"accessList\x12\x1f\n" +
-	"\vaccess_mask\x18\x02 \x01(\x05R\n" +
-	"accessMask\x12\x16\n" +
-	"\x06action\x18\x03 \x01(\tR\x06action\x12?\n" +
-	"\taction_id\x18\x04 \x01(\x0e2\".ocsf.v1.EntityManagement.ActionIdR\bactionId\x12M\n" +
-	"\vactivity_id\x18\x05 \x01(\x0e2$.ocsf.v1.EntityManagement.ActivityIdB\x06\xbaH\x03\xc8\x01\x01R\n" +
-	"activityId\x12#\n" +
-	"\ractivity_name\x18\x06 \x01(\tR\factivityName\x12$\n" +
-	"\x05actor\x18\a \x01(\v2\x0e.ocsf.v1.ActorR\x05actor\x12\x1e\n" +
-	"\x03api\x18\b \x01(\v2\f.ocsf.v1.ApiR\x03api\x12)\n" +
-	"\aattacks\x18\t \x03(\v2\x0f.ocsf.v1.AttackR\aattacks\x12>\n" +
-	"\x0eauthorizations\x18\n" +
-	" \x03(\v2\x16.ocsf.v1.AuthorizationR\x0eauthorizations\x12#\n" +
-	"\rcategory_name\x18\v \x01(\tR\fcategoryName\x12P\n" +
-	"\fcategory_uid\x18\f \x01(\x0e2%.ocsf.v1.EntityManagement.CategoryUidB\x06\xbaH\x03\xc8\x01\x01R\vcategoryUid\x12\x1d\n" +
-	"\n" +
-	"class_name\x18\r \x01(\tR\tclassName\x12G\n" +
-	"\tclass_uid\x18\x0e \x01(\x0e2\".ocsf.v1.EntityManagement.ClassUidB\x06\xbaH\x03\xc8\x01\x01R\bclassUid\x12,\n" +
-	"\x05cloud\x18\x0f \x01(\v2\x0e.ocsf.v1.CloudB\x06\xbaH\x03\xc8\x01\x01R\x05cloud\x12\x18\n" +
-	"\acomment\x18\x10 \x01(\tR\acomment\x12\x1e\n" +
-	"\n" +
-	"confidence\x18\x11 \x01(\tR\n" +
-	"confidence\x12K\n" +
-	"\rconfidence_id\x18\x12 \x01(\x0e2&.ocsf.v1.EntityManagement.ConfidenceIdR\fconfidenceId\x12)\n" +
-	"\x10confidence_score\x18\x13 \x01(\x05R\x0fconfidenceScore\x12\x14\n" +
-	"\x05count\x18\x14 \x01(\x05R\x05count\x12'\n" +
-	"\x06device\x18\x15 \x01(\v2\x0f.ocsf.v1.DeviceR\x06device\x12 \n" +
-	"\vdisposition\x18\x16 \x01(\tR\vdisposition\x12N\n" +
-	"\x0edisposition_id\x18\x17 \x01(\x0e2'.ocsf.v1.EntityManagement.DispositionIdR\rdispositionId\x12\x1a\n" +
-	"\bduration\x18\x18 \x01(\x03R\bduration\x12\x19\n" +
-	"\bend_time\x18\x19 \x01(\x03R\aendTime\x12\x1e\n" +
-	"\vend_time_dt\x18\x1a \x01(\tR\tendTimeDt\x125\n" +
-	"\venrichments\x18\x1b \x03(\v2\x13.ocsf.v1.EnrichmentR\venrichments\x126\n" +
-	"\x06entity\x18\x1c \x01(\v2\x16.ocsf.v1.ManagedEntityB\x06\xbaH\x03\xc8\x01\x01R\x06entity\x12;\n" +
-	"\rentity_result\x18\x1d \x01(\v2\x16.ocsf.v1.ManagedEntityR\fentityResult\x12:\n" +
-	"\rfirewall_rule\x18\x1e \x01(\v2\x15.ocsf.v1.FirewallRuleR\ffirewallRule\x127\n" +
-	"\fhttp_request\x18\x1f \x01(\v2\x14.ocsf.v1.HttpRequestR\vhttpRequest\x12:\n" +
-	"\rhttp_response\x18  \x01(\v2\x15.ocsf.v1.HttpResponseR\fhttpResponse\x12\x19\n" +
-	"\bis_alert\x18! \x01(\bR\aisAlert\x12*\n" +
-	"\amalware\x18\" \x03(\v2\x10.ocsf.v1.MalwareR\amalware\x12D\n" +
-	"\x11malware_scan_info\x18# \x01(\v2\x18.ocsf.v1.MalwareScanInfoR\x0fmalwareScanInfo\x12\x18\n" +
-	"\amessage\x18$ \x01(\tR\amessage\x125\n" +
-	"\bmetadata\x18% \x01(\v2\x11.ocsf.v1.MetadataB\x06\xbaH\x03\xc8\x01\x01R\bmetadata\x125\n" +
-	"\vobservables\x18& \x03(\v2\x13.ocsf.v1.ObservableR\vobservables\x12$\n" +
-	"\x05osint\x18' \x03(\v2\x0e.ocsf.v1.OsintR\x05osint\x12'\n" +
-	"\x06policy\x18( \x01(\v2\x0f.ocsf.v1.PolicyR\x06policy\x12\x19\n" +
-	"\braw_data\x18) \x01(\tR\arawData\x128\n" +
-	"\rraw_data_hash\x18* \x01(\v2\x14.ocsf.v1.FingerprintR\vrawDataHash\x12\"\n" +
-	"\rraw_data_size\x18+ \x01(\x03R\vrawDataSize\x12!\n" +
-	"\frisk_details\x18, \x01(\tR\vriskDetails\x12\x1d\n" +
-	"\n" +
-	"risk_level\x18- \x01(\tR\triskLevel\x12I\n" +
-	"\rrisk_level_id\x18. \x01(\x0e2%.ocsf.v1.EntityManagement.RiskLevelIdR\vriskLevelId\x12\x1d\n" +
-	"\n" +
-	"risk_score\x18/ \x01(\x05R\triskScore\x12\x1a\n" +
-	"\bseverity\x180 \x01(\tR\bseverity\x12M\n" +
-	"\vseverity_id\x181 \x01(\x0e2$.ocsf.v1.EntityManagement.SeverityIdB\x06\xbaH\x03\xc8\x01\x01R\n" +
-	"severityId\x12;\n" +
-	"\fsrc_endpoint\x182 \x01(\v2\x18.ocsf.v1.NetworkEndpointR\vsrcEndpoint\x12\x1d\n" +
-	"\n" +
-	"start_time\x183 \x01(\x03R\tstartTime\x12\"\n" +
-	"\rstart_time_dt\x184 \x01(\tR\vstartTimeDt\x12\x16\n" +
-	"\x06status\x185 \x01(\tR\x06status\x12\x1f\n" +
-	"\vstatus_code\x186 \x01(\tR\n" +
-	"statusCode\x12#\n" +
-	"\rstatus_detail\x187 \x01(\tR\fstatusDetail\x12?\n" +
-	"\tstatus_id\x188 \x01(\x0e2\".ocsf.v1.EntityManagement.StatusIdR\bstatusId\x12\x1a\n" +
-	"\x04time\x189 \x01(\x03B\x06\xbaH\x03\xc8\x01\x01R\x04time\x12\x17\n" +
-	"\atime_dt\x18: \x01(\tR\x06timeDt\x12'\n" +
-	"\x0ftimezone_offset\x18; \x01(\x05R\x0etimezoneOffset\x12\x1b\n" +
-	"\ttype_name\x18< \x01(\tR\btypeName\x12D\n" +
-	"\btype_uid\x18= \x01(\x0e2!.ocsf.v1.EntityManagement.TypeUidB\x06\xbaH\x03\xc8\x01\x01R\atypeUid\x122\n" +
-	"\bunmapped\x18> \x01(\v2\x16.google.protobuf.ValueR\bunmapped\"\x93\x01\n" +
-	"\bActionId\x12\x15\n" +
-	"\x11ACTION_ID_UNKNOWN\x10\x00\x12\x15\n" +
-	"\x11ACTION_ID_ALLOWED\x10\x01\x12\x14\n" +
-	"\x10ACTION_ID_DENIED\x10\x02\x12\x16\n" +
-	"\x12ACTION_ID_OBSERVED\x10\x03\x12\x16\n" +
-	"\x12ACTION_ID_MODIFIED\x10\x04\x12\x13\n" +
-	"\x0fACTION_ID_OTHER\x10c\"\xfa\x02\n" +
-	"\n" +
-	"ActivityId\x12\x17\n" +
-	"\x13ACTIVITY_ID_UNKNOWN\x10\x00\x12\x16\n" +
-	"\x12ACTIVITY_ID_CREATE\x10\x01\x12\x14\n" +
-	"\x10ACTIVITY_ID_READ\x10\x02\x12\x16\n" +
-	"\x12ACTIVITY_ID_UPDATE\x10\x03\x12\x16\n" +
-	"\x12ACTIVITY_ID_DELETE\x10\x04\x12\x14\n" +
-	"\x10ACTIVITY_ID_MOVE\x10\x05\x12\x16\n" +
-	"\x12ACTIVITY_ID_ENROLL\x10\x06\x12\x18\n" +
-	"\x14ACTIVITY_ID_UNENROLL\x10\a\x12\x16\n" +
-	"\x12ACTIVITY_ID_ENABLE\x10\b\x12\x17\n" +
-	"\x13ACTIVITY_ID_DISABLE\x10\t\x12\x18\n" +
-	"\x14ACTIVITY_ID_ACTIVATE\x10\n" +
-	"\x12\x1a\n" +
-	"\x16ACTIVITY_ID_DEACTIVATE\x10\v\x12\x17\n" +
-	"\x13ACTIVITY_ID_SUSPEND\x10\f\x12\x16\n" +
-	"\x12ACTIVITY_ID_RESUME\x10\r\x12\x15\n" +
-	"\x11ACTIVITY_ID_OTHER\x10c\"T\n" +
-	"\vCategoryUid\x12\x18\n" +
-	"\x14CATEGORY_UID_UNKNOWN\x10\x00\x12+\n" +
-	"'CATEGORY_UID_IDENTITY_ACCESS_MANAGEMENT\x10\x03\"C\n" +
-	"\bClassUid\x12\x15\n" +
-	"\x11CLASS_UID_UNKNOWN\x10\x00\x12 \n" +
-	"\x1bCLASS_UID_ENTITY_MANAGEMENT\x10\xbc\x17\"\x8b\x01\n" +
-	"\fConfidenceId\x12\x19\n" +
-	"\x15CONFIDENCE_ID_UNKNOWN\x10\x00\x12\x15\n" +
-	"\x11CONFIDENCE_ID_LOW\x10\x01\x12\x18\n" +
-	"\x14CONFIDENCE_ID_MEDIUM\x10\x02\x12\x16\n" +
-	"\x12CONFIDENCE_ID_HIGH\x10\x03\x12\x17\n" +
-	"\x13CONFIDENCE_ID_OTHER\x10c\"\xe3\x06\n" +
-	"\rDispositionId\x12\x1a\n" +
-	"\x16DISPOSITION_ID_UNKNOWN\x10\x00\x12\x1a\n" +
-	"\x16DISPOSITION_ID_ALLOWED\x10\x01\x12\x1a\n" +
-	"\x16DISPOSITION_ID_BLOCKED\x10\x02\x12\x1e\n" +
-	"\x1aDISPOSITION_ID_QUARANTINED\x10\x03\x12\x1b\n" +
-	"\x17DISPOSITION_ID_ISOLATED\x10\x04\x12\x1a\n" +
-	"\x16DISPOSITION_ID_DELETED\x10\x05\x12\x1a\n" +
-	"\x16DISPOSITION_ID_DROPPED\x10\x06\x12 \n" +
-	"\x1cDISPOSITION_ID_CUSTOM_ACTION\x10\a\x12\x1b\n" +
-	"\x17DISPOSITION_ID_APPROVED\x10\b\x12\x1b\n" +
-	"\x17DISPOSITION_ID_RESTORED\x10\t\x12\x1d\n" +
-	"\x19DISPOSITION_ID_EXONERATED\x10\n" +
-	"\x12\x1c\n" +
-	"\x18DISPOSITION_ID_CORRECTED\x10\v\x12&\n" +
-	"\"DISPOSITION_ID_PARTIALLY_CORRECTED\x10\f\x12\x1e\n" +
-	"\x1aDISPOSITION_ID_UNCORRECTED\x10\r\x12\x1a\n" +
-	"\x16DISPOSITION_ID_DELAYED\x10\x0e\x12\x1b\n" +
-	"\x17DISPOSITION_ID_DETECTED\x10\x0f\x12\x1c\n" +
-	"\x18DISPOSITION_ID_NO_ACTION\x10\x10\x12\x19\n" +
-	"\x15DISPOSITION_ID_LOGGED\x10\x11\x12\x19\n" +
-	"\x15DISPOSITION_ID_TAGGED\x10\x12\x12\x18\n" +
-	"\x14DISPOSITION_ID_ALERT\x10\x13\x12\x18\n" +
-	"\x14DISPOSITION_ID_COUNT\x10\x14\x12\x18\n" +
-	"\x14DISPOSITION_ID_RESET\x10\x15\x12\x1a\n" +
-	"\x16DISPOSITION_ID_CAPTCHA\x10\x16\x12\x1c\n" +
-	"\x18DISPOSITION_ID_CHALLENGE\x10\x17\x12!\n" +
-	"\x1dDISPOSITION_ID_ACCESS_REVOKED\x10\x18\x12\x1b\n" +
-	"\x17DISPOSITION_ID_REJECTED\x10\x19\x12\x1f\n" +
-	"\x1bDISPOSITION_ID_UNAUTHORIZED\x10\x1a\x12\x18\n" +
-	"\x14DISPOSITION_ID_ERROR\x10\x1b\x12\x18\n" +
-	"\x14DISPOSITION_ID_OTHER\x10c\"\xa3\x01\n" +
-	"\vRiskLevelId\x12\x16\n" +
-	"\x12RISK_LEVEL_ID_INFO\x10\x00\x12\x15\n" +
-	"\x11RISK_LEVEL_ID_LOW\x10\x01\x12\x18\n" +
-	"\x14RISK_LEVEL_ID_MEDIUM\x10\x02\x12\x16\n" +
-	"\x12RISK_LEVEL_ID_HIGH\x10\x03\x12\x1a\n" +
-	"\x16RISK_LEVEL_ID_CRITICAL\x10\x04\x12\x17\n" +
-	"\x13RISK_LEVEL_ID_OTHER\x10c\"\xcf\x01\n" +
-	"\n" +
-	"SeverityId\x12\x17\n" +
-	"\x13SEVERITY_ID_UNKNOWN\x10\x00\x12\x1d\n" +
-	"\x19SEVERITY_ID_INFORMATIONAL\x10\x01\x12\x13\n" +
-	"\x0fSEVERITY_ID_LOW\x10\x02\x12\x16\n" +
-	"\x12SEVERITY_ID_MEDIUM\x10\x03\x12\x14\n" +
-	"\x10SEVERITY_ID_HIGH\x10\x04\x12\x18\n" +
-	"\x14SEVERITY_ID_CRITICAL\x10\x05\x12\x15\n" +
-	"\x11SEVERITY_ID_FATAL\x10\x06\x12\x15\n" +
-	"\x11SEVERITY_ID_OTHER\x10c\"d\n" +
-	"\bStatusId\x12\x15\n" +
-	"\x11STATUS_ID_UNKNOWN\x10\x00\x12\x15\n" +
-	"\x11STATUS_ID_SUCCESS\x10\x01\x12\x15\n" +
-	"\x11STATUS_ID_FAILURE\x10\x02\x12\x13\n" +
-	"\x0fSTATUS_ID_OTHER\x10c\"\x8c\x05\n" +
-	"\aTypeUid\x12\x14\n" +
-	"\x10TYPE_UID_UNKNOWN\x10\x00\x12(\n" +
-	"\"TYPE_UID_ENTITY_MANAGEMENT_UNKNOWN\x10\xf0\xaa\x12\x12'\n" +
-	"!TYPE_UID_ENTITY_MANAGEMENT_CREATE\x10\xf1\xaa\x12\x12%\n" +
-	"\x1fTYPE_UID_ENTITY_MANAGEMENT_READ\x10\xf2\xaa\x12\x12'\n" +
-	"!TYPE_UID_ENTITY_MANAGEMENT_UPDATE\x10\xf3\xaa\x12\x12'\n" +
-	"!TYPE_UID_ENTITY_MANAGEMENT_DELETE\x10\xf4\xaa\x12\x12%\n" +
-	"\x1fTYPE_UID_ENTITY_MANAGEMENT_MOVE\x10\xf5\xaa\x12\x12'\n" +
-	"!TYPE_UID_ENTITY_MANAGEMENT_ENROLL\x10\xf6\xaa\x12\x12)\n" +
-	"#TYPE_UID_ENTITY_MANAGEMENT_UNENROLL\x10\xf7\xaa\x12\x12'\n" +
-	"!TYPE_UID_ENTITY_MANAGEMENT_ENABLE\x10\xf8\xaa\x12\x12(\n" +
-	"\"TYPE_UID_ENTITY_MANAGEMENT_DISABLE\x10\xf9\xaa\x12\x12)\n" +
-	"#TYPE_UID_ENTITY_MANAGEMENT_ACTIVATE\x10\xfa\xaa\x12\x12+\n" +
-	"%TYPE_UID_ENTITY_MANAGEMENT_DEACTIVATE\x10\xfb\xaa\x12\x12(\n" +
-	"\"TYPE_UID_ENTITY_MANAGEMENT_SUSPEND\x10\xfc\xaa\x12\x12'\n" +
-	"!TYPE_UID_ENTITY_MANAGEMENT_RESUME\x10\xfd\xaa\x12\x12&\n" +
-	" TYPE_UID_ENTITY_MANAGEMENT_OTHER\x10ӫ\x12\"\xeb\a\n" +
+	"\x15ocsf/v1/objects.proto\x12\aocsf.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\"\xeb\a\n" +
 	"\aAccount\x12\x1f\n" +
 	"\vis_disabled\x18\x01 \x01(\bR\n" +
 	"isDisabled\x12\x1b\n" +
@@ -24476,632 +21765,545 @@ const file_api_entity_proto_rawDesc = "" +
 	"\x17WinService.at_least_one\x12\xa7\x01at least one of [cmd_line, service_category_id, service_dependencies, service_error_control_id, service_start_name, service_start_type_id, service_type_id] must be set\x1a\xdb\x01has(this.cmd_line) || has(this.service_category_id) || has(this.service_dependencies) || has(this.service_error_control_id) || has(this.service_start_name) || has(this.service_start_type_id) || has(this.service_type_id)b\x06proto3"
 
 var (
-	file_api_entity_proto_rawDescOnce sync.Once
-	file_api_entity_proto_rawDescData []byte
+	file_ocsf_v1_objects_proto_rawDescOnce sync.Once
+	file_ocsf_v1_objects_proto_rawDescData []byte
 )
 
-func file_api_entity_proto_rawDescGZIP() []byte {
-	file_api_entity_proto_rawDescOnce.Do(func() {
-		file_api_entity_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_api_entity_proto_rawDesc), len(file_api_entity_proto_rawDesc)))
+func file_ocsf_v1_objects_proto_rawDescGZIP() []byte {
+	file_ocsf_v1_objects_proto_rawDescOnce.Do(func() {
+		file_ocsf_v1_objects_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_ocsf_v1_objects_proto_rawDesc), len(file_ocsf_v1_objects_proto_rawDesc)))
 	})
-	return file_api_entity_proto_rawDescData
+	return file_ocsf_v1_objects_proto_rawDescData
 }
 
-var file_api_entity_proto_enumTypes = make([]protoimpl.EnumInfo, 88)
-var file_api_entity_proto_msgTypes = make([]protoimpl.MessageInfo, 116)
-var file_api_entity_proto_goTypes = []any{
-	(ApiActivity_ActionId)(0),                 // 0: ocsf.v1.ApiActivity.ActionId
-	(ApiActivity_ActivityId)(0),               // 1: ocsf.v1.ApiActivity.ActivityId
-	(ApiActivity_CategoryUid)(0),              // 2: ocsf.v1.ApiActivity.CategoryUid
-	(ApiActivity_ClassUid)(0),                 // 3: ocsf.v1.ApiActivity.ClassUid
-	(ApiActivity_ConfidenceId)(0),             // 4: ocsf.v1.ApiActivity.ConfidenceId
-	(ApiActivity_DispositionId)(0),            // 5: ocsf.v1.ApiActivity.DispositionId
-	(ApiActivity_RiskLevelId)(0),              // 6: ocsf.v1.ApiActivity.RiskLevelId
-	(ApiActivity_SeverityId)(0),               // 7: ocsf.v1.ApiActivity.SeverityId
-	(ApiActivity_StatusId)(0),                 // 8: ocsf.v1.ApiActivity.StatusId
-	(ApiActivity_TypeUid)(0),                  // 9: ocsf.v1.ApiActivity.TypeUid
-	(EntityManagement_ActionId)(0),            // 10: ocsf.v1.EntityManagement.ActionId
-	(EntityManagement_ActivityId)(0),          // 11: ocsf.v1.EntityManagement.ActivityId
-	(EntityManagement_CategoryUid)(0),         // 12: ocsf.v1.EntityManagement.CategoryUid
-	(EntityManagement_ClassUid)(0),            // 13: ocsf.v1.EntityManagement.ClassUid
-	(EntityManagement_ConfidenceId)(0),        // 14: ocsf.v1.EntityManagement.ConfidenceId
-	(EntityManagement_DispositionId)(0),       // 15: ocsf.v1.EntityManagement.DispositionId
-	(EntityManagement_RiskLevelId)(0),         // 16: ocsf.v1.EntityManagement.RiskLevelId
-	(EntityManagement_SeverityId)(0),          // 17: ocsf.v1.EntityManagement.SeverityId
-	(EntityManagement_StatusId)(0),            // 18: ocsf.v1.EntityManagement.StatusId
-	(EntityManagement_TypeUid)(0),             // 19: ocsf.v1.EntityManagement.TypeUid
-	(Account_TypeId)(0),                       // 20: ocsf.v1.Account.TypeId
-	(Advisory_InstallStateId)(0),              // 21: ocsf.v1.Advisory.InstallStateId
-	(AffectedPackage_TypeId)(0),               // 22: ocsf.v1.AffectedPackage.TypeId
-	(Agent_TypeId)(0),                         // 23: ocsf.v1.Agent.TypeId
-	(Analytic_StateId)(0),                     // 24: ocsf.v1.Analytic.StateId
-	(Analytic_TypeId)(0),                      // 25: ocsf.v1.Analytic.TypeId
-	(Application_RiskLevelId)(0),              // 26: ocsf.v1.Application.RiskLevelId
-	(AuthFactor_FactorTypeId)(0),              // 27: ocsf.v1.AuthFactor.FactorTypeId
-	(DataClassification_CategoryId)(0),        // 28: ocsf.v1.DataClassification.CategoryId
-	(DataClassification_ConfidentialityId)(0), // 29: ocsf.v1.DataClassification.ConfidentialityId
-	(DataClassification_StatusId)(0),          // 30: ocsf.v1.DataClassification.StatusId
-	(Device_RiskLevelId)(0),                   // 31: ocsf.v1.Device.RiskLevelId
-	(Device_TypeId)(0),                        // 32: ocsf.v1.Device.TypeId
-	(DeviceHwInfo_CpuArchitectureId)(0),       // 33: ocsf.v1.DeviceHwInfo.CpuArchitectureId
-	(DigitalSignature_AlgorithmId)(0),         // 34: ocsf.v1.DigitalSignature.AlgorithmId
-	(DigitalSignature_StateId)(0),             // 35: ocsf.v1.DigitalSignature.StateId
-	(DnsAnswer_FlagIds)(0),                    // 36: ocsf.v1.DnsAnswer.FlagIds
-	(DomainContact_TypeId)(0),                 // 37: ocsf.v1.DomainContact.TypeId
-	(EncryptionDetails_AlgorithmId)(0),        // 38: ocsf.v1.EncryptionDetails.AlgorithmId
-	(File_ConfidentialityId)(0),               // 39: ocsf.v1.File.ConfidentialityId
-	(File_DriveTypeId)(0),                     // 40: ocsf.v1.File.DriveTypeId
-	(File_TypeId)(0),                          // 41: ocsf.v1.File.TypeId
-	(Fingerprint_AlgorithmId)(0),              // 42: ocsf.v1.Fingerprint.AlgorithmId
-	(GpuInfo_BusTypeId)(0),                    // 43: ocsf.v1.GpuInfo.BusTypeId
-	(GpuInfo_VramModeId)(0),                   // 44: ocsf.v1.GpuInfo.VramModeId
-	(Graph_QueryLanguageId)(0),                // 45: ocsf.v1.Graph.QueryLanguageId
-	(Idp_StateId)(0),                          // 46: ocsf.v1.Idp.StateId
-	(KbArticle_InstallStateId)(0),             // 47: ocsf.v1.KbArticle.InstallStateId
-	(KillChainPhase_PhaseId)(0),               // 48: ocsf.v1.KillChainPhase.PhaseId
-	(Malware_ClassificationIds)(0),            // 49: ocsf.v1.Malware.ClassificationIds
-	(Malware_SeverityId)(0),                   // 50: ocsf.v1.Malware.SeverityId
-	(MalwareScanInfo_TypeId)(0),               // 51: ocsf.v1.MalwareScanInfo.TypeId
-	(ManagedEntity_TypeId)(0),                 // 52: ocsf.v1.ManagedEntity.TypeId
-	(MessageContext_AiRoleId)(0),              // 53: ocsf.v1.MessageContext.AiRoleId
-	(NetworkEndpoint_NetworkScopeId)(0),       // 54: ocsf.v1.NetworkEndpoint.NetworkScopeId
-	(NetworkEndpoint_TypeId)(0),               // 55: ocsf.v1.NetworkEndpoint.TypeId
-	(NetworkInterface_TypeId)(0),              // 56: ocsf.v1.NetworkInterface.TypeId
-	(NetworkProxy_NetworkScopeId)(0),          // 57: ocsf.v1.NetworkProxy.NetworkScopeId
-	(NetworkProxy_TypeId)(0),                  // 58: ocsf.v1.NetworkProxy.TypeId
-	(Observable_TypeId)(0),                    // 59: ocsf.v1.Observable.TypeId
-	(Os_TypeId)(0),                            // 60: ocsf.v1.Os.TypeId
-	(Osint_ConfidenceId)(0),                   // 61: ocsf.v1.Osint.ConfidenceId
-	(Osint_DetectionPatternTypeId)(0),         // 62: ocsf.v1.Osint.DetectionPatternTypeId
-	(Osint_SeverityId)(0),                     // 63: ocsf.v1.Osint.SeverityId
-	(Osint_TypeId)(0),                         // 64: ocsf.v1.Osint.TypeId
-	(Package_TypeId)(0),                       // 65: ocsf.v1.Package.TypeId
-	(Process_IntegrityId)(0),                  // 66: ocsf.v1.Process.IntegrityId
-	(Reputation_ScoreId)(0),                   // 67: ocsf.v1.Reputation.ScoreId
-	(ResourceDetails_RoleId)(0),               // 68: ocsf.v1.ResourceDetails.RoleId
-	(Sbom_TypeId)(0),                          // 69: ocsf.v1.Sbom.TypeId
-	(Scim_AuthProtocolId)(0),                  // 70: ocsf.v1.Scim.AuthProtocolId
-	(Scim_StateId)(0),                         // 71: ocsf.v1.Scim.StateId
-	(Script_TypeId)(0),                        // 72: ocsf.v1.Script.TypeId
-	(SoftwareComponent_RelationshipId)(0),     // 73: ocsf.v1.SoftwareComponent.RelationshipId
-	(SoftwareComponent_TypeId)(0),             // 74: ocsf.v1.SoftwareComponent.TypeId
-	(Sso_AuthProtocolId)(0),                   // 75: ocsf.v1.Sso.AuthProtocolId
-	(ThreatActor_TypeId)(0),                   // 76: ocsf.v1.ThreatActor.TypeId
-	(Timespan_TypeId)(0),                      // 77: ocsf.v1.Timespan.TypeId
-	(Token_TypeId)(0),                         // 78: ocsf.v1.Token.TypeId
-	(Url_CategoryIds)(0),                      // 79: ocsf.v1.Url.CategoryIds
-	(User_RiskLevelId)(0),                     // 80: ocsf.v1.User.RiskLevelId
-	(User_TypeId)(0),                          // 81: ocsf.v1.User.TypeId
-	(Vulnerability_FixCoverageId)(0),          // 82: ocsf.v1.Vulnerability.FixCoverageId
-	(Whois_DnssecStatusId)(0),                 // 83: ocsf.v1.Whois.DnssecStatusId
-	(WinService_ServiceCategoryId)(0),         // 84: ocsf.v1.WinService.ServiceCategoryId
-	(WinService_ServiceErrorControlId)(0),     // 85: ocsf.v1.WinService.ServiceErrorControlId
-	(WinService_ServiceStartTypeId)(0),        // 86: ocsf.v1.WinService.ServiceStartTypeId
-	(WinService_ServiceTypeId)(0),             // 87: ocsf.v1.WinService.ServiceTypeId
-	(*ApiActivity)(nil),                       // 88: ocsf.v1.ApiActivity
-	(*EntityManagement)(nil),                  // 89: ocsf.v1.EntityManagement
-	(*Account)(nil),                           // 90: ocsf.v1.Account
-	(*Actor)(nil),                             // 91: ocsf.v1.Actor
-	(*Advisory)(nil),                          // 92: ocsf.v1.Advisory
-	(*AffectedCode)(nil),                      // 93: ocsf.v1.AffectedCode
-	(*AffectedPackage)(nil),                   // 94: ocsf.v1.AffectedPackage
-	(*Agent)(nil),                             // 95: ocsf.v1.Agent
-	(*AiModel)(nil),                           // 96: ocsf.v1.AiModel
-	(*Analytic)(nil),                          // 97: ocsf.v1.Analytic
-	(*Api)(nil),                               // 98: ocsf.v1.Api
-	(*Application)(nil),                       // 99: ocsf.v1.Application
-	(*Attack)(nil),                            // 100: ocsf.v1.Attack
-	(*AuthFactor)(nil),                        // 101: ocsf.v1.AuthFactor
-	(*Authorization)(nil),                     // 102: ocsf.v1.Authorization
-	(*AutonomousSystem)(nil),                  // 103: ocsf.v1.AutonomousSystem
-	(*Campaign)(nil),                          // 104: ocsf.v1.Campaign
-	(*Certificate)(nil),                       // 105: ocsf.v1.Certificate
-	(*CisControl)(nil),                        // 106: ocsf.v1.CisControl
-	(*ClassifierDetails)(nil),                 // 107: ocsf.v1.ClassifierDetails
-	(*Cloud)(nil),                             // 108: ocsf.v1.Cloud
-	(*Container)(nil),                         // 109: ocsf.v1.Container
-	(*Cve)(nil),                               // 110: ocsf.v1.Cve
-	(*Cvss)(nil),                              // 111: ocsf.v1.Cvss
-	(*Cwe)(nil),                               // 112: ocsf.v1.Cwe
-	(*D3FTactic)(nil),                         // 113: ocsf.v1.D3fTactic
-	(*D3FTechnique)(nil),                      // 114: ocsf.v1.D3fTechnique
-	(*D3Fend)(nil),                            // 115: ocsf.v1.D3fend
-	(*DataClassification)(nil),                // 116: ocsf.v1.DataClassification
-	(*Device)(nil),                            // 117: ocsf.v1.Device
-	(*DeviceHwInfo)(nil),                      // 118: ocsf.v1.DeviceHwInfo
-	(*DigitalSignature)(nil),                  // 119: ocsf.v1.DigitalSignature
-	(*DiscoveryDetails)(nil),                  // 120: ocsf.v1.DiscoveryDetails
-	(*Display)(nil),                           // 121: ocsf.v1.Display
-	(*DnsAnswer)(nil),                         // 122: ocsf.v1.DnsAnswer
-	(*DomainContact)(nil),                     // 123: ocsf.v1.DomainContact
-	(*Edge)(nil),                              // 124: ocsf.v1.Edge
-	(*Email)(nil),                             // 125: ocsf.v1.Email
-	(*EmailAuth)(nil),                         // 126: ocsf.v1.EmailAuth
-	(*EncryptionDetails)(nil),                 // 127: ocsf.v1.EncryptionDetails
-	(*Enrichment)(nil),                        // 128: ocsf.v1.Enrichment
-	(*EnvironmentVariable)(nil),               // 129: ocsf.v1.EnvironmentVariable
-	(*Epss)(nil),                              // 130: ocsf.v1.Epss
-	(*Extension)(nil),                         // 131: ocsf.v1.Extension
-	(*Feature)(nil),                           // 132: ocsf.v1.Feature
-	(*File)(nil),                              // 133: ocsf.v1.File
-	(*Fingerprint)(nil),                       // 134: ocsf.v1.Fingerprint
-	(*FirewallRule)(nil),                      // 135: ocsf.v1.FirewallRule
-	(*GpuInfo)(nil),                           // 136: ocsf.v1.GpuInfo
-	(*Graph)(nil),                             // 137: ocsf.v1.Graph
-	(*Group)(nil),                             // 138: ocsf.v1.Group
-	(*HttpHeader)(nil),                        // 139: ocsf.v1.HttpHeader
-	(*HttpRequest)(nil),                       // 140: ocsf.v1.HttpRequest
-	(*HttpResponse)(nil),                      // 141: ocsf.v1.HttpResponse
-	(*Idp)(nil),                               // 142: ocsf.v1.Idp
-	(*Image)(nil),                             // 143: ocsf.v1.Image
-	(*KbArticle)(nil),                         // 144: ocsf.v1.KbArticle
-	(*KeyValueObject)(nil),                    // 145: ocsf.v1.KeyValueObject
-	(*KeyboardInfo)(nil),                      // 146: ocsf.v1.KeyboardInfo
-	(*KillChainPhase)(nil),                    // 147: ocsf.v1.KillChainPhase
-	(*LdapPerson)(nil),                        // 148: ocsf.v1.LdapPerson
-	(*Location)(nil),                          // 149: ocsf.v1.Location
-	(*Logger)(nil),                            // 150: ocsf.v1.Logger
-	(*LongString)(nil),                        // 151: ocsf.v1.LongString
-	(*Malware)(nil),                           // 152: ocsf.v1.Malware
-	(*MalwareScanInfo)(nil),                   // 153: ocsf.v1.MalwareScanInfo
-	(*ManagedEntity)(nil),                     // 154: ocsf.v1.ManagedEntity
-	(*MessageContext)(nil),                    // 155: ocsf.v1.MessageContext
-	(*Metadata)(nil),                          // 156: ocsf.v1.Metadata
-	(*Metric)(nil),                            // 157: ocsf.v1.Metric
-	(*Mitigation)(nil),                        // 158: ocsf.v1.Mitigation
-	(*NetworkEndpoint)(nil),                   // 159: ocsf.v1.NetworkEndpoint
-	(*NetworkInterface)(nil),                  // 160: ocsf.v1.NetworkInterface
-	(*NetworkProxy)(nil),                      // 161: ocsf.v1.NetworkProxy
-	(*Node)(nil),                              // 162: ocsf.v1.Node
-	(*Observable)(nil),                        // 163: ocsf.v1.Observable
-	(*OccurrenceDetails)(nil),                 // 164: ocsf.v1.OccurrenceDetails
-	(*Organization)(nil),                      // 165: ocsf.v1.Organization
-	(*Os)(nil),                                // 166: ocsf.v1.Os
-	(*Osint)(nil),                             // 167: ocsf.v1.Osint
-	(*Package)(nil),                           // 168: ocsf.v1.Package
-	(*Policy)(nil),                            // 169: ocsf.v1.Policy
-	(*PortInfo)(nil),                          // 170: ocsf.v1.PortInfo
-	(*Process)(nil),                           // 171: ocsf.v1.Process
-	(*ProcessEntity)(nil),                     // 172: ocsf.v1.ProcessEntity
-	(*Product)(nil),                           // 173: ocsf.v1.Product
-	(*ProgrammaticCredential)(nil),            // 174: ocsf.v1.ProgrammaticCredential
-	(*Remediation)(nil),                       // 175: ocsf.v1.Remediation
-	(*Reporter)(nil),                          // 176: ocsf.v1.Reporter
-	(*Reputation)(nil),                        // 177: ocsf.v1.Reputation
-	(*Request)(nil),                           // 178: ocsf.v1.Request
-	(*ResourceDetails)(nil),                   // 179: ocsf.v1.ResourceDetails
-	(*Response)(nil),                          // 180: ocsf.v1.Response
-	(*Rule)(nil),                              // 181: ocsf.v1.Rule
-	(*San)(nil),                               // 182: ocsf.v1.San
-	(*Sbom)(nil),                              // 183: ocsf.v1.Sbom
-	(*Scim)(nil),                              // 184: ocsf.v1.Scim
-	(*Script)(nil),                            // 185: ocsf.v1.Script
-	(*Service)(nil),                           // 186: ocsf.v1.Service
-	(*Session)(nil),                           // 187: ocsf.v1.Session
-	(*SoftwareComponent)(nil),                 // 188: ocsf.v1.SoftwareComponent
-	(*Span)(nil),                              // 189: ocsf.v1.Span
-	(*Sso)(nil),                               // 190: ocsf.v1.Sso
-	(*SubTechnique)(nil),                      // 191: ocsf.v1.SubTechnique
-	(*Tactic)(nil),                            // 192: ocsf.v1.Tactic
-	(*Technique)(nil),                         // 193: ocsf.v1.Technique
-	(*ThreatActor)(nil),                       // 194: ocsf.v1.ThreatActor
-	(*Timespan)(nil),                          // 195: ocsf.v1.Timespan
-	(*Token)(nil),                             // 196: ocsf.v1.Token
-	(*Trace)(nil),                             // 197: ocsf.v1.Trace
-	(*TransformationInfo)(nil),                // 198: ocsf.v1.TransformationInfo
-	(*Url)(nil),                               // 199: ocsf.v1.Url
-	(*User)(nil),                              // 200: ocsf.v1.User
-	(*Vulnerability)(nil),                     // 201: ocsf.v1.Vulnerability
-	(*Whois)(nil),                             // 202: ocsf.v1.Whois
-	(*WinService)(nil),                        // 203: ocsf.v1.WinService
-	(*structpb.Value)(nil),                    // 204: google.protobuf.Value
+var file_ocsf_v1_objects_proto_enumTypes = make([]protoimpl.EnumInfo, 68)
+var file_ocsf_v1_objects_proto_msgTypes = make([]protoimpl.MessageInfo, 114)
+var file_ocsf_v1_objects_proto_goTypes = []any{
+	(Account_TypeId)(0),                       // 0: ocsf.v1.Account.TypeId
+	(Advisory_InstallStateId)(0),              // 1: ocsf.v1.Advisory.InstallStateId
+	(AffectedPackage_TypeId)(0),               // 2: ocsf.v1.AffectedPackage.TypeId
+	(Agent_TypeId)(0),                         // 3: ocsf.v1.Agent.TypeId
+	(Analytic_StateId)(0),                     // 4: ocsf.v1.Analytic.StateId
+	(Analytic_TypeId)(0),                      // 5: ocsf.v1.Analytic.TypeId
+	(Application_RiskLevelId)(0),              // 6: ocsf.v1.Application.RiskLevelId
+	(AuthFactor_FactorTypeId)(0),              // 7: ocsf.v1.AuthFactor.FactorTypeId
+	(DataClassification_CategoryId)(0),        // 8: ocsf.v1.DataClassification.CategoryId
+	(DataClassification_ConfidentialityId)(0), // 9: ocsf.v1.DataClassification.ConfidentialityId
+	(DataClassification_StatusId)(0),          // 10: ocsf.v1.DataClassification.StatusId
+	(Device_RiskLevelId)(0),                   // 11: ocsf.v1.Device.RiskLevelId
+	(Device_TypeId)(0),                        // 12: ocsf.v1.Device.TypeId
+	(DeviceHwInfo_CpuArchitectureId)(0),       // 13: ocsf.v1.DeviceHwInfo.CpuArchitectureId
+	(DigitalSignature_AlgorithmId)(0),         // 14: ocsf.v1.DigitalSignature.AlgorithmId
+	(DigitalSignature_StateId)(0),             // 15: ocsf.v1.DigitalSignature.StateId
+	(DnsAnswer_FlagIds)(0),                    // 16: ocsf.v1.DnsAnswer.FlagIds
+	(DomainContact_TypeId)(0),                 // 17: ocsf.v1.DomainContact.TypeId
+	(EncryptionDetails_AlgorithmId)(0),        // 18: ocsf.v1.EncryptionDetails.AlgorithmId
+	(File_ConfidentialityId)(0),               // 19: ocsf.v1.File.ConfidentialityId
+	(File_DriveTypeId)(0),                     // 20: ocsf.v1.File.DriveTypeId
+	(File_TypeId)(0),                          // 21: ocsf.v1.File.TypeId
+	(Fingerprint_AlgorithmId)(0),              // 22: ocsf.v1.Fingerprint.AlgorithmId
+	(GpuInfo_BusTypeId)(0),                    // 23: ocsf.v1.GpuInfo.BusTypeId
+	(GpuInfo_VramModeId)(0),                   // 24: ocsf.v1.GpuInfo.VramModeId
+	(Graph_QueryLanguageId)(0),                // 25: ocsf.v1.Graph.QueryLanguageId
+	(Idp_StateId)(0),                          // 26: ocsf.v1.Idp.StateId
+	(KbArticle_InstallStateId)(0),             // 27: ocsf.v1.KbArticle.InstallStateId
+	(KillChainPhase_PhaseId)(0),               // 28: ocsf.v1.KillChainPhase.PhaseId
+	(Malware_ClassificationIds)(0),            // 29: ocsf.v1.Malware.ClassificationIds
+	(Malware_SeverityId)(0),                   // 30: ocsf.v1.Malware.SeverityId
+	(MalwareScanInfo_TypeId)(0),               // 31: ocsf.v1.MalwareScanInfo.TypeId
+	(ManagedEntity_TypeId)(0),                 // 32: ocsf.v1.ManagedEntity.TypeId
+	(MessageContext_AiRoleId)(0),              // 33: ocsf.v1.MessageContext.AiRoleId
+	(NetworkEndpoint_NetworkScopeId)(0),       // 34: ocsf.v1.NetworkEndpoint.NetworkScopeId
+	(NetworkEndpoint_TypeId)(0),               // 35: ocsf.v1.NetworkEndpoint.TypeId
+	(NetworkInterface_TypeId)(0),              // 36: ocsf.v1.NetworkInterface.TypeId
+	(NetworkProxy_NetworkScopeId)(0),          // 37: ocsf.v1.NetworkProxy.NetworkScopeId
+	(NetworkProxy_TypeId)(0),                  // 38: ocsf.v1.NetworkProxy.TypeId
+	(Observable_TypeId)(0),                    // 39: ocsf.v1.Observable.TypeId
+	(Os_TypeId)(0),                            // 40: ocsf.v1.Os.TypeId
+	(Osint_ConfidenceId)(0),                   // 41: ocsf.v1.Osint.ConfidenceId
+	(Osint_DetectionPatternTypeId)(0),         // 42: ocsf.v1.Osint.DetectionPatternTypeId
+	(Osint_SeverityId)(0),                     // 43: ocsf.v1.Osint.SeverityId
+	(Osint_TypeId)(0),                         // 44: ocsf.v1.Osint.TypeId
+	(Package_TypeId)(0),                       // 45: ocsf.v1.Package.TypeId
+	(Process_IntegrityId)(0),                  // 46: ocsf.v1.Process.IntegrityId
+	(Reputation_ScoreId)(0),                   // 47: ocsf.v1.Reputation.ScoreId
+	(ResourceDetails_RoleId)(0),               // 48: ocsf.v1.ResourceDetails.RoleId
+	(Sbom_TypeId)(0),                          // 49: ocsf.v1.Sbom.TypeId
+	(Scim_AuthProtocolId)(0),                  // 50: ocsf.v1.Scim.AuthProtocolId
+	(Scim_StateId)(0),                         // 51: ocsf.v1.Scim.StateId
+	(Script_TypeId)(0),                        // 52: ocsf.v1.Script.TypeId
+	(SoftwareComponent_RelationshipId)(0),     // 53: ocsf.v1.SoftwareComponent.RelationshipId
+	(SoftwareComponent_TypeId)(0),             // 54: ocsf.v1.SoftwareComponent.TypeId
+	(Sso_AuthProtocolId)(0),                   // 55: ocsf.v1.Sso.AuthProtocolId
+	(ThreatActor_TypeId)(0),                   // 56: ocsf.v1.ThreatActor.TypeId
+	(Timespan_TypeId)(0),                      // 57: ocsf.v1.Timespan.TypeId
+	(Token_TypeId)(0),                         // 58: ocsf.v1.Token.TypeId
+	(Url_CategoryIds)(0),                      // 59: ocsf.v1.Url.CategoryIds
+	(User_RiskLevelId)(0),                     // 60: ocsf.v1.User.RiskLevelId
+	(User_TypeId)(0),                          // 61: ocsf.v1.User.TypeId
+	(Vulnerability_FixCoverageId)(0),          // 62: ocsf.v1.Vulnerability.FixCoverageId
+	(Whois_DnssecStatusId)(0),                 // 63: ocsf.v1.Whois.DnssecStatusId
+	(WinService_ServiceCategoryId)(0),         // 64: ocsf.v1.WinService.ServiceCategoryId
+	(WinService_ServiceErrorControlId)(0),     // 65: ocsf.v1.WinService.ServiceErrorControlId
+	(WinService_ServiceStartTypeId)(0),        // 66: ocsf.v1.WinService.ServiceStartTypeId
+	(WinService_ServiceTypeId)(0),             // 67: ocsf.v1.WinService.ServiceTypeId
+	(*Account)(nil),                           // 68: ocsf.v1.Account
+	(*Actor)(nil),                             // 69: ocsf.v1.Actor
+	(*Advisory)(nil),                          // 70: ocsf.v1.Advisory
+	(*AffectedCode)(nil),                      // 71: ocsf.v1.AffectedCode
+	(*AffectedPackage)(nil),                   // 72: ocsf.v1.AffectedPackage
+	(*Agent)(nil),                             // 73: ocsf.v1.Agent
+	(*AiModel)(nil),                           // 74: ocsf.v1.AiModel
+	(*Analytic)(nil),                          // 75: ocsf.v1.Analytic
+	(*Api)(nil),                               // 76: ocsf.v1.Api
+	(*Application)(nil),                       // 77: ocsf.v1.Application
+	(*Attack)(nil),                            // 78: ocsf.v1.Attack
+	(*AuthFactor)(nil),                        // 79: ocsf.v1.AuthFactor
+	(*Authorization)(nil),                     // 80: ocsf.v1.Authorization
+	(*AutonomousSystem)(nil),                  // 81: ocsf.v1.AutonomousSystem
+	(*Campaign)(nil),                          // 82: ocsf.v1.Campaign
+	(*Certificate)(nil),                       // 83: ocsf.v1.Certificate
+	(*CisControl)(nil),                        // 84: ocsf.v1.CisControl
+	(*ClassifierDetails)(nil),                 // 85: ocsf.v1.ClassifierDetails
+	(*Cloud)(nil),                             // 86: ocsf.v1.Cloud
+	(*Container)(nil),                         // 87: ocsf.v1.Container
+	(*Cve)(nil),                               // 88: ocsf.v1.Cve
+	(*Cvss)(nil),                              // 89: ocsf.v1.Cvss
+	(*Cwe)(nil),                               // 90: ocsf.v1.Cwe
+	(*D3FTactic)(nil),                         // 91: ocsf.v1.D3fTactic
+	(*D3FTechnique)(nil),                      // 92: ocsf.v1.D3fTechnique
+	(*D3Fend)(nil),                            // 93: ocsf.v1.D3fend
+	(*DataClassification)(nil),                // 94: ocsf.v1.DataClassification
+	(*Device)(nil),                            // 95: ocsf.v1.Device
+	(*DeviceHwInfo)(nil),                      // 96: ocsf.v1.DeviceHwInfo
+	(*DigitalSignature)(nil),                  // 97: ocsf.v1.DigitalSignature
+	(*DiscoveryDetails)(nil),                  // 98: ocsf.v1.DiscoveryDetails
+	(*Display)(nil),                           // 99: ocsf.v1.Display
+	(*DnsAnswer)(nil),                         // 100: ocsf.v1.DnsAnswer
+	(*DomainContact)(nil),                     // 101: ocsf.v1.DomainContact
+	(*Edge)(nil),                              // 102: ocsf.v1.Edge
+	(*Email)(nil),                             // 103: ocsf.v1.Email
+	(*EmailAuth)(nil),                         // 104: ocsf.v1.EmailAuth
+	(*EncryptionDetails)(nil),                 // 105: ocsf.v1.EncryptionDetails
+	(*Enrichment)(nil),                        // 106: ocsf.v1.Enrichment
+	(*EnvironmentVariable)(nil),               // 107: ocsf.v1.EnvironmentVariable
+	(*Epss)(nil),                              // 108: ocsf.v1.Epss
+	(*Extension)(nil),                         // 109: ocsf.v1.Extension
+	(*Feature)(nil),                           // 110: ocsf.v1.Feature
+	(*File)(nil),                              // 111: ocsf.v1.File
+	(*Fingerprint)(nil),                       // 112: ocsf.v1.Fingerprint
+	(*FirewallRule)(nil),                      // 113: ocsf.v1.FirewallRule
+	(*GpuInfo)(nil),                           // 114: ocsf.v1.GpuInfo
+	(*Graph)(nil),                             // 115: ocsf.v1.Graph
+	(*Group)(nil),                             // 116: ocsf.v1.Group
+	(*HttpHeader)(nil),                        // 117: ocsf.v1.HttpHeader
+	(*HttpRequest)(nil),                       // 118: ocsf.v1.HttpRequest
+	(*HttpResponse)(nil),                      // 119: ocsf.v1.HttpResponse
+	(*Idp)(nil),                               // 120: ocsf.v1.Idp
+	(*Image)(nil),                             // 121: ocsf.v1.Image
+	(*KbArticle)(nil),                         // 122: ocsf.v1.KbArticle
+	(*KeyValueObject)(nil),                    // 123: ocsf.v1.KeyValueObject
+	(*KeyboardInfo)(nil),                      // 124: ocsf.v1.KeyboardInfo
+	(*KillChainPhase)(nil),                    // 125: ocsf.v1.KillChainPhase
+	(*LdapPerson)(nil),                        // 126: ocsf.v1.LdapPerson
+	(*Location)(nil),                          // 127: ocsf.v1.Location
+	(*Logger)(nil),                            // 128: ocsf.v1.Logger
+	(*LongString)(nil),                        // 129: ocsf.v1.LongString
+	(*Malware)(nil),                           // 130: ocsf.v1.Malware
+	(*MalwareScanInfo)(nil),                   // 131: ocsf.v1.MalwareScanInfo
+	(*ManagedEntity)(nil),                     // 132: ocsf.v1.ManagedEntity
+	(*MessageContext)(nil),                    // 133: ocsf.v1.MessageContext
+	(*Metadata)(nil),                          // 134: ocsf.v1.Metadata
+	(*Metric)(nil),                            // 135: ocsf.v1.Metric
+	(*Mitigation)(nil),                        // 136: ocsf.v1.Mitigation
+	(*NetworkEndpoint)(nil),                   // 137: ocsf.v1.NetworkEndpoint
+	(*NetworkInterface)(nil),                  // 138: ocsf.v1.NetworkInterface
+	(*NetworkProxy)(nil),                      // 139: ocsf.v1.NetworkProxy
+	(*Node)(nil),                              // 140: ocsf.v1.Node
+	(*Observable)(nil),                        // 141: ocsf.v1.Observable
+	(*OccurrenceDetails)(nil),                 // 142: ocsf.v1.OccurrenceDetails
+	(*Organization)(nil),                      // 143: ocsf.v1.Organization
+	(*Os)(nil),                                // 144: ocsf.v1.Os
+	(*Osint)(nil),                             // 145: ocsf.v1.Osint
+	(*Package)(nil),                           // 146: ocsf.v1.Package
+	(*Policy)(nil),                            // 147: ocsf.v1.Policy
+	(*PortInfo)(nil),                          // 148: ocsf.v1.PortInfo
+	(*Process)(nil),                           // 149: ocsf.v1.Process
+	(*ProcessEntity)(nil),                     // 150: ocsf.v1.ProcessEntity
+	(*Product)(nil),                           // 151: ocsf.v1.Product
+	(*ProgrammaticCredential)(nil),            // 152: ocsf.v1.ProgrammaticCredential
+	(*Remediation)(nil),                       // 153: ocsf.v1.Remediation
+	(*Reporter)(nil),                          // 154: ocsf.v1.Reporter
+	(*Reputation)(nil),                        // 155: ocsf.v1.Reputation
+	(*Request)(nil),                           // 156: ocsf.v1.Request
+	(*ResourceDetails)(nil),                   // 157: ocsf.v1.ResourceDetails
+	(*Response)(nil),                          // 158: ocsf.v1.Response
+	(*Rule)(nil),                              // 159: ocsf.v1.Rule
+	(*San)(nil),                               // 160: ocsf.v1.San
+	(*Sbom)(nil),                              // 161: ocsf.v1.Sbom
+	(*Scim)(nil),                              // 162: ocsf.v1.Scim
+	(*Script)(nil),                            // 163: ocsf.v1.Script
+	(*Service)(nil),                           // 164: ocsf.v1.Service
+	(*Session)(nil),                           // 165: ocsf.v1.Session
+	(*SoftwareComponent)(nil),                 // 166: ocsf.v1.SoftwareComponent
+	(*Span)(nil),                              // 167: ocsf.v1.Span
+	(*Sso)(nil),                               // 168: ocsf.v1.Sso
+	(*SubTechnique)(nil),                      // 169: ocsf.v1.SubTechnique
+	(*Tactic)(nil),                            // 170: ocsf.v1.Tactic
+	(*Technique)(nil),                         // 171: ocsf.v1.Technique
+	(*ThreatActor)(nil),                       // 172: ocsf.v1.ThreatActor
+	(*Timespan)(nil),                          // 173: ocsf.v1.Timespan
+	(*Token)(nil),                             // 174: ocsf.v1.Token
+	(*Trace)(nil),                             // 175: ocsf.v1.Trace
+	(*TransformationInfo)(nil),                // 176: ocsf.v1.TransformationInfo
+	(*Url)(nil),                               // 177: ocsf.v1.Url
+	(*User)(nil),                              // 178: ocsf.v1.User
+	(*Vulnerability)(nil),                     // 179: ocsf.v1.Vulnerability
+	(*Whois)(nil),                             // 180: ocsf.v1.Whois
+	(*WinService)(nil),                        // 181: ocsf.v1.WinService
+	(*structpb.Value)(nil),                    // 182: google.protobuf.Value
 }
-var file_api_entity_proto_depIdxs = []int32{
-	0,   // 0: ocsf.v1.ApiActivity.action_id:type_name -> ocsf.v1.ApiActivity.ActionId
-	1,   // 1: ocsf.v1.ApiActivity.activity_id:type_name -> ocsf.v1.ApiActivity.ActivityId
-	91,  // 2: ocsf.v1.ApiActivity.actor:type_name -> ocsf.v1.Actor
-	96,  // 3: ocsf.v1.ApiActivity.ai_model:type_name -> ocsf.v1.AiModel
-	98,  // 4: ocsf.v1.ApiActivity.api:type_name -> ocsf.v1.Api
-	100, // 5: ocsf.v1.ApiActivity.attacks:type_name -> ocsf.v1.Attack
-	102, // 6: ocsf.v1.ApiActivity.authorizations:type_name -> ocsf.v1.Authorization
-	2,   // 7: ocsf.v1.ApiActivity.category_uid:type_name -> ocsf.v1.ApiActivity.CategoryUid
-	3,   // 8: ocsf.v1.ApiActivity.class_uid:type_name -> ocsf.v1.ApiActivity.ClassUid
-	108, // 9: ocsf.v1.ApiActivity.cloud:type_name -> ocsf.v1.Cloud
-	4,   // 10: ocsf.v1.ApiActivity.confidence_id:type_name -> ocsf.v1.ApiActivity.ConfidenceId
-	117, // 11: ocsf.v1.ApiActivity.device:type_name -> ocsf.v1.Device
-	5,   // 12: ocsf.v1.ApiActivity.disposition_id:type_name -> ocsf.v1.ApiActivity.DispositionId
-	159, // 13: ocsf.v1.ApiActivity.dst_endpoint:type_name -> ocsf.v1.NetworkEndpoint
-	128, // 14: ocsf.v1.ApiActivity.enrichments:type_name -> ocsf.v1.Enrichment
-	135, // 15: ocsf.v1.ApiActivity.firewall_rule:type_name -> ocsf.v1.FirewallRule
-	140, // 16: ocsf.v1.ApiActivity.http_request:type_name -> ocsf.v1.HttpRequest
-	141, // 17: ocsf.v1.ApiActivity.http_response:type_name -> ocsf.v1.HttpResponse
-	152, // 18: ocsf.v1.ApiActivity.malware:type_name -> ocsf.v1.Malware
-	153, // 19: ocsf.v1.ApiActivity.malware_scan_info:type_name -> ocsf.v1.MalwareScanInfo
-	155, // 20: ocsf.v1.ApiActivity.message_context:type_name -> ocsf.v1.MessageContext
-	156, // 21: ocsf.v1.ApiActivity.metadata:type_name -> ocsf.v1.Metadata
-	163, // 22: ocsf.v1.ApiActivity.observables:type_name -> ocsf.v1.Observable
-	167, // 23: ocsf.v1.ApiActivity.osint:type_name -> ocsf.v1.Osint
-	169, // 24: ocsf.v1.ApiActivity.policy:type_name -> ocsf.v1.Policy
-	134, // 25: ocsf.v1.ApiActivity.raw_data_hash:type_name -> ocsf.v1.Fingerprint
-	179, // 26: ocsf.v1.ApiActivity.resources:type_name -> ocsf.v1.ResourceDetails
-	6,   // 27: ocsf.v1.ApiActivity.risk_level_id:type_name -> ocsf.v1.ApiActivity.RiskLevelId
-	7,   // 28: ocsf.v1.ApiActivity.severity_id:type_name -> ocsf.v1.ApiActivity.SeverityId
-	159, // 29: ocsf.v1.ApiActivity.src_endpoint:type_name -> ocsf.v1.NetworkEndpoint
-	8,   // 30: ocsf.v1.ApiActivity.status_id:type_name -> ocsf.v1.ApiActivity.StatusId
-	197, // 31: ocsf.v1.ApiActivity.trace:type_name -> ocsf.v1.Trace
-	9,   // 32: ocsf.v1.ApiActivity.type_uid:type_name -> ocsf.v1.ApiActivity.TypeUid
-	204, // 33: ocsf.v1.ApiActivity.unmapped:type_name -> google.protobuf.Value
-	10,  // 34: ocsf.v1.EntityManagement.action_id:type_name -> ocsf.v1.EntityManagement.ActionId
-	11,  // 35: ocsf.v1.EntityManagement.activity_id:type_name -> ocsf.v1.EntityManagement.ActivityId
-	91,  // 36: ocsf.v1.EntityManagement.actor:type_name -> ocsf.v1.Actor
-	98,  // 37: ocsf.v1.EntityManagement.api:type_name -> ocsf.v1.Api
-	100, // 38: ocsf.v1.EntityManagement.attacks:type_name -> ocsf.v1.Attack
-	102, // 39: ocsf.v1.EntityManagement.authorizations:type_name -> ocsf.v1.Authorization
-	12,  // 40: ocsf.v1.EntityManagement.category_uid:type_name -> ocsf.v1.EntityManagement.CategoryUid
-	13,  // 41: ocsf.v1.EntityManagement.class_uid:type_name -> ocsf.v1.EntityManagement.ClassUid
-	108, // 42: ocsf.v1.EntityManagement.cloud:type_name -> ocsf.v1.Cloud
-	14,  // 43: ocsf.v1.EntityManagement.confidence_id:type_name -> ocsf.v1.EntityManagement.ConfidenceId
-	117, // 44: ocsf.v1.EntityManagement.device:type_name -> ocsf.v1.Device
-	15,  // 45: ocsf.v1.EntityManagement.disposition_id:type_name -> ocsf.v1.EntityManagement.DispositionId
-	128, // 46: ocsf.v1.EntityManagement.enrichments:type_name -> ocsf.v1.Enrichment
-	154, // 47: ocsf.v1.EntityManagement.entity:type_name -> ocsf.v1.ManagedEntity
-	154, // 48: ocsf.v1.EntityManagement.entity_result:type_name -> ocsf.v1.ManagedEntity
-	135, // 49: ocsf.v1.EntityManagement.firewall_rule:type_name -> ocsf.v1.FirewallRule
-	140, // 50: ocsf.v1.EntityManagement.http_request:type_name -> ocsf.v1.HttpRequest
-	141, // 51: ocsf.v1.EntityManagement.http_response:type_name -> ocsf.v1.HttpResponse
-	152, // 52: ocsf.v1.EntityManagement.malware:type_name -> ocsf.v1.Malware
-	153, // 53: ocsf.v1.EntityManagement.malware_scan_info:type_name -> ocsf.v1.MalwareScanInfo
-	156, // 54: ocsf.v1.EntityManagement.metadata:type_name -> ocsf.v1.Metadata
-	163, // 55: ocsf.v1.EntityManagement.observables:type_name -> ocsf.v1.Observable
-	167, // 56: ocsf.v1.EntityManagement.osint:type_name -> ocsf.v1.Osint
-	169, // 57: ocsf.v1.EntityManagement.policy:type_name -> ocsf.v1.Policy
-	134, // 58: ocsf.v1.EntityManagement.raw_data_hash:type_name -> ocsf.v1.Fingerprint
-	16,  // 59: ocsf.v1.EntityManagement.risk_level_id:type_name -> ocsf.v1.EntityManagement.RiskLevelId
-	17,  // 60: ocsf.v1.EntityManagement.severity_id:type_name -> ocsf.v1.EntityManagement.SeverityId
-	159, // 61: ocsf.v1.EntityManagement.src_endpoint:type_name -> ocsf.v1.NetworkEndpoint
-	18,  // 62: ocsf.v1.EntityManagement.status_id:type_name -> ocsf.v1.EntityManagement.StatusId
-	19,  // 63: ocsf.v1.EntityManagement.type_uid:type_name -> ocsf.v1.EntityManagement.TypeUid
-	204, // 64: ocsf.v1.EntityManagement.unmapped:type_name -> google.protobuf.Value
-	145, // 65: ocsf.v1.Account.tags:type_name -> ocsf.v1.KeyValueObject
-	20,  // 66: ocsf.v1.Account.type_id:type_name -> ocsf.v1.Account.TypeId
-	102, // 67: ocsf.v1.Actor.authorizations:type_name -> ocsf.v1.Authorization
-	142, // 68: ocsf.v1.Actor.idp:type_name -> ocsf.v1.Idp
-	171, // 69: ocsf.v1.Actor.process:type_name -> ocsf.v1.Process
-	187, // 70: ocsf.v1.Actor.session:type_name -> ocsf.v1.Session
-	200, // 71: ocsf.v1.Actor.user:type_name -> ocsf.v1.User
-	195, // 72: ocsf.v1.Advisory.avg_timespan:type_name -> ocsf.v1.Timespan
-	21,  // 73: ocsf.v1.Advisory.install_state_id:type_name -> ocsf.v1.Advisory.InstallStateId
-	166, // 74: ocsf.v1.Advisory.os:type_name -> ocsf.v1.Os
-	173, // 75: ocsf.v1.Advisory.product:type_name -> ocsf.v1.Product
-	110, // 76: ocsf.v1.Advisory.related_cves:type_name -> ocsf.v1.Cve
-	112, // 77: ocsf.v1.Advisory.related_cwes:type_name -> ocsf.v1.Cwe
-	133, // 78: ocsf.v1.AffectedCode.file:type_name -> ocsf.v1.File
-	200, // 79: ocsf.v1.AffectedCode.owner:type_name -> ocsf.v1.User
-	175, // 80: ocsf.v1.AffectedCode.remediation:type_name -> ocsf.v1.Remediation
-	181, // 81: ocsf.v1.AffectedCode.rule:type_name -> ocsf.v1.Rule
-	134, // 82: ocsf.v1.AffectedPackage.hash:type_name -> ocsf.v1.Fingerprint
-	175, // 83: ocsf.v1.AffectedPackage.remediation:type_name -> ocsf.v1.Remediation
-	22,  // 84: ocsf.v1.AffectedPackage.type_id:type_name -> ocsf.v1.AffectedPackage.TypeId
-	169, // 85: ocsf.v1.Agent.policies:type_name -> ocsf.v1.Policy
-	23,  // 86: ocsf.v1.Agent.type_id:type_name -> ocsf.v1.Agent.TypeId
-	97,  // 87: ocsf.v1.Analytic.related_analytics:type_name -> ocsf.v1.Analytic
-	24,  // 88: ocsf.v1.Analytic.state_id:type_name -> ocsf.v1.Analytic.StateId
-	25,  // 89: ocsf.v1.Analytic.type_id:type_name -> ocsf.v1.Analytic.TypeId
-	138, // 90: ocsf.v1.Api.group:type_name -> ocsf.v1.Group
-	178, // 91: ocsf.v1.Api.request:type_name -> ocsf.v1.Request
-	180, // 92: ocsf.v1.Api.response:type_name -> ocsf.v1.Response
-	186, // 93: ocsf.v1.Api.service:type_name -> ocsf.v1.Service
-	196, // 94: ocsf.v1.Api.token:type_name -> ocsf.v1.Token
-	204, // 95: ocsf.v1.Application.data:type_name -> google.protobuf.Value
-	138, // 96: ocsf.v1.Application.group:type_name -> ocsf.v1.Group
-	200, // 97: ocsf.v1.Application.owner:type_name -> ocsf.v1.User
-	137, // 98: ocsf.v1.Application.resource_relationship:type_name -> ocsf.v1.Graph
-	26,  // 99: ocsf.v1.Application.risk_level_id:type_name -> ocsf.v1.Application.RiskLevelId
-	183, // 100: ocsf.v1.Application.sbom:type_name -> ocsf.v1.Sbom
-	145, // 101: ocsf.v1.Application.tags:type_name -> ocsf.v1.KeyValueObject
-	199, // 102: ocsf.v1.Application.url:type_name -> ocsf.v1.Url
-	158, // 103: ocsf.v1.Attack.mitigation:type_name -> ocsf.v1.Mitigation
-	191, // 104: ocsf.v1.Attack.sub_technique:type_name -> ocsf.v1.SubTechnique
-	192, // 105: ocsf.v1.Attack.tactic:type_name -> ocsf.v1.Tactic
-	192, // 106: ocsf.v1.Attack.tactics:type_name -> ocsf.v1.Tactic
-	193, // 107: ocsf.v1.Attack.technique:type_name -> ocsf.v1.Technique
-	117, // 108: ocsf.v1.AuthFactor.device:type_name -> ocsf.v1.Device
-	27,  // 109: ocsf.v1.AuthFactor.factor_type_id:type_name -> ocsf.v1.AuthFactor.FactorTypeId
-	169, // 110: ocsf.v1.Authorization.policy:type_name -> ocsf.v1.Policy
-	134, // 111: ocsf.v1.Certificate.fingerprints:type_name -> ocsf.v1.Fingerprint
-	182, // 112: ocsf.v1.Certificate.sans:type_name -> ocsf.v1.San
-	90,  // 113: ocsf.v1.Cloud.account:type_name -> ocsf.v1.Account
-	165, // 114: ocsf.v1.Cloud.org:type_name -> ocsf.v1.Organization
-	134, // 115: ocsf.v1.Container.hash:type_name -> ocsf.v1.Fingerprint
-	143, // 116: ocsf.v1.Container.image:type_name -> ocsf.v1.Image
-	145, // 117: ocsf.v1.Container.tags:type_name -> ocsf.v1.KeyValueObject
-	111, // 118: ocsf.v1.Cve.cvss:type_name -> ocsf.v1.Cvss
-	112, // 119: ocsf.v1.Cve.cwe:type_name -> ocsf.v1.Cwe
-	130, // 120: ocsf.v1.Cve.epss:type_name -> ocsf.v1.Epss
-	173, // 121: ocsf.v1.Cve.product:type_name -> ocsf.v1.Product
-	112, // 122: ocsf.v1.Cve.related_cwes:type_name -> ocsf.v1.Cwe
-	157, // 123: ocsf.v1.Cvss.metrics:type_name -> ocsf.v1.Metric
-	113, // 124: ocsf.v1.D3fend.d3f_tactic:type_name -> ocsf.v1.D3fTactic
-	114, // 125: ocsf.v1.D3fend.d3f_technique:type_name -> ocsf.v1.D3fTechnique
-	28,  // 126: ocsf.v1.DataClassification.category_id:type_name -> ocsf.v1.DataClassification.CategoryId
-	107, // 127: ocsf.v1.DataClassification.classifier_details:type_name -> ocsf.v1.ClassifierDetails
-	29,  // 128: ocsf.v1.DataClassification.confidentiality_id:type_name -> ocsf.v1.DataClassification.ConfidentialityId
-	120, // 129: ocsf.v1.DataClassification.discovery_details:type_name -> ocsf.v1.DiscoveryDetails
-	169, // 130: ocsf.v1.DataClassification.policy:type_name -> ocsf.v1.Policy
-	30,  // 131: ocsf.v1.DataClassification.status_id:type_name -> ocsf.v1.DataClassification.StatusId
-	95,  // 132: ocsf.v1.Device.agent_list:type_name -> ocsf.v1.Agent
-	109, // 133: ocsf.v1.Device.container:type_name -> ocsf.v1.Container
-	138, // 134: ocsf.v1.Device.groups:type_name -> ocsf.v1.Group
-	118, // 135: ocsf.v1.Device.hw_info:type_name -> ocsf.v1.DeviceHwInfo
-	143, // 136: ocsf.v1.Device.image:type_name -> ocsf.v1.Image
-	149, // 137: ocsf.v1.Device.location:type_name -> ocsf.v1.Location
-	160, // 138: ocsf.v1.Device.network_interfaces:type_name -> ocsf.v1.NetworkInterface
-	165, // 139: ocsf.v1.Device.org:type_name -> ocsf.v1.Organization
-	166, // 140: ocsf.v1.Device.os:type_name -> ocsf.v1.Os
-	200, // 141: ocsf.v1.Device.owner:type_name -> ocsf.v1.User
-	138, // 142: ocsf.v1.Device.pool:type_name -> ocsf.v1.Group
-	31,  // 143: ocsf.v1.Device.risk_level_id:type_name -> ocsf.v1.Device.RiskLevelId
-	32,  // 144: ocsf.v1.Device.type_id:type_name -> ocsf.v1.Device.TypeId
-	33,  // 145: ocsf.v1.DeviceHwInfo.cpu_architecture_id:type_name -> ocsf.v1.DeviceHwInfo.CpuArchitectureId
-	121, // 146: ocsf.v1.DeviceHwInfo.desktop_display:type_name -> ocsf.v1.Display
-	136, // 147: ocsf.v1.DeviceHwInfo.gpu_info_list:type_name -> ocsf.v1.GpuInfo
-	146, // 148: ocsf.v1.DeviceHwInfo.keyboard_info:type_name -> ocsf.v1.KeyboardInfo
-	34,  // 149: ocsf.v1.DigitalSignature.algorithm_id:type_name -> ocsf.v1.DigitalSignature.AlgorithmId
-	105, // 150: ocsf.v1.DigitalSignature.certificate:type_name -> ocsf.v1.Certificate
-	134, // 151: ocsf.v1.DigitalSignature.digest:type_name -> ocsf.v1.Fingerprint
-	35,  // 152: ocsf.v1.DigitalSignature.state_id:type_name -> ocsf.v1.DigitalSignature.StateId
-	164, // 153: ocsf.v1.DiscoveryDetails.occurrence_details:type_name -> ocsf.v1.OccurrenceDetails
-	164, // 154: ocsf.v1.DiscoveryDetails.occurrences:type_name -> ocsf.v1.OccurrenceDetails
-	36,  // 155: ocsf.v1.DnsAnswer.flag_ids:type_name -> ocsf.v1.DnsAnswer.FlagIds
-	149, // 156: ocsf.v1.DomainContact.location:type_name -> ocsf.v1.Location
-	37,  // 157: ocsf.v1.DomainContact.type_id:type_name -> ocsf.v1.DomainContact.TypeId
-	204, // 158: ocsf.v1.Edge.data:type_name -> google.protobuf.Value
-	116, // 159: ocsf.v1.Email.data_classification:type_name -> ocsf.v1.DataClassification
-	116, // 160: ocsf.v1.Email.data_classifications:type_name -> ocsf.v1.DataClassification
-	133, // 161: ocsf.v1.Email.files:type_name -> ocsf.v1.File
-	139, // 162: ocsf.v1.Email.http_headers:type_name -> ocsf.v1.HttpHeader
-	199, // 163: ocsf.v1.Email.urls:type_name -> ocsf.v1.Url
-	38,  // 164: ocsf.v1.EncryptionDetails.algorithm_id:type_name -> ocsf.v1.EncryptionDetails.AlgorithmId
-	204, // 165: ocsf.v1.Enrichment.data:type_name -> google.protobuf.Value
-	177, // 166: ocsf.v1.Enrichment.reputation:type_name -> ocsf.v1.Reputation
-	200, // 167: ocsf.v1.File.accessor:type_name -> ocsf.v1.User
-	39,  // 168: ocsf.v1.File.confidentiality_id:type_name -> ocsf.v1.File.ConfidentialityId
-	200, // 169: ocsf.v1.File.creator:type_name -> ocsf.v1.User
-	116, // 170: ocsf.v1.File.data_classification:type_name -> ocsf.v1.DataClassification
-	116, // 171: ocsf.v1.File.data_classifications:type_name -> ocsf.v1.DataClassification
-	40,  // 172: ocsf.v1.File.drive_type_id:type_name -> ocsf.v1.File.DriveTypeId
-	127, // 173: ocsf.v1.File.encryption_details:type_name -> ocsf.v1.EncryptionDetails
-	134, // 174: ocsf.v1.File.hashes:type_name -> ocsf.v1.Fingerprint
-	200, // 175: ocsf.v1.File.modifier:type_name -> ocsf.v1.User
-	200, // 176: ocsf.v1.File.owner:type_name -> ocsf.v1.User
-	173, // 177: ocsf.v1.File.product:type_name -> ocsf.v1.Product
-	119, // 178: ocsf.v1.File.signature:type_name -> ocsf.v1.DigitalSignature
-	119, // 179: ocsf.v1.File.signatures:type_name -> ocsf.v1.DigitalSignature
-	145, // 180: ocsf.v1.File.tags:type_name -> ocsf.v1.KeyValueObject
-	41,  // 181: ocsf.v1.File.type_id:type_name -> ocsf.v1.File.TypeId
-	199, // 182: ocsf.v1.File.url:type_name -> ocsf.v1.Url
-	204, // 183: ocsf.v1.File.xattributes:type_name -> google.protobuf.Value
-	42,  // 184: ocsf.v1.Fingerprint.algorithm_id:type_name -> ocsf.v1.Fingerprint.AlgorithmId
-	43,  // 185: ocsf.v1.GpuInfo.bus_type_id:type_name -> ocsf.v1.GpuInfo.BusTypeId
-	44,  // 186: ocsf.v1.GpuInfo.vram_mode_id:type_name -> ocsf.v1.GpuInfo.VramModeId
-	124, // 187: ocsf.v1.Graph.edges:type_name -> ocsf.v1.Edge
-	162, // 188: ocsf.v1.Graph.nodes:type_name -> ocsf.v1.Node
-	45,  // 189: ocsf.v1.Graph.query_language_id:type_name -> ocsf.v1.Graph.QueryLanguageId
-	139, // 190: ocsf.v1.HttpRequest.http_headers:type_name -> ocsf.v1.HttpHeader
-	199, // 191: ocsf.v1.HttpRequest.url:type_name -> ocsf.v1.Url
-	139, // 192: ocsf.v1.HttpResponse.http_headers:type_name -> ocsf.v1.HttpHeader
-	101, // 193: ocsf.v1.Idp.auth_factors:type_name -> ocsf.v1.AuthFactor
-	134, // 194: ocsf.v1.Idp.fingerprint:type_name -> ocsf.v1.Fingerprint
-	184, // 195: ocsf.v1.Idp.scim:type_name -> ocsf.v1.Scim
-	190, // 196: ocsf.v1.Idp.sso:type_name -> ocsf.v1.Sso
-	46,  // 197: ocsf.v1.Idp.state_id:type_name -> ocsf.v1.Idp.StateId
-	145, // 198: ocsf.v1.Image.tags:type_name -> ocsf.v1.KeyValueObject
-	195, // 199: ocsf.v1.KbArticle.avg_timespan:type_name -> ocsf.v1.Timespan
-	47,  // 200: ocsf.v1.KbArticle.install_state_id:type_name -> ocsf.v1.KbArticle.InstallStateId
-	166, // 201: ocsf.v1.KbArticle.os:type_name -> ocsf.v1.Os
-	173, // 202: ocsf.v1.KbArticle.product:type_name -> ocsf.v1.Product
-	48,  // 203: ocsf.v1.KillChainPhase.phase_id:type_name -> ocsf.v1.KillChainPhase.PhaseId
-	149, // 204: ocsf.v1.LdapPerson.location:type_name -> ocsf.v1.Location
-	200, // 205: ocsf.v1.LdapPerson.manager:type_name -> ocsf.v1.User
-	145, // 206: ocsf.v1.LdapPerson.tags:type_name -> ocsf.v1.KeyValueObject
-	117, // 207: ocsf.v1.Logger.device:type_name -> ocsf.v1.Device
-	173, // 208: ocsf.v1.Logger.product:type_name -> ocsf.v1.Product
-	49,  // 209: ocsf.v1.Malware.classification_ids:type_name -> ocsf.v1.Malware.ClassificationIds
-	110, // 210: ocsf.v1.Malware.cves:type_name -> ocsf.v1.Cve
-	133, // 211: ocsf.v1.Malware.files:type_name -> ocsf.v1.File
-	50,  // 212: ocsf.v1.Malware.severity_id:type_name -> ocsf.v1.Malware.SeverityId
-	51,  // 213: ocsf.v1.MalwareScanInfo.type_id:type_name -> ocsf.v1.MalwareScanInfo.TypeId
-	204, // 214: ocsf.v1.ManagedEntity.data:type_name -> google.protobuf.Value
-	117, // 215: ocsf.v1.ManagedEntity.device:type_name -> ocsf.v1.Device
-	125, // 216: ocsf.v1.ManagedEntity.email:type_name -> ocsf.v1.Email
-	138, // 217: ocsf.v1.ManagedEntity.group:type_name -> ocsf.v1.Group
-	149, // 218: ocsf.v1.ManagedEntity.location:type_name -> ocsf.v1.Location
-	165, // 219: ocsf.v1.ManagedEntity.org:type_name -> ocsf.v1.Organization
-	169, // 220: ocsf.v1.ManagedEntity.policy:type_name -> ocsf.v1.Policy
-	52,  // 221: ocsf.v1.ManagedEntity.type_id:type_name -> ocsf.v1.ManagedEntity.TypeId
-	200, // 222: ocsf.v1.ManagedEntity.user:type_name -> ocsf.v1.User
-	53,  // 223: ocsf.v1.MessageContext.ai_role_id:type_name -> ocsf.v1.MessageContext.AiRoleId
-	99,  // 224: ocsf.v1.MessageContext.application:type_name -> ocsf.v1.Application
-	186, // 225: ocsf.v1.MessageContext.service:type_name -> ocsf.v1.Service
-	116, // 226: ocsf.v1.Metadata.data_classification:type_name -> ocsf.v1.DataClassification
-	116, // 227: ocsf.v1.Metadata.data_classifications:type_name -> ocsf.v1.DataClassification
-	131, // 228: ocsf.v1.Metadata.extension:type_name -> ocsf.v1.Extension
-	131, // 229: ocsf.v1.Metadata.extensions:type_name -> ocsf.v1.Extension
-	150, // 230: ocsf.v1.Metadata.loggers:type_name -> ocsf.v1.Logger
-	173, // 231: ocsf.v1.Metadata.product:type_name -> ocsf.v1.Product
-	176, // 232: ocsf.v1.Metadata.reporter:type_name -> ocsf.v1.Reporter
-	145, // 233: ocsf.v1.Metadata.tags:type_name -> ocsf.v1.KeyValueObject
-	195, // 234: ocsf.v1.Metadata.total_queued_duration:type_name -> ocsf.v1.Timespan
-	198, // 235: ocsf.v1.Metadata.transformation_info_list:type_name -> ocsf.v1.TransformationInfo
-	115, // 236: ocsf.v1.Mitigation.countermeasures:type_name -> ocsf.v1.D3fend
-	95,  // 237: ocsf.v1.NetworkEndpoint.agent_list:type_name -> ocsf.v1.Agent
-	103, // 238: ocsf.v1.NetworkEndpoint.autonomous_system:type_name -> ocsf.v1.AutonomousSystem
-	109, // 239: ocsf.v1.NetworkEndpoint.container:type_name -> ocsf.v1.Container
-	134, // 240: ocsf.v1.NetworkEndpoint.fingerprints:type_name -> ocsf.v1.Fingerprint
-	118, // 241: ocsf.v1.NetworkEndpoint.hw_info:type_name -> ocsf.v1.DeviceHwInfo
-	149, // 242: ocsf.v1.NetworkEndpoint.location:type_name -> ocsf.v1.Location
-	54,  // 243: ocsf.v1.NetworkEndpoint.network_scope_id:type_name -> ocsf.v1.NetworkEndpoint.NetworkScopeId
-	166, // 244: ocsf.v1.NetworkEndpoint.os:type_name -> ocsf.v1.Os
-	200, // 245: ocsf.v1.NetworkEndpoint.owner:type_name -> ocsf.v1.User
-	138, // 246: ocsf.v1.NetworkEndpoint.pool:type_name -> ocsf.v1.Group
-	161, // 247: ocsf.v1.NetworkEndpoint.proxy_endpoint:type_name -> ocsf.v1.NetworkProxy
-	55,  // 248: ocsf.v1.NetworkEndpoint.type_id:type_name -> ocsf.v1.NetworkEndpoint.TypeId
-	170, // 249: ocsf.v1.NetworkInterface.open_ports:type_name -> ocsf.v1.PortInfo
-	56,  // 250: ocsf.v1.NetworkInterface.type_id:type_name -> ocsf.v1.NetworkInterface.TypeId
-	95,  // 251: ocsf.v1.NetworkProxy.agent_list:type_name -> ocsf.v1.Agent
-	103, // 252: ocsf.v1.NetworkProxy.autonomous_system:type_name -> ocsf.v1.AutonomousSystem
-	109, // 253: ocsf.v1.NetworkProxy.container:type_name -> ocsf.v1.Container
-	134, // 254: ocsf.v1.NetworkProxy.fingerprints:type_name -> ocsf.v1.Fingerprint
-	118, // 255: ocsf.v1.NetworkProxy.hw_info:type_name -> ocsf.v1.DeviceHwInfo
-	149, // 256: ocsf.v1.NetworkProxy.location:type_name -> ocsf.v1.Location
-	57,  // 257: ocsf.v1.NetworkProxy.network_scope_id:type_name -> ocsf.v1.NetworkProxy.NetworkScopeId
-	166, // 258: ocsf.v1.NetworkProxy.os:type_name -> ocsf.v1.Os
-	200, // 259: ocsf.v1.NetworkProxy.owner:type_name -> ocsf.v1.User
-	138, // 260: ocsf.v1.NetworkProxy.pool:type_name -> ocsf.v1.Group
-	161, // 261: ocsf.v1.NetworkProxy.proxy_endpoint:type_name -> ocsf.v1.NetworkProxy
-	58,  // 262: ocsf.v1.NetworkProxy.type_id:type_name -> ocsf.v1.NetworkProxy.TypeId
-	204, // 263: ocsf.v1.Node.data:type_name -> google.protobuf.Value
-	177, // 264: ocsf.v1.Observable.reputation:type_name -> ocsf.v1.Reputation
-	59,  // 265: ocsf.v1.Observable.type_id:type_name -> ocsf.v1.Observable.TypeId
-	60,  // 266: ocsf.v1.Os.type_id:type_name -> ocsf.v1.Os.TypeId
-	122, // 267: ocsf.v1.Osint.answers:type_name -> ocsf.v1.DnsAnswer
-	100, // 268: ocsf.v1.Osint.attacks:type_name -> ocsf.v1.Attack
-	103, // 269: ocsf.v1.Osint.autonomous_system:type_name -> ocsf.v1.AutonomousSystem
-	104, // 270: ocsf.v1.Osint.campaign:type_name -> ocsf.v1.Campaign
-	61,  // 271: ocsf.v1.Osint.confidence_id:type_name -> ocsf.v1.Osint.ConfidenceId
-	200, // 272: ocsf.v1.Osint.creator:type_name -> ocsf.v1.User
-	62,  // 273: ocsf.v1.Osint.detection_pattern_type_id:type_name -> ocsf.v1.Osint.DetectionPatternTypeId
-	125, // 274: ocsf.v1.Osint.email:type_name -> ocsf.v1.Email
-	126, // 275: ocsf.v1.Osint.email_auth:type_name -> ocsf.v1.EmailAuth
-	133, // 276: ocsf.v1.Osint.file:type_name -> ocsf.v1.File
-	147, // 277: ocsf.v1.Osint.kill_chain:type_name -> ocsf.v1.KillChainPhase
-	149, // 278: ocsf.v1.Osint.location:type_name -> ocsf.v1.Location
-	152, // 279: ocsf.v1.Osint.malware:type_name -> ocsf.v1.Malware
-	97,  // 280: ocsf.v1.Osint.related_analytics:type_name -> ocsf.v1.Analytic
-	177, // 281: ocsf.v1.Osint.reputation:type_name -> ocsf.v1.Reputation
-	185, // 282: ocsf.v1.Osint.script:type_name -> ocsf.v1.Script
-	63,  // 283: ocsf.v1.Osint.severity_id:type_name -> ocsf.v1.Osint.SeverityId
-	119, // 284: ocsf.v1.Osint.signatures:type_name -> ocsf.v1.DigitalSignature
-	194, // 285: ocsf.v1.Osint.threat_actor:type_name -> ocsf.v1.ThreatActor
-	64,  // 286: ocsf.v1.Osint.type_id:type_name -> ocsf.v1.Osint.TypeId
-	201, // 287: ocsf.v1.Osint.vulnerabilities:type_name -> ocsf.v1.Vulnerability
-	202, // 288: ocsf.v1.Osint.whois:type_name -> ocsf.v1.Whois
-	134, // 289: ocsf.v1.Package.hash:type_name -> ocsf.v1.Fingerprint
-	65,  // 290: ocsf.v1.Package.type_id:type_name -> ocsf.v1.Package.TypeId
-	204, // 291: ocsf.v1.Policy.data:type_name -> google.protobuf.Value
-	138, // 292: ocsf.v1.Policy.group:type_name -> ocsf.v1.Group
-	172, // 293: ocsf.v1.Process.ancestry:type_name -> ocsf.v1.ProcessEntity
-	109, // 294: ocsf.v1.Process.container:type_name -> ocsf.v1.Container
-	129, // 295: ocsf.v1.Process.environment_variables:type_name -> ocsf.v1.EnvironmentVariable
-	133, // 296: ocsf.v1.Process.file:type_name -> ocsf.v1.File
-	138, // 297: ocsf.v1.Process.group:type_name -> ocsf.v1.Group
-	203, // 298: ocsf.v1.Process.hosted_services:type_name -> ocsf.v1.WinService
-	66,  // 299: ocsf.v1.Process.integrity_id:type_name -> ocsf.v1.Process.IntegrityId
-	171, // 300: ocsf.v1.Process.parent_process:type_name -> ocsf.v1.Process
-	187, // 301: ocsf.v1.Process.session:type_name -> ocsf.v1.Session
-	200, // 302: ocsf.v1.Process.user:type_name -> ocsf.v1.User
-	204, // 303: ocsf.v1.Process.xattributes:type_name -> google.protobuf.Value
-	116, // 304: ocsf.v1.Product.data_classification:type_name -> ocsf.v1.DataClassification
-	116, // 305: ocsf.v1.Product.data_classifications:type_name -> ocsf.v1.DataClassification
-	132, // 306: ocsf.v1.Product.feature:type_name -> ocsf.v1.Feature
-	106, // 307: ocsf.v1.Remediation.cis_controls:type_name -> ocsf.v1.CisControl
-	144, // 308: ocsf.v1.Remediation.kb_article_list:type_name -> ocsf.v1.KbArticle
-	165, // 309: ocsf.v1.Reporter.org:type_name -> ocsf.v1.Organization
-	67,  // 310: ocsf.v1.Reputation.score_id:type_name -> ocsf.v1.Reputation.ScoreId
-	109, // 311: ocsf.v1.Request.containers:type_name -> ocsf.v1.Container
-	204, // 312: ocsf.v1.Request.data:type_name -> google.protobuf.Value
-	95,  // 313: ocsf.v1.ResourceDetails.agent_list:type_name -> ocsf.v1.Agent
-	204, // 314: ocsf.v1.ResourceDetails.data:type_name -> google.protobuf.Value
-	116, // 315: ocsf.v1.ResourceDetails.data_classification:type_name -> ocsf.v1.DataClassification
-	116, // 316: ocsf.v1.ResourceDetails.data_classifications:type_name -> ocsf.v1.DataClassification
-	138, // 317: ocsf.v1.ResourceDetails.group:type_name -> ocsf.v1.Group
-	200, // 318: ocsf.v1.ResourceDetails.owner:type_name -> ocsf.v1.User
-	137, // 319: ocsf.v1.ResourceDetails.resource_relationship:type_name -> ocsf.v1.Graph
-	68,  // 320: ocsf.v1.ResourceDetails.role_id:type_name -> ocsf.v1.ResourceDetails.RoleId
-	145, // 321: ocsf.v1.ResourceDetails.tags:type_name -> ocsf.v1.KeyValueObject
-	109, // 322: ocsf.v1.Response.containers:type_name -> ocsf.v1.Container
-	204, // 323: ocsf.v1.Response.data:type_name -> google.protobuf.Value
-	168, // 324: ocsf.v1.Sbom.package:type_name -> ocsf.v1.Package
-	173, // 325: ocsf.v1.Sbom.product:type_name -> ocsf.v1.Product
-	188, // 326: ocsf.v1.Sbom.software_components:type_name -> ocsf.v1.SoftwareComponent
-	69,  // 327: ocsf.v1.Sbom.type_id:type_name -> ocsf.v1.Sbom.TypeId
-	70,  // 328: ocsf.v1.Scim.auth_protocol_id:type_name -> ocsf.v1.Scim.AuthProtocolId
-	204, // 329: ocsf.v1.Scim.scim_group_schema:type_name -> google.protobuf.Value
-	204, // 330: ocsf.v1.Scim.scim_user_schema:type_name -> google.protobuf.Value
-	71,  // 331: ocsf.v1.Scim.state_id:type_name -> ocsf.v1.Scim.StateId
-	133, // 332: ocsf.v1.Script.file:type_name -> ocsf.v1.File
-	134, // 333: ocsf.v1.Script.hashes:type_name -> ocsf.v1.Fingerprint
-	151, // 334: ocsf.v1.Script.script_content:type_name -> ocsf.v1.LongString
-	72,  // 335: ocsf.v1.Script.type_id:type_name -> ocsf.v1.Script.TypeId
-	145, // 336: ocsf.v1.Service.tags:type_name -> ocsf.v1.KeyValueObject
-	134, // 337: ocsf.v1.SoftwareComponent.hash:type_name -> ocsf.v1.Fingerprint
-	73,  // 338: ocsf.v1.SoftwareComponent.relationship_id:type_name -> ocsf.v1.SoftwareComponent.RelationshipId
-	74,  // 339: ocsf.v1.SoftwareComponent.type_id:type_name -> ocsf.v1.SoftwareComponent.TypeId
-	186, // 340: ocsf.v1.Span.service:type_name -> ocsf.v1.Service
-	75,  // 341: ocsf.v1.Sso.auth_protocol_id:type_name -> ocsf.v1.Sso.AuthProtocolId
-	105, // 342: ocsf.v1.Sso.certificate:type_name -> ocsf.v1.Certificate
-	76,  // 343: ocsf.v1.ThreatActor.type_id:type_name -> ocsf.v1.ThreatActor.TypeId
-	77,  // 344: ocsf.v1.Timespan.type_id:type_name -> ocsf.v1.Timespan.TypeId
-	78,  // 345: ocsf.v1.Token.type_id:type_name -> ocsf.v1.Token.TypeId
-	186, // 346: ocsf.v1.Trace.service:type_name -> ocsf.v1.Service
-	189, // 347: ocsf.v1.Trace.span:type_name -> ocsf.v1.Span
-	173, // 348: ocsf.v1.TransformationInfo.product:type_name -> ocsf.v1.Product
-	79,  // 349: ocsf.v1.Url.category_ids:type_name -> ocsf.v1.Url.CategoryIds
-	90,  // 350: ocsf.v1.User.account:type_name -> ocsf.v1.Account
-	138, // 351: ocsf.v1.User.groups:type_name -> ocsf.v1.Group
-	148, // 352: ocsf.v1.User.ldap_person:type_name -> ocsf.v1.LdapPerson
-	165, // 353: ocsf.v1.User.org:type_name -> ocsf.v1.Organization
-	174, // 354: ocsf.v1.User.programmatic_credentials:type_name -> ocsf.v1.ProgrammaticCredential
-	80,  // 355: ocsf.v1.User.risk_level_id:type_name -> ocsf.v1.User.RiskLevelId
-	81,  // 356: ocsf.v1.User.type_id:type_name -> ocsf.v1.User.TypeId
-	92,  // 357: ocsf.v1.Vulnerability.advisory:type_name -> ocsf.v1.Advisory
-	93,  // 358: ocsf.v1.Vulnerability.affected_code:type_name -> ocsf.v1.AffectedCode
-	94,  // 359: ocsf.v1.Vulnerability.affected_packages:type_name -> ocsf.v1.AffectedPackage
-	110, // 360: ocsf.v1.Vulnerability.cve:type_name -> ocsf.v1.Cve
-	112, // 361: ocsf.v1.Vulnerability.cwe:type_name -> ocsf.v1.Cwe
-	82,  // 362: ocsf.v1.Vulnerability.fix_coverage_id:type_name -> ocsf.v1.Vulnerability.FixCoverageId
-	144, // 363: ocsf.v1.Vulnerability.kb_article_list:type_name -> ocsf.v1.KbArticle
-	168, // 364: ocsf.v1.Vulnerability.packages:type_name -> ocsf.v1.Package
-	175, // 365: ocsf.v1.Vulnerability.remediation:type_name -> ocsf.v1.Remediation
-	103, // 366: ocsf.v1.Whois.autonomous_system:type_name -> ocsf.v1.AutonomousSystem
-	83,  // 367: ocsf.v1.Whois.dnssec_status_id:type_name -> ocsf.v1.Whois.DnssecStatusId
-	123, // 368: ocsf.v1.Whois.domain_contacts:type_name -> ocsf.v1.DomainContact
-	172, // 369: ocsf.v1.WinService.hosting_process:type_name -> ocsf.v1.ProcessEntity
-	84,  // 370: ocsf.v1.WinService.service_category_id:type_name -> ocsf.v1.WinService.ServiceCategoryId
-	133, // 371: ocsf.v1.WinService.service_dll_file:type_name -> ocsf.v1.File
-	85,  // 372: ocsf.v1.WinService.service_error_control_id:type_name -> ocsf.v1.WinService.ServiceErrorControlId
-	133, // 373: ocsf.v1.WinService.service_file:type_name -> ocsf.v1.File
-	86,  // 374: ocsf.v1.WinService.service_start_type_id:type_name -> ocsf.v1.WinService.ServiceStartTypeId
-	87,  // 375: ocsf.v1.WinService.service_type_id:type_name -> ocsf.v1.WinService.ServiceTypeId
-	145, // 376: ocsf.v1.WinService.tags:type_name -> ocsf.v1.KeyValueObject
-	377, // [377:377] is the sub-list for method output_type
-	377, // [377:377] is the sub-list for method input_type
-	377, // [377:377] is the sub-list for extension type_name
-	377, // [377:377] is the sub-list for extension extendee
-	0,   // [0:377] is the sub-list for field type_name
+var file_ocsf_v1_objects_proto_depIdxs = []int32{
+	123, // 0: ocsf.v1.Account.tags:type_name -> ocsf.v1.KeyValueObject
+	0,   // 1: ocsf.v1.Account.type_id:type_name -> ocsf.v1.Account.TypeId
+	80,  // 2: ocsf.v1.Actor.authorizations:type_name -> ocsf.v1.Authorization
+	120, // 3: ocsf.v1.Actor.idp:type_name -> ocsf.v1.Idp
+	149, // 4: ocsf.v1.Actor.process:type_name -> ocsf.v1.Process
+	165, // 5: ocsf.v1.Actor.session:type_name -> ocsf.v1.Session
+	178, // 6: ocsf.v1.Actor.user:type_name -> ocsf.v1.User
+	173, // 7: ocsf.v1.Advisory.avg_timespan:type_name -> ocsf.v1.Timespan
+	1,   // 8: ocsf.v1.Advisory.install_state_id:type_name -> ocsf.v1.Advisory.InstallStateId
+	144, // 9: ocsf.v1.Advisory.os:type_name -> ocsf.v1.Os
+	151, // 10: ocsf.v1.Advisory.product:type_name -> ocsf.v1.Product
+	88,  // 11: ocsf.v1.Advisory.related_cves:type_name -> ocsf.v1.Cve
+	90,  // 12: ocsf.v1.Advisory.related_cwes:type_name -> ocsf.v1.Cwe
+	111, // 13: ocsf.v1.AffectedCode.file:type_name -> ocsf.v1.File
+	178, // 14: ocsf.v1.AffectedCode.owner:type_name -> ocsf.v1.User
+	153, // 15: ocsf.v1.AffectedCode.remediation:type_name -> ocsf.v1.Remediation
+	159, // 16: ocsf.v1.AffectedCode.rule:type_name -> ocsf.v1.Rule
+	112, // 17: ocsf.v1.AffectedPackage.hash:type_name -> ocsf.v1.Fingerprint
+	153, // 18: ocsf.v1.AffectedPackage.remediation:type_name -> ocsf.v1.Remediation
+	2,   // 19: ocsf.v1.AffectedPackage.type_id:type_name -> ocsf.v1.AffectedPackage.TypeId
+	147, // 20: ocsf.v1.Agent.policies:type_name -> ocsf.v1.Policy
+	3,   // 21: ocsf.v1.Agent.type_id:type_name -> ocsf.v1.Agent.TypeId
+	75,  // 22: ocsf.v1.Analytic.related_analytics:type_name -> ocsf.v1.Analytic
+	4,   // 23: ocsf.v1.Analytic.state_id:type_name -> ocsf.v1.Analytic.StateId
+	5,   // 24: ocsf.v1.Analytic.type_id:type_name -> ocsf.v1.Analytic.TypeId
+	116, // 25: ocsf.v1.Api.group:type_name -> ocsf.v1.Group
+	156, // 26: ocsf.v1.Api.request:type_name -> ocsf.v1.Request
+	158, // 27: ocsf.v1.Api.response:type_name -> ocsf.v1.Response
+	164, // 28: ocsf.v1.Api.service:type_name -> ocsf.v1.Service
+	174, // 29: ocsf.v1.Api.token:type_name -> ocsf.v1.Token
+	182, // 30: ocsf.v1.Application.data:type_name -> google.protobuf.Value
+	116, // 31: ocsf.v1.Application.group:type_name -> ocsf.v1.Group
+	178, // 32: ocsf.v1.Application.owner:type_name -> ocsf.v1.User
+	115, // 33: ocsf.v1.Application.resource_relationship:type_name -> ocsf.v1.Graph
+	6,   // 34: ocsf.v1.Application.risk_level_id:type_name -> ocsf.v1.Application.RiskLevelId
+	161, // 35: ocsf.v1.Application.sbom:type_name -> ocsf.v1.Sbom
+	123, // 36: ocsf.v1.Application.tags:type_name -> ocsf.v1.KeyValueObject
+	177, // 37: ocsf.v1.Application.url:type_name -> ocsf.v1.Url
+	136, // 38: ocsf.v1.Attack.mitigation:type_name -> ocsf.v1.Mitigation
+	169, // 39: ocsf.v1.Attack.sub_technique:type_name -> ocsf.v1.SubTechnique
+	170, // 40: ocsf.v1.Attack.tactic:type_name -> ocsf.v1.Tactic
+	170, // 41: ocsf.v1.Attack.tactics:type_name -> ocsf.v1.Tactic
+	171, // 42: ocsf.v1.Attack.technique:type_name -> ocsf.v1.Technique
+	95,  // 43: ocsf.v1.AuthFactor.device:type_name -> ocsf.v1.Device
+	7,   // 44: ocsf.v1.AuthFactor.factor_type_id:type_name -> ocsf.v1.AuthFactor.FactorTypeId
+	147, // 45: ocsf.v1.Authorization.policy:type_name -> ocsf.v1.Policy
+	112, // 46: ocsf.v1.Certificate.fingerprints:type_name -> ocsf.v1.Fingerprint
+	160, // 47: ocsf.v1.Certificate.sans:type_name -> ocsf.v1.San
+	68,  // 48: ocsf.v1.Cloud.account:type_name -> ocsf.v1.Account
+	143, // 49: ocsf.v1.Cloud.org:type_name -> ocsf.v1.Organization
+	112, // 50: ocsf.v1.Container.hash:type_name -> ocsf.v1.Fingerprint
+	121, // 51: ocsf.v1.Container.image:type_name -> ocsf.v1.Image
+	123, // 52: ocsf.v1.Container.tags:type_name -> ocsf.v1.KeyValueObject
+	89,  // 53: ocsf.v1.Cve.cvss:type_name -> ocsf.v1.Cvss
+	90,  // 54: ocsf.v1.Cve.cwe:type_name -> ocsf.v1.Cwe
+	108, // 55: ocsf.v1.Cve.epss:type_name -> ocsf.v1.Epss
+	151, // 56: ocsf.v1.Cve.product:type_name -> ocsf.v1.Product
+	90,  // 57: ocsf.v1.Cve.related_cwes:type_name -> ocsf.v1.Cwe
+	135, // 58: ocsf.v1.Cvss.metrics:type_name -> ocsf.v1.Metric
+	91,  // 59: ocsf.v1.D3fend.d3f_tactic:type_name -> ocsf.v1.D3fTactic
+	92,  // 60: ocsf.v1.D3fend.d3f_technique:type_name -> ocsf.v1.D3fTechnique
+	8,   // 61: ocsf.v1.DataClassification.category_id:type_name -> ocsf.v1.DataClassification.CategoryId
+	85,  // 62: ocsf.v1.DataClassification.classifier_details:type_name -> ocsf.v1.ClassifierDetails
+	9,   // 63: ocsf.v1.DataClassification.confidentiality_id:type_name -> ocsf.v1.DataClassification.ConfidentialityId
+	98,  // 64: ocsf.v1.DataClassification.discovery_details:type_name -> ocsf.v1.DiscoveryDetails
+	147, // 65: ocsf.v1.DataClassification.policy:type_name -> ocsf.v1.Policy
+	10,  // 66: ocsf.v1.DataClassification.status_id:type_name -> ocsf.v1.DataClassification.StatusId
+	73,  // 67: ocsf.v1.Device.agent_list:type_name -> ocsf.v1.Agent
+	87,  // 68: ocsf.v1.Device.container:type_name -> ocsf.v1.Container
+	116, // 69: ocsf.v1.Device.groups:type_name -> ocsf.v1.Group
+	96,  // 70: ocsf.v1.Device.hw_info:type_name -> ocsf.v1.DeviceHwInfo
+	121, // 71: ocsf.v1.Device.image:type_name -> ocsf.v1.Image
+	127, // 72: ocsf.v1.Device.location:type_name -> ocsf.v1.Location
+	138, // 73: ocsf.v1.Device.network_interfaces:type_name -> ocsf.v1.NetworkInterface
+	143, // 74: ocsf.v1.Device.org:type_name -> ocsf.v1.Organization
+	144, // 75: ocsf.v1.Device.os:type_name -> ocsf.v1.Os
+	178, // 76: ocsf.v1.Device.owner:type_name -> ocsf.v1.User
+	116, // 77: ocsf.v1.Device.pool:type_name -> ocsf.v1.Group
+	11,  // 78: ocsf.v1.Device.risk_level_id:type_name -> ocsf.v1.Device.RiskLevelId
+	12,  // 79: ocsf.v1.Device.type_id:type_name -> ocsf.v1.Device.TypeId
+	13,  // 80: ocsf.v1.DeviceHwInfo.cpu_architecture_id:type_name -> ocsf.v1.DeviceHwInfo.CpuArchitectureId
+	99,  // 81: ocsf.v1.DeviceHwInfo.desktop_display:type_name -> ocsf.v1.Display
+	114, // 82: ocsf.v1.DeviceHwInfo.gpu_info_list:type_name -> ocsf.v1.GpuInfo
+	124, // 83: ocsf.v1.DeviceHwInfo.keyboard_info:type_name -> ocsf.v1.KeyboardInfo
+	14,  // 84: ocsf.v1.DigitalSignature.algorithm_id:type_name -> ocsf.v1.DigitalSignature.AlgorithmId
+	83,  // 85: ocsf.v1.DigitalSignature.certificate:type_name -> ocsf.v1.Certificate
+	112, // 86: ocsf.v1.DigitalSignature.digest:type_name -> ocsf.v1.Fingerprint
+	15,  // 87: ocsf.v1.DigitalSignature.state_id:type_name -> ocsf.v1.DigitalSignature.StateId
+	142, // 88: ocsf.v1.DiscoveryDetails.occurrence_details:type_name -> ocsf.v1.OccurrenceDetails
+	142, // 89: ocsf.v1.DiscoveryDetails.occurrences:type_name -> ocsf.v1.OccurrenceDetails
+	16,  // 90: ocsf.v1.DnsAnswer.flag_ids:type_name -> ocsf.v1.DnsAnswer.FlagIds
+	127, // 91: ocsf.v1.DomainContact.location:type_name -> ocsf.v1.Location
+	17,  // 92: ocsf.v1.DomainContact.type_id:type_name -> ocsf.v1.DomainContact.TypeId
+	182, // 93: ocsf.v1.Edge.data:type_name -> google.protobuf.Value
+	94,  // 94: ocsf.v1.Email.data_classification:type_name -> ocsf.v1.DataClassification
+	94,  // 95: ocsf.v1.Email.data_classifications:type_name -> ocsf.v1.DataClassification
+	111, // 96: ocsf.v1.Email.files:type_name -> ocsf.v1.File
+	117, // 97: ocsf.v1.Email.http_headers:type_name -> ocsf.v1.HttpHeader
+	177, // 98: ocsf.v1.Email.urls:type_name -> ocsf.v1.Url
+	18,  // 99: ocsf.v1.EncryptionDetails.algorithm_id:type_name -> ocsf.v1.EncryptionDetails.AlgorithmId
+	182, // 100: ocsf.v1.Enrichment.data:type_name -> google.protobuf.Value
+	155, // 101: ocsf.v1.Enrichment.reputation:type_name -> ocsf.v1.Reputation
+	178, // 102: ocsf.v1.File.accessor:type_name -> ocsf.v1.User
+	19,  // 103: ocsf.v1.File.confidentiality_id:type_name -> ocsf.v1.File.ConfidentialityId
+	178, // 104: ocsf.v1.File.creator:type_name -> ocsf.v1.User
+	94,  // 105: ocsf.v1.File.data_classification:type_name -> ocsf.v1.DataClassification
+	94,  // 106: ocsf.v1.File.data_classifications:type_name -> ocsf.v1.DataClassification
+	20,  // 107: ocsf.v1.File.drive_type_id:type_name -> ocsf.v1.File.DriveTypeId
+	105, // 108: ocsf.v1.File.encryption_details:type_name -> ocsf.v1.EncryptionDetails
+	112, // 109: ocsf.v1.File.hashes:type_name -> ocsf.v1.Fingerprint
+	178, // 110: ocsf.v1.File.modifier:type_name -> ocsf.v1.User
+	178, // 111: ocsf.v1.File.owner:type_name -> ocsf.v1.User
+	151, // 112: ocsf.v1.File.product:type_name -> ocsf.v1.Product
+	97,  // 113: ocsf.v1.File.signature:type_name -> ocsf.v1.DigitalSignature
+	97,  // 114: ocsf.v1.File.signatures:type_name -> ocsf.v1.DigitalSignature
+	123, // 115: ocsf.v1.File.tags:type_name -> ocsf.v1.KeyValueObject
+	21,  // 116: ocsf.v1.File.type_id:type_name -> ocsf.v1.File.TypeId
+	177, // 117: ocsf.v1.File.url:type_name -> ocsf.v1.Url
+	182, // 118: ocsf.v1.File.xattributes:type_name -> google.protobuf.Value
+	22,  // 119: ocsf.v1.Fingerprint.algorithm_id:type_name -> ocsf.v1.Fingerprint.AlgorithmId
+	23,  // 120: ocsf.v1.GpuInfo.bus_type_id:type_name -> ocsf.v1.GpuInfo.BusTypeId
+	24,  // 121: ocsf.v1.GpuInfo.vram_mode_id:type_name -> ocsf.v1.GpuInfo.VramModeId
+	102, // 122: ocsf.v1.Graph.edges:type_name -> ocsf.v1.Edge
+	140, // 123: ocsf.v1.Graph.nodes:type_name -> ocsf.v1.Node
+	25,  // 124: ocsf.v1.Graph.query_language_id:type_name -> ocsf.v1.Graph.QueryLanguageId
+	117, // 125: ocsf.v1.HttpRequest.http_headers:type_name -> ocsf.v1.HttpHeader
+	177, // 126: ocsf.v1.HttpRequest.url:type_name -> ocsf.v1.Url
+	117, // 127: ocsf.v1.HttpResponse.http_headers:type_name -> ocsf.v1.HttpHeader
+	79,  // 128: ocsf.v1.Idp.auth_factors:type_name -> ocsf.v1.AuthFactor
+	112, // 129: ocsf.v1.Idp.fingerprint:type_name -> ocsf.v1.Fingerprint
+	162, // 130: ocsf.v1.Idp.scim:type_name -> ocsf.v1.Scim
+	168, // 131: ocsf.v1.Idp.sso:type_name -> ocsf.v1.Sso
+	26,  // 132: ocsf.v1.Idp.state_id:type_name -> ocsf.v1.Idp.StateId
+	123, // 133: ocsf.v1.Image.tags:type_name -> ocsf.v1.KeyValueObject
+	173, // 134: ocsf.v1.KbArticle.avg_timespan:type_name -> ocsf.v1.Timespan
+	27,  // 135: ocsf.v1.KbArticle.install_state_id:type_name -> ocsf.v1.KbArticle.InstallStateId
+	144, // 136: ocsf.v1.KbArticle.os:type_name -> ocsf.v1.Os
+	151, // 137: ocsf.v1.KbArticle.product:type_name -> ocsf.v1.Product
+	28,  // 138: ocsf.v1.KillChainPhase.phase_id:type_name -> ocsf.v1.KillChainPhase.PhaseId
+	127, // 139: ocsf.v1.LdapPerson.location:type_name -> ocsf.v1.Location
+	178, // 140: ocsf.v1.LdapPerson.manager:type_name -> ocsf.v1.User
+	123, // 141: ocsf.v1.LdapPerson.tags:type_name -> ocsf.v1.KeyValueObject
+	95,  // 142: ocsf.v1.Logger.device:type_name -> ocsf.v1.Device
+	151, // 143: ocsf.v1.Logger.product:type_name -> ocsf.v1.Product
+	29,  // 144: ocsf.v1.Malware.classification_ids:type_name -> ocsf.v1.Malware.ClassificationIds
+	88,  // 145: ocsf.v1.Malware.cves:type_name -> ocsf.v1.Cve
+	111, // 146: ocsf.v1.Malware.files:type_name -> ocsf.v1.File
+	30,  // 147: ocsf.v1.Malware.severity_id:type_name -> ocsf.v1.Malware.SeverityId
+	31,  // 148: ocsf.v1.MalwareScanInfo.type_id:type_name -> ocsf.v1.MalwareScanInfo.TypeId
+	182, // 149: ocsf.v1.ManagedEntity.data:type_name -> google.protobuf.Value
+	95,  // 150: ocsf.v1.ManagedEntity.device:type_name -> ocsf.v1.Device
+	103, // 151: ocsf.v1.ManagedEntity.email:type_name -> ocsf.v1.Email
+	116, // 152: ocsf.v1.ManagedEntity.group:type_name -> ocsf.v1.Group
+	127, // 153: ocsf.v1.ManagedEntity.location:type_name -> ocsf.v1.Location
+	143, // 154: ocsf.v1.ManagedEntity.org:type_name -> ocsf.v1.Organization
+	147, // 155: ocsf.v1.ManagedEntity.policy:type_name -> ocsf.v1.Policy
+	32,  // 156: ocsf.v1.ManagedEntity.type_id:type_name -> ocsf.v1.ManagedEntity.TypeId
+	178, // 157: ocsf.v1.ManagedEntity.user:type_name -> ocsf.v1.User
+	33,  // 158: ocsf.v1.MessageContext.ai_role_id:type_name -> ocsf.v1.MessageContext.AiRoleId
+	77,  // 159: ocsf.v1.MessageContext.application:type_name -> ocsf.v1.Application
+	164, // 160: ocsf.v1.MessageContext.service:type_name -> ocsf.v1.Service
+	94,  // 161: ocsf.v1.Metadata.data_classification:type_name -> ocsf.v1.DataClassification
+	94,  // 162: ocsf.v1.Metadata.data_classifications:type_name -> ocsf.v1.DataClassification
+	109, // 163: ocsf.v1.Metadata.extension:type_name -> ocsf.v1.Extension
+	109, // 164: ocsf.v1.Metadata.extensions:type_name -> ocsf.v1.Extension
+	128, // 165: ocsf.v1.Metadata.loggers:type_name -> ocsf.v1.Logger
+	151, // 166: ocsf.v1.Metadata.product:type_name -> ocsf.v1.Product
+	154, // 167: ocsf.v1.Metadata.reporter:type_name -> ocsf.v1.Reporter
+	123, // 168: ocsf.v1.Metadata.tags:type_name -> ocsf.v1.KeyValueObject
+	173, // 169: ocsf.v1.Metadata.total_queued_duration:type_name -> ocsf.v1.Timespan
+	176, // 170: ocsf.v1.Metadata.transformation_info_list:type_name -> ocsf.v1.TransformationInfo
+	93,  // 171: ocsf.v1.Mitigation.countermeasures:type_name -> ocsf.v1.D3fend
+	73,  // 172: ocsf.v1.NetworkEndpoint.agent_list:type_name -> ocsf.v1.Agent
+	81,  // 173: ocsf.v1.NetworkEndpoint.autonomous_system:type_name -> ocsf.v1.AutonomousSystem
+	87,  // 174: ocsf.v1.NetworkEndpoint.container:type_name -> ocsf.v1.Container
+	112, // 175: ocsf.v1.NetworkEndpoint.fingerprints:type_name -> ocsf.v1.Fingerprint
+	96,  // 176: ocsf.v1.NetworkEndpoint.hw_info:type_name -> ocsf.v1.DeviceHwInfo
+	127, // 177: ocsf.v1.NetworkEndpoint.location:type_name -> ocsf.v1.Location
+	34,  // 178: ocsf.v1.NetworkEndpoint.network_scope_id:type_name -> ocsf.v1.NetworkEndpoint.NetworkScopeId
+	144, // 179: ocsf.v1.NetworkEndpoint.os:type_name -> ocsf.v1.Os
+	178, // 180: ocsf.v1.NetworkEndpoint.owner:type_name -> ocsf.v1.User
+	116, // 181: ocsf.v1.NetworkEndpoint.pool:type_name -> ocsf.v1.Group
+	139, // 182: ocsf.v1.NetworkEndpoint.proxy_endpoint:type_name -> ocsf.v1.NetworkProxy
+	35,  // 183: ocsf.v1.NetworkEndpoint.type_id:type_name -> ocsf.v1.NetworkEndpoint.TypeId
+	148, // 184: ocsf.v1.NetworkInterface.open_ports:type_name -> ocsf.v1.PortInfo
+	36,  // 185: ocsf.v1.NetworkInterface.type_id:type_name -> ocsf.v1.NetworkInterface.TypeId
+	73,  // 186: ocsf.v1.NetworkProxy.agent_list:type_name -> ocsf.v1.Agent
+	81,  // 187: ocsf.v1.NetworkProxy.autonomous_system:type_name -> ocsf.v1.AutonomousSystem
+	87,  // 188: ocsf.v1.NetworkProxy.container:type_name -> ocsf.v1.Container
+	112, // 189: ocsf.v1.NetworkProxy.fingerprints:type_name -> ocsf.v1.Fingerprint
+	96,  // 190: ocsf.v1.NetworkProxy.hw_info:type_name -> ocsf.v1.DeviceHwInfo
+	127, // 191: ocsf.v1.NetworkProxy.location:type_name -> ocsf.v1.Location
+	37,  // 192: ocsf.v1.NetworkProxy.network_scope_id:type_name -> ocsf.v1.NetworkProxy.NetworkScopeId
+	144, // 193: ocsf.v1.NetworkProxy.os:type_name -> ocsf.v1.Os
+	178, // 194: ocsf.v1.NetworkProxy.owner:type_name -> ocsf.v1.User
+	116, // 195: ocsf.v1.NetworkProxy.pool:type_name -> ocsf.v1.Group
+	139, // 196: ocsf.v1.NetworkProxy.proxy_endpoint:type_name -> ocsf.v1.NetworkProxy
+	38,  // 197: ocsf.v1.NetworkProxy.type_id:type_name -> ocsf.v1.NetworkProxy.TypeId
+	182, // 198: ocsf.v1.Node.data:type_name -> google.protobuf.Value
+	155, // 199: ocsf.v1.Observable.reputation:type_name -> ocsf.v1.Reputation
+	39,  // 200: ocsf.v1.Observable.type_id:type_name -> ocsf.v1.Observable.TypeId
+	40,  // 201: ocsf.v1.Os.type_id:type_name -> ocsf.v1.Os.TypeId
+	100, // 202: ocsf.v1.Osint.answers:type_name -> ocsf.v1.DnsAnswer
+	78,  // 203: ocsf.v1.Osint.attacks:type_name -> ocsf.v1.Attack
+	81,  // 204: ocsf.v1.Osint.autonomous_system:type_name -> ocsf.v1.AutonomousSystem
+	82,  // 205: ocsf.v1.Osint.campaign:type_name -> ocsf.v1.Campaign
+	41,  // 206: ocsf.v1.Osint.confidence_id:type_name -> ocsf.v1.Osint.ConfidenceId
+	178, // 207: ocsf.v1.Osint.creator:type_name -> ocsf.v1.User
+	42,  // 208: ocsf.v1.Osint.detection_pattern_type_id:type_name -> ocsf.v1.Osint.DetectionPatternTypeId
+	103, // 209: ocsf.v1.Osint.email:type_name -> ocsf.v1.Email
+	104, // 210: ocsf.v1.Osint.email_auth:type_name -> ocsf.v1.EmailAuth
+	111, // 211: ocsf.v1.Osint.file:type_name -> ocsf.v1.File
+	125, // 212: ocsf.v1.Osint.kill_chain:type_name -> ocsf.v1.KillChainPhase
+	127, // 213: ocsf.v1.Osint.location:type_name -> ocsf.v1.Location
+	130, // 214: ocsf.v1.Osint.malware:type_name -> ocsf.v1.Malware
+	75,  // 215: ocsf.v1.Osint.related_analytics:type_name -> ocsf.v1.Analytic
+	155, // 216: ocsf.v1.Osint.reputation:type_name -> ocsf.v1.Reputation
+	163, // 217: ocsf.v1.Osint.script:type_name -> ocsf.v1.Script
+	43,  // 218: ocsf.v1.Osint.severity_id:type_name -> ocsf.v1.Osint.SeverityId
+	97,  // 219: ocsf.v1.Osint.signatures:type_name -> ocsf.v1.DigitalSignature
+	172, // 220: ocsf.v1.Osint.threat_actor:type_name -> ocsf.v1.ThreatActor
+	44,  // 221: ocsf.v1.Osint.type_id:type_name -> ocsf.v1.Osint.TypeId
+	179, // 222: ocsf.v1.Osint.vulnerabilities:type_name -> ocsf.v1.Vulnerability
+	180, // 223: ocsf.v1.Osint.whois:type_name -> ocsf.v1.Whois
+	112, // 224: ocsf.v1.Package.hash:type_name -> ocsf.v1.Fingerprint
+	45,  // 225: ocsf.v1.Package.type_id:type_name -> ocsf.v1.Package.TypeId
+	182, // 226: ocsf.v1.Policy.data:type_name -> google.protobuf.Value
+	116, // 227: ocsf.v1.Policy.group:type_name -> ocsf.v1.Group
+	150, // 228: ocsf.v1.Process.ancestry:type_name -> ocsf.v1.ProcessEntity
+	87,  // 229: ocsf.v1.Process.container:type_name -> ocsf.v1.Container
+	107, // 230: ocsf.v1.Process.environment_variables:type_name -> ocsf.v1.EnvironmentVariable
+	111, // 231: ocsf.v1.Process.file:type_name -> ocsf.v1.File
+	116, // 232: ocsf.v1.Process.group:type_name -> ocsf.v1.Group
+	181, // 233: ocsf.v1.Process.hosted_services:type_name -> ocsf.v1.WinService
+	46,  // 234: ocsf.v1.Process.integrity_id:type_name -> ocsf.v1.Process.IntegrityId
+	149, // 235: ocsf.v1.Process.parent_process:type_name -> ocsf.v1.Process
+	165, // 236: ocsf.v1.Process.session:type_name -> ocsf.v1.Session
+	178, // 237: ocsf.v1.Process.user:type_name -> ocsf.v1.User
+	182, // 238: ocsf.v1.Process.xattributes:type_name -> google.protobuf.Value
+	94,  // 239: ocsf.v1.Product.data_classification:type_name -> ocsf.v1.DataClassification
+	94,  // 240: ocsf.v1.Product.data_classifications:type_name -> ocsf.v1.DataClassification
+	110, // 241: ocsf.v1.Product.feature:type_name -> ocsf.v1.Feature
+	84,  // 242: ocsf.v1.Remediation.cis_controls:type_name -> ocsf.v1.CisControl
+	122, // 243: ocsf.v1.Remediation.kb_article_list:type_name -> ocsf.v1.KbArticle
+	143, // 244: ocsf.v1.Reporter.org:type_name -> ocsf.v1.Organization
+	47,  // 245: ocsf.v1.Reputation.score_id:type_name -> ocsf.v1.Reputation.ScoreId
+	87,  // 246: ocsf.v1.Request.containers:type_name -> ocsf.v1.Container
+	182, // 247: ocsf.v1.Request.data:type_name -> google.protobuf.Value
+	73,  // 248: ocsf.v1.ResourceDetails.agent_list:type_name -> ocsf.v1.Agent
+	182, // 249: ocsf.v1.ResourceDetails.data:type_name -> google.protobuf.Value
+	94,  // 250: ocsf.v1.ResourceDetails.data_classification:type_name -> ocsf.v1.DataClassification
+	94,  // 251: ocsf.v1.ResourceDetails.data_classifications:type_name -> ocsf.v1.DataClassification
+	116, // 252: ocsf.v1.ResourceDetails.group:type_name -> ocsf.v1.Group
+	178, // 253: ocsf.v1.ResourceDetails.owner:type_name -> ocsf.v1.User
+	115, // 254: ocsf.v1.ResourceDetails.resource_relationship:type_name -> ocsf.v1.Graph
+	48,  // 255: ocsf.v1.ResourceDetails.role_id:type_name -> ocsf.v1.ResourceDetails.RoleId
+	123, // 256: ocsf.v1.ResourceDetails.tags:type_name -> ocsf.v1.KeyValueObject
+	87,  // 257: ocsf.v1.Response.containers:type_name -> ocsf.v1.Container
+	182, // 258: ocsf.v1.Response.data:type_name -> google.protobuf.Value
+	146, // 259: ocsf.v1.Sbom.package:type_name -> ocsf.v1.Package
+	151, // 260: ocsf.v1.Sbom.product:type_name -> ocsf.v1.Product
+	166, // 261: ocsf.v1.Sbom.software_components:type_name -> ocsf.v1.SoftwareComponent
+	49,  // 262: ocsf.v1.Sbom.type_id:type_name -> ocsf.v1.Sbom.TypeId
+	50,  // 263: ocsf.v1.Scim.auth_protocol_id:type_name -> ocsf.v1.Scim.AuthProtocolId
+	182, // 264: ocsf.v1.Scim.scim_group_schema:type_name -> google.protobuf.Value
+	182, // 265: ocsf.v1.Scim.scim_user_schema:type_name -> google.protobuf.Value
+	51,  // 266: ocsf.v1.Scim.state_id:type_name -> ocsf.v1.Scim.StateId
+	111, // 267: ocsf.v1.Script.file:type_name -> ocsf.v1.File
+	112, // 268: ocsf.v1.Script.hashes:type_name -> ocsf.v1.Fingerprint
+	129, // 269: ocsf.v1.Script.script_content:type_name -> ocsf.v1.LongString
+	52,  // 270: ocsf.v1.Script.type_id:type_name -> ocsf.v1.Script.TypeId
+	123, // 271: ocsf.v1.Service.tags:type_name -> ocsf.v1.KeyValueObject
+	112, // 272: ocsf.v1.SoftwareComponent.hash:type_name -> ocsf.v1.Fingerprint
+	53,  // 273: ocsf.v1.SoftwareComponent.relationship_id:type_name -> ocsf.v1.SoftwareComponent.RelationshipId
+	54,  // 274: ocsf.v1.SoftwareComponent.type_id:type_name -> ocsf.v1.SoftwareComponent.TypeId
+	164, // 275: ocsf.v1.Span.service:type_name -> ocsf.v1.Service
+	55,  // 276: ocsf.v1.Sso.auth_protocol_id:type_name -> ocsf.v1.Sso.AuthProtocolId
+	83,  // 277: ocsf.v1.Sso.certificate:type_name -> ocsf.v1.Certificate
+	56,  // 278: ocsf.v1.ThreatActor.type_id:type_name -> ocsf.v1.ThreatActor.TypeId
+	57,  // 279: ocsf.v1.Timespan.type_id:type_name -> ocsf.v1.Timespan.TypeId
+	58,  // 280: ocsf.v1.Token.type_id:type_name -> ocsf.v1.Token.TypeId
+	164, // 281: ocsf.v1.Trace.service:type_name -> ocsf.v1.Service
+	167, // 282: ocsf.v1.Trace.span:type_name -> ocsf.v1.Span
+	151, // 283: ocsf.v1.TransformationInfo.product:type_name -> ocsf.v1.Product
+	59,  // 284: ocsf.v1.Url.category_ids:type_name -> ocsf.v1.Url.CategoryIds
+	68,  // 285: ocsf.v1.User.account:type_name -> ocsf.v1.Account
+	116, // 286: ocsf.v1.User.groups:type_name -> ocsf.v1.Group
+	126, // 287: ocsf.v1.User.ldap_person:type_name -> ocsf.v1.LdapPerson
+	143, // 288: ocsf.v1.User.org:type_name -> ocsf.v1.Organization
+	152, // 289: ocsf.v1.User.programmatic_credentials:type_name -> ocsf.v1.ProgrammaticCredential
+	60,  // 290: ocsf.v1.User.risk_level_id:type_name -> ocsf.v1.User.RiskLevelId
+	61,  // 291: ocsf.v1.User.type_id:type_name -> ocsf.v1.User.TypeId
+	70,  // 292: ocsf.v1.Vulnerability.advisory:type_name -> ocsf.v1.Advisory
+	71,  // 293: ocsf.v1.Vulnerability.affected_code:type_name -> ocsf.v1.AffectedCode
+	72,  // 294: ocsf.v1.Vulnerability.affected_packages:type_name -> ocsf.v1.AffectedPackage
+	88,  // 295: ocsf.v1.Vulnerability.cve:type_name -> ocsf.v1.Cve
+	90,  // 296: ocsf.v1.Vulnerability.cwe:type_name -> ocsf.v1.Cwe
+	62,  // 297: ocsf.v1.Vulnerability.fix_coverage_id:type_name -> ocsf.v1.Vulnerability.FixCoverageId
+	122, // 298: ocsf.v1.Vulnerability.kb_article_list:type_name -> ocsf.v1.KbArticle
+	146, // 299: ocsf.v1.Vulnerability.packages:type_name -> ocsf.v1.Package
+	153, // 300: ocsf.v1.Vulnerability.remediation:type_name -> ocsf.v1.Remediation
+	81,  // 301: ocsf.v1.Whois.autonomous_system:type_name -> ocsf.v1.AutonomousSystem
+	63,  // 302: ocsf.v1.Whois.dnssec_status_id:type_name -> ocsf.v1.Whois.DnssecStatusId
+	101, // 303: ocsf.v1.Whois.domain_contacts:type_name -> ocsf.v1.DomainContact
+	150, // 304: ocsf.v1.WinService.hosting_process:type_name -> ocsf.v1.ProcessEntity
+	64,  // 305: ocsf.v1.WinService.service_category_id:type_name -> ocsf.v1.WinService.ServiceCategoryId
+	111, // 306: ocsf.v1.WinService.service_dll_file:type_name -> ocsf.v1.File
+	65,  // 307: ocsf.v1.WinService.service_error_control_id:type_name -> ocsf.v1.WinService.ServiceErrorControlId
+	111, // 308: ocsf.v1.WinService.service_file:type_name -> ocsf.v1.File
+	66,  // 309: ocsf.v1.WinService.service_start_type_id:type_name -> ocsf.v1.WinService.ServiceStartTypeId
+	67,  // 310: ocsf.v1.WinService.service_type_id:type_name -> ocsf.v1.WinService.ServiceTypeId
+	123, // 311: ocsf.v1.WinService.tags:type_name -> ocsf.v1.KeyValueObject
+	312, // [312:312] is the sub-list for method output_type
+	312, // [312:312] is the sub-list for method input_type
+	312, // [312:312] is the sub-list for extension type_name
+	312, // [312:312] is the sub-list for extension extendee
+	0,   // [0:312] is the sub-list for field type_name
 }
 
-func init() { file_api_entity_proto_init() }
-func file_api_entity_proto_init() {
-	if File_api_entity_proto != nil {
+func init() { file_ocsf_v1_objects_proto_init() }
+func file_ocsf_v1_objects_proto_init() {
+	if File_ocsf_v1_objects_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_api_entity_proto_rawDesc), len(file_api_entity_proto_rawDesc)),
-			NumEnums:      88,
-			NumMessages:   116,
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ocsf_v1_objects_proto_rawDesc), len(file_ocsf_v1_objects_proto_rawDesc)),
+			NumEnums:      68,
+			NumMessages:   114,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
-		GoTypes:           file_api_entity_proto_goTypes,
-		DependencyIndexes: file_api_entity_proto_depIdxs,
-		EnumInfos:         file_api_entity_proto_enumTypes,
-		MessageInfos:      file_api_entity_proto_msgTypes,
+		GoTypes:           file_ocsf_v1_objects_proto_goTypes,
+		DependencyIndexes: file_ocsf_v1_objects_proto_depIdxs,
+		EnumInfos:         file_ocsf_v1_objects_proto_enumTypes,
+		MessageInfos:      file_ocsf_v1_objects_proto_msgTypes,
 	}.Build()
-	File_api_entity_proto = out.File
-	file_api_entity_proto_goTypes = nil
-	file_api_entity_proto_depIdxs = nil
+	File_ocsf_v1_objects_proto = out.File
+	file_ocsf_v1_objects_proto_goTypes = nil
+	file_ocsf_v1_objects_proto_depIdxs = nil
 }

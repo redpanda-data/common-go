@@ -26,8 +26,26 @@ import (
 // -update regenerates golden files when passed to `go test`.
 var update = flag.Bool("update", false, "regenerate golden files")
 
-// goldenPath is the directory for golden .proto files.
+// goldenDir is the module root of the golden proto tree. Emit writes files under
+// goldenDir/ocsf/v<N>/, so the golden module root is this directory.
 const goldenDir = "testdata/golden"
+
+// emitJoined runs Emit and concatenates every generated file's content in
+// path-sorted order. Tests that only assert on substrings (message present,
+// import present, field annotation present) use this so they need not care
+// which specific file a given fragment landed in.
+func emitJoined(t *testing.T, s *schema.Schema, classNames []string, tm *tagmap.TagMap, version string) (string, []string, error) {
+	t.Helper()
+	files, stubbed, err := gen.Emit(s, classNames, tm, version)
+	if err != nil {
+		return "", stubbed, err
+	}
+	var sb strings.Builder
+	for _, f := range files {
+		sb.WriteString(f.Content)
+	}
+	return sb.String(), stubbed, nil
+}
 
 // TestSelectClosure_ApiActivity verifies that SelectClosure returns the api_activity
 // class plus the full transitive object closure, all sorted deterministically.
@@ -90,7 +108,7 @@ func TestEmit_PackageAndSyntax(t *testing.T) {
 	s := loadFixture(t)
 	tm := tagmap.New()
 
-	out, _, err := gen.Emit(s, []string{"api_activity"}, tm, "1.8.0")
+	out, _, err := emitJoined(t, s, []string{"api_activity"}, tm, "1.8.0")
 	require.NoError(t, err)
 
 	require.Contains(t, out, `syntax = "proto3";`)
@@ -138,7 +156,7 @@ func TestVersionToPackage_TableDriven(t *testing.T) {
 		t.Run(tc.version, func(t *testing.T) {
 			s := minimalSchema(tc.version)
 			tm := tagmap.New()
-			out, _, err := gen.Emit(s, []string{"stub_event"}, tm, tc.version)
+			out, _, err := emitJoined(t, s, []string{"stub_event"}, tm, tc.version)
 			if tc.wantErr {
 				require.Error(t, err)
 				return
@@ -156,7 +174,7 @@ func TestEmit_MessageApiActivity(t *testing.T) {
 	s := loadFixture(t)
 	tm := tagmap.New()
 
-	out, _, err := gen.Emit(s, []string{"api_activity"}, tm, "1.8.0")
+	out, _, err := emitJoined(t, s, []string{"api_activity"}, tm, "1.8.0")
 	require.NoError(t, err)
 
 	require.Contains(t, out, "message ApiActivity {")
@@ -169,7 +187,7 @@ func TestEmit_NestedEnum(t *testing.T) {
 	s := loadFixture(t)
 	tm := tagmap.New()
 
-	out, _, err := gen.Emit(s, []string{"api_activity"}, tm, "1.8.0")
+	out, _, err := emitJoined(t, s, []string{"api_activity"}, tm, "1.8.0")
 	require.NoError(t, err)
 
 	require.Contains(t, out, "enum ActivityId {")
@@ -182,7 +200,7 @@ func TestEmit_ObjectTypedField(t *testing.T) {
 	s := loadFixture(t)
 	tm := tagmap.New()
 
-	out, _, err := gen.Emit(s, []string{"api_activity"}, tm, "1.8.0")
+	out, _, err := emitJoined(t, s, []string{"api_activity"}, tm, "1.8.0")
 	require.NoError(t, err)
 
 	// actor field should be "Actor actor = <N>;"
@@ -195,7 +213,7 @@ func TestEmit_RepeatedField(t *testing.T) {
 	s := loadFixture(t)
 	tm := tagmap.New()
 
-	out, _, err := gen.Emit(s, []string{"api_activity"}, tm, "1.8.0")
+	out, _, err := emitJoined(t, s, []string{"api_activity"}, tm, "1.8.0")
 	require.NoError(t, err)
 
 	require.Contains(t, out, "repeated Authorization authorizations =")
@@ -207,7 +225,7 @@ func TestEmit_WellKnownImport(t *testing.T) {
 	s := loadFixture(t)
 	tm := tagmap.New()
 
-	out, _, err := gen.Emit(s, []string{"api_activity"}, tm, "1.8.0")
+	out, _, err := emitJoined(t, s, []string{"api_activity"}, tm, "1.8.0")
 	require.NoError(t, err)
 
 	require.Contains(t, out, `import "google/protobuf/struct.proto";`)
@@ -219,7 +237,7 @@ func TestEmit_RequiredFieldAnnotation(t *testing.T) {
 	s := loadFixture(t)
 	tm := tagmap.New()
 
-	out, _, err := gen.Emit(s, []string{"api_activity"}, tm, "1.8.0")
+	out, _, err := emitJoined(t, s, []string{"api_activity"}, tm, "1.8.0")
 	require.NoError(t, err)
 
 	// api_activity.time is required
@@ -234,10 +252,10 @@ func TestEmit_StableTags(t *testing.T) {
 	s := loadFixture(t)
 	tm := tagmap.New()
 
-	out1, _, err := gen.Emit(s, []string{"api_activity"}, tm, "1.8.0")
+	out1, _, err := emitJoined(t, s, []string{"api_activity"}, tm, "1.8.0")
 	require.NoError(t, err)
 
-	out2, _, err := gen.Emit(s, []string{"api_activity"}, tm, "1.8.0")
+	out2, _, err := emitJoined(t, s, []string{"api_activity"}, tm, "1.8.0")
 	require.NoError(t, err)
 
 	require.Equal(t, out1, out2, "two Emit calls with the same tag map must produce identical output")
@@ -249,11 +267,11 @@ func TestEmit_Deterministic(t *testing.T) {
 	s := loadFixture(t)
 
 	tm1 := tagmap.New()
-	out1, _, err := gen.Emit(s, []string{"api_activity"}, tm1, "1.8.0")
+	out1, _, err := emitJoined(t, s, []string{"api_activity"}, tm1, "1.8.0")
 	require.NoError(t, err)
 
 	tm2 := tagmap.New()
-	out2, _, err := gen.Emit(s, []string{"api_activity"}, tm2, "1.8.0")
+	out2, _, err := emitJoined(t, s, []string{"api_activity"}, tm2, "1.8.0")
 	require.NoError(t, err)
 
 	require.Equal(t, out1, out2, "Emit with fresh tag maps must be byte-identical")
@@ -267,7 +285,7 @@ func TestEmit_ConstraintCEL(t *testing.T) {
 	tm := tagmap.New()
 
 	// api_activity pulls in the user object transitively.
-	out, _, err := gen.Emit(s, []string{"api_activity"}, tm, "1.8.0")
+	out, _, err := emitJoined(t, s, []string{"api_activity"}, tm, "1.8.0")
 	require.NoError(t, err)
 
 	// The User message must contain a CEL option for at_least_one.
@@ -281,7 +299,7 @@ func TestEmit_JustOneCEL(t *testing.T) {
 	s := loadFixture(t)
 	tm := tagmap.New()
 
-	out, _, err := gen.Emit(s, []string{"api_activity"}, tm, "1.8.0")
+	out, _, err := emitJoined(t, s, []string{"api_activity"}, tm, "1.8.0")
 	require.NoError(t, err)
 
 	// vulnerability is in the transitive closure
@@ -289,32 +307,72 @@ func TestEmit_JustOneCEL(t *testing.T) {
 }
 
 // TestEmit_Golden is a golden-file test.  It emits api_activity + entity_management
-// and compares against testdata/golden/api_entity.proto.
+// as a multi-file proto tree and compares every generated file against the
+// committed tree under testdata/golden/ (ocsf/v1/{api_activity,entity_management,
+// objects}.proto).  Drift is any file added, removed, or changed.
 //
-// Run with -update to regenerate the golden file.
+// Run with -update to regenerate the golden tree.
 func TestEmit_Golden(t *testing.T) {
 	s := loadFixture(t)
 	tm := tagmap.New()
 
-	out, _, err := gen.Emit(s, []string{"api_activity", "entity_management"}, tm, "1.8.0")
+	files, _, err := gen.Emit(s, []string{"api_activity", "entity_management"}, tm, "1.8.0")
 	require.NoError(t, err)
 
-	goldenFile := goldenDir + "/api_entity.proto"
-
 	if *update {
-		require.NoError(t, os.MkdirAll(goldenDir, 0o755))
-		require.NoError(t, os.WriteFile(goldenFile, []byte(out), 0o644))
-		t.Logf("golden file updated: %s", goldenFile)
+		for _, f := range files {
+			dst := filepath.Join(goldenDir, filepath.FromSlash(f.Path))
+			require.NoError(t, os.MkdirAll(filepath.Dir(dst), 0o755))
+			require.NoError(t, os.WriteFile(dst, []byte(f.Content), 0o644))
+		}
+		t.Logf("golden tree updated under %s (%d files)", goldenDir, len(files))
 		return
 	}
 
-	golden, err := os.ReadFile(goldenFile)
-	if os.IsNotExist(err) {
-		t.Fatalf("golden file %s does not exist; run with -update to generate it", goldenFile)
+	// Compare the full set of generated files against the committed tree.
+	wantPaths := make(map[string]string, len(files))
+	for _, f := range files {
+		wantPaths[f.Path] = f.Content
 	}
-	require.NoError(t, err)
-	require.Equal(t, string(golden), out,
-		"emitted proto does not match golden; re-run with -update if intentional")
+
+	// Enumerate committed .proto files under the versioned dir to catch removals.
+	committed := make(map[string]string)
+	protoRoot := filepath.Join(goldenDir, "ocsf")
+	walkErr := filepath.WalkDir(protoRoot, func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() || filepath.Ext(path) != ".proto" {
+			return nil
+		}
+		rel, relErr := filepath.Rel(goldenDir, path)
+		if relErr != nil {
+			return relErr
+		}
+		b, readErr := os.ReadFile(path)
+		if readErr != nil {
+			return readErr
+		}
+		committed[filepath.ToSlash(rel)] = string(b)
+		return nil
+	})
+	if os.IsNotExist(walkErr) {
+		t.Fatalf("golden tree %s does not exist; run with -update to generate it", protoRoot)
+	}
+	require.NoError(t, walkErr)
+
+	// Every generated file must exist and match.
+	for path, content := range wantPaths {
+		got, ok := committed[path]
+		require.True(t, ok, "generated file %s is missing from golden tree; re-run with -update", path)
+		require.Equal(t, content, got,
+			"generated file %s does not match golden; re-run with -update if intentional", path)
+	}
+	// No stray committed files.
+	for path := range committed {
+		_, ok := wantPaths[path]
+		require.True(t, ok, "committed golden file %s is not produced by Emit; re-run with -update", path)
+	}
 }
 
 // TestEmit_ImportOrder verifies that imports appear in sorted order.
@@ -322,7 +380,7 @@ func TestEmit_ImportOrder(t *testing.T) {
 	s := loadFixture(t)
 	tm := tagmap.New()
 
-	out, _, err := gen.Emit(s, []string{"api_activity"}, tm, "1.8.0")
+	out, _, err := emitJoined(t, s, []string{"api_activity"}, tm, "1.8.0")
 	require.NoError(t, err)
 
 	bufIdx := strings.Index(out, `"buf/validate/validate.proto"`)
@@ -363,7 +421,7 @@ func TestEmit_StubbedObjects_ReportsAbsent(t *testing.T) {
 	}
 
 	tm := tagmap.New()
-	_, stubbed, err := gen.Emit(s, []string{"test_event"}, tm, "0.0.1")
+	_, stubbed, err := emitJoined(t, s, []string{"test_event"}, tm, "0.0.1")
 	require.NoError(t, err)
 	require.Equal(t, []string{"PhantomObj"}, stubbed,
 		"Emit must report PascalCase name of the absent object in stubbed")
@@ -377,7 +435,7 @@ func TestEmit_StubbedObjects_NoneWhenFullyResolvable(t *testing.T) {
 	s := loadFixture(t)
 	tm := tagmap.New()
 
-	_, stubbed, err := gen.Emit(s, []string{"entity_management"}, tm, "1.8.0")
+	_, stubbed, err := emitJoined(t, s, []string{"entity_management"}, tm, "1.8.0")
 	require.NoError(t, err)
 	require.Empty(t, stubbed,
 		"Emit must return empty stubbed when all referenced objects are present in the schema")
@@ -394,7 +452,7 @@ func TestEmit_RequiredRepeatedFieldNoAnnotation(t *testing.T) {
 	s := loadFixture(t)
 	tm := tagmap.New()
 
-	out, _, err := gen.Emit(s, []string{"api_activity"}, tm, "1.8.0")
+	out, _, err := emitJoined(t, s, []string{"api_activity"}, tm, "1.8.0")
 	require.NoError(t, err)
 
 	// osint is repeated+required: must NOT carry the annotation.
@@ -436,7 +494,7 @@ func TestEmit_UnresolvableScalarErrors(t *testing.T) {
 	}
 
 	tm := tagmap.New()
-	_, _, err := gen.Emit(s, []string{"bad_event"}, tm, "0.0.1")
+	_, _, err := emitJoined(t, s, []string{"bad_event"}, tm, "0.0.1")
 	require.Error(t, err, "Emit must return an error for an unresolvable scalar type")
 	require.Contains(t, err.Error(), "totally_unknown_scalar_t",
 		"error must name the unresolvable type")
@@ -451,7 +509,7 @@ func TestEmit_DeterministicWithSavedTagMap(t *testing.T) {
 
 	// First run: emit with a fresh TagMap and save it.
 	tm1 := tagmap.New()
-	out1, _, err := gen.Emit(s, []string{"api_activity"}, tm1, "1.8.0")
+	out1, _, err := emitJoined(t, s, []string{"api_activity"}, tm1, "1.8.0")
 	require.NoError(t, err)
 
 	tagFile := filepath.Join(t.TempDir(), "tags.json")
@@ -461,7 +519,7 @@ func TestEmit_DeterministicWithSavedTagMap(t *testing.T) {
 	tm2, err := tagmap.Load(tagFile)
 	require.NoError(t, err)
 
-	out2, _, err := gen.Emit(s, []string{"api_activity"}, tm2, "1.8.0")
+	out2, _, err := emitJoined(t, s, []string{"api_activity"}, tm2, "1.8.0")
 	require.NoError(t, err)
 
 	require.Equal(t, out1, out2,

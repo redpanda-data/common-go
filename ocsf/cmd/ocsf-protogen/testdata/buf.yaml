@@ -7,8 +7,6 @@ lint:
   use:
     - STANDARD
   except:
-    # Generated files don't follow a consistent package/directory convention.
-    - PACKAGE_DIRECTORY_MATCH
     # OCSF uses _UNKNOWN (not _UNSPECIFIED) for synthesized zero values by design.
     - ENUM_ZERO_VALUE_SUFFIX
 breaking:

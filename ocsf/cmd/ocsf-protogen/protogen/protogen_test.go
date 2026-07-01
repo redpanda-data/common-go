@@ -34,16 +34,17 @@ func schemaFixture() string {
 	return filepath.Join(root, "ocsf-1.8.0.json")
 }
 
-// committedBaseline returns the absolute path to the committed proto baseline
-// and field-numbers.json that were generated from the CLI.
-func committedBaseline() (protoPath, tagmapPath string) {
+// committedBaseline returns the absolute path to the committed baseline module
+// root directory and its field-numbers.json. The proto tree lives under
+// <outDir>/ocsf/v1/*.proto.
+func committedBaseline() (outDir, tagmapPath string) {
 	_, thisFile, _, ok := runtime.Caller(0)
 	if !ok {
 		panic("runtime.Caller failed")
 	}
 	// testdata is at .../ocsf/cmd/ocsf-protogen/testdata/
 	td := filepath.Join(filepath.Dir(thisFile), "..", "testdata")
-	return filepath.Join(td, "api_entity.proto"), filepath.Join(td, "field-numbers.json")
+	return td, filepath.Join(td, "field-numbers.json")
 }
 
 // ─── ParseClasses ─────────────────────────────────────────────────────────────
@@ -82,14 +83,13 @@ func TestParseClasses_OnlyCommas(t *testing.T) {
 // same temp dir and asserts it passes (exit 0 equivalent).
 func TestGenerateThenCheck(t *testing.T) {
 	dir := t.TempDir()
-	outPath := filepath.Join(dir, "out.proto")
 	tagmapPath := filepath.Join(dir, "field-numbers.json")
 
 	cfg := protogen.Config{
 		SchemaPath: schemaFixture(),
 		Classes:    []string{"api_activity", "entity_management"},
 		Version:    "1.8.0",
-		OutPath:    outPath,
+		OutDir:     dir,
 		TagmapPath: tagmapPath,
 		Check:      false,
 	}
@@ -97,8 +97,10 @@ func TestGenerateThenCheck(t *testing.T) {
 	_, err := protogen.Generate(cfg)
 	require.NoError(t, err)
 
-	// Both files should have been created.
-	require.FileExists(t, outPath)
+	// The multi-file tree and the tagmap should have been created.
+	require.FileExists(t, filepath.Join(dir, "ocsf", "v1", "api_activity.proto"))
+	require.FileExists(t, filepath.Join(dir, "ocsf", "v1", "entity_management.proto"))
+	require.FileExists(t, filepath.Join(dir, "ocsf", "v1", "objects.proto"))
 	require.FileExists(t, tagmapPath)
 
 	// --check against the just-generated baseline must pass.
@@ -116,14 +118,13 @@ func TestGenerateThenCheck(t *testing.T) {
 // generated proto to diverge from the committed baseline.
 func TestCheckFailsOnProtoDriftFromEditedTagmap(t *testing.T) {
 	dir := t.TempDir()
-	outPath := filepath.Join(dir, "out.proto")
 	tagmapPath := filepath.Join(dir, "field-numbers.json")
 
 	cfg := protogen.Config{
 		SchemaPath: schemaFixture(),
 		Classes:    []string{"api_activity", "entity_management"},
 		Version:    "1.8.0",
-		OutPath:    outPath,
+		OutDir:     dir,
 		TagmapPath: tagmapPath,
 	}
 
@@ -185,25 +186,25 @@ func TestCheckFailsOnProtoDriftFromEditedTagmap(t *testing.T) {
 // file, and asserts Check detects the drift.
 func TestCheckFailsOnProtoDrift(t *testing.T) {
 	dir := t.TempDir()
-	outPath := filepath.Join(dir, "out.proto")
 	tagmapPath := filepath.Join(dir, "field-numbers.json")
 
 	cfg := protogen.Config{
 		SchemaPath: schemaFixture(),
 		Classes:    []string{"api_activity", "entity_management"},
 		Version:    "1.8.0",
-		OutPath:    outPath,
+		OutDir:     dir,
 		TagmapPath: tagmapPath,
 	}
 
 	_, err := protogen.Generate(cfg)
 	require.NoError(t, err)
 
-	// Corrupt the committed proto file.
-	content, err := os.ReadFile(outPath)
+	// Corrupt one generated proto file in the tree.
+	objPath := filepath.Join(dir, "ocsf", "v1", "objects.proto")
+	content, err := os.ReadFile(objPath)
 	require.NoError(t, err)
 	corrupted := string(content) + "\n// CORRUPTED BY TEST\n"
-	require.NoError(t, os.WriteFile(outPath, []byte(corrupted), 0o644))
+	require.NoError(t, os.WriteFile(objPath, []byte(corrupted), 0o644))
 
 	// Check must fail with a drift error.
 	checkCfg := cfg
@@ -215,16 +216,16 @@ func TestCheckFailsOnProtoDrift(t *testing.T) {
 
 // ─── Check: committed baseline ───────────────────────────────────────────────
 
-// TestCheckAgainstCommittedBaseline runs --check against the files committed to
-// the repository (testdata/api_entity.proto and testdata/field-numbers.json).
+// TestCheckAgainstCommittedBaseline runs --check against the tree committed to
+// the repository (testdata/ocsf/v1/*.proto and testdata/field-numbers.json).
 // This test fails if the committed baseline drifts from what the generator
 // would produce today.
 func TestCheckAgainstCommittedBaseline(t *testing.T) {
-	protoPath, tagmapPath := committedBaseline()
+	outDir, tagmapPath := committedBaseline()
 
 	// Skip gracefully if the committed baseline does not exist yet
 	// (before the first `go run ./cmd/ocsf-protogen --out ... --tagmap ...` is run).
-	if _, err := os.Stat(protoPath); os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(outDir, "ocsf", "v1", "objects.proto")); os.IsNotExist(err) {
 		t.Skip("committed baseline not yet generated; run: go run ./cmd/ocsf-protogen ...")
 	}
 	if _, err := os.Stat(tagmapPath); os.IsNotExist(err) {
@@ -235,7 +236,7 @@ func TestCheckAgainstCommittedBaseline(t *testing.T) {
 		SchemaPath: schemaFixture(),
 		Classes:    []string{"api_activity", "entity_management"},
 		Version:    "1.8.0",
-		OutPath:    protoPath,
+		OutDir:     outDir,
 		TagmapPath: tagmapPath,
 		Check:      true,
 	}
@@ -254,7 +255,7 @@ func TestGenerateVersionMismatch(t *testing.T) {
 		SchemaPath: schemaFixture(),
 		Classes:    []string{"api_activity"},
 		Version:    "9.9.9", // wrong: schema is 1.8.0
-		OutPath:    filepath.Join(dir, "out.proto"),
+		OutDir:     dir,
 		TagmapPath: filepath.Join(dir, "field-numbers.json"),
 	}
 	_, err := protogen.Generate(cfg)
@@ -272,7 +273,7 @@ func TestCheckVersionMismatch(t *testing.T) {
 		SchemaPath: schemaFixture(),
 		Classes:    []string{"api_activity"},
 		Version:    "1.8.0",
-		OutPath:    filepath.Join(dir, "out.proto"),
+		OutDir:     dir,
 		TagmapPath: filepath.Join(dir, "field-numbers.json"),
 	}
 	_, err := protogen.Generate(cfg)

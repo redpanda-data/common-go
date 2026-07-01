@@ -16,8 +16,12 @@
 //	  --schema  ocsf/internal/ocsf/schema/testdata/ocsf-1.8.0.json \
 //	  --classes api_activity,entity_management \
 //	  --version 1.8.0 \
-//	  --out     ocsf/cmd/ocsf-protogen/testdata/api_entity.proto \
+//	  --out     ocsf/cmd/ocsf-protogen/testdata \
 //	  --tagmap  ocsf/cmd/ocsf-protogen/testdata/field-numbers.json
+//
+// --out is a MODULE ROOT DIRECTORY. Files are written under it at their
+// module-relative paths, e.g. <out>/ocsf/v1/api_activity.proto,
+// <out>/ocsf/v1/entity_management.proto, <out>/ocsf/v1/objects.proto.
 //
 // Check mode (for CI — verifies committed baseline is up-to-date):
 //
@@ -25,7 +29,7 @@
 //	  --schema  ocsf/internal/ocsf/schema/testdata/ocsf-1.8.0.json \
 //	  --classes api_activity,entity_management \
 //	  --version 1.8.0 \
-//	  --out     ocsf/cmd/ocsf-protogen/testdata/api_entity.proto \
+//	  --out     ocsf/cmd/ocsf-protogen/testdata \
 //	  --tagmap  ocsf/cmd/ocsf-protogen/testdata/field-numbers.json
 //
 // Compat-check mode (for CI — verifies field numbers didn't regress vs base branch):
@@ -75,7 +79,7 @@ func run(args []string) error {
 	schemaFlag := fs.String("schema", defaultSchemaPath(), "path to compiled OCSF schema JSON")
 	classesFlag := fs.String("classes", "", "comma-separated OCSF class names (e.g. api_activity,entity_management)")
 	versionFlag := fs.String("version", "1.8.0", "OCSF schema version string (e.g. 1.8.0)")
-	outFlag := fs.String("out", "", "output .proto file path (required)")
+	outFlag := fs.String("out", "", "output module root directory; files are written under it at ocsf/v<N>/*.proto (required)")
 	tagmapFlag := fs.String("tagmap", "", "path to field-numbers JSON (created on first run)")
 	checkFlag := fs.Bool("check", false, "check committed baseline matches fresh generation (for CI)")
 	compatCheckFlag := fs.Bool("compat-check", false, "check wire stability between two tagmap files (use with --old and --new)")
@@ -118,7 +122,7 @@ func run(args []string) error {
 		SchemaPath: *schemaFlag,
 		Classes:    classes,
 		Version:    *versionFlag,
-		OutPath:    *outFlag,
+		OutDir:     *outFlag,
 		TagmapPath: *tagmapFlag,
 		Check:      *checkFlag,
 	}
@@ -146,7 +150,7 @@ func run(args []string) error {
 			"Re-run with a full schema snapshot to resolve.\n")
 	}
 
-	fmt.Printf("wrote %s\n", cfg.OutPath)
+	fmt.Printf("wrote proto tree under %s\n", cfg.OutDir)
 	fmt.Printf("saved tagmap %s\n", cfg.TagmapPath)
 	return nil
 }

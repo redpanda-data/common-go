@@ -1,4 +1,4 @@
-# buf.gen.yaml — how api_entity.pb.go is produced from the golden proto.
+# buf.gen.yaml — how the *.pb.go bindings are produced from the golden proto tree.
 #
 # Regenerate from the ocsf MODULE ROOT. The out/inputs paths below are
 # module-root-relative (no "../" counting), so the output always lands in
@@ -9,12 +9,18 @@
 #   buf generate --template internal/ocsf/conformance/genpb/buf.gen.yaml
 #   task fmt   # gci/gofumpt the freshly generated .pb.go so the Format Check passes
 #
+# The golden proto tree is now multi-file (one file per class plus a shared
+# objects.proto), all in proto package ocsf.v1. Every file is mapped to the same
+# Go import path + package alias (ocsfv1) so protoc-gen-go emits one .pb.go per
+# .proto file, all in Go package ocsfv1 under genpb/ocsf/v1/. The conformance
+# test imports the whole package under the ocsfv1 alias, so it is unaffected by
+# the file split.
+#
 # NOTE: do NOT set `clean: true` here — this config file lives inside the `out`
 # directory, so cleaning it would delete this file. The module-relative `out`
-# is what keeps the location stable; genpb holds a single generated file, so
-# there is nothing stale to clean.
+# is what keeps the location stable.
 #
-# Source proto: internal/ocsf/gen/testdata/golden/api_entity.proto
+# Source protos: internal/ocsf/gen/testdata/golden/ocsf/v1/*.proto
 # buf binary:   .build/bin/buf (from cloudv2) or any buf >= 1.30 on $PATH
 # protoc-gen-go: go install google.golang.org/protobuf/cmd/protoc-gen-go
 version: v2
@@ -23,6 +29,8 @@ plugins:
     out: internal/ocsf/conformance/genpb
     opt:
       - paths=source_relative
-      - Mapi_entity.proto=github.com/redpanda-data/common-go/ocsf/internal/ocsf/conformance/genpb;ocsfv1
+      - Mocsf/v1/api_activity.proto=github.com/redpanda-data/common-go/ocsf/internal/ocsf/conformance/genpb/ocsf/v1;ocsfv1
+      - Mocsf/v1/entity_management.proto=github.com/redpanda-data/common-go/ocsf/internal/ocsf/conformance/genpb/ocsf/v1;ocsfv1
+      - Mocsf/v1/objects.proto=github.com/redpanda-data/common-go/ocsf/internal/ocsf/conformance/genpb/ocsf/v1;ocsfv1
 inputs:
   - directory: internal/ocsf/gen/testdata/golden

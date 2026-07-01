@@ -38,7 +38,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
 
-	ocsfv1 "github.com/redpanda-data/common-go/ocsf/internal/ocsf/conformance/genpb"
+	ocsfv1 "github.com/redpanda-data/common-go/ocsf/internal/ocsf/conformance/genpb/ocsf/v1"
 	"github.com/redpanda-data/common-go/ocsf/internal/ocsf/exporter"
 )
 
