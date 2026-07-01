@@ -1,0 +1,28 @@
+# buf.gen.yaml — how api_entity.pb.go is produced from the golden proto.
+#
+# Regenerate from the ocsf MODULE ROOT. The out/inputs paths below are
+# module-root-relative (no "../" counting), so the output always lands in
+# ocsf/internal/ocsf/conformance/genpb regardless of the caller's CWD, as long
+# as buf is invoked from the ocsf module root:
+#
+#   cd ocsf
+#   buf generate --template internal/ocsf/conformance/genpb/buf.gen.yaml
+#   task fmt   # gci/gofumpt the freshly generated .pb.go so the Format Check passes
+#
+# NOTE: do NOT set `clean: true` here — this config file lives inside the `out`
+# directory, so cleaning it would delete this file. The module-relative `out`
+# is what keeps the location stable; genpb holds a single generated file, so
+# there is nothing stale to clean.
+#
+# Source proto: internal/ocsf/gen/testdata/golden/api_entity.proto
+# buf binary:   .build/bin/buf (from cloudv2) or any buf >= 1.30 on $PATH
+# protoc-gen-go: go install google.golang.org/protobuf/cmd/protoc-gen-go
+version: v2
+plugins:
+  - local: protoc-gen-go
+    out: internal/ocsf/conformance/genpb
+    opt:
+      - paths=source_relative
+      - Mapi_entity.proto=github.com/redpanda-data/common-go/ocsf/internal/ocsf/conformance/genpb;ocsfv1
+inputs:
+  - directory: internal/ocsf/gen/testdata/golden
