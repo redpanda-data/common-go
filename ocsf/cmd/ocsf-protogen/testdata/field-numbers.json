@@ -1,0 +1,1996 @@
+{
+  "Account": {
+    "fields": {
+      "is_disabled": 7,
+      "is_locked": 8,
+      "is_on_premises_sync_enabled": 9,
+      "labels": 1,
+      "name": 2,
+      "tags": 3,
+      "type": 4,
+      "type_id": 5,
+      "uid": 6
+    },
+    "reserved": []
+  },
+  "Actor": {
+    "fields": {
+      "app_name": 1,
+      "app_uid": 2,
+      "authorizations": 3,
+      "idp": 4,
+      "invoked_by": 5,
+      "process": 6,
+      "session": 7,
+      "user": 8
+    },
+    "reserved": []
+  },
+  "Advisory": {
+    "fields": {
+      "avg_timespan": 1,
+      "bulletin": 2,
+      "classification": 3,
+      "created_time": 4,
+      "created_time_dt": 5,
+      "desc": 6,
+      "install_state": 7,
+      "install_state_id": 8,
+      "is_superseded": 9,
+      "modified_time": 10,
+      "modified_time_dt": 11,
+      "os": 12,
+      "product": 13,
+      "references": 14,
+      "related_cves": 15,
+      "related_cwes": 16,
+      "size": 17,
+      "src_url": 18,
+      "title": 19,
+      "uid": 20
+    },
+    "reserved": []
+  },
+  "AffectedCode": {
+    "fields": {
+      "end_column": 1,
+      "end_line": 2,
+      "file": 3,
+      "owner": 4,
+      "remediation": 5,
+      "rule": 6,
+      "start_column": 7,
+      "start_line": 8
+    },
+    "reserved": []
+  },
+  "AffectedPackage": {
+    "fields": {
+      "architecture": 1,
+      "cpe_name": 2,
+      "epoch": 3,
+      "fixed_in_version": 4,
+      "hash": 5,
+      "license": 6,
+      "license_url": 7,
+      "name": 8,
+      "package_manager": 9,
+      "package_manager_url": 10,
+      "path": 11,
+      "purl": 12,
+      "release": 13,
+      "remediation": 14,
+      "src_url": 15,
+      "type": 16,
+      "type_id": 17,
+      "uid": 18,
+      "vendor_name": 19,
+      "version": 20
+    },
+    "reserved": []
+  },
+  "Agent": {
+    "fields": {
+      "name": 1,
+      "policies": 2,
+      "type": 3,
+      "type_id": 4,
+      "uid": 5,
+      "uid_alt": 6,
+      "vendor_name": 7,
+      "version": 8
+    },
+    "reserved": []
+  },
+  "AiModel": {
+    "fields": {
+      "ai_provider": 1,
+      "name": 2,
+      "uid": 3,
+      "version": 4
+    },
+    "reserved": []
+  },
+  "Analytic": {
+    "fields": {
+      "algorithm": 1,
+      "category": 2,
+      "desc": 3,
+      "name": 4,
+      "related_analytics": 5,
+      "state": 6,
+      "state_id": 7,
+      "type": 8,
+      "type_id": 9,
+      "uid": 10,
+      "version": 11
+    },
+    "reserved": []
+  },
+  "Api": {
+    "fields": {
+      "group": 1,
+      "operation": 2,
+      "request": 3,
+      "response": 4,
+      "service": 5,
+      "token": 7,
+      "version": 6
+    },
+    "reserved": []
+  },
+  "ApiActivity": {
+    "fields": {
+      "action": 1,
+      "action_id": 2,
+      "activity_id": 3,
+      "activity_name": 4,
+      "actor": 5,
+      "ai_model": 6,
+      "api": 7,
+      "attacks": 8,
+      "authorizations": 9,
+      "category_name": 10,
+      "category_uid": 11,
+      "class_name": 12,
+      "class_uid": 13,
+      "cloud": 14,
+      "confidence": 15,
+      "confidence_id": 16,
+      "confidence_score": 17,
+      "count": 18,
+      "device": 19,
+      "disposition": 20,
+      "disposition_id": 21,
+      "dst_endpoint": 22,
+      "duration": 23,
+      "end_time": 24,
+      "end_time_dt": 25,
+      "enrichments": 26,
+      "firewall_rule": 27,
+      "http_request": 28,
+      "http_response": 29,
+      "is_alert": 30,
+      "malware": 31,
+      "malware_scan_info": 32,
+      "message": 33,
+      "message_context": 34,
+      "metadata": 35,
+      "observables": 36,
+      "osint": 37,
+      "policy": 38,
+      "raw_data": 39,
+      "raw_data_hash": 40,
+      "raw_data_size": 41,
+      "resources": 42,
+      "risk_details": 43,
+      "risk_level": 44,
+      "risk_level_id": 45,
+      "risk_score": 46,
+      "severity": 47,
+      "severity_id": 48,
+      "src_endpoint": 49,
+      "start_time": 50,
+      "start_time_dt": 51,
+      "status": 52,
+      "status_code": 53,
+      "status_detail": 54,
+      "status_id": 55,
+      "time": 56,
+      "time_dt": 57,
+      "timezone_offset": 58,
+      "trace": 59,
+      "type_name": 60,
+      "type_uid": 61,
+      "unmapped": 62
+    },
+    "reserved": []
+  },
+  "Application": {
+    "fields": {
+      "criticality": 1,
+      "data": 2,
+      "desc": 3,
+      "group": 4,
+      "hostname": 5,
+      "labels": 6,
+      "name": 7,
+      "owner": 8,
+      "region": 9,
+      "resource_relationship": 10,
+      "risk_level": 11,
+      "risk_level_id": 12,
+      "risk_score": 13,
+      "sbom": 14,
+      "tags": 15,
+      "type": 16,
+      "uid": 17,
+      "uid_alt": 18,
+      "url": 19,
+      "version": 20
+    },
+    "reserved": []
+  },
+  "Attack": {
+    "fields": {
+      "mitigation": 1,
+      "sub_technique": 2,
+      "tactic": 3,
+      "tactics": 4,
+      "technique": 5,
+      "version": 6
+    },
+    "reserved": []
+  },
+  "AuthFactor": {
+    "fields": {
+      "device": 1,
+      "email_addr": 2,
+      "factor_type": 3,
+      "factor_type_id": 4,
+      "is_hotp": 5,
+      "is_totp": 6,
+      "phone_number": 7,
+      "provider": 8,
+      "security_questions": 9
+    },
+    "reserved": []
+  },
+  "Authorization": {
+    "fields": {
+      "decision": 1,
+      "policy": 2
+    },
+    "reserved": []
+  },
+  "AutonomousSystem": {
+    "fields": {
+      "name": 1,
+      "number": 2
+    },
+    "reserved": []
+  },
+  "Campaign": {
+    "fields": {
+      "name": 1
+    },
+    "reserved": []
+  },
+  "Certificate": {
+    "fields": {
+      "created_time": 1,
+      "created_time_dt": 2,
+      "expiration_time": 3,
+      "expiration_time_dt": 4,
+      "fingerprints": 5,
+      "is_self_signed": 6,
+      "issuer": 7,
+      "sans": 8,
+      "serial_number": 9,
+      "subject": 10,
+      "uid": 11,
+      "version": 12
+    },
+    "reserved": []
+  },
+  "CisControl": {
+    "fields": {
+      "desc": 1,
+      "name": 2,
+      "version": 3
+    },
+    "reserved": []
+  },
+  "ClassifierDetails": {
+    "fields": {
+      "name": 1,
+      "type": 2,
+      "uid": 3
+    },
+    "reserved": []
+  },
+  "Cloud": {
+    "fields": {
+      "account": 1,
+      "cloud_partition": 2,
+      "org": 3,
+      "project_uid": 4,
+      "provider": 5,
+      "region": 6,
+      "zone": 7
+    },
+    "reserved": []
+  },
+  "Container": {
+    "fields": {
+      "hash": 1,
+      "image": 2,
+      "labels": 3,
+      "name": 4,
+      "network_driver": 5,
+      "orchestrator": 6,
+      "pod_uuid": 7,
+      "runtime": 8,
+      "size": 9,
+      "tag": 10,
+      "tags": 11,
+      "uid": 12
+    },
+    "reserved": []
+  },
+  "Cve": {
+    "fields": {
+      "created_time": 1,
+      "created_time_dt": 2,
+      "cvss": 3,
+      "cwe": 4,
+      "cwe_uid": 5,
+      "cwe_url": 6,
+      "desc": 7,
+      "epss": 8,
+      "modified_time": 9,
+      "modified_time_dt": 10,
+      "product": 11,
+      "references": 12,
+      "related_cwes": 13,
+      "title": 14,
+      "type": 15,
+      "uid": 16
+    },
+    "reserved": []
+  },
+  "Cvss": {
+    "fields": {
+      "base_score": 1,
+      "depth": 2,
+      "metrics": 3,
+      "overall_score": 4,
+      "severity": 5,
+      "src_url": 6,
+      "vector_string": 7,
+      "vendor_name": 8,
+      "version": 9
+    },
+    "reserved": []
+  },
+  "Cwe": {
+    "fields": {
+      "caption": 1,
+      "src_url": 2,
+      "uid": 3
+    },
+    "reserved": []
+  },
+  "D3fTactic": {
+    "fields": {
+      "name": 1,
+      "src_url": 2,
+      "uid": 3
+    },
+    "reserved": []
+  },
+  "D3fTechnique": {
+    "fields": {
+      "name": 1,
+      "src_url": 2,
+      "uid": 3
+    },
+    "reserved": []
+  },
+  "D3fend": {
+    "fields": {
+      "d3f_tactic": 1,
+      "d3f_technique": 2,
+      "version": 3
+    },
+    "reserved": []
+  },
+  "DataClassification": {
+    "fields": {
+      "category": 1,
+      "category_id": 2,
+      "classifier_details": 3,
+      "confidentiality": 4,
+      "confidentiality_id": 5,
+      "discovery_details": 6,
+      "policy": 7,
+      "size": 8,
+      "src_url": 9,
+      "status": 10,
+      "status_details": 11,
+      "status_id": 12,
+      "total": 13,
+      "uid": 14
+    },
+    "reserved": []
+  },
+  "Device": {
+    "fields": {
+      "agent_list": 1,
+      "autoscale_uid": 2,
+      "boot_time": 3,
+      "boot_time_dt": 4,
+      "boot_uid": 5,
+      "container": 6,
+      "created_time": 7,
+      "created_time_dt": 8,
+      "desc": 9,
+      "domain": 10,
+      "eid": 11,
+      "first_seen_time": 12,
+      "first_seen_time_dt": 13,
+      "groups": 14,
+      "hostname": 15,
+      "hw_info": 16,
+      "hypervisor": 17,
+      "iccid": 18,
+      "image": 19,
+      "imei": 20,
+      "imei_list": 21,
+      "instance_uid": 22,
+      "interface_name": 23,
+      "interface_uid": 24,
+      "ip": 25,
+      "is_backed_up": 26,
+      "is_compliant": 27,
+      "is_managed": 28,
+      "is_mobile_account_active": 29,
+      "is_personal": 30,
+      "is_shared": 31,
+      "is_supervised": 32,
+      "is_trusted": 33,
+      "last_seen_time": 34,
+      "last_seen_time_dt": 35,
+      "location": 36,
+      "mac": 37,
+      "mac_vendor": 64,
+      "meid": 38,
+      "model": 39,
+      "modified_time": 40,
+      "modified_time_dt": 41,
+      "name": 42,
+      "namespace_pid": 43,
+      "network_interfaces": 44,
+      "org": 45,
+      "os": 46,
+      "os_machine_uuid": 47,
+      "owner": 48,
+      "pool": 65,
+      "region": 49,
+      "risk_level": 50,
+      "risk_level_id": 51,
+      "risk_score": 52,
+      "subnet": 53,
+      "subnet_uid": 54,
+      "type": 55,
+      "type_id": 56,
+      "udid": 57,
+      "uid": 58,
+      "uid_alt": 59,
+      "vendor_name": 60,
+      "vlan_uid": 61,
+      "vpc_uid": 62,
+      "zone": 63
+    },
+    "reserved": []
+  },
+  "DeviceHwInfo": {
+    "fields": {
+      "bios_date": 1,
+      "bios_manufacturer": 2,
+      "bios_ver": 3,
+      "chassis": 4,
+      "cpu_architecture": 5,
+      "cpu_architecture_id": 6,
+      "cpu_bits": 7,
+      "cpu_cores": 8,
+      "cpu_count": 9,
+      "cpu_speed": 10,
+      "cpu_type": 11,
+      "desktop_display": 12,
+      "gpu_count": 18,
+      "gpu_info_list": 19,
+      "keyboard_info": 13,
+      "ram_size": 14,
+      "serial_number": 15,
+      "uuid": 16,
+      "vendor_name": 17
+    },
+    "reserved": []
+  },
+  "DigitalSignature": {
+    "fields": {
+      "algorithm": 1,
+      "algorithm_id": 2,
+      "certificate": 3,
+      "created_time": 4,
+      "created_time_dt": 5,
+      "developer_uid": 6,
+      "digest": 7,
+      "state": 8,
+      "state_id": 9
+    },
+    "reserved": []
+  },
+  "DiscoveryDetails": {
+    "fields": {
+      "count": 1,
+      "occurrence_details": 2,
+      "occurrences": 3,
+      "type": 4,
+      "value": 5
+    },
+    "reserved": []
+  },
+  "Display": {
+    "fields": {
+      "color_depth": 1,
+      "physical_height": 2,
+      "physical_orientation": 3,
+      "physical_width": 4,
+      "scale_factor": 5
+    },
+    "reserved": []
+  },
+  "DnsAnswer": {
+    "fields": {
+      "class": 1,
+      "flag_ids": 2,
+      "flags": 3,
+      "packet_uid": 4,
+      "rdata": 5,
+      "ttl": 6,
+      "type": 7
+    },
+    "reserved": []
+  },
+  "DomainContact": {
+    "fields": {
+      "email_addr": 1,
+      "location": 2,
+      "name": 3,
+      "phone_number": 4,
+      "type": 5,
+      "type_id": 6,
+      "uid": 7
+    },
+    "reserved": []
+  },
+  "Edge": {
+    "fields": {
+      "data": 1,
+      "is_directed": 2,
+      "name": 3,
+      "relation": 4,
+      "source": 5,
+      "target": 6,
+      "uid": 7
+    },
+    "reserved": []
+  },
+  "Email": {
+    "fields": {
+      "cc": 1,
+      "cc_mailboxes": 2,
+      "data_classification": 3,
+      "data_classifications": 4,
+      "delivered_to": 5,
+      "delivered_to_list": 6,
+      "files": 7,
+      "from": 8,
+      "from_list": 9,
+      "from_mailbox": 10,
+      "from_mailboxes": 11,
+      "http_headers": 12,
+      "is_read": 13,
+      "message_uid": 14,
+      "raw_header": 15,
+      "reply_to": 16,
+      "reply_to_list": 17,
+      "reply_to_mailboxes": 18,
+      "return_path": 19,
+      "sender": 20,
+      "sender_mailbox": 21,
+      "size": 22,
+      "smtp_from": 23,
+      "smtp_to": 24,
+      "subject": 25,
+      "to": 26,
+      "to_mailboxes": 27,
+      "uid": 28,
+      "urls": 29,
+      "x_originating_ip": 30
+    },
+    "reserved": []
+  },
+  "EmailAuth": {
+    "fields": {
+      "dkim": 1,
+      "dkim_domain": 2,
+      "dkim_signature": 3,
+      "dmarc": 4,
+      "dmarc_override": 5,
+      "dmarc_policy": 6,
+      "spf": 7
+    },
+    "reserved": []
+  },
+  "EncryptionDetails": {
+    "fields": {
+      "algorithm": 1,
+      "algorithm_id": 2,
+      "key_length": 3,
+      "key_uid": 4,
+      "type": 5
+    },
+    "reserved": []
+  },
+  "Enrichment": {
+    "fields": {
+      "created_time": 1,
+      "created_time_dt": 2,
+      "data": 3,
+      "desc": 4,
+      "name": 5,
+      "provider": 6,
+      "reputation": 7,
+      "short_desc": 8,
+      "src_url": 9,
+      "type": 10,
+      "value": 11
+    },
+    "reserved": []
+  },
+  "EntityManagement": {
+    "fields": {
+      "access_list": 1,
+      "access_mask": 2,
+      "action": 3,
+      "action_id": 4,
+      "activity_id": 5,
+      "activity_name": 6,
+      "actor": 7,
+      "api": 8,
+      "attacks": 9,
+      "authorizations": 10,
+      "category_name": 11,
+      "category_uid": 12,
+      "class_name": 13,
+      "class_uid": 14,
+      "cloud": 15,
+      "comment": 16,
+      "confidence": 17,
+      "confidence_id": 18,
+      "confidence_score": 19,
+      "count": 20,
+      "device": 21,
+      "disposition": 22,
+      "disposition_id": 23,
+      "duration": 24,
+      "end_time": 25,
+      "end_time_dt": 26,
+      "enrichments": 27,
+      "entity": 28,
+      "entity_result": 29,
+      "firewall_rule": 30,
+      "http_request": 31,
+      "http_response": 32,
+      "is_alert": 33,
+      "malware": 34,
+      "malware_scan_info": 35,
+      "message": 36,
+      "metadata": 37,
+      "observables": 38,
+      "osint": 39,
+      "policy": 40,
+      "raw_data": 41,
+      "raw_data_hash": 42,
+      "raw_data_size": 43,
+      "risk_details": 44,
+      "risk_level": 45,
+      "risk_level_id": 46,
+      "risk_score": 47,
+      "severity": 48,
+      "severity_id": 49,
+      "src_endpoint": 50,
+      "start_time": 51,
+      "start_time_dt": 52,
+      "status": 53,
+      "status_code": 54,
+      "status_detail": 55,
+      "status_id": 56,
+      "time": 57,
+      "time_dt": 58,
+      "timezone_offset": 59,
+      "type_name": 60,
+      "type_uid": 61,
+      "unmapped": 62
+    },
+    "reserved": []
+  },
+  "EnvironmentVariable": {
+    "fields": {
+      "name": 1,
+      "value": 2
+    },
+    "reserved": []
+  },
+  "Epss": {
+    "fields": {
+      "created_time": 1,
+      "created_time_dt": 2,
+      "percentile": 3,
+      "score": 4,
+      "version": 5
+    },
+    "reserved": []
+  },
+  "Extension": {
+    "fields": {
+      "name": 1,
+      "uid": 2,
+      "version": 3
+    },
+    "reserved": []
+  },
+  "Feature": {
+    "fields": {
+      "name": 1,
+      "uid": 2,
+      "version": 3
+    },
+    "reserved": []
+  },
+  "File": {
+    "fields": {
+      "accessed_time": 1,
+      "accessed_time_dt": 2,
+      "accessor": 3,
+      "attributes": 4,
+      "company_name": 5,
+      "confidentiality": 6,
+      "confidentiality_id": 7,
+      "created_time": 8,
+      "created_time_dt": 9,
+      "creator": 10,
+      "data_classification": 11,
+      "data_classifications": 12,
+      "desc": 13,
+      "drive_type": 14,
+      "drive_type_id": 15,
+      "encryption_details": 16,
+      "ext": 17,
+      "hashes": 18,
+      "imported_symbols": 47,
+      "internal_name": 19,
+      "is_deleted": 20,
+      "is_encrypted": 21,
+      "is_public": 22,
+      "is_readonly": 23,
+      "is_system": 24,
+      "mime_type": 25,
+      "modified_time": 26,
+      "modified_time_dt": 27,
+      "modifier": 28,
+      "name": 29,
+      "owner": 30,
+      "parent_folder": 31,
+      "path": 32,
+      "product": 33,
+      "security_descriptor": 34,
+      "signature": 35,
+      "signatures": 48,
+      "size": 36,
+      "storage_class": 37,
+      "tags": 38,
+      "type": 39,
+      "type_id": 40,
+      "uid": 41,
+      "uri": 42,
+      "url": 43,
+      "version": 44,
+      "volume": 45,
+      "xattributes": 46
+    },
+    "reserved": []
+  },
+  "Fingerprint": {
+    "fields": {
+      "algorithm": 1,
+      "algorithm_id": 2,
+      "value": 3
+    },
+    "reserved": []
+  },
+  "FirewallRule": {
+    "fields": {
+      "category": 1,
+      "condition": 2,
+      "desc": 3,
+      "duration": 4,
+      "match_details": 5,
+      "match_location": 6,
+      "name": 7,
+      "rate_limit": 8,
+      "sensitivity": 9,
+      "type": 10,
+      "uid": 11,
+      "version": 12
+    },
+    "reserved": []
+  },
+  "GpuInfo": {
+    "fields": {
+      "bus_type": 1,
+      "bus_type_id": 2,
+      "cores": 3,
+      "model": 4,
+      "vendor_name": 5,
+      "vram_mode": 6,
+      "vram_mode_id": 7,
+      "vram_size": 8
+    },
+    "reserved": []
+  },
+  "Graph": {
+    "fields": {
+      "desc": 1,
+      "edges": 2,
+      "is_directed": 3,
+      "name": 4,
+      "nodes": 5,
+      "query_language": 6,
+      "query_language_id": 7,
+      "type": 8,
+      "uid": 9
+    },
+    "reserved": []
+  },
+  "Group": {
+    "fields": {
+      "desc": 1,
+      "domain": 2,
+      "name": 3,
+      "privileges": 4,
+      "type": 5,
+      "uid": 6,
+      "uid_alt": 7
+    },
+    "reserved": []
+  },
+  "HttpHeader": {
+    "fields": {
+      "name": 1,
+      "value": 2
+    },
+    "reserved": []
+  },
+  "HttpRequest": {
+    "fields": {
+      "args": 1,
+      "body_length": 2,
+      "http_headers": 3,
+      "http_method": 4,
+      "length": 5,
+      "referrer": 6,
+      "uid": 7,
+      "url": 8,
+      "user_agent": 9,
+      "version": 10,
+      "x_forwarded_for": 11
+    },
+    "reserved": []
+  },
+  "HttpResponse": {
+    "fields": {
+      "body_length": 1,
+      "code": 2,
+      "content_type": 3,
+      "http_headers": 4,
+      "latency": 5,
+      "length": 6,
+      "message": 7,
+      "status": 8
+    },
+    "reserved": []
+  },
+  "Idp": {
+    "fields": {
+      "auth_factors": 1,
+      "domain": 2,
+      "fingerprint": 3,
+      "has_mfa": 4,
+      "issuer": 5,
+      "name": 6,
+      "protocol_name": 7,
+      "scim": 8,
+      "sso": 9,
+      "state": 10,
+      "state_id": 11,
+      "tenant_uid": 12,
+      "uid": 13,
+      "url_string": 14
+    },
+    "reserved": []
+  },
+  "Image": {
+    "fields": {
+      "labels": 1,
+      "name": 2,
+      "path": 3,
+      "tag": 4,
+      "tags": 5,
+      "uid": 6
+    },
+    "reserved": []
+  },
+  "KbArticle": {
+    "fields": {
+      "avg_timespan": 1,
+      "bulletin": 2,
+      "classification": 3,
+      "created_time": 4,
+      "created_time_dt": 5,
+      "install_state": 6,
+      "install_state_id": 7,
+      "is_superseded": 8,
+      "os": 9,
+      "product": 10,
+      "severity": 11,
+      "size": 12,
+      "src_url": 13,
+      "title": 14,
+      "uid": 15
+    },
+    "reserved": []
+  },
+  "KeyValueObject": {
+    "fields": {
+      "name": 1,
+      "value": 2,
+      "values": 3
+    },
+    "reserved": []
+  },
+  "KeyboardInfo": {
+    "fields": {
+      "function_keys": 1,
+      "ime": 2,
+      "keyboard_layout": 3,
+      "keyboard_subtype": 4,
+      "keyboard_type": 5
+    },
+    "reserved": []
+  },
+  "KillChainPhase": {
+    "fields": {
+      "phase": 1,
+      "phase_id": 2
+    },
+    "reserved": []
+  },
+  "LdapPerson": {
+    "fields": {
+      "cost_center": 1,
+      "created_time": 2,
+      "created_time_dt": 3,
+      "deleted_time": 4,
+      "deleted_time_dt": 5,
+      "department": 28,
+      "display_name": 6,
+      "email_addrs": 7,
+      "employee_uid": 8,
+      "given_name": 9,
+      "hire_time": 10,
+      "hire_time_dt": 11,
+      "job_title": 12,
+      "labels": 13,
+      "last_login_time": 14,
+      "last_login_time_dt": 15,
+      "ldap_cn": 16,
+      "ldap_dn": 17,
+      "leave_time": 18,
+      "leave_time_dt": 19,
+      "location": 20,
+      "manager": 21,
+      "modified_time": 22,
+      "modified_time_dt": 23,
+      "office_location": 24,
+      "phone_number": 25,
+      "surname": 26,
+      "tags": 27
+    },
+    "reserved": []
+  },
+  "Location": {
+    "fields": {
+      "aerial_height": 1,
+      "city": 2,
+      "continent": 3,
+      "coordinates": 4,
+      "country": 5,
+      "desc": 6,
+      "geodetic_altitude": 7,
+      "geodetic_vertical_accuracy": 8,
+      "geohash": 9,
+      "horizontal_accuracy": 10,
+      "is_on_premises": 11,
+      "isp": 12,
+      "lat": 13,
+      "long": 14,
+      "postal_code": 15,
+      "pressure_altitude": 16,
+      "provider": 17,
+      "region": 18
+    },
+    "reserved": []
+  },
+  "Logger": {
+    "fields": {
+      "device": 1,
+      "event_uid": 2,
+      "is_truncated": 3,
+      "log_format": 4,
+      "log_level": 5,
+      "log_name": 6,
+      "log_provider": 7,
+      "log_version": 8,
+      "logged_time": 9,
+      "logged_time_dt": 10,
+      "name": 11,
+      "product": 12,
+      "transmit_time": 13,
+      "transmit_time_dt": 14,
+      "uid": 15,
+      "untruncated_size": 16,
+      "version": 17
+    },
+    "reserved": []
+  },
+  "LongString": {
+    "fields": {
+      "is_truncated": 1,
+      "untruncated_size": 2,
+      "value": 3
+    },
+    "reserved": []
+  },
+  "Malware": {
+    "fields": {
+      "classification_ids": 1,
+      "classifications": 2,
+      "cves": 3,
+      "files": 4,
+      "name": 5,
+      "num_infected": 6,
+      "path": 7,
+      "provider": 8,
+      "severity": 9,
+      "severity_id": 10,
+      "uid": 11
+    },
+    "reserved": []
+  },
+  "MalwareScanInfo": {
+    "fields": {
+      "end_time": 1,
+      "end_time_dt": 2,
+      "name": 3,
+      "num_files": 4,
+      "num_infected": 5,
+      "num_volumes": 6,
+      "size": 7,
+      "start_time": 8,
+      "start_time_dt": 9,
+      "type": 10,
+      "type_id": 11,
+      "uid": 12,
+      "unique_malware_count": 13
+    },
+    "reserved": []
+  },
+  "ManagedEntity": {
+    "fields": {
+      "data": 1,
+      "device": 2,
+      "email": 3,
+      "group": 4,
+      "location": 5,
+      "name": 6,
+      "org": 7,
+      "policy": 8,
+      "type": 9,
+      "type_id": 10,
+      "uid": 11,
+      "user": 12,
+      "version": 13
+    },
+    "reserved": []
+  },
+  "MessageContext": {
+    "fields": {
+      "ai_role": 1,
+      "ai_role_id": 2,
+      "application": 3,
+      "completion_tokens": 4,
+      "name": 5,
+      "prompt_tokens": 6,
+      "service": 7,
+      "total_tokens": 8,
+      "uid": 9
+    },
+    "reserved": []
+  },
+  "Metadata": {
+    "fields": {
+      "correlation_uid": 1,
+      "data_classification": 2,
+      "data_classifications": 3,
+      "debug": 4,
+      "event_code": 5,
+      "extension": 6,
+      "extensions": 7,
+      "is_truncated": 8,
+      "labels": 9,
+      "log_format": 10,
+      "log_level": 11,
+      "log_name": 12,
+      "log_provider": 13,
+      "log_source": 14,
+      "log_version": 15,
+      "logged_time": 16,
+      "logged_time_dt": 17,
+      "loggers": 18,
+      "modified_time": 19,
+      "modified_time_dt": 20,
+      "original_event_uid": 21,
+      "original_time": 22,
+      "processed_time": 23,
+      "processed_time_dt": 24,
+      "product": 25,
+      "profiles": 26,
+      "reporter": 27,
+      "sequence": 28,
+      "source": 29,
+      "tags": 30,
+      "tenant_uid": 31,
+      "total_queued_duration": 39,
+      "transformation_info_list": 32,
+      "transmit_time": 33,
+      "transmit_time_dt": 34,
+      "type": 35,
+      "uid": 36,
+      "untruncated_size": 37,
+      "version": 38
+    },
+    "reserved": []
+  },
+  "Metric": {
+    "fields": {
+      "name": 1,
+      "value": 2
+    },
+    "reserved": []
+  },
+  "Mitigation": {
+    "fields": {
+      "countermeasures": 1,
+      "name": 2,
+      "src_url": 3,
+      "uid": 4
+    },
+    "reserved": []
+  },
+  "NetworkEndpoint": {
+    "fields": {
+      "agent_list": 1,
+      "autonomous_system": 2,
+      "container": 3,
+      "domain": 4,
+      "fingerprints": 32,
+      "hostname": 5,
+      "hw_info": 6,
+      "instance_uid": 7,
+      "interface_name": 8,
+      "interface_uid": 9,
+      "intermediate_ips": 10,
+      "ip": 11,
+      "isp": 12,
+      "isp_org": 13,
+      "location": 14,
+      "mac": 15,
+      "mac_vendor": 33,
+      "name": 16,
+      "namespace_pid": 17,
+      "network_scope": 18,
+      "network_scope_id": 19,
+      "os": 20,
+      "owner": 21,
+      "pool": 34,
+      "port": 22,
+      "proxy_endpoint": 23,
+      "subnet_uid": 24,
+      "svc_name": 25,
+      "type": 26,
+      "type_id": 27,
+      "uid": 28,
+      "vlan_uid": 29,
+      "vpc_uid": 30,
+      "zone": 31
+    },
+    "reserved": []
+  },
+  "NetworkInterface": {
+    "fields": {
+      "hostname": 1,
+      "ip": 2,
+      "mac": 3,
+      "name": 4,
+      "namespace": 5,
+      "open_ports": 6,
+      "subnet_prefix": 7,
+      "type": 8,
+      "type_id": 9,
+      "uid": 10
+    },
+    "reserved": []
+  },
+  "NetworkProxy": {
+    "fields": {
+      "agent_list": 1,
+      "autonomous_system": 2,
+      "container": 3,
+      "domain": 4,
+      "fingerprints": 32,
+      "hostname": 5,
+      "hw_info": 6,
+      "instance_uid": 7,
+      "interface_name": 8,
+      "interface_uid": 9,
+      "intermediate_ips": 10,
+      "ip": 11,
+      "isp": 12,
+      "isp_org": 13,
+      "location": 14,
+      "mac": 15,
+      "mac_vendor": 33,
+      "name": 16,
+      "namespace_pid": 17,
+      "network_scope": 18,
+      "network_scope_id": 19,
+      "os": 20,
+      "owner": 21,
+      "pool": 34,
+      "port": 22,
+      "proxy_endpoint": 23,
+      "subnet_uid": 24,
+      "svc_name": 25,
+      "type": 26,
+      "type_id": 27,
+      "uid": 28,
+      "vlan_uid": 29,
+      "vpc_uid": 30,
+      "zone": 31
+    },
+    "reserved": []
+  },
+  "Node": {
+    "fields": {
+      "data": 1,
+      "desc": 2,
+      "name": 3,
+      "type": 4,
+      "uid": 5
+    },
+    "reserved": []
+  },
+  "Observable": {
+    "fields": {
+      "event_uid": 1,
+      "name": 2,
+      "reputation": 3,
+      "type": 4,
+      "type_id": 5,
+      "type_uid": 6,
+      "value": 7
+    },
+    "reserved": []
+  },
+  "OccurrenceDetails": {
+    "fields": {
+      "cell_name": 1,
+      "column_name": 2,
+      "column_number": 3,
+      "end_line": 4,
+      "json_path": 5,
+      "page_number": 6,
+      "record_index_in_array": 7,
+      "row_number": 8,
+      "start_line": 9
+    },
+    "reserved": []
+  },
+  "Organization": {
+    "fields": {
+      "name": 1,
+      "ou_name": 2,
+      "ou_uid": 3,
+      "uid": 4
+    },
+    "reserved": []
+  },
+  "Os": {
+    "fields": {
+      "build": 1,
+      "country": 2,
+      "cpe_name": 3,
+      "cpu_bits": 4,
+      "edition": 5,
+      "kernel_release": 6,
+      "lang": 7,
+      "name": 8,
+      "sp_name": 9,
+      "sp_ver": 10,
+      "type": 11,
+      "type_id": 12,
+      "version": 13
+    },
+    "reserved": []
+  },
+  "Osint": {
+    "fields": {
+      "answers": 1,
+      "attacks": 2,
+      "autonomous_system": 3,
+      "campaign": 4,
+      "category": 5,
+      "comment": 6,
+      "confidence": 7,
+      "confidence_id": 8,
+      "created_time": 9,
+      "created_time_dt": 10,
+      "creator": 11,
+      "desc": 12,
+      "detection_pattern": 13,
+      "detection_pattern_type": 14,
+      "detection_pattern_type_id": 15,
+      "email": 16,
+      "email_auth": 17,
+      "expiration_time": 18,
+      "expiration_time_dt": 19,
+      "external_uid": 20,
+      "file": 21,
+      "intrusion_sets": 22,
+      "kill_chain": 23,
+      "labels": 24,
+      "location": 25,
+      "malware": 26,
+      "modified_time": 27,
+      "modified_time_dt": 28,
+      "name": 29,
+      "references": 30,
+      "related_analytics": 31,
+      "reputation": 32,
+      "risk_score": 33,
+      "script": 34,
+      "severity": 35,
+      "severity_id": 36,
+      "signatures": 37,
+      "src_url": 38,
+      "subdomains": 39,
+      "subnet": 40,
+      "threat_actor": 41,
+      "tlp": 42,
+      "type": 43,
+      "type_id": 44,
+      "uid": 45,
+      "uploaded_time": 46,
+      "uploaded_time_dt": 47,
+      "value": 48,
+      "vendor_name": 49,
+      "vulnerabilities": 50,
+      "whois": 51
+    },
+    "reserved": []
+  },
+  "Package": {
+    "fields": {
+      "architecture": 1,
+      "cpe_name": 2,
+      "epoch": 3,
+      "hash": 4,
+      "license": 5,
+      "license_url": 6,
+      "name": 7,
+      "package_manager": 8,
+      "package_manager_url": 9,
+      "purl": 10,
+      "release": 11,
+      "src_url": 12,
+      "type": 13,
+      "type_id": 14,
+      "uid": 15,
+      "vendor_name": 16,
+      "version": 17
+    },
+    "reserved": []
+  },
+  "Policy": {
+    "fields": {
+      "data": 1,
+      "desc": 2,
+      "group": 3,
+      "is_applied": 4,
+      "name": 5,
+      "type": 6,
+      "uid": 7,
+      "version": 8
+    },
+    "reserved": []
+  },
+  "PortInfo": {
+    "fields": {
+      "port": 1,
+      "protocol_name": 2,
+      "protocol_num": 3
+    },
+    "reserved": []
+  },
+  "Process": {
+    "fields": {
+      "ancestry": 1,
+      "auid": 2,
+      "cmd_line": 3,
+      "container": 4,
+      "cpid": 5,
+      "created_time": 6,
+      "created_time_dt": 7,
+      "egid": 8,
+      "environment_variables": 9,
+      "euid": 10,
+      "file": 11,
+      "group": 12,
+      "hosted_services": 13,
+      "integrity": 14,
+      "integrity_id": 15,
+      "lineage": 16,
+      "loaded_modules": 17,
+      "name": 18,
+      "namespace_pid": 19,
+      "parent_process": 20,
+      "path": 21,
+      "pid": 22,
+      "ptid": 23,
+      "sandbox": 24,
+      "session": 25,
+      "terminated_time": 26,
+      "terminated_time_dt": 27,
+      "tid": 28,
+      "uid": 29,
+      "user": 30,
+      "working_directory": 31,
+      "xattributes": 32
+    },
+    "reserved": []
+  },
+  "ProcessEntity": {
+    "fields": {
+      "cmd_line": 1,
+      "cpid": 2,
+      "created_time": 3,
+      "created_time_dt": 4,
+      "name": 5,
+      "path": 6,
+      "pid": 7,
+      "uid": 8
+    },
+    "reserved": []
+  },
+  "Product": {
+    "fields": {
+      "cpe_name": 1,
+      "data_classification": 2,
+      "data_classifications": 3,
+      "feature": 4,
+      "lang": 5,
+      "name": 6,
+      "path": 7,
+      "uid": 8,
+      "url_string": 9,
+      "vendor_name": 10,
+      "version": 11
+    },
+    "reserved": []
+  },
+  "ProgrammaticCredential": {
+    "fields": {
+      "last_used_time": 1,
+      "last_used_time_dt": 2,
+      "type": 3,
+      "uid": 4
+    },
+    "reserved": []
+  },
+  "Remediation": {
+    "fields": {
+      "cis_controls": 1,
+      "desc": 2,
+      "kb_article_list": 3,
+      "kb_articles": 4,
+      "references": 5
+    },
+    "reserved": []
+  },
+  "Reporter": {
+    "fields": {
+      "hostname": 1,
+      "ip": 2,
+      "name": 3,
+      "org": 4,
+      "uid": 5
+    },
+    "reserved": []
+  },
+  "Reputation": {
+    "fields": {
+      "base_score": 1,
+      "provider": 2,
+      "score": 3,
+      "score_id": 4
+    },
+    "reserved": []
+  },
+  "Request": {
+    "fields": {
+      "containers": 1,
+      "data": 2,
+      "flags": 3,
+      "uid": 4
+    },
+    "reserved": []
+  },
+  "ResourceDetails": {
+    "fields": {
+      "agent_list": 1,
+      "cloud_partition": 2,
+      "created_time": 3,
+      "created_time_dt": 4,
+      "criticality": 5,
+      "data": 6,
+      "data_classification": 7,
+      "data_classifications": 8,
+      "group": 9,
+      "hostname": 10,
+      "ip": 11,
+      "is_backed_up": 12,
+      "labels": 13,
+      "modified_time": 14,
+      "modified_time_dt": 15,
+      "name": 16,
+      "namespace": 17,
+      "owner": 18,
+      "provider": 29,
+      "region": 19,
+      "resource_relationship": 20,
+      "role": 21,
+      "role_id": 22,
+      "tags": 23,
+      "type": 24,
+      "uid": 25,
+      "uid_alt": 26,
+      "version": 27,
+      "zone": 28
+    },
+    "reserved": []
+  },
+  "Response": {
+    "fields": {
+      "code": 1,
+      "containers": 2,
+      "data": 3,
+      "error": 4,
+      "error_message": 5,
+      "flags": 6,
+      "message": 7
+    },
+    "reserved": []
+  },
+  "Rule": {
+    "fields": {
+      "category": 1,
+      "desc": 2,
+      "name": 3,
+      "type": 4,
+      "uid": 5,
+      "version": 6
+    },
+    "reserved": []
+  },
+  "San": {
+    "fields": {
+      "name": 1,
+      "type": 2
+    },
+    "reserved": []
+  },
+  "Sbom": {
+    "fields": {
+      "created_time": 1,
+      "created_time_dt": 2,
+      "package": 3,
+      "product": 4,
+      "software_components": 5,
+      "type": 6,
+      "type_id": 7,
+      "uid": 8,
+      "version": 9
+    },
+    "reserved": []
+  },
+  "Scim": {
+    "fields": {
+      "auth_protocol": 1,
+      "auth_protocol_id": 2,
+      "created_time": 3,
+      "created_time_dt": 4,
+      "error_message": 5,
+      "is_group_provisioning_enabled": 6,
+      "is_user_provisioning_enabled": 7,
+      "last_run_time": 8,
+      "last_run_time_dt": 9,
+      "modified_time": 10,
+      "modified_time_dt": 11,
+      "name": 12,
+      "protocol_name": 13,
+      "rate_limit": 14,
+      "scim_group_schema": 15,
+      "scim_user_schema": 16,
+      "state": 17,
+      "state_id": 18,
+      "uid": 19,
+      "uid_alt": 20,
+      "url_string": 21,
+      "vendor_name": 22,
+      "version": 23
+    },
+    "reserved": []
+  },
+  "Script": {
+    "fields": {
+      "file": 1,
+      "hashes": 2,
+      "name": 3,
+      "parent_uid": 4,
+      "script_content": 5,
+      "type": 6,
+      "type_id": 7,
+      "uid": 8
+    },
+    "reserved": []
+  },
+  "Service": {
+    "fields": {
+      "labels": 1,
+      "name": 2,
+      "tags": 3,
+      "uid": 4,
+      "version": 5
+    },
+    "reserved": []
+  },
+  "Session": {
+    "fields": {
+      "count": 1,
+      "created_time": 2,
+      "created_time_dt": 3,
+      "credential_uid": 4,
+      "expiration_reason": 5,
+      "expiration_time": 6,
+      "expiration_time_dt": 7,
+      "is_mfa": 8,
+      "is_remote": 9,
+      "is_vpn": 10,
+      "issuer": 11,
+      "terminal": 12,
+      "uid": 13,
+      "uid_alt": 14,
+      "uuid": 15
+    },
+    "reserved": []
+  },
+  "SoftwareComponent": {
+    "fields": {
+      "author": 1,
+      "hash": 2,
+      "license": 3,
+      "name": 4,
+      "purl": 5,
+      "related_component": 6,
+      "relationship": 7,
+      "relationship_id": 8,
+      "type": 9,
+      "type_id": 10,
+      "version": 11
+    },
+    "reserved": []
+  },
+  "Span": {
+    "fields": {
+      "duration": 1,
+      "end_time": 2,
+      "end_time_dt": 3,
+      "message": 4,
+      "operation": 5,
+      "parent_uid": 6,
+      "service": 7,
+      "start_time": 8,
+      "start_time_dt": 9,
+      "status_code": 10,
+      "uid": 11
+    },
+    "reserved": []
+  },
+  "Sso": {
+    "fields": {
+      "auth_protocol": 1,
+      "auth_protocol_id": 2,
+      "certificate": 3,
+      "created_time": 4,
+      "created_time_dt": 5,
+      "duration_mins": 6,
+      "idle_timeout": 7,
+      "login_endpoint": 8,
+      "logout_endpoint": 9,
+      "metadata_endpoint": 10,
+      "modified_time": 11,
+      "modified_time_dt": 12,
+      "name": 13,
+      "protocol_name": 14,
+      "scopes": 15,
+      "uid": 16,
+      "vendor_name": 17
+    },
+    "reserved": []
+  },
+  "SubTechnique": {
+    "fields": {
+      "name": 1,
+      "src_url": 2,
+      "uid": 3
+    },
+    "reserved": []
+  },
+  "Tactic": {
+    "fields": {
+      "name": 1,
+      "src_url": 2,
+      "uid": 3
+    },
+    "reserved": []
+  },
+  "Technique": {
+    "fields": {
+      "name": 1,
+      "src_url": 2,
+      "uid": 3
+    },
+    "reserved": []
+  },
+  "ThreatActor": {
+    "fields": {
+      "name": 1,
+      "type": 2,
+      "type_id": 3
+    },
+    "reserved": []
+  },
+  "Timespan": {
+    "fields": {
+      "duration": 1,
+      "duration_days": 2,
+      "duration_hours": 3,
+      "duration_mins": 4,
+      "duration_months": 5,
+      "duration_secs": 6,
+      "duration_weeks": 7,
+      "duration_years": 8,
+      "end_time": 9,
+      "end_time_dt": 10,
+      "start_time": 11,
+      "start_time_dt": 12,
+      "type": 13,
+      "type_id": 14
+    },
+    "reserved": []
+  },
+  "Token": {
+    "fields": {
+      "created_time": 1,
+      "created_time_dt": 2,
+      "expiration_time": 3,
+      "expiration_time_dt": 4,
+      "is_renewable": 5,
+      "modified_time": 6,
+      "modified_time_dt": 7,
+      "name": 8,
+      "tenant_uid": 9,
+      "type": 10,
+      "type_id": 11,
+      "uid": 12,
+      "zone": 13
+    },
+    "reserved": []
+  },
+  "Trace": {
+    "fields": {
+      "duration": 1,
+      "end_time": 2,
+      "end_time_dt": 3,
+      "flags": 4,
+      "service": 5,
+      "span": 6,
+      "start_time": 7,
+      "start_time_dt": 8,
+      "uid": 9
+    },
+    "reserved": []
+  },
+  "TransformationInfo": {
+    "fields": {
+      "lang": 1,
+      "name": 2,
+      "product": 3,
+      "time": 4,
+      "time_dt": 5,
+      "uid": 6,
+      "url_string": 7
+    },
+    "reserved": []
+  },
+  "Url": {
+    "fields": {
+      "categories": 1,
+      "category_ids": 2,
+      "domain": 3,
+      "hostname": 4,
+      "path": 5,
+      "port": 6,
+      "query_string": 7,
+      "resource_type": 8,
+      "scheme": 9,
+      "subdomain": 10,
+      "url_string": 11
+    },
+    "reserved": []
+  },
+  "User": {
+    "fields": {
+      "account": 1,
+      "credential_uid": 2,
+      "display_name": 3,
+      "domain": 4,
+      "email_addr": 5,
+      "forward_addr": 6,
+      "full_name": 7,
+      "groups": 8,
+      "has_mfa": 9,
+      "ldap_person": 10,
+      "name": 11,
+      "org": 12,
+      "phone_number": 13,
+      "programmatic_credentials": 14,
+      "risk_level": 15,
+      "risk_level_id": 16,
+      "risk_score": 17,
+      "type": 18,
+      "type_id": 19,
+      "uid": 20,
+      "uid_alt": 21
+    },
+    "reserved": []
+  },
+  "Vulnerability": {
+    "fields": {
+      "advisory": 1,
+      "affected_code": 2,
+      "affected_packages": 3,
+      "category": 4,
+      "cve": 5,
+      "cwe": 6,
+      "dependency_chain": 7,
+      "desc": 8,
+      "exploit_last_seen_time": 9,
+      "exploit_last_seen_time_dt": 10,
+      "exploit_ref_url": 11,
+      "exploit_requirement": 12,
+      "exploit_type": 13,
+      "first_seen_time": 14,
+      "first_seen_time_dt": 15,
+      "fix_available": 16,
+      "fix_coverage": 17,
+      "fix_coverage_id": 18,
+      "is_exploit_available": 19,
+      "is_fix_available": 20,
+      "kb_article_list": 21,
+      "kb_articles": 22,
+      "last_seen_time": 23,
+      "last_seen_time_dt": 24,
+      "packages": 25,
+      "references": 26,
+      "related_vulnerabilities": 27,
+      "remediation": 28,
+      "severity": 29,
+      "title": 30,
+      "vendor_name": 31
+    },
+    "reserved": []
+  },
+  "Whois": {
+    "fields": {
+      "autonomous_system": 1,
+      "created_time": 2,
+      "created_time_dt": 3,
+      "dnssec_status": 4,
+      "dnssec_status_id": 5,
+      "domain": 6,
+      "domain_contacts": 7,
+      "email_addr": 8,
+      "isp": 9,
+      "isp_org": 10,
+      "last_seen_time": 11,
+      "last_seen_time_dt": 12,
+      "name_servers": 13,
+      "phone_number": 14,
+      "registrar": 15,
+      "status": 16,
+      "subdomains": 17,
+      "subnet": 18
+    },
+    "reserved": []
+  },
+  "WinService": {
+    "fields": {
+      "cmd_line": 1,
+      "hosting_process": 2,
+      "labels": 3,
+      "load_order_group": 4,
+      "name": 5,
+      "service_category": 6,
+      "service_category_id": 7,
+      "service_dependencies": 8,
+      "service_dll_file": 9,
+      "service_error_control": 10,
+      "service_error_control_id": 11,
+      "service_file": 12,
+      "service_start_name": 13,
+      "service_start_type": 14,
+      "service_start_type_id": 15,
+      "service_type": 16,
+      "service_type_id": 17,
+      "tags": 18,
+      "uid": 19,
+      "version": 20
+    },
+    "reserved": []
+  }
+}
