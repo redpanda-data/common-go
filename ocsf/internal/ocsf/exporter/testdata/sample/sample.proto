@@ -1,0 +1,65 @@
+// Copyright 2024 Redpanda Data, Inc.
+//
+// Use of this software is governed by the Business Source License
+// included in the file licenses/BSL.md
+//
+// As of the Change Date specified in that file, in accordance with
+// the Business Source License, use of this software will be governed
+// by the Apache License, Version 2.0
+
+// Test message for the OCSF JSON exporter. DO NOT USE in production.
+syntax = "proto3";
+
+package ocsf.exporter.sample.v1;
+
+import "google/protobuf/struct.proto";
+
+option go_package = "github.com/redpanda-data/common-go/ocsf/internal/ocsf/exporter/testdata/sample;samplev1";
+
+message SampleEvent {
+  // SeverityId is an OCSF-style integer-keyed enum.
+  enum SeverityId {
+    SEVERITY_ID_UNKNOWN  = 0;
+    SEVERITY_ID_CRITICAL = 5;
+    SEVERITY_ID_OTHER    = 99;
+  }
+
+  // severity_id exercises enum -> integer conversion.
+  SeverityId severity_id = 1;
+
+  // time is an int64 (timestamp_t in OCSF) — must be a JSON number, not quoted.
+  int64 time = 2;
+
+  // count is an int32.
+  int32 count = 3;
+
+  // message_text is a plain string field.
+  string message_text = 4;
+
+  // is_alert is a bool.
+  bool is_alert = 5;
+
+  // score is a double.
+  double score = 6;
+
+  // metadata is a google.protobuf.Value (OCSF json_t / unmapped bag).
+  google.protobuf.Value metadata = 7;
+
+  // tags is a repeated string.
+  repeated string tags = 8;
+
+  // actor is a nested message.
+  Actor actor = 9;
+
+  // note is an explicit optional string; absent when unset.
+  optional string note = 10;
+
+  // severities is a repeated enum field; must marshal to a JSON array of
+  // integers (e.g. [5,99]), never name strings.
+  repeated SeverityId severities = 11;
+}
+
+message Actor {
+  string name   = 1;
+  int64  uid    = 2;
+}

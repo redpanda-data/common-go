@@ -6,12 +6,14 @@ on:
       - main
     paths:
       - '**.go'
+      - '**.proto'
       - '**/go.mod'
       - '**/go.sum'
       - '.github/workflows/test.yaml'
   pull_request:
     paths:
       - '**.go'
+      - '**.proto'
       - '**/go.mod'
       - '**/go.sum'
       - '.github/workflows/test.yaml'
@@ -32,3 +34,87 @@ jobs:
       - name: Run tests (${{ matrix.dir }})
         run: go test ./...
         working-directory: ${{ matrix.dir }}
+
+  ocsf-checks:
+    name: ocsf-checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Fetch full history so we can resolve the base branch ref for the
+          # tagmap compat check below.
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: 'stable'
+
+      # buf is used to lint and build the generated .proto files.
+      - name: Install buf
+        uses: bufbuild/buf-setup-action@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      # Wire-stability gate: compare the committed field-numbers.json on this
+      # branch against the base-branch version.  A changed tag number, a
+      # dropped field without a reserved entry, or a reused reserved tag all
+      # fail here before the baseline-drift check runs.
+      #
+      # On push events github.base_ref is empty; we skip gracefully.
+      # On the first PR that introduces the tagmap (old file absent on base),
+      # CompatCheck prints a bootstrap notice and exits 0.
+      - name: ocsf-protogen --compat-check (wire-stability gate)
+        if: ${{ github.base_ref != '' }}
+        working-directory: ocsf
+        run: |
+          git fetch origin "${{ github.base_ref }}" --depth=1
+          git show "origin/${{ github.base_ref }}:ocsf/cmd/ocsf-protogen/testdata/field-numbers.json" \
+            > /tmp/old-field-numbers.json 2>/dev/null || true
+          go run ./cmd/ocsf-protogen \
+            --compat-check \
+            --old /tmp/old-field-numbers.json \
+            --new cmd/ocsf-protogen/testdata/field-numbers.json
+
+      # Verify the committed proto baseline tree (ocsf/v1/*.proto +
+      # field-numbers.json) exactly matches what the generator would produce today
+      # from the committed schema fixture.  --out is a module root directory; the
+      # generator writes one file per class plus a shared objects.proto under
+      # ocsf/v1/.  Drift here means someone edited the baseline by hand or forgot
+      # to regenerate after a schema/generator change.
+      - name: ocsf-protogen --check (baseline drift detection)
+        working-directory: ocsf
+        run: |
+          go run ./cmd/ocsf-protogen \
+            --check \
+            --schema  internal/ocsf/schema/testdata/ocsf-1.8.0.json \
+            --classes api_activity,entity_management \
+            --version 1.8.0 \
+            --out     cmd/ocsf-protogen/testdata \
+            --tagmap  cmd/ocsf-protogen/testdata/field-numbers.json
+
+      # buf lint + build on the committed proto baseline.
+      - name: buf lint (ocsf testdata)
+        working-directory: ocsf/cmd/ocsf-protogen/testdata
+        run: buf lint
+
+      - name: buf build (ocsf testdata)
+        working-directory: ocsf/cmd/ocsf-protogen/testdata
+        run: buf build
+
+      # buf lint + build on the golden proto used by gen tests.
+      - name: buf lint (gen golden)
+        working-directory: ocsf/internal/ocsf/gen/testdata/golden
+        run: buf lint
+
+      - name: buf build (gen golden)
+        working-directory: ocsf/internal/ocsf/gen/testdata/golden
+        run: buf build
+
+      # Run the full ocsf test suite including TestServerConformance which
+      # POSTs exported OCSF JSON to schema.ocsf.io/api/v2/validate and gates
+      # on error_count == 0.  This test skips automatically when
+      # schema.ocsf.io is unreachable (e.g. local dev without internet) but
+      # must pass here in CI.
+      - name: ocsf go test (with server conformance)
+        working-directory: ocsf
+        run: go test ./... -count=1

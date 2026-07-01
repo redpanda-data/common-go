@@ -1,0 +1,14 @@
+version: v2
+modules:
+  - path: .
+deps:
+  - buf.build/bufbuild/protovalidate
+lint:
+  use:
+    - STANDARD
+  except:
+    # OCSF uses _UNKNOWN (not _UNSPECIFIED) for synthesized zero values by design.
+    - ENUM_ZERO_VALUE_SUFFIX
+breaking:
+  use:
+    - FILE
