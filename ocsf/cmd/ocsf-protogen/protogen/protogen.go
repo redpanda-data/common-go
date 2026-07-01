@@ -34,6 +34,11 @@ type Config struct {
 	OutDir     string
 	TagmapPath string
 	Check      bool
+	// SRSchemaOutDir, when non-empty, is the directory into which the
+	// self-contained Schema-Registry schema files (<class>.sr.proto) are written
+	// after the main Emit. It is unrelated to OutDir: SR files are flat, not
+	// module-relative. Empty disables SR schema emission entirely.
+	SRSchemaOutDir string
 }
 
 // Generate loads the schema, emits the proto, writes --out and --tagmap.
@@ -60,6 +65,19 @@ func Generate(cfg Config) (stubbed []string, err error) {
 
 	if err := writeFiles(cfg.OutDir, files); err != nil {
 		return nil, err
+	}
+
+	// Emit self-contained SR schemas using the SAME tagmap so field numbers match
+	// the main output. Do this before tm.Save so the (idempotent) Assign calls are
+	// persisted too.
+	if strings.TrimSpace(cfg.SRSchemaOutDir) != "" {
+		srFiles, err := gen.EmitSRSchemas(s, cfg.Classes, tm, cfg.Version)
+		if err != nil {
+			return nil, fmt.Errorf("emit sr schemas: %w", err)
+		}
+		if err := writeFiles(cfg.SRSchemaOutDir, srFiles); err != nil {
+			return nil, err
+		}
 	}
 
 	if err := tm.Save(cfg.TagmapPath); err != nil {
@@ -144,7 +162,52 @@ func Check(cfg Config) error {
 	}
 
 	// File-set drift: any file added, removed, or changed.
-	return diffTree(cfg.OutDir, files, committed)
+	if err := diffTree(cfg.OutDir, files, committed); err != nil {
+		return err
+	}
+
+	// SR schema drift (only when the SR output dir is configured). SR files are
+	// written flat under SRSchemaOutDir, so we compare each generated file against
+	// its committed counterpart there.
+	if strings.TrimSpace(cfg.SRSchemaOutDir) != "" {
+		srFiles, err := gen.EmitSRSchemas(s, cfg.Classes, newTM, cfg.Version)
+		if err != nil {
+			return fmt.Errorf("emit sr schemas: %w", err)
+		}
+		if err := diffSRSchemas(cfg.SRSchemaOutDir, srFiles); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// diffSRSchemas compares freshly generated SR schema files against their
+// committed counterparts under srOutDir and returns a descriptive error on any
+// missing or changed file.
+func diffSRSchemas(srOutDir string, files []gen.GeneratedFile) error {
+	for _, f := range files {
+		p := filepath.Join(srOutDir, filepath.FromSlash(f.Path))
+		b, err := os.ReadFile(filepath.Clean(p))
+		switch {
+		case os.IsNotExist(err):
+			return fmt.Errorf(
+				"generated SR schema %q is missing from %q "+
+					"(run ocsf-protogen without --check to regenerate, then commit the diff)",
+				f.Path, srOutDir,
+			)
+		case err != nil:
+			return fmt.Errorf("read committed SR schema %q: %w", p, err)
+		}
+		if string(b) != f.Content {
+			return fmt.Errorf(
+				"committed SR schema %q differs from freshly generated output "+
+					"(run ocsf-protogen without --check to regenerate, then commit the diff)",
+				f.Path,
+			)
+		}
+	}
+	return nil
 }
 
 // readCommittedTree loads the committed content of every path produced by Emit

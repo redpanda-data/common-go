@@ -268,7 +268,7 @@ func Emit(s *schema.Schema, classNames []string, tm *tagmap.TagMap, version stri
 
 // emitClassFile builds the proto file for a single class.
 func emitClassFile(s *schema.Schema, tm *tagmap.TagMap, version, pkgSuffix, dir string, hasObjects bool, cls *schema.Class) (GeneratedFile, error) {
-	msg, err := emitMessage(s, tm, toPascalCase(cls.Name), cls.Attributes, cls.Constraints)
+	msg, err := emitMessage(s, tm, toPascalCase(cls.Name), cls.Attributes, cls.Constraints, emitOptions{})
 	if err != nil {
 		return GeneratedFile{}, fmt.Errorf("ocsf emit: class %q: %w", cls.Name, err)
 	}
@@ -314,7 +314,7 @@ func emitObjectsFile(s *schema.Schema, tm *tagmap.TagMap, version, pkgSuffix, di
 
 	var body strings.Builder
 	for i := range sorted {
-		msg, err := emitMessage(s, tm, toPascalCase(sorted[i].Name), sorted[i].Attributes, sorted[i].Constraints)
+		msg, err := emitMessage(s, tm, toPascalCase(sorted[i].Name), sorted[i].Attributes, sorted[i].Constraints, emitOptions{})
 		if err != nil {
 			return GeneratedFile{}, fmt.Errorf("ocsf emit: object %q: %w", sorted[i].Name, err)
 		}
@@ -493,9 +493,19 @@ func resolveFieldSpec(s *schema.Schema, tm *tagmap.TagMap, msgName, attrName str
 	return fs, nil, nil
 }
 
+// emitOptions controls optional emitter behavior.
+//
+// omitValidate suppresses all buf.validate output: the per-field
+// (buf.validate.field).required annotation and the message-level
+// (buf.validate.message).cel constraint blocks. It is set by the SR-schema path,
+// which emits self-contained schemas that must not depend on buf/validate.
+type emitOptions struct {
+	omitValidate bool
+}
+
 // emitMessage generates one proto message block for the given message name,
 // attribute map, and optional constraints.
-func emitMessage(s *schema.Schema, tm *tagmap.TagMap, msgName string, attrs map[string]*schema.Attribute, constraints *schema.Constraints) (string, error) {
+func emitMessage(s *schema.Schema, tm *tagmap.TagMap, msgName string, attrs map[string]*schema.Attribute, constraints *schema.Constraints, opts emitOptions) (string, error) {
 	// Sort attribute names for determinism during tag assignment.
 	attrNames := make([]string, 0, len(attrs))
 	for name := range attrs {
@@ -535,7 +545,7 @@ func emitMessage(s *schema.Schema, tm *tagmap.TagMap, msgName string, attrs map[
 	sb.WriteString("message " + msgName + " {\n")
 
 	// Emit constraint CEL options (before nested enums and fields).
-	if constraints != nil {
+	if constraints != nil && !opts.omitValidate {
 		if len(constraints.AtLeastOne) > 0 {
 			cel := atLeastOneCEL(msgName, constraints.AtLeastOne)
 			sb.WriteString(cel)
@@ -563,7 +573,7 @@ func emitMessage(s *schema.Schema, tm *tagmap.TagMap, msgName string, attrs map[
 		// (len >= 1)", but OCSF "required" on an array means only "key present".
 		// Fields like osint can be legitimately empty, so we skip the annotation
 		// for repeated fields to avoid wrongly rejecting valid events.
-		if fs.required && !fs.repeated {
+		if fs.required && !fs.repeated && !opts.omitValidate {
 			line += ` [(buf.validate.field).required = true]`
 		}
 		line += ";\n"

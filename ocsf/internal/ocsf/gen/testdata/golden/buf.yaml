@@ -1,6 +1,12 @@
 version: v2
 modules:
   - path: .
+    # The self-contained Schema-Registry schemas under sr/ intentionally inline
+    # the same messages as ocsf/v1/*.proto in the same package. They are not part
+    # of the buf module: excluding them avoids duplicate-symbol collisions and
+    # keeps each .sr.proto a standalone artifact for direct SR registration.
+    excludes:
+      - sr
 deps:
   - buf.build/bufbuild/protovalidate
 lint:

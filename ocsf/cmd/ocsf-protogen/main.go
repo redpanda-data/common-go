@@ -85,6 +85,7 @@ func run(args []string) error {
 	compatCheckFlag := fs.Bool("compat-check", false, "check wire stability between two tagmap files (use with --old and --new)")
 	oldFlag := fs.String("old", "", "path to the base-branch tagmap JSON (for --compat-check)")
 	newFlag := fs.String("new", "", "path to the PR tagmap JSON (for --compat-check)")
+	srSchemaOutFlag := fs.String("sr-schema-out", "", "optional directory for self-contained Schema-Registry schemas (<class>.sr.proto); empty disables SR emission")
 
 	if err := fs.Parse(args); err != nil {
 		return err
@@ -119,12 +120,13 @@ func run(args []string) error {
 	}
 
 	cfg := protogen.Config{
-		SchemaPath: *schemaFlag,
-		Classes:    classes,
-		Version:    *versionFlag,
-		OutDir:     *outFlag,
-		TagmapPath: *tagmapFlag,
-		Check:      *checkFlag,
+		SchemaPath:     *schemaFlag,
+		Classes:        classes,
+		Version:        *versionFlag,
+		OutDir:         *outFlag,
+		TagmapPath:     *tagmapFlag,
+		Check:          *checkFlag,
+		SRSchemaOutDir: *srSchemaOutFlag,
 	}
 
 	if cfg.Check {

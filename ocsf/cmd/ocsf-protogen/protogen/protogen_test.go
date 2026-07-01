@@ -110,6 +110,98 @@ func TestGenerateThenCheck(t *testing.T) {
 	require.NoError(t, err, "--check must pass immediately after Generate on the same baseline")
 }
 
+// ─── SR schema output ─────────────────────────────────────────────────────────
+
+// TestGenerateWritesSRSchemas verifies that when SRSchemaOutDir is set, Generate
+// writes one flat <class>.sr.proto per class and that --check passes against the
+// just-generated baseline.
+func TestGenerateWritesSRSchemas(t *testing.T) {
+	dir := t.TempDir()
+	srDir := t.TempDir()
+	tagmapPath := filepath.Join(dir, "field-numbers.json")
+
+	cfg := protogen.Config{
+		SchemaPath:     schemaFixture(),
+		Classes:        []string{"api_activity", "entity_management"},
+		Version:        "1.8.0",
+		OutDir:         dir,
+		TagmapPath:     tagmapPath,
+		SRSchemaOutDir: srDir,
+	}
+
+	_, err := protogen.Generate(cfg)
+	require.NoError(t, err)
+
+	require.FileExists(t, filepath.Join(srDir, "api_activity.sr.proto"))
+	require.FileExists(t, filepath.Join(srDir, "entity_management.sr.proto"))
+
+	// --check against the just-generated SR baseline must pass.
+	checkCfg := cfg
+	checkCfg.Check = true
+	require.NoError(t, protogen.Check(checkCfg),
+		"--check must pass immediately after Generate on the same SR baseline")
+}
+
+// TestCheckFailsOnSRSchemaDrift verifies that --check detects drift in a
+// committed SR schema file.
+func TestCheckFailsOnSRSchemaDrift(t *testing.T) {
+	dir := t.TempDir()
+	srDir := t.TempDir()
+	tagmapPath := filepath.Join(dir, "field-numbers.json")
+
+	cfg := protogen.Config{
+		SchemaPath:     schemaFixture(),
+		Classes:        []string{"api_activity"},
+		Version:        "1.8.0",
+		OutDir:         dir,
+		TagmapPath:     tagmapPath,
+		SRSchemaOutDir: srDir,
+	}
+
+	_, err := protogen.Generate(cfg)
+	require.NoError(t, err)
+
+	// Corrupt the committed SR schema file.
+	srPath := filepath.Join(srDir, "api_activity.sr.proto")
+	content, err := os.ReadFile(srPath)
+	require.NoError(t, err)
+	require.NoError(t, os.WriteFile(srPath, append(content, []byte("\n// CORRUPTED\n")...), 0o644))
+
+	checkCfg := cfg
+	checkCfg.Check = true
+	err = protogen.Check(checkCfg)
+	require.Error(t, err, "--check must fail when a committed SR schema drifts")
+	require.Contains(t, err.Error(), "SR schema")
+	require.Contains(t, err.Error(), "differs")
+}
+
+// TestCheckFailsOnMissingSRSchema verifies that --check reports a missing SR file.
+func TestCheckFailsOnMissingSRSchema(t *testing.T) {
+	dir := t.TempDir()
+	srDir := t.TempDir()
+	tagmapPath := filepath.Join(dir, "field-numbers.json")
+
+	cfg := protogen.Config{
+		SchemaPath:     schemaFixture(),
+		Classes:        []string{"api_activity"},
+		Version:        "1.8.0",
+		OutDir:         dir,
+		TagmapPath:     tagmapPath,
+		SRSchemaOutDir: srDir,
+	}
+
+	_, err := protogen.Generate(cfg)
+	require.NoError(t, err)
+
+	require.NoError(t, os.Remove(filepath.Join(srDir, "api_activity.sr.proto")))
+
+	checkCfg := cfg
+	checkCfg.Check = true
+	err = protogen.Check(checkCfg)
+	require.Error(t, err, "--check must fail when a committed SR schema is missing")
+	require.Contains(t, err.Error(), "missing")
+}
+
 // ─── Check: tagmap incompatibility ────────────────────────────────────────────
 
 // TestCheckFailsOnProtoDriftFromEditedTagmap verifies that protogen.Check
