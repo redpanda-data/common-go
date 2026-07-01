@@ -45,6 +45,10 @@ matches:
     license: Apache
   - extension: .go
     type: go
+    directory: ocsf
+    license: BSL
+  - extension: .go
+    type: go
     directory: proto
     license: BSL
   - extension: .go
