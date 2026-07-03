@@ -17,7 +17,9 @@ import (
 	"fmt"
 	"math"
 	"strings"
+	"sync"
 	"testing"
+	"unicode/utf8"
 
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
@@ -328,7 +330,7 @@ func TestFromOCSFJSON_MutationSweep(t *testing.T) {
 	b, err := exporter.ToOCSFJSON(fullSample(t))
 	require.NoError(t, err)
 
-	for _, hostile := range []byte{'{', '}', '[', ']', '"', ',', ':', 0x00} {
+	for _, hostile := range []byte{'{', '}', '[', ']', '"', ',', ':', '\\', 0x00} {
 		for i := range b {
 			mutated := append([]byte(nil), b...)
 			if mutated[i] == hostile {
@@ -347,6 +349,203 @@ func TestFromOCSFJSON_MutationSweep(t *testing.T) {
 			}, "mutation at byte %d to %q must not panic", i, hostile)
 		}
 	}
+}
+
+// TestFromOCSFJSON_UnicodeEscapes probes JSON escape handling in keys and
+// values.
+func TestFromOCSFJSON_UnicodeEscapes(t *testing.T) {
+	t.Run("EscapedKeyResolvesToField", func(t *testing.T) {
+		// "time" unescapes to "time": it must set the field, not land in
+		// unknown keys.
+		var evt samplev1.SampleEvent
+		require.NoError(t, exporter.FromOCSFJSON([]byte(`{"tim\u0065":42}`), &evt))
+		require.Equal(t, int64(42), evt.Time)
+	})
+
+	t.Run("ValidSurrogatePair", func(t *testing.T) {
+		var evt samplev1.SampleEvent
+		require.NoError(t, exporter.FromOCSFJSON([]byte(`{"message_text":"😀"}`), &evt))
+		require.Equal(t, "😀", evt.MessageText)
+
+		b, err := exporter.ToOCSFJSON(&evt)
+		require.NoError(t, err)
+		var again samplev1.SampleEvent
+		require.NoError(t, exporter.FromOCSFJSON(b, &again))
+		require.True(t, proto.Equal(&evt, &again))
+	})
+
+	t.Run("LoneSurrogate", func(t *testing.T) {
+		// encoding/json replaces a lone surrogate with U+FFFD. That input is
+		// not byte-round-trippable by definition; what matters is that the
+		// decode result is valid UTF-8 and re-exports cleanly.
+		var evt samplev1.SampleEvent
+		require.NotPanics(t, func() {
+			if err := exporter.FromOCSFJSON([]byte(`{"message_text":"\ud800"}`), &evt); err == nil {
+				require.True(t, utf8.ValidString(evt.MessageText),
+					"decoded lone surrogate must be replaced with valid UTF-8")
+				_, exportErr := exporter.ToOCSFJSON(&evt)
+				require.NoError(t, exportErr)
+			}
+		})
+	})
+}
+
+// TestFromOCSFJSON_ExoticDocuments covers document-level oddities: BOM,
+// unusual whitespace, comments, concatenated documents.
+func TestFromOCSFJSON_ExoticDocuments(t *testing.T) {
+	t.Run("BOMPrefix", func(t *testing.T) {
+		var evt samplev1.SampleEvent
+		require.Error(t, exporter.FromOCSFJSON([]byte("\xef\xbb\xbf{\"time\":1}"), &evt),
+			"a UTF-8 BOM is not valid JSON and must be rejected")
+	})
+
+	t.Run("ExoticWhitespace", func(t *testing.T) {
+		var evt samplev1.SampleEvent
+		require.NoError(t, exporter.FromOCSFJSON([]byte("\r\n\t {\r\n\t\"time\" :\t1 ,\n\"count\": 2\r}\n"), &evt))
+		require.Equal(t, int64(1), evt.Time)
+		require.Equal(t, int32(2), evt.Count)
+	})
+
+	t.Run("Comments", func(t *testing.T) {
+		var evt samplev1.SampleEvent
+		require.Error(t, exporter.FromOCSFJSON([]byte(`{/*c*/"time":1}`), &evt))
+		require.Error(t, exporter.FromOCSFJSON([]byte("{\"time\":1} // trailing"), &evt))
+	})
+
+	t.Run("ConcatenatedDocuments", func(t *testing.T) {
+		var evt samplev1.SampleEvent
+		require.Error(t, exporter.FromOCSFJSON([]byte(`{"time":1}{"time":2}`), &evt),
+			"trailing second document must be rejected, not silently ignored")
+	})
+}
+
+// TestFromOCSFJSON_MoreNumberFormats extends the numeric-edge coverage with
+// JSON-spec oddities.
+func TestFromOCSFJSON_MoreNumberFormats(t *testing.T) {
+	t.Run("NegativeZeroInt", func(t *testing.T) {
+		var evt samplev1.SampleEvent
+		require.NoError(t, exporter.FromOCSFJSON([]byte(`{"time":-0}`), &evt))
+		require.Zero(t, evt.Time)
+	})
+
+	t.Run("FloatValuedEnum", func(t *testing.T) {
+		// 5.0 is numerically 5 but not an integer literal; OCSF enums are
+		// integers, so this is rejected rather than silently coerced.
+		var evt samplev1.SampleEvent
+		require.Error(t, exporter.FromOCSFJSON([]byte(`{"severity_id":5.0}`), &evt))
+	})
+
+	t.Run("DoubleOverflow", func(t *testing.T) {
+		var evt samplev1.SampleEvent
+		require.NotPanics(t, func() {
+			require.Error(t, exporter.FromOCSFJSON([]byte(`{"score":1e309}`), &evt),
+				"a float64 out-of-range literal must error, not become +Inf")
+		})
+	})
+
+	t.Run("ExponentIntoDouble", func(t *testing.T) {
+		var evt samplev1.SampleEvent
+		require.NoError(t, exporter.FromOCSFJSON([]byte(`{"score":1.5e2}`), &evt))
+		require.Equal(t, 150.0, evt.Score)
+	})
+
+	t.Run("PlusSign", func(t *testing.T) {
+		var evt samplev1.SampleEvent
+		require.Error(t, exporter.FromOCSFJSON([]byte(`{"time":+1}`), &evt))
+	})
+
+	t.Run("HexLiteral", func(t *testing.T) {
+		var evt samplev1.SampleEvent
+		require.Error(t, exporter.FromOCSFJSON([]byte(`{"time":0x10}`), &evt))
+	})
+
+	t.Run("BareNaNLiterals", func(t *testing.T) {
+		var evt samplev1.SampleEvent
+		require.Error(t, exporter.FromOCSFJSON([]byte(`{"score":NaN}`), &evt))
+		require.Error(t, exporter.FromOCSFJSON([]byte(`{"score":Infinity}`), &evt))
+	})
+}
+
+// TestFromOCSFJSON_ExplicitZerosCanonicalize documents the canonical-form
+// contract for proto3 implicit-presence fields: explicit zero values are
+// accepted on import but omitted on export (the exporter emits set fields
+// only), so JSON→proto→JSON byte-identity holds exactly for canonical inputs.
+func TestFromOCSFJSON_ExplicitZerosCanonicalize(t *testing.T) {
+	var evt samplev1.SampleEvent
+	require.NoError(t, exporter.FromOCSFJSON(
+		[]byte(`{"count":0,"is_alert":false,"message_text":"","time":1}`), &evt))
+	require.True(t, proto.Equal(&samplev1.SampleEvent{Time: 1}, &evt),
+		"explicit zeros must decode to the zero value")
+
+	b, err := exporter.ToOCSFJSON(&evt)
+	require.NoError(t, err)
+	require.Equal(t, `{"time":1}`, string(b),
+		"re-export must canonicalize: implicit-presence zeros are omitted")
+}
+
+// TestFromOCSFJSON_OptionalPresenceRoundTrip verifies explicit-presence
+// (optional) fields keep the set-to-zero vs absent distinction through both
+// directions.
+func TestFromOCSFJSON_OptionalPresenceRoundTrip(t *testing.T) {
+	var evt samplev1.SampleEvent
+	require.NoError(t, exporter.FromOCSFJSON([]byte(`{"note":""}`), &evt))
+	require.NotNil(t, evt.Note, "optional field set to empty string must have presence")
+	require.Empty(t, *evt.Note)
+
+	b, err := exporter.ToOCSFJSON(&evt)
+	require.NoError(t, err)
+	require.Equal(t, `{"note":""}`, string(b),
+		"present-but-empty optional must survive export")
+
+	var again samplev1.SampleEvent
+	require.NoError(t, exporter.FromOCSFJSON(b, &again))
+	require.True(t, proto.Equal(&evt, &again))
+}
+
+// TestFromOCSFJSON_DeepArrayNesting mirrors the deep-object test with arrays.
+func TestFromOCSFJSON_DeepArrayNesting(t *testing.T) {
+	const depth = 1000
+	payload := `{"metadata":` + strings.Repeat(`[`, depth) + `1` + strings.Repeat(`]`, depth) + `}`
+
+	var evt samplev1.SampleEvent
+	require.NotPanics(t, func() {
+		if err := exporter.FromOCSFJSON([]byte(payload), &evt); err == nil {
+			_, exportErr := exporter.ToOCSFJSON(&evt)
+			require.NoError(t, exportErr)
+		}
+	})
+}
+
+// TestRoundTrip_Concurrent exercises the exporter and importer from many
+// goroutines to surface shared-state bugs under the race detector.
+func TestRoundTrip_Concurrent(t *testing.T) {
+	const goroutines = 8
+	var wg sync.WaitGroup
+	for g := range goroutines {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			rng := newSeededRand(uint64(g) + 1)
+			for range 50 {
+				original := randomSampleEvent(t, rng)
+				b, err := exporter.ToOCSFJSON(original)
+				if err != nil {
+					t.Errorf("goroutine %d: export: %v", g, err)
+					return
+				}
+				var decoded samplev1.SampleEvent
+				if err := exporter.FromOCSFJSON(b, &decoded); err != nil {
+					t.Errorf("goroutine %d: import: %v", g, err)
+					return
+				}
+				if !proto.Equal(original, &decoded) {
+					t.Errorf("goroutine %d: round-trip mismatch", g)
+					return
+				}
+			}
+		}()
+	}
+	wg.Wait()
 }
 
 // TestRoundTrip_RandomizedEvents is the property-based smoke test: many
@@ -402,6 +601,12 @@ func FuzzFromOCSFJSON(f *testing.F) {
 		`null`,
 		`{"a":`,
 		"{\"ti\x00me\":1}",
+		`{"message_text":"\ud800"}`,        // lone surrogate
+		"\xef\xbb\xbf{\"time\":1}",         // BOM prefix
+		`{"score":1e309}`,                  // float64 overflow
+		`{"time":1}{"time":2}`,             // concatenated documents
+		`{"tim\u0065":42,"not\u0065":"x"}`, // escaped keys
+		`{"count":-0,"severity_id":5.0}`,   // negative zero + float enum
 	}
 	// A real exported event as a seed.
 	full := &samplev1.SampleEvent{
