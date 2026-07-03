@@ -22,7 +22,8 @@
 //	  --version 1.8.0 \
 //	  --out     ocsf/cmd/ocsf-protogen/testdata \
 //	  --tagmap  ocsf/cmd/ocsf-protogen/testdata/field-numbers.json \
-//	  --merged-message AuditEvent
+//	  --merged-message AuditEvent \
+//	  --merged-sr-subject redpanda.ocsf.audit-events-value
 //
 // --out is a MODULE ROOT DIRECTORY. Files are written under it at their
 // module-relative paths, e.g. <out>/ocsf/v1/api_activity.proto,
@@ -93,6 +94,7 @@ func run(args []string) error {
 	newFlag := fs.String("new", "", "path to the PR tagmap JSON (for --compat-check)")
 	srSchemaOutFlag := fs.String("sr-schema-out", "", "optional directory for self-contained Schema-Registry schemas (<class>.sr.proto); empty disables SR emission")
 	mergedMessageFlag := fs.String("merged-message", "", "optional message name (e.g. AuditEvent) for a single flat message unioning all selected classes, emitted alongside the per-class files; empty disables merged emission")
+	mergedSRSubjectFlag := fs.String("merged-sr-subject", "", "optional Schema Registry subject; annotates the merged message with (redpanda.api.common.v1.schema_registry) for protoc-gen-go-sr-normalize (requires --merged-message)")
 
 	if err := fs.Parse(args); err != nil {
 		return err
@@ -127,14 +129,15 @@ func run(args []string) error {
 	}
 
 	cfg := protogen.Config{
-		SchemaPath:     *schemaFlag,
-		Classes:        classes,
-		Version:        *versionFlag,
-		OutDir:         *outFlag,
-		TagmapPath:     *tagmapFlag,
-		Check:          *checkFlag,
-		SRSchemaOutDir: *srSchemaOutFlag,
-		MergedMessage:  *mergedMessageFlag,
+		SchemaPath:      *schemaFlag,
+		Classes:         classes,
+		Version:         *versionFlag,
+		OutDir:          *outFlag,
+		TagmapPath:      *tagmapFlag,
+		Check:           *checkFlag,
+		SRSchemaOutDir:  *srSchemaOutFlag,
+		MergedMessage:   *mergedMessageFlag,
+		MergedSRSubject: *mergedSRSubjectFlag,
 	}
 
 	if cfg.Check {

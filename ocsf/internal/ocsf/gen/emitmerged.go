@@ -48,8 +48,16 @@ const demotedComment = "Class-scoped enum: value semantics depend on class_uid; 
 // Object messages reuse their existing (object, attribute) keys, so object
 // tags are identical between Emit and EmitMerged output.
 //
+// srSubject, when non-empty, annotates the merged message with
+// (redpanda.api.common.v1.schema_registry) = { subject: "<srSubject>" } and
+// imports redpanda/api/common/v1/schema_registry.proto, so
+// protoc-gen-go-sr-normalize can generate the self-contained SR schema and
+// subject constants alongside the standard Go bindings. Empty disables the
+// annotation. The .sr.proto emitters never carry it: they must stay
+// self-contained.
+//
 // stubbed follows the same contract as Emit.
-func EmitMerged(s *schema.Schema, classNames []string, tm *tagmap.TagMap, version, msgName string) (files []GeneratedFile, stubbed []string, err error) {
+func EmitMerged(s *schema.Schema, classNames []string, tm *tagmap.TagMap, version, msgName, srSubject string) (files []GeneratedFile, stubbed []string, err error) {
 	merged, err := MergeClasses(s, classNames, msgName)
 	if err != nil {
 		return nil, nil, err
@@ -71,7 +79,7 @@ func EmitMerged(s *schema.Schema, classNames []string, tm *tagmap.TagMap, versio
 	stubs := collectStubs(s, classes, objects)
 	hasObjects := len(objects) > 0 || len(stubs) > 0
 
-	classFile, err := emitMergedClassFile(s, tm, merged, version, pkgSuffix, dir, hasObjects)
+	classFile, err := emitMergedClassFile(s, tm, merged, version, pkgSuffix, dir, hasObjects, srSubject)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -167,11 +175,30 @@ func EmitMergedSRSchema(s *schema.Schema, classNames []string, tm *tagmap.TagMap
 	return GeneratedFile{Path: msgFileBase(msgName) + ".sr.proto", Content: content}, nil
 }
 
+// srSchemaImport is the import that provides the
+// (redpanda.api.common.v1.schema_registry) message option. Resolved from
+// buf.build/redpandadata/common at build time.
+const srSchemaImport = `import "redpanda/api/common/v1/schema_registry.proto";`
+
+// srSubjectOption renders the Schema-Registry message option consumed by
+// protoc-gen-go-sr-normalize.
+func srSubjectOption(subject string) string {
+	return fmt.Sprintf(
+		"  option (redpanda.api.common.v1.schema_registry) = {\n"+
+			"    subject: %q\n"+
+			"  };\n",
+		subject,
+	)
+}
+
 // emitMergedClassFile builds the proto file holding the merged event message.
-func emitMergedClassFile(s *schema.Schema, tm *tagmap.TagMap, merged *Merged, version, pkgSuffix, dir string, hasObjects bool) (GeneratedFile, error) {
+func emitMergedClassFile(s *schema.Schema, tm *tagmap.TagMap, merged *Merged, version, pkgSuffix, dir string, hasObjects bool, srSubject string) (GeneratedFile, error) {
 	opts := emitOptions{
 		fieldComments: demotedFieldComments(merged),
 		extraCEL:      mergedCEL(merged),
+	}
+	if srSubject != "" {
+		opts.headOptions = append(opts.headOptions, srSubjectOption(srSubject))
 	}
 
 	msg, err := emitMessage(s, tm, merged.Name, merged.Attributes, nil, opts)
@@ -192,6 +219,9 @@ func emitMergedClassFile(s *schema.Schema, tm *tagmap.TagMap, merged *Merged, ve
 	}
 	if needValidate {
 		imports = append(imports, `import "buf/validate/validate.proto";`)
+	}
+	if srSubject != "" {
+		imports = append(imports, srSchemaImport)
 	}
 
 	content := fileHeader(version, pkgSuffix) + importBlock(imports) + msg + "\n"

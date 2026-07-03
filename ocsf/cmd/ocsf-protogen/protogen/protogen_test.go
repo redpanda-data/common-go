@@ -332,9 +332,11 @@ func TestCheckAgainstCommittedBaseline(t *testing.T) {
 		TagmapPath: tagmapPath,
 		Check:      true,
 		// The committed baseline includes the merged single-event layout
-		// (audit_event.proto); --check must be configured identically to the
-		// generation run (see the ocsf-checks CI job).
-		MergedMessage: "AuditEvent",
+		// (audit_event.proto) with the Schema-Registry annotation; --check must
+		// be configured identically to the generation run (see the ocsf-checks
+		// CI job).
+		MergedMessage:   "AuditEvent",
+		MergedSRSubject: "redpanda.ocsf.audit-events-value",
 	}
 
 	err := protogen.Check(cfg)
@@ -352,13 +354,14 @@ func TestGenerateMergedThenCheck(t *testing.T) {
 	tagmapPath := filepath.Join(dir, "field-numbers.json")
 
 	cfg := protogen.Config{
-		SchemaPath:     schemaFixture(),
-		Classes:        []string{"api_activity", "entity_management"},
-		Version:        "1.8.0",
-		OutDir:         dir,
-		TagmapPath:     tagmapPath,
-		SRSchemaOutDir: srDir,
-		MergedMessage:  "AuditEvent",
+		SchemaPath:      schemaFixture(),
+		Classes:         []string{"api_activity", "entity_management"},
+		Version:         "1.8.0",
+		OutDir:          dir,
+		TagmapPath:      tagmapPath,
+		SRSchemaOutDir:  srDir,
+		MergedMessage:   "AuditEvent",
+		MergedSRSubject: "redpanda.ocsf.audit-events-value",
 	}
 
 	_, err := protogen.Generate(cfg)
@@ -379,6 +382,22 @@ func TestGenerateMergedThenCheck(t *testing.T) {
 	checkCfg.Check = true
 	require.NoError(t, protogen.Check(checkCfg),
 		"--check must pass immediately after Generate on the same merged baseline")
+}
+
+// TestGenerateSRSubjectRequiresMergedMessage verifies the flag dependency:
+// --merged-sr-subject without --merged-message is a configuration error.
+func TestGenerateSRSubjectRequiresMergedMessage(t *testing.T) {
+	dir := t.TempDir()
+	cfg := protogen.Config{
+		SchemaPath:      schemaFixture(),
+		Classes:         []string{"api_activity"},
+		Version:         "1.8.0",
+		OutDir:          dir,
+		TagmapPath:      filepath.Join(dir, "field-numbers.json"),
+		MergedSRSubject: "redpanda.ocsf.audit-events-value",
+	}
+	_, err := protogen.Generate(cfg)
+	require.ErrorContains(t, err, "--merged-sr-subject requires --merged-message")
 }
 
 // TestCheckFailsWithoutMergedFlagOnMergedBaseline verifies that a baseline

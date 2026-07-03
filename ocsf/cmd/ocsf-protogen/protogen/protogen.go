@@ -47,6 +47,11 @@ type Config struct {
 	// When SRSchemaOutDir is also set, a merged <snake_case_name>.sr.proto is
 	// written there too. Empty disables merged emission.
 	MergedMessage string
+	// MergedSRSubject, when non-empty, annotates the merged message with the
+	// (redpanda.api.common.v1.schema_registry) option carrying this subject,
+	// so protoc-gen-go-sr-normalize generates the SR schema and subject
+	// constants from the emitted proto. Requires MergedMessage.
+	MergedSRSubject string
 }
 
 // Generate loads the schema, emits the proto, writes --out and --tagmap.
@@ -108,10 +113,13 @@ func emitAll(s *schema.Schema, cfg Config, tm *tagmap.TagMap) (files []gen.Gener
 	}
 
 	if strings.TrimSpace(cfg.MergedMessage) == "" {
+		if strings.TrimSpace(cfg.MergedSRSubject) != "" {
+			return nil, nil, errors.New("--merged-sr-subject requires --merged-message")
+		}
 		return files, stubbed, nil
 	}
 
-	mergedFiles, mergedStubbed, err := gen.EmitMerged(s, cfg.Classes, tm, cfg.Version, cfg.MergedMessage)
+	mergedFiles, mergedStubbed, err := gen.EmitMerged(s, cfg.Classes, tm, cfg.Version, cfg.MergedMessage, cfg.MergedSRSubject)
 	if err != nil {
 		return nil, nil, fmt.Errorf("emit merged proto: %w", err)
 	}

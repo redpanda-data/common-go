@@ -9,6 +9,7 @@ modules:
       - sr
 deps:
   - buf.build/bufbuild/protovalidate
+  - buf.build/redpandadata/common
 lint:
   use:
     - STANDARD

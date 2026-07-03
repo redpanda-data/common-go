@@ -26,6 +26,7 @@ import (
 	"encoding/json"
 	"testing"
 
+	commonv1 "buf.build/gen/go/redpandadata/common/protocolbuffers/go/redpanda/api/common/v1"
 	protovalidate "buf.build/go/protovalidate"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
@@ -252,6 +253,20 @@ func TestMergedProtovalidate(t *testing.T) {
 		err := validator.Validate(evt)
 		require.ErrorContains(t, err, "metadata")
 	})
+}
+
+// TestMergedSRAnnotation proves the Schema-Registry annotation survives into
+// the compiled descriptor exactly as protoc-gen-go-sr-normalize reads it: the
+// (redpanda.api.common.v1.schema_registry) extension is present on AuditEvent
+// with the generated subject.
+func TestMergedSRAnnotation(t *testing.T) {
+	opts := (&ocsfv1.AuditEvent{}).ProtoReflect().Descriptor().Options()
+	require.True(t, proto.HasExtension(opts, commonv1.E_SchemaRegistry),
+		"AuditEvent must carry the schema_registry message option")
+
+	sr, ok := proto.GetExtension(opts, commonv1.E_SchemaRegistry).(*commonv1.SchemaRegistryOptions)
+	require.True(t, ok)
+	require.Equal(t, "redpanda.ocsf.audit-events-value", sr.GetSubject())
 }
 
 // TestMergedServerConformance validates the merged events' OCSF JSON against

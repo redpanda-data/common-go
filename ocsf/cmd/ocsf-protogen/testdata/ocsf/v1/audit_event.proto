@@ -8,8 +8,12 @@ package ocsf.v1;
 import "buf/validate/validate.proto";
 import "google/protobuf/struct.proto";
 import "ocsf/v1/objects.proto";
+import "redpanda/api/common/v1/schema_registry.proto";
 
 message AuditEvent {
+  option (redpanda.api.common.v1.schema_registry) = {
+    subject: "redpanda.ocsf.audit-events-value"
+  };
   option (buf.validate.message).cel = {
     id: "AuditEvent.type_uid",
     message: "type_uid must equal class_uid * 100 + activity_id",

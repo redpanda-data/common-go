@@ -4,6 +4,7 @@ go 1.24.3
 
 require (
 	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.11-20260415201107-50325440f8f2.1
+	buf.build/gen/go/redpandadata/common/protocolbuffers/go v1.36.11-20260323171043-6e06f84ad823.1
 	buf.build/go/protovalidate v1.2.0
 	github.com/stretchr/testify v1.11.1
 	google.golang.org/protobuf v1.36.11

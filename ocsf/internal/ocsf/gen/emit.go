@@ -506,10 +506,16 @@ func resolveFieldSpec(s *schema.Schema, tm *tagmap.TagMap, msgName, attrName str
 //
 // extraCEL holds pre-rendered (buf.validate.message).cel option blocks emitted
 // after the constraint-derived ones. Suppressed when omitValidate is set.
+//
+// headOptions holds pre-rendered message-level option blocks emitted before
+// everything else in the message body (e.g. the Schema-Registry annotation).
+// Unlike extraCEL these are not tied to buf.validate; the SR-schema emitters
+// simply never set them, keeping .sr.proto files self-contained.
 type emitOptions struct {
 	omitValidate  bool
 	fieldComments map[string]string
 	extraCEL      []string
+	headOptions   []string
 }
 
 // emitMessage generates one proto message block for the given message name,
@@ -552,6 +558,10 @@ func emitMessage(s *schema.Schema, tm *tagmap.TagMap, msgName string, attrs map[
 
 	var sb strings.Builder
 	sb.WriteString("message " + msgName + " {\n")
+
+	for _, opt := range opts.headOptions {
+		sb.WriteString(opt)
+	}
 
 	emitMessageCEL(&sb, msgName, constraints, opts)
 

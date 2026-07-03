@@ -20,7 +20,9 @@ Two artifacts are the point of this module; two more keep them safe to evolve.
    carry wire-stable numbers from the tagmap and `buf.validate` annotations
    (required levels, plus class-aware CEL rules on the merged message), so
    protovalidate enforces OCSF semantics on every event before it is
-   published.
+   published. With `--merged-sr-subject`, the merged message also carries the
+   `(redpanda.api.common.v1.schema_registry)` annotation that drives
+   `protoc-gen-go-sr-normalize`.
 2. **Generated Go code**, produced from those protos with `buf generate` and
    `protoc-gen-go`. The bindings committed under
    `internal/ocsf/conformance/genpb/` are the reference: `buf.gen.yaml` and
@@ -81,8 +83,17 @@ go run ./cmd/ocsf-protogen \
 - `--merged-message <Name>` additionally emits the merged single-event layout
   (`ocsf/v<N>/<snake_name>.proto`, and `<snake_name>.sr.proto` under
   `--sr-schema-out`).
+- `--merged-sr-subject <subject>` annotates the merged message with
+  `(redpanda.api.common.v1.schema_registry) = { subject: "..." }` (from
+  `buf.build/redpandadata/common`). Consumers that run
+  [`protoc-gen-go-sr-normalize`](../protoc-gen-go-sr-normalize) in their buf
+  pass then get the self-contained SR schema and subject as Go constants
+  (`<Name>SRSchema`, `<Name>SRSubject`) with no hand-copied proto. Requires
+  `--merged-message`.
 - `--sr-schema-out <dir>` writes self-contained Schema-Registry schemas (no
   imports to resolve; register as-is, event message at Confluent index 0).
+  This is the non-buf path to the same schema text; Go consumers should
+  prefer the annotation plus `protoc-gen-go-sr-normalize`.
 - `--check` regenerates and fails on output drift or newly-stubbed objects.
 - `--compat-check --old <a> --new <b>` fails if field numbers changed
   incompatibly between two tag maps (used in CI against the base branch).

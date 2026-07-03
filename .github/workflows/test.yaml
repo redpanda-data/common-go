@@ -91,7 +91,8 @@ jobs:
             --version 1.8.0 \
             --out     cmd/ocsf-protogen/testdata \
             --tagmap  cmd/ocsf-protogen/testdata/field-numbers.json \
-            --merged-message AuditEvent
+            --merged-message AuditEvent \
+            --merged-sr-subject redpanda.ocsf.audit-events-value
 
       # buf lint + build on the committed proto baseline.
       - name: buf lint (ocsf testdata)

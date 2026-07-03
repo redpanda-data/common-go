@@ -24,6 +24,7 @@ import (
 	unsafe "unsafe"
 
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
+	_ "buf.build/gen/go/redpandadata/common/protocolbuffers/go/redpanda/api/common/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	structpb "google.golang.org/protobuf/types/known/structpb"
@@ -1231,7 +1232,7 @@ var File_ocsf_v1_audit_event_proto protoreflect.FileDescriptor
 
 const file_ocsf_v1_audit_event_proto_rawDesc = "" +
 	"\n" +
-	"\x19ocsf/v1/audit_event.proto\x12\aocsf.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x15ocsf/v1/objects.proto\"\xe1;\n" +
+	"\x19ocsf/v1/audit_event.proto\x12\aocsf.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x15ocsf/v1/objects.proto\x1a,redpanda/api/common/v1/schema_registry.proto\"\x87<\n" +
 	"\n" +
 	"AuditEvent\x12\x1f\n" +
 	"\vaccess_list\x18\x01 \x03(\tR\n" +
@@ -1409,7 +1410,7 @@ const file_ocsf_v1_audit_event_proto_rawDesc = "" +
 	"\x1aTYPE_UID_API_ACTIVITY_READ\x10\xee\xd1$\x12\"\n" +
 	"\x1cTYPE_UID_API_ACTIVITY_UPDATE\x10\xef\xd1$\x12\"\n" +
 	"\x1cTYPE_UID_API_ACTIVITY_DELETE\x10\xf0\xd1$\x12!\n" +
-	"\x1bTYPE_UID_API_ACTIVITY_OTHER\x10\xcf\xd2$:\x94\x0f\xbaH\x90\x0f\x1a\x82\x01\n" +
+	"\x1bTYPE_UID_API_ACTIVITY_OTHER\x10\xcf\xd2$:\xba\x0f\xbaH\x90\x0f\x1a\x82\x01\n" +
 	"\x13AuditEvent.type_uid\x121type_uid must equal class_uid * 100 + activity_id\x1a8this.type_uid == this.class_uid * 100 + this.activity_id\x1a|\n" +
 	"\x1aAuditEvent.own.access_list\x12,access_list is only valid for class_uid 3004\x1a0!has(this.access_list) || this.class_uid == 3004\x1a|\n" +
 	"\x1aAuditEvent.own.access_mask\x12,access_mask is only valid for class_uid 3004\x1a0!has(this.access_mask) || this.class_uid == 3004\x1as\n" +
@@ -1424,7 +1425,8 @@ const file_ocsf_v1_audit_event_proto_rawDesc = "" +
 	"!AuditEvent.req.api_activity.actor\x127actor is required when class_uid == 6003 (api_activity)\x1a)this.class_uid != 6003 || has(this.actor)\x1a\x81\x01\n" +
 	"\x1fAuditEvent.req.api_activity.api\x125api is required when class_uid == 6003 (api_activity)\x1a'this.class_uid != 6003 || has(this.api)\x1a\x9c\x01\n" +
 	"(AuditEvent.req.api_activity.src_endpoint\x12>src_endpoint is required when class_uid == 6003 (api_activity)\x1a0this.class_uid != 6003 || has(this.src_endpoint)\x1a\x94\x01\n" +
-	"'AuditEvent.req.entity_management.entity\x12=entity is required when class_uid == 3004 (entity_management)\x1a*this.class_uid != 3004 || has(this.entity)b\x06proto3"
+	"'AuditEvent.req.entity_management.entity\x12=entity is required when class_uid == 3004 (entity_management)\x1a*this.class_uid != 3004 || has(this.entity)\x82\xc0\a\"\n" +
+	" redpanda.ocsf.audit-events-valueb\x06proto3"
 
 var (
 	file_ocsf_v1_audit_event_proto_rawDescOnce sync.Once

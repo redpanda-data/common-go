@@ -28,6 +28,7 @@ const (
 	mergedGoldenDir   = "testdata/golden-merged"
 	mergedSRGoldenDir = "testdata/golden-merged/sr"
 	mergedMsgName     = "AuditEvent"
+	mergedSRSubject   = "redpanda.ocsf.audit-events-value"
 )
 
 // emitMergedJoined runs EmitMerged and concatenates the generated files in
@@ -36,7 +37,7 @@ func emitMergedJoined(t *testing.T, classNames []string) string {
 	t.Helper()
 	s := loadFixture(t)
 	tm := tagmap.New()
-	files, _, err := gen.EmitMerged(s, classNames, tm, "1.8.0", mergedMsgName)
+	files, _, err := gen.EmitMerged(s, classNames, tm, "1.8.0", mergedMsgName, mergedSRSubject)
 	require.NoError(t, err)
 	var sb strings.Builder
 	for _, f := range files {
@@ -52,7 +53,7 @@ func TestEmitMerged_Golden(t *testing.T) {
 	s := loadFixture(t)
 	tm := tagmap.New()
 
-	files, stubbed, err := gen.EmitMerged(s, mergedClasses, tm, "1.8.0", mergedMsgName)
+	files, stubbed, err := gen.EmitMerged(s, mergedClasses, tm, "1.8.0", mergedMsgName, mergedSRSubject)
 	require.NoError(t, err)
 	require.Empty(t, stubbed, "full 1.8.0 snapshot must not produce stubs")
 	require.Len(t, files, 2)
@@ -94,7 +95,7 @@ func TestEmitMerged_Paths(t *testing.T) {
 	s := loadFixture(t)
 	tm := tagmap.New()
 
-	files, _, err := gen.EmitMerged(s, mergedClasses, tm, "1.8.0", mergedMsgName)
+	files, _, err := gen.EmitMerged(s, mergedClasses, tm, "1.8.0", mergedMsgName, mergedSRSubject)
 	require.NoError(t, err)
 
 	paths := []string{files[0].Path, files[1].Path}
@@ -107,7 +108,7 @@ func TestEmitMerged_SingleMessage(t *testing.T) {
 	s := loadFixture(t)
 	tm := tagmap.New()
 
-	files, _, err := gen.EmitMerged(s, mergedClasses, tm, "1.8.0", mergedMsgName)
+	files, _, err := gen.EmitMerged(s, mergedClasses, tm, "1.8.0", mergedMsgName, mergedSRSubject)
 	require.NoError(t, err)
 
 	var classFile string
@@ -200,7 +201,7 @@ func TestEmitMerged_TagStability(t *testing.T) {
 	s := loadFixture(t)
 	tm := tagmap.New()
 
-	_, _, err := gen.EmitMerged(s, mergedClasses, tm, "1.8.0", mergedMsgName)
+	_, _, err := gen.EmitMerged(s, mergedClasses, tm, "1.8.0", mergedMsgName, mergedSRSubject)
 	require.NoError(t, err)
 
 	// Record every AuditEvent tag after the first run. Assign is idempotent,
@@ -217,7 +218,7 @@ func TestEmitMerged_TagStability(t *testing.T) {
 	// Second run with an additional class (authentication conflicts with
 	// api_activity on activity_id, exercising demotion too).
 	wider := append([]string{"authentication"}, mergedClasses...)
-	_, _, err = gen.EmitMerged(s, wider, tm, "1.8.0", mergedMsgName)
+	_, _, err = gen.EmitMerged(s, wider, tm, "1.8.0", mergedMsgName, mergedSRSubject)
 	require.NoError(t, err)
 
 	for name, want := range before {
@@ -238,8 +239,35 @@ func TestEmitMerged_ConflictingClassDemotes(t *testing.T) {
 	require.Contains(t, content, "CLASS_UID_AUTHENTICATION = 3002")
 }
 
+// TestEmitMerged_SRSubjectAnnotation verifies the Schema-Registry message
+// option and its import are emitted when a subject is provided, and absent
+// when it is empty.
+func TestEmitMerged_SRSubjectAnnotation(t *testing.T) {
+	s := loadFixture(t)
+
+	files, _, err := gen.EmitMerged(s, mergedClasses, tagmap.New(), "1.8.0", mergedMsgName, mergedSRSubject)
+	require.NoError(t, err)
+	var classFile string
+	for _, f := range files {
+		if strings.HasSuffix(f.Path, "audit_event.proto") {
+			classFile = f.Content
+		}
+	}
+	require.Contains(t, classFile, `import "redpanda/api/common/v1/schema_registry.proto";`)
+	require.Contains(t, classFile, "option (redpanda.api.common.v1.schema_registry) = {")
+	require.Contains(t, classFile, `subject: "redpanda.ocsf.audit-events-value"`)
+
+	// Empty subject: no annotation, no import.
+	bare, _, err := gen.EmitMerged(s, mergedClasses, tagmap.New(), "1.8.0", mergedMsgName, "")
+	require.NoError(t, err)
+	for _, f := range bare {
+		require.NotContains(t, f.Content, "schema_registry")
+	}
+}
+
 // TestEmitMergedSRSchema_Shape verifies the SR schema: merged message first,
-// self-contained, no buf.validate anywhere.
+// self-contained, no buf.validate anywhere, and no Schema-Registry annotation
+// (the .sr.proto must not depend on redpanda/api/common options).
 func TestEmitMergedSRSchema_Shape(t *testing.T) {
 	s := loadFixture(t)
 	tm := tagmap.New()
@@ -250,6 +278,7 @@ func TestEmitMergedSRSchema_Shape(t *testing.T) {
 	require.Equal(t, "audit_event.sr.proto", f.Path)
 	require.NotContains(t, f.Content, "buf.validate")
 	require.NotContains(t, f.Content, `import "ocsf/`)
+	require.NotContains(t, f.Content, "schema_registry")
 
 	// Merged message must be the FIRST message (Confluent index 0).
 	firstMsg := strings.Index(f.Content, "message ")
@@ -264,7 +293,7 @@ func TestEmitMergedSRSchema_FieldNumberParity(t *testing.T) {
 	s := loadFixture(t)
 	tm := tagmap.New()
 
-	files, _, err := gen.EmitMerged(s, mergedClasses, tm, "1.8.0", mergedMsgName)
+	files, _, err := gen.EmitMerged(s, mergedClasses, tm, "1.8.0", mergedMsgName, mergedSRSubject)
 	require.NoError(t, err)
 	srFile, err := gen.EmitMergedSRSchema(s, mergedClasses, tm, "1.8.0", mergedMsgName)
 	require.NoError(t, err)
