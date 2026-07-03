@@ -48,6 +48,12 @@ func fullSample(t *testing.T) *samplev1.SampleEvent {
 			samplev1.SampleEvent_SEVERITY_ID_CRITICAL,
 			samplev1.SampleEvent_SEVERITY_ID_OTHER,
 		},
+		LabelsMap: map[string]string{"env": "prod", "tëam": "adp", "": "empty-key"},
+		Raw:       []byte{0x00, 0xff, 0x10, 0x20},
+		Ratio:     1.5, // exactly representable in float32
+		Counter:   18446744073709551615,
+		Checksum:  4294967295,
+		Deltas:    -9007199254740993, // < -2^53
 	}
 }
 

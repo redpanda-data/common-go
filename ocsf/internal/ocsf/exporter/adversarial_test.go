@@ -516,6 +516,113 @@ func TestFromOCSFJSON_DeepArrayNesting(t *testing.T) {
 	})
 }
 
+// TestFromOCSFJSON_NewKindEdgeCases covers the field kinds with no OCSF
+// source type (map, bytes, float, uint64, fixed32, sint64): the transform is
+// documented generic over proto.Message, so they must behave.
+func TestFromOCSFJSON_NewKindEdgeCases(t *testing.T) {
+	t.Run("BytesRoundTrip", func(t *testing.T) {
+		evt := &samplev1.SampleEvent{Raw: []byte{0x00, 0xff, 0xde, 0xad}}
+		b, err := exporter.ToOCSFJSON(evt)
+		require.NoError(t, err)
+		require.Contains(t, string(b), `"raw":"AP/erQ=="`, "bytes must export as std base64")
+		var decoded samplev1.SampleEvent
+		require.NoError(t, exporter.FromOCSFJSON(b, &decoded))
+		require.True(t, proto.Equal(evt, &decoded))
+	})
+
+	t.Run("BytesMalformedBase64", func(t *testing.T) {
+		var evt samplev1.SampleEvent
+		for _, bad := range []string{`"!!!"`, `"AP/er"`, `"AP/erQ"`, `42`, `["QQ=="]`} {
+			require.Error(t, exporter.FromOCSFJSON([]byte(`{"raw":`+bad+`}`), &evt),
+				"malformed base64 %s must be rejected", bad)
+		}
+	})
+
+	t.Run("Uint64Bounds", func(t *testing.T) {
+		var evt samplev1.SampleEvent
+		require.NoError(t, exporter.FromOCSFJSON([]byte(`{"counter":18446744073709551615}`), &evt))
+		require.Equal(t, uint64(math.MaxUint64), evt.Counter)
+
+		b, err := exporter.ToOCSFJSON(&evt)
+		require.NoError(t, err)
+		require.Contains(t, string(b), `"counter":18446744073709551615`,
+			"uint64 max must export as an unquoted number")
+
+		require.Error(t, exporter.FromOCSFJSON([]byte(`{"counter":18446744073709551616}`), &evt),
+			"uint64 overflow must be rejected")
+		require.Error(t, exporter.FromOCSFJSON([]byte(`{"counter":-1}`), &evt),
+			"negative into unsigned must be rejected")
+	})
+
+	t.Run("Fixed32Bounds", func(t *testing.T) {
+		var evt samplev1.SampleEvent
+		require.NoError(t, exporter.FromOCSFJSON([]byte(`{"checksum":4294967295}`), &evt))
+		require.Equal(t, uint32(math.MaxUint32), evt.Checksum)
+		require.Error(t, exporter.FromOCSFJSON([]byte(`{"checksum":4294967296}`), &evt),
+			"uint32 overflow must be rejected")
+		require.Error(t, exporter.FromOCSFJSON([]byte(`{"checksum":-1}`), &evt))
+	})
+
+	t.Run("Sint64RoundTrip", func(t *testing.T) {
+		evt := &samplev1.SampleEvent{Deltas: math.MinInt64}
+		b, err := exporter.ToOCSFJSON(evt)
+		require.NoError(t, err)
+		var decoded samplev1.SampleEvent
+		require.NoError(t, exporter.FromOCSFJSON(b, &decoded))
+		require.Equal(t, int64(math.MinInt64), decoded.Deltas)
+	})
+
+	t.Run("Float32Quantization", func(t *testing.T) {
+		// 0.1 is not representable in float32; the exporter emits the
+		// quantized float32 value and the round-trip must converge on it.
+		evt := &samplev1.SampleEvent{Ratio: 0.1}
+		b, err := exporter.ToOCSFJSON(evt)
+		require.NoError(t, err)
+		var decoded samplev1.SampleEvent
+		require.NoError(t, exporter.FromOCSFJSON(b, &decoded))
+		require.Equal(t, evt.Ratio, decoded.Ratio, "float32 must survive the round-trip exactly")
+	})
+
+	t.Run("MapRoundTrip", func(t *testing.T) {
+		evt := &samplev1.SampleEvent{LabelsMap: map[string]string{
+			"":          "empty key",
+			"ünïcødé":   "värlue",
+			`k"quoted"`: `v\slashed`,
+			"plain":     "",
+		}}
+		b, err := exporter.ToOCSFJSON(evt)
+		require.NoError(t, err)
+		var decoded samplev1.SampleEvent
+		require.NoError(t, exporter.FromOCSFJSON(b, &decoded))
+		require.True(t, proto.Equal(evt, &decoded), "hostile map keys must round-trip\njson: %s", b)
+	})
+
+	t.Run("MapHostileValues", func(t *testing.T) {
+		var evt samplev1.SampleEvent
+		require.Error(t, exporter.FromOCSFJSON([]byte(`{"labels_map":{"k":null}}`), &evt),
+			"null map value must be rejected, not silently zeroed")
+		require.Error(t, exporter.FromOCSFJSON([]byte(`{"labels_map":{"k":42}}`), &evt))
+		require.Error(t, exporter.FromOCSFJSON([]byte(`{"labels_map":["k","v"]}`), &evt),
+			"array where map object expected must be rejected")
+
+		// Duplicate keys: last one wins (encoding/json semantics), no panic.
+		require.NoError(t, exporter.FromOCSFJSON([]byte(`{"labels_map":{"k":"a","k":"b"}}`), &evt))
+		require.Equal(t, "b", evt.LabelsMap["k"])
+	})
+
+	t.Run("MapDeterministicExport", func(t *testing.T) {
+		evt := &samplev1.SampleEvent{LabelsMap: map[string]string{"z": "1", "a": "2", "m": "3"}}
+		b1, err := exporter.ToOCSFJSON(evt)
+		require.NoError(t, err)
+		for range 10 {
+			b2, err := exporter.ToOCSFJSON(evt)
+			require.NoError(t, err)
+			require.Equal(t, string(b1), string(b2), "map export must be key-sorted deterministic")
+		}
+		require.Contains(t, string(b1), `{"a":"2","m":"3","z":"1"}`)
+	})
+}
+
 // TestRoundTrip_Concurrent exercises the exporter and importer from many
 // goroutines to surface shared-state bugs under the race detector.
 func TestRoundTrip_Concurrent(t *testing.T) {
@@ -816,5 +923,34 @@ func randomSampleEvent(t *testing.T, r *seededRand) *samplev1.SampleEvent {
 	if r.chance(40) {
 		evt.Metadata = r.randomValue(t, 3)
 	}
+	populateNonOCSFKinds(r, evt)
 	return evt
+}
+
+// populateNonOCSFKinds fills the field kinds that have no OCSF source type
+// (map, bytes, float, uint64, fixed32, sint64) with random values.
+func populateNonOCSFKinds(r *seededRand, evt *samplev1.SampleEvent) {
+	if r.chance(40) {
+		evt.LabelsMap = map[string]string{}
+		for range r.intn(4) {
+			evt.LabelsMap[r.randomString()] = r.randomString()
+		}
+	}
+	if r.chance(40) {
+		evt.Raw = []byte{byte(r.intn(256)), byte(r.intn(256)), byte(r.intn(256))}
+	}
+	if r.chance(40) {
+		// float32-safe pool: a float64 like MaxFloat64 would overflow to +Inf.
+		pool := []float32{0, 1.5, -1.5, math.MaxFloat32, math.SmallestNonzeroFloat32, 99.25}
+		evt.Ratio = pool[r.intn(len(pool))]
+	}
+	if r.chance(40) {
+		evt.Counter = r.next()
+	}
+	if r.chance(40) {
+		evt.Checksum = uint32(r.next())
+	}
+	if r.chance(40) {
+		evt.Deltas = r.randomInt64()
+	}
 }

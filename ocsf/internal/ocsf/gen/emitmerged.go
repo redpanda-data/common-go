@@ -11,6 +11,7 @@ package gen
 
 import (
 	"fmt"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -58,6 +59,10 @@ const demotedComment = "Class-scoped enum: value semantics depend on class_uid; 
 //
 // stubbed follows the same contract as Emit.
 func EmitMerged(s *schema.Schema, classNames []string, tm *tagmap.TagMap, version, msgName, srSubject string) (files []GeneratedFile, stubbed []string, err error) {
+	if err := validateSRSubject(srSubject); err != nil {
+		return nil, nil, err
+	}
+
 	merged, err := MergeClasses(s, classNames, msgName)
 	if err != nil {
 		return nil, nil, err
@@ -189,6 +194,23 @@ func srSubjectOption(subject string) string {
 			"  };\n",
 		subject,
 	)
+}
+
+// validSRSubject constrains subjects to characters that are unambiguous in a
+// proto string literal AND legal in Kafka topic / Schema Registry subject
+// names. Rejecting up front beats trusting Go %q escaping to coincide with
+// proto3 string-literal escaping for exotic input.
+var validSRSubject = regexp.MustCompile(`^[A-Za-z0-9._-]+$`)
+
+// validateSRSubject rejects subjects that could not be emitted verbatim.
+func validateSRSubject(subject string) error {
+	if subject == "" {
+		return nil
+	}
+	if !validSRSubject.MatchString(subject) {
+		return fmt.Errorf("ocsf emit: SR subject %q contains characters outside [A-Za-z0-9._-]", subject)
+	}
+	return nil
 }
 
 // emitMergedClassFile builds the proto file holding the merged event message.

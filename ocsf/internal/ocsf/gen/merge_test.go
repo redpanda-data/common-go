@@ -137,6 +137,76 @@ func TestMergeClasses_EnumPresenceMismatchDemotes(t *testing.T) {
 	require.Contains(t, m.Demoted, "state_id")
 }
 
+// TestMergeClasses_StringKeyedEnumConflictDemotes exercises the string-keyed
+// (StrKey) branch of the enum union: same key, different caption demotes.
+func TestMergeClasses_StringKeyedEnumConflictDemotes(t *testing.T) {
+	s := syntheticSchema(
+		t,
+		map[string]*schema.Attribute{
+			"tlp": {Name: "tlp", Type: "string_t", Enum: []schema.EnumMember{
+				{StrKey: "RED", Caption: "Red"},
+				{StrKey: "AMBER", Caption: "Amber"},
+			}},
+		},
+		map[string]*schema.Attribute{
+			"tlp": {Name: "tlp", Type: "string_t", Enum: []schema.EnumMember{
+				{StrKey: "RED", Caption: "Restricted"}, // same key, different meaning
+			}},
+		},
+	)
+
+	m, err := gen.MergeClasses(s, []string{"alpha", "beta"}, "AuditEvent")
+	require.NoError(t, err)
+	require.Contains(t, m.Demoted, "tlp")
+	require.Empty(t, m.Attributes["tlp"].Enum)
+}
+
+// TestMergeClasses_StringKeyedEnumUnions verifies non-conflicting string-keyed
+// enums union by key.
+func TestMergeClasses_StringKeyedEnumUnions(t *testing.T) {
+	s := syntheticSchema(
+		t,
+		map[string]*schema.Attribute{
+			"tlp": {Name: "tlp", Type: "string_t", Enum: []schema.EnumMember{
+				{StrKey: "RED", Caption: "Red"},
+			}},
+		},
+		map[string]*schema.Attribute{
+			"tlp": {Name: "tlp", Type: "string_t", Enum: []schema.EnumMember{
+				{StrKey: "RED", Caption: "Red"},
+				{StrKey: "GREEN", Caption: "Green"},
+			}},
+		},
+	)
+
+	m, err := gen.MergeClasses(s, []string{"alpha", "beta"}, "AuditEvent")
+	require.NoError(t, err)
+	require.NotContains(t, m.Demoted, "tlp")
+	require.Len(t, m.Attributes["tlp"].Enum, 2)
+}
+
+// TestMergeClasses_MixedEnumKindDemotes exercises the kind-mismatch branch:
+// one class integer-keyed, the other string-keyed for the same attribute.
+func TestMergeClasses_MixedEnumKindDemotes(t *testing.T) {
+	s := syntheticSchema(
+		t,
+		map[string]*schema.Attribute{
+			"state": {Name: "state", Type: "string_t", Enum: []schema.EnumMember{
+				{Key: 1, IntKey: true, Caption: "Active"},
+			}},
+		},
+		map[string]*schema.Attribute{
+			"state": {Name: "state", Type: "string_t", Enum: []schema.EnumMember{
+				{StrKey: "ACTIVE", Caption: "Active"},
+			}},
+		},
+	)
+
+	m, err := gen.MergeClasses(s, []string{"alpha", "beta"}, "AuditEvent")
+	require.NoError(t, err)
+	require.Contains(t, m.Demoted, "state")
+}
+
 // TestMergeClasses_TypeMismatchErrors verifies that the same attribute name
 // with different OCSF types across classes is a hard error.
 func TestMergeClasses_TypeMismatchErrors(t *testing.T) {

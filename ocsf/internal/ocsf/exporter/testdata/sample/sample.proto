@@ -57,6 +57,28 @@ message SampleEvent {
   // severities is a repeated enum field; must marshal to a JSON array of
   // integers (e.g. [5,99]), never name strings.
   repeated SeverityId severities = 11;
+
+  // The fields below have no OCSF source type (MapType never produces them),
+  // but ToOCSFJSON/FromOCSFJSON are documented as generic over proto.Message,
+  // so every kind the transform supports needs test reachability.
+
+  // labels_map exercises map<string,string> -> JSON object.
+  map<string, string> labels_map = 12;
+
+  // raw exercises bytes -> base64 string.
+  bytes raw = 13;
+
+  // ratio exercises float (32-bit) -> JSON number with float32 quantization.
+  float ratio = 14;
+
+  // counter exercises uint64 -> unquoted JSON number.
+  uint64 counter = 15;
+
+  // checksum exercises fixed32 -> JSON number.
+  fixed32 checksum = 16;
+
+  // deltas exercises sint64 (zigzag) -> JSON number.
+  sint64 deltas = 17;
 }
 
 message Actor {

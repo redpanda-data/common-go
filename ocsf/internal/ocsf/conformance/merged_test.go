@@ -229,22 +229,19 @@ func TestMergedProtovalidate(t *testing.T) {
 	t.Run("TypeUIDMismatch", func(t *testing.T) {
 		evt := buildMergedApiActivityAllowed()
 		evt.TypeUid = ocsfv1.AuditEvent_TYPE_UID_API_ACTIVITY_CREATE // activity_id still Read
-		err := validator.Validate(evt)
-		require.ErrorContains(t, err, "type_uid")
+		requireViolatedRule(t, validator.Validate(evt), "AuditEvent.type_uid")
 	})
 
 	t.Run("ForeignClassField", func(t *testing.T) {
 		evt := buildMergedApiActivityAllowed()
 		evt.Entity = buildMergedEntityManagement().Entity // entity_management-owned field on 6003
-		err := validator.Validate(evt)
-		require.ErrorContains(t, err, "entity")
+		requireViolatedRule(t, validator.Validate(evt), "AuditEvent.own.entity")
 	})
 
 	t.Run("MissingClassRequiredField", func(t *testing.T) {
 		evt := buildMergedApiActivityAllowed()
 		evt.Actor = nil // required for api_activity (6003), not blanket-required
-		err := validator.Validate(evt)
-		require.ErrorContains(t, err, "actor")
+		requireViolatedRule(t, validator.Validate(evt), "AuditEvent.req.api_activity.actor")
 	})
 
 	t.Run("MissingBlanketRequiredField", func(t *testing.T) {

@@ -1,4 +1,4 @@
-// Copyright 2026 Redpanda Data, Inc.
+// Copyright 2024 Redpanda Data, Inc.
 //
 // Use of this software is governed by the Business Source License
 // included in the file licenses/BSL.md
@@ -108,7 +108,19 @@ type SampleEvent struct {
 	Note *string `protobuf:"bytes,10,opt,name=note,proto3,oneof" json:"note,omitempty"`
 	// severities is a repeated enum field; must marshal to a JSON array of
 	// integers (e.g. [5,99]), never name strings.
-	Severities    []SampleEvent_SeverityId `protobuf:"varint,11,rep,packed,name=severities,proto3,enum=ocsf.exporter.sample.v1.SampleEvent_SeverityId" json:"severities,omitempty"`
+	Severities []SampleEvent_SeverityId `protobuf:"varint,11,rep,packed,name=severities,proto3,enum=ocsf.exporter.sample.v1.SampleEvent_SeverityId" json:"severities,omitempty"`
+	// labels_map exercises map<string,string> -> JSON object.
+	LabelsMap map[string]string `protobuf:"bytes,12,rep,name=labels_map,json=labelsMap,proto3" json:"labels_map,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	// raw exercises bytes -> base64 string.
+	Raw []byte `protobuf:"bytes,13,opt,name=raw,proto3" json:"raw,omitempty"`
+	// ratio exercises float (32-bit) -> JSON number with float32 quantization.
+	Ratio float32 `protobuf:"fixed32,14,opt,name=ratio,proto3" json:"ratio,omitempty"`
+	// counter exercises uint64 -> unquoted JSON number.
+	Counter uint64 `protobuf:"varint,15,opt,name=counter,proto3" json:"counter,omitempty"`
+	// checksum exercises fixed32 -> JSON number.
+	Checksum uint32 `protobuf:"fixed32,16,opt,name=checksum,proto3" json:"checksum,omitempty"`
+	// deltas exercises sint64 (zigzag) -> JSON number.
+	Deltas        int64 `protobuf:"zigzag64,17,opt,name=deltas,proto3" json:"deltas,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -220,6 +232,48 @@ func (x *SampleEvent) GetSeverities() []SampleEvent_SeverityId {
 	return nil
 }
 
+func (x *SampleEvent) GetLabelsMap() map[string]string {
+	if x != nil {
+		return x.LabelsMap
+	}
+	return nil
+}
+
+func (x *SampleEvent) GetRaw() []byte {
+	if x != nil {
+		return x.Raw
+	}
+	return nil
+}
+
+func (x *SampleEvent) GetRatio() float32 {
+	if x != nil {
+		return x.Ratio
+	}
+	return 0
+}
+
+func (x *SampleEvent) GetCounter() uint64 {
+	if x != nil {
+		return x.Counter
+	}
+	return 0
+}
+
+func (x *SampleEvent) GetChecksum() uint32 {
+	if x != nil {
+		return x.Checksum
+	}
+	return 0
+}
+
+func (x *SampleEvent) GetDeltas() int64 {
+	if x != nil {
+		return x.Deltas
+	}
+	return 0
+}
+
 type Actor struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
@@ -276,7 +330,7 @@ var File_sample_proto protoreflect.FileDescriptor
 
 const file_sample_proto_rawDesc = "" +
 	"\n" +
-	"\fsample.proto\x12\x17ocsf.exporter.sample.v1\x1a\x1cgoogle/protobuf/struct.proto\"\xa6\x04\n" +
+	"\fsample.proto\x12\x17ocsf.exporter.sample.v1\x1a\x1cgoogle/protobuf/struct.proto\"\xae\x06\n" +
 	"\vSampleEvent\x12P\n" +
 	"\vseverity_id\x18\x01 \x01(\x0e2/.ocsf.exporter.sample.v1.SampleEvent.SeverityIdR\n" +
 	"severityId\x12\x12\n" +
@@ -292,7 +346,17 @@ const file_sample_proto_rawDesc = "" +
 	" \x01(\tH\x00R\x04note\x88\x01\x01\x12O\n" +
 	"\n" +
 	"severities\x18\v \x03(\x0e2/.ocsf.exporter.sample.v1.SampleEvent.SeverityIdR\n" +
-	"severities\"V\n" +
+	"severities\x12R\n" +
+	"\n" +
+	"labels_map\x18\f \x03(\v23.ocsf.exporter.sample.v1.SampleEvent.LabelsMapEntryR\tlabelsMap\x12\x10\n" +
+	"\x03raw\x18\r \x01(\fR\x03raw\x12\x14\n" +
+	"\x05ratio\x18\x0e \x01(\x02R\x05ratio\x12\x18\n" +
+	"\acounter\x18\x0f \x01(\x04R\acounter\x12\x1a\n" +
+	"\bchecksum\x18\x10 \x01(\aR\bchecksum\x12\x16\n" +
+	"\x06deltas\x18\x11 \x01(\x12R\x06deltas\x1a<\n" +
+	"\x0eLabelsMapEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"V\n" +
 	"\n" +
 	"SeverityId\x12\x17\n" +
 	"\x13SEVERITY_ID_UNKNOWN\x10\x00\x12\x18\n" +
@@ -316,23 +380,25 @@ func file_sample_proto_rawDescGZIP() []byte {
 }
 
 var file_sample_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_sample_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_sample_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
 var file_sample_proto_goTypes = []any{
 	(SampleEvent_SeverityId)(0), // 0: ocsf.exporter.sample.v1.SampleEvent.SeverityId
 	(*SampleEvent)(nil),         // 1: ocsf.exporter.sample.v1.SampleEvent
 	(*Actor)(nil),               // 2: ocsf.exporter.sample.v1.Actor
-	(*structpb.Value)(nil),      // 3: google.protobuf.Value
+	nil,                         // 3: ocsf.exporter.sample.v1.SampleEvent.LabelsMapEntry
+	(*structpb.Value)(nil),      // 4: google.protobuf.Value
 }
 var file_sample_proto_depIdxs = []int32{
 	0, // 0: ocsf.exporter.sample.v1.SampleEvent.severity_id:type_name -> ocsf.exporter.sample.v1.SampleEvent.SeverityId
-	3, // 1: ocsf.exporter.sample.v1.SampleEvent.metadata:type_name -> google.protobuf.Value
+	4, // 1: ocsf.exporter.sample.v1.SampleEvent.metadata:type_name -> google.protobuf.Value
 	2, // 2: ocsf.exporter.sample.v1.SampleEvent.actor:type_name -> ocsf.exporter.sample.v1.Actor
 	0, // 3: ocsf.exporter.sample.v1.SampleEvent.severities:type_name -> ocsf.exporter.sample.v1.SampleEvent.SeverityId
-	4, // [4:4] is the sub-list for method output_type
-	4, // [4:4] is the sub-list for method input_type
-	4, // [4:4] is the sub-list for extension type_name
-	4, // [4:4] is the sub-list for extension extendee
-	0, // [0:4] is the sub-list for field type_name
+	3, // 4: ocsf.exporter.sample.v1.SampleEvent.labels_map:type_name -> ocsf.exporter.sample.v1.SampleEvent.LabelsMapEntry
+	5, // [5:5] is the sub-list for method output_type
+	5, // [5:5] is the sub-list for method input_type
+	5, // [5:5] is the sub-list for extension type_name
+	5, // [5:5] is the sub-list for extension extendee
+	0, // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_sample_proto_init() }
@@ -347,7 +413,7 @@ func file_sample_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_sample_proto_rawDesc), len(file_sample_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   2,
+			NumMessages:   3,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

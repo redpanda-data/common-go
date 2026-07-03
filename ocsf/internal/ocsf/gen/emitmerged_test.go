@@ -228,6 +228,58 @@ func TestEmitMerged_TagStability(t *testing.T) {
 	}
 }
 
+// TestEmitMerged_TagStabilityAcrossSaveLoad verifies the production
+// workflow end to end: generate, persist the tagmap to disk, load it back,
+// regenerate with an ADDITIONAL class, and assert no previously assigned
+// AuditEvent tag moved. This is the file-backed variant of
+// TestEmitMerged_TagStability and the exact scenario --compat-check gates.
+func TestEmitMerged_TagStabilityAcrossSaveLoad(t *testing.T) {
+	s := loadFixture(t)
+	tagmapPath := filepath.Join(t.TempDir(), "field-numbers.json")
+
+	// First generation: two classes, persist to disk.
+	tm1, err := tagmap.Load(tagmapPath)
+	require.NoError(t, err)
+	files1, _, err := gen.EmitMerged(s, mergedClasses, tm1, "1.8.0", mergedMsgName, mergedSRSubject)
+	require.NoError(t, err)
+	require.NoError(t, tm1.Save(tagmapPath))
+
+	before := extractFieldTags(extractMessage(t, mergedFileContent(t, files1)))
+	require.NotEmpty(t, before)
+
+	// Second generation: load the persisted tagmap, widen the class set.
+	tm2, err := tagmap.Load(tagmapPath)
+	require.NoError(t, err)
+	wider := append([]string{"authentication"}, mergedClasses...)
+	files2, _, err := gen.EmitMerged(s, wider, tm2, "1.8.0", mergedMsgName, mergedSRSubject)
+	require.NoError(t, err)
+	require.NoError(t, tm2.Save(tagmapPath))
+
+	after := extractFieldTags(extractMessage(t, mergedFileContent(t, files2)))
+	for name, tag := range before {
+		require.Equal(t, tag, after[name],
+			"tag for %q moved after adding a class through a save/load cycle", name)
+	}
+
+	// And the on-disk maps must be compatible per the CI gate itself.
+	oldTM, err := tagmap.Load(tagmapPath)
+	require.NoError(t, err)
+	require.NoError(t, tagmap.CheckCompat(oldTM, tm2))
+}
+
+// mergedFileContent returns the audit_event.proto content from an EmitMerged
+// file list.
+func mergedFileContent(t *testing.T, files []gen.GeneratedFile) string {
+	t.Helper()
+	for _, f := range files {
+		if strings.HasSuffix(f.Path, "audit_event.proto") {
+			return f.Content
+		}
+	}
+	t.Fatal("audit_event.proto not found in generated files")
+	return ""
+}
+
 // TestEmitMerged_ConflictingClassDemotes verifies EmitMerged succeeds when a
 // genuinely conflicting class (authentication) is selected, with activity_id
 // demoted rather than erroring.
@@ -263,6 +315,24 @@ func TestEmitMerged_SRSubjectAnnotation(t *testing.T) {
 	for _, f := range bare {
 		require.NotContains(t, f.Content, "schema_registry")
 	}
+}
+
+// TestEmitMerged_SRSubjectValidation verifies hostile subjects are rejected
+// up front instead of trusting Go %q escaping to be proto-literal-legal.
+func TestEmitMerged_SRSubjectValidation(t *testing.T) {
+	s := loadFixture(t)
+
+	for _, bad := range []string{
+		`with"quote`, `back\slash`, "new\nline", "ünïcødé", "spa ce", "semi;colon",
+	} {
+		_, _, err := gen.EmitMerged(s, mergedClasses, tagmap.New(), "1.8.0", mergedMsgName, bad)
+		require.ErrorContains(t, err, "SR subject", "subject %q must be rejected", bad)
+	}
+
+	// The legal charset passes.
+	_, _, err := gen.EmitMerged(s, mergedClasses, tagmap.New(), "1.8.0", mergedMsgName,
+		"redpanda.ocsf.audit-events_value-1")
+	require.NoError(t, err)
 }
 
 // TestEmitMergedSRSchema_Shape verifies the SR schema: merged message first,
@@ -305,8 +375,8 @@ func TestEmitMergedSRSchema_FieldNumberParity(t *testing.T) {
 		}
 	}
 
-	mainMsg := extractMessage(t, classFile, "AuditEvent")
-	srMsg := extractMessage(t, srFile.Content, "AuditEvent")
+	mainMsg := extractMessage(t, classFile)
+	srMsg := extractMessage(t, srFile.Content)
 
 	mainTags := extractFieldTags(mainMsg)
 	srTags := extractFieldTags(srMsg)
@@ -321,11 +391,11 @@ func TestEmitMerged_Deterministic(t *testing.T) {
 	require.Equal(t, a, b)
 }
 
-// extractMessage returns the body of the named top-level message.
-func extractMessage(t *testing.T, content, name string) string {
+// extractMessage returns the body of the merged top-level message.
+func extractMessage(t *testing.T, content string) string {
 	t.Helper()
-	start := strings.Index(content, "message "+name+" {")
-	require.GreaterOrEqual(t, start, 0, "message %s not found", name)
+	start := strings.Index(content, "message "+mergedMsgName+" {")
+	require.GreaterOrEqual(t, start, 0, "message %s not found", mergedMsgName)
 	// Top-level messages end at the first "\n}\n" after their start.
 	end := strings.Index(content[start:], "\n}\n")
 	require.GreaterOrEqual(t, end, 0)
