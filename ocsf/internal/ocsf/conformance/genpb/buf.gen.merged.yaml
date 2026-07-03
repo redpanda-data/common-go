@@ -1,0 +1,27 @@
+# buf.gen.merged.yaml — how audit_event.pb.go is produced from the MERGED
+# golden proto tree (the single-event AuditEvent layout).
+#
+# Regenerate from the ocsf MODULE ROOT:
+#
+#   cd ocsf
+#   buf generate --template internal/ocsf/conformance/genpb/buf.gen.merged.yaml
+#   task fmt   # gci/gofumpt the freshly generated .pb.go
+#
+# golden-merged/ocsf/v1/objects.proto is byte-identical to
+# golden/ocsf/v1/objects.proto (both are emitted by emitObjectsFile from the
+# same closure and tagmap keys), so this template maps it to the SAME Go
+# package as the per-class bindings and its regenerated objects.pb.go is a
+# no-op diff. Only audit_event.pb.go is new. Everything lands in Go package
+# ocsfv1 next to the per-class bindings; the proto file path
+# "ocsf/v1/audit_event.proto" is unique in the registry, so both layouts
+# coexist in one binary.
+version: v2
+plugins:
+  - local: protoc-gen-go
+    out: internal/ocsf/conformance/genpb
+    opt:
+      - paths=source_relative
+      - Mocsf/v1/audit_event.proto=github.com/redpanda-data/common-go/ocsf/internal/ocsf/conformance/genpb/ocsf/v1;ocsfv1
+      - Mocsf/v1/objects.proto=github.com/redpanda-data/common-go/ocsf/internal/ocsf/conformance/genpb/ocsf/v1;ocsfv1
+inputs:
+  - directory: internal/ocsf/gen/testdata/golden-merged
