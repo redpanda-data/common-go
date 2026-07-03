@@ -119,6 +119,10 @@ func emitAll(s *schema.Schema, cfg Config, tm *tagmap.TagMap) (files []gen.Gener
 		return files, stubbed, nil
 	}
 
+	if err := checkMergedNameCollision(cfg.MergedMessage, cfg.Classes); err != nil {
+		return nil, nil, err
+	}
+
 	mergedFiles, mergedStubbed, err := gen.EmitMerged(s, cfg.Classes, tm, cfg.Version, cfg.MergedMessage, cfg.MergedSRSubject)
 	if err != nil {
 		return nil, nil, fmt.Errorf("emit merged proto: %w", err)
@@ -143,6 +147,21 @@ func emitAll(s *schema.Schema, cfg Config, tm *tagmap.TagMap) (files []gen.Gener
 	}
 	sort.Slice(files, func(i, j int) bool { return files[i].Path < files[j].Path })
 	return files, stubbed, nil
+}
+
+// checkMergedNameCollision rejects a merged message name that collides with a
+// selected class's PascalCase message name: the two distinct messages would
+// silently share one (name, attribute) tag lineage in the tagmap.
+func checkMergedNameCollision(mergedMessage string, classes []string) error {
+	for _, class := range classes {
+		if gen.ClassMessageName(class) == mergedMessage {
+			return fmt.Errorf(
+				"--merged-message %q collides with the message name of class %q; choose a distinct name",
+				mergedMessage, class,
+			)
+		}
+	}
+	return nil
 }
 
 // emitAllSRSchemas runs the per-class EmitSRSchemas plus, when
@@ -260,9 +279,13 @@ func Check(cfg Config) error {
 
 // diffSRSchemas compares freshly generated SR schema files against their
 // committed counterparts under srOutDir and returns a descriptive error on any
-// missing or changed file.
+// missing, changed, or stray file. Stray detection mirrors diffTree: a
+// committed *.sr.proto the generator no longer produces (e.g. after a class is
+// dropped from --classes) must fail the check rather than rot silently.
 func diffSRSchemas(srOutDir string, files []gen.GeneratedFile) error {
+	want := make(map[string]struct{}, len(files))
 	for _, f := range files {
+		want[f.Path] = struct{}{}
 		p := filepath.Join(srOutDir, filepath.FromSlash(f.Path))
 		b, err := os.ReadFile(filepath.Clean(p))
 		switch {
@@ -282,6 +305,31 @@ func diffSRSchemas(srOutDir string, files []gen.GeneratedFile) error {
 				f.Path,
 			)
 		}
+	}
+
+	entries, err := os.ReadDir(srOutDir)
+	if os.IsNotExist(err) {
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("read committed SR schema dir %q: %w", srOutDir, err)
+	}
+	var stray []string
+	for _, e := range entries {
+		if e.IsDir() || !strings.HasSuffix(e.Name(), ".sr.proto") {
+			continue
+		}
+		if _, ok := want[e.Name()]; !ok {
+			stray = append(stray, e.Name())
+		}
+	}
+	if len(stray) > 0 {
+		sort.Strings(stray)
+		return fmt.Errorf(
+			"SR schema dir %q contains files not produced by the generator: %s "+
+				"(run ocsf-protogen without --check to regenerate, then commit the diff)",
+			srOutDir, strings.Join(stray, ", "),
+		)
 	}
 	return nil
 }

@@ -40,6 +40,12 @@ func toPascalCase(s string) string {
 	return b.String()
 }
 
+// ClassMessageName returns the proto message name a class emits as
+// (PascalCase of its snake_case name): "api_activity" → "ApiActivity".
+func ClassMessageName(className string) string {
+	return toPascalCase(className)
+}
+
 // SelectClosure returns the named classes (sorted by name) plus every object
 // transitively referenced through attributes whose MapType yields a Message.
 //

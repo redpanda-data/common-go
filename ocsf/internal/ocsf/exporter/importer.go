@@ -16,6 +16,7 @@ import (
 	"fmt"
 	"maps"
 	"math"
+	"strconv"
 
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
@@ -395,13 +396,15 @@ func decodeUint32(data json.RawMessage) (uint32, error) {
 }
 
 // decodeUint parses a JSON number (or quoted decimal string) as uint64.
+// strconv.ParseUint (not Sscanf) so a fractional literal like 12.9 is
+// rejected instead of silently truncated to 12.
 func decodeUint(data json.RawMessage) (uint64, error) {
 	n, err := decodeNumber(data)
 	if err != nil {
 		return 0, err
 	}
-	var u uint64
-	if _, err := fmt.Sscanf(n.String(), "%d", &u); err != nil {
+	u, err := strconv.ParseUint(n.String(), 10, 64)
+	if err != nil {
 		return 0, fmt.Errorf("parse %q as uint64: %w", n.String(), err)
 	}
 	return u, nil

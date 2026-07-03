@@ -552,6 +552,12 @@ func TestFromOCSFJSON_NewKindEdgeCases(t *testing.T) {
 			"uint64 overflow must be rejected")
 		require.Error(t, exporter.FromOCSFJSON([]byte(`{"counter":-1}`), &evt),
 			"negative into unsigned must be rejected")
+		// Regression (code review): fmt.Sscanf %d accepted 12.9 as 12 with no
+		// error; strconv.ParseUint must reject fractional literals outright.
+		require.Error(t, exporter.FromOCSFJSON([]byte(`{"counter":12.9}`), &evt),
+			"fractional value into uint64 must be rejected, not truncated")
+		require.Error(t, exporter.FromOCSFJSON([]byte(`{"checksum":8080.5}`), &evt),
+			"fractional value into fixed32 must be rejected, not truncated")
 	})
 
 	t.Run("Fixed32Bounds", func(t *testing.T) {

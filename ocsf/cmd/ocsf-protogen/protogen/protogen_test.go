@@ -175,6 +175,55 @@ func TestCheckFailsOnSRSchemaDrift(t *testing.T) {
 	require.Contains(t, err.Error(), "differs")
 }
 
+// TestCheckFailsOnStraySRSchema verifies --check detects a committed
+// *.sr.proto the generator no longer produces (e.g. after a class is dropped
+// from --classes), mirroring the stray-file detection of the main tree.
+func TestCheckFailsOnStraySRSchema(t *testing.T) {
+	dir := t.TempDir()
+	srDir := t.TempDir()
+	tagmapPath := filepath.Join(dir, "field-numbers.json")
+
+	cfg := protogen.Config{
+		SchemaPath:     schemaFixture(),
+		Classes:        []string{"api_activity"},
+		Version:        "1.8.0",
+		OutDir:         dir,
+		TagmapPath:     tagmapPath,
+		SRSchemaOutDir: srDir,
+	}
+
+	_, err := protogen.Generate(cfg)
+	require.NoError(t, err)
+
+	// A leftover SR schema from a since-dropped class.
+	require.NoError(t, os.WriteFile(filepath.Join(srDir, "dropped_class.sr.proto"),
+		[]byte("syntax = \"proto3\";\n"), 0o644))
+
+	checkCfg := cfg
+	checkCfg.Check = true
+	err = protogen.Check(checkCfg)
+	require.Error(t, err, "--check must fail on a stray committed SR schema")
+	require.Contains(t, err.Error(), "dropped_class.sr.proto")
+}
+
+// TestGenerateMergedNameCollision verifies a merged message name that matches
+// a selected class's PascalCase message name is rejected: the two messages
+// would silently share one tag lineage.
+func TestGenerateMergedNameCollision(t *testing.T) {
+	dir := t.TempDir()
+	cfg := protogen.Config{
+		SchemaPath:    schemaFixture(),
+		Classes:       []string{"api_activity", "entity_management"},
+		Version:       "1.8.0",
+		OutDir:        dir,
+		TagmapPath:    filepath.Join(dir, "field-numbers.json"),
+		MergedMessage: "ApiActivity", // collides with class api_activity
+	}
+	_, err := protogen.Generate(cfg)
+	require.ErrorContains(t, err, "collides")
+	require.ErrorContains(t, err, "api_activity")
+}
+
 // TestCheckFailsOnMissingSRSchema verifies that --check reports a missing SR file.
 func TestCheckFailsOnMissingSRSchema(t *testing.T) {
 	dir := t.TempDir()
