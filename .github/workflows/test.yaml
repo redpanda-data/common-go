@@ -90,7 +90,8 @@ jobs:
             --classes api_activity,entity_management \
             --version 1.8.0 \
             --out     cmd/ocsf-protogen/testdata \
-            --tagmap  cmd/ocsf-protogen/testdata/field-numbers.json
+            --tagmap  cmd/ocsf-protogen/testdata/field-numbers.json \
+            --merged-message AuditEvent
 
       # buf lint + build on the committed proto baseline.
       - name: buf lint (ocsf testdata)
@@ -108,6 +109,15 @@ jobs:
 
       - name: buf build (gen golden)
         working-directory: ocsf/internal/ocsf/gen/testdata/golden
+        run: buf build
+
+      # buf lint + build on the merged single-event golden (AuditEvent layout).
+      - name: buf lint (gen golden-merged)
+        working-directory: ocsf/internal/ocsf/gen/testdata/golden-merged
+        run: buf lint
+
+      - name: buf build (gen golden-merged)
+        working-directory: ocsf/internal/ocsf/gen/testdata/golden-merged
         run: buf build
 
       # Run the full ocsf test suite including TestServerConformance which
