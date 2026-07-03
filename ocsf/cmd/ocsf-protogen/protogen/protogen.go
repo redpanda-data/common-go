@@ -39,6 +39,14 @@ type Config struct {
 	// after the main Emit. It is unrelated to OutDir: SR files are flat, not
 	// module-relative. Empty disables SR schema emission entirely.
 	SRSchemaOutDir string
+	// MergedMessage, when non-empty, is the proto message name (e.g.
+	// "AuditEvent") of the single flat merged event message emitted IN ADDITION
+	// to the per-class files: the union of all class attributes in one message,
+	// for a single-topic audit log. The merged file lands next to the per-class
+	// files (ocsf/v<N>/<snake_case_name>.proto) and shares the same tagmap.
+	// When SRSchemaOutDir is also set, a merged <snake_case_name>.sr.proto is
+	// written there too. Empty disables merged emission.
+	MergedMessage string
 }
 
 // Generate loads the schema, emits the proto, writes --out and --tagmap.
@@ -58,9 +66,9 @@ func Generate(cfg Config) (stubbed []string, err error) {
 		return nil, fmt.Errorf("load tagmap: %w", err)
 	}
 
-	files, stubbed, err := gen.Emit(s, cfg.Classes, tm, cfg.Version)
+	files, stubbed, err := emitAll(s, cfg, tm)
 	if err != nil {
-		return nil, fmt.Errorf("emit proto: %w", err)
+		return nil, err
 	}
 
 	if err := writeFiles(cfg.OutDir, files); err != nil {
@@ -71,9 +79,9 @@ func Generate(cfg Config) (stubbed []string, err error) {
 	// the main output. Do this before tm.Save so the (idempotent) Assign calls are
 	// persisted too.
 	if strings.TrimSpace(cfg.SRSchemaOutDir) != "" {
-		srFiles, err := gen.EmitSRSchemas(s, cfg.Classes, tm, cfg.Version)
+		srFiles, err := emitAllSRSchemas(s, cfg, tm)
 		if err != nil {
-			return nil, fmt.Errorf("emit sr schemas: %w", err)
+			return nil, err
 		}
 		if err := writeFiles(cfg.SRSchemaOutDir, srFiles); err != nil {
 			return nil, err
@@ -85,6 +93,66 @@ func Generate(cfg Config) (stubbed []string, err error) {
 	}
 
 	return stubbed, nil
+}
+
+// emitAll runs the per-class Emit plus, when cfg.MergedMessage is set, the
+// merged single-event EmitMerged, and combines the file lists.
+//
+// Both paths emit an identical objects.proto (same object closure, same tags
+// from the shared tagmap); the duplicate is dropped after an equality check so
+// a divergence surfaces as an error instead of a silent overwrite.
+func emitAll(s *schema.Schema, cfg Config, tm *tagmap.TagMap) (files []gen.GeneratedFile, stubbed []string, err error) {
+	files, stubbed, err = gen.Emit(s, cfg.Classes, tm, cfg.Version)
+	if err != nil {
+		return nil, nil, fmt.Errorf("emit proto: %w", err)
+	}
+
+	if strings.TrimSpace(cfg.MergedMessage) == "" {
+		return files, stubbed, nil
+	}
+
+	mergedFiles, mergedStubbed, err := gen.EmitMerged(s, cfg.Classes, tm, cfg.Version, cfg.MergedMessage)
+	if err != nil {
+		return nil, nil, fmt.Errorf("emit merged proto: %w", err)
+	}
+	// Stub sets are identical by construction (same classes, same closure), so
+	// the per-class stub list already covers the merged run.
+	_ = mergedStubbed
+
+	byPath := make(map[string]string, len(files))
+	for _, f := range files {
+		byPath[f.Path] = f.Content
+	}
+	for _, f := range mergedFiles {
+		existing, ok := byPath[f.Path]
+		if !ok {
+			files = append(files, f)
+			continue
+		}
+		if existing != f.Content {
+			return nil, nil, fmt.Errorf("merged emission produced %q with different content than per-class emission", f.Path)
+		}
+	}
+	sort.Slice(files, func(i, j int) bool { return files[i].Path < files[j].Path })
+	return files, stubbed, nil
+}
+
+// emitAllSRSchemas runs the per-class EmitSRSchemas plus, when
+// cfg.MergedMessage is set, the merged EmitMergedSRSchema.
+func emitAllSRSchemas(s *schema.Schema, cfg Config, tm *tagmap.TagMap) ([]gen.GeneratedFile, error) {
+	srFiles, err := gen.EmitSRSchemas(s, cfg.Classes, tm, cfg.Version)
+	if err != nil {
+		return nil, fmt.Errorf("emit sr schemas: %w", err)
+	}
+	if strings.TrimSpace(cfg.MergedMessage) != "" {
+		mergedSR, err := gen.EmitMergedSRSchema(s, cfg.Classes, tm, cfg.Version, cfg.MergedMessage)
+		if err != nil {
+			return nil, fmt.Errorf("emit merged sr schema: %w", err)
+		}
+		srFiles = append(srFiles, mergedSR)
+		sort.Slice(srFiles, func(i, j int) bool { return srFiles[i].Path < srFiles[j].Path })
+	}
+	return srFiles, nil
 }
 
 // writeFiles writes each generated file to <outDir>/<file.Path>, creating parent
@@ -132,9 +200,9 @@ func Check(cfg Config) error {
 		return fmt.Errorf("copy tagmap for check: %w", err)
 	}
 
-	files, stubbed, err := gen.Emit(s, cfg.Classes, newTM, cfg.Version)
+	files, stubbed, err := emitAll(s, cfg, newTM)
 	if err != nil {
-		return fmt.Errorf("emit proto: %w", err)
+		return err
 	}
 
 	// Read the committed tree so we can compare stub lists and full content.
@@ -170,9 +238,9 @@ func Check(cfg Config) error {
 	// written flat under SRSchemaOutDir, so we compare each generated file against
 	// its committed counterpart there.
 	if strings.TrimSpace(cfg.SRSchemaOutDir) != "" {
-		srFiles, err := gen.EmitSRSchemas(s, cfg.Classes, newTM, cfg.Version)
+		srFiles, err := emitAllSRSchemas(s, cfg, newTM)
 		if err != nil {
-			return fmt.Errorf("emit sr schemas: %w", err)
+			return err
 		}
 		if err := diffSRSchemas(cfg.SRSchemaOutDir, srFiles); err != nil {
 			return err

@@ -86,6 +86,7 @@ func run(args []string) error {
 	oldFlag := fs.String("old", "", "path to the base-branch tagmap JSON (for --compat-check)")
 	newFlag := fs.String("new", "", "path to the PR tagmap JSON (for --compat-check)")
 	srSchemaOutFlag := fs.String("sr-schema-out", "", "optional directory for self-contained Schema-Registry schemas (<class>.sr.proto); empty disables SR emission")
+	mergedMessageFlag := fs.String("merged-message", "", "optional message name (e.g. AuditEvent) for a single flat message unioning all selected classes, emitted alongside the per-class files; empty disables merged emission")
 
 	if err := fs.Parse(args); err != nil {
 		return err
@@ -127,6 +128,7 @@ func run(args []string) error {
 		TagmapPath:     *tagmapFlag,
 		Check:          *checkFlag,
 		SRSchemaOutDir: *srSchemaOutFlag,
+		MergedMessage:  *mergedMessageFlag,
 	}
 
 	if cfg.Check {

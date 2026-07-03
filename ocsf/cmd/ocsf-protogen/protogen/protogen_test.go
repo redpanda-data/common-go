@@ -331,10 +331,81 @@ func TestCheckAgainstCommittedBaseline(t *testing.T) {
 		OutDir:     outDir,
 		TagmapPath: tagmapPath,
 		Check:      true,
+		// The committed baseline includes the merged single-event layout
+		// (audit_event.proto); --check must be configured identically to the
+		// generation run (see the ocsf-checks CI job).
+		MergedMessage: "AuditEvent",
 	}
 
 	err := protogen.Check(cfg)
 	require.NoError(t, err, "--check must pass against the committed baseline")
+}
+
+// ─── Merged single-event layout ───────────────────────────────────────────────
+
+// TestGenerateMergedThenCheck verifies MergedMessage emission: the merged
+// audit_event.proto lands next to the per-class files, the merged SR schema is
+// written, and --check with the same config passes.
+func TestGenerateMergedThenCheck(t *testing.T) {
+	dir := t.TempDir()
+	srDir := t.TempDir()
+	tagmapPath := filepath.Join(dir, "field-numbers.json")
+
+	cfg := protogen.Config{
+		SchemaPath:     schemaFixture(),
+		Classes:        []string{"api_activity", "entity_management"},
+		Version:        "1.8.0",
+		OutDir:         dir,
+		TagmapPath:     tagmapPath,
+		SRSchemaOutDir: srDir,
+		MergedMessage:  "AuditEvent",
+	}
+
+	_, err := protogen.Generate(cfg)
+	require.NoError(t, err)
+
+	// Per-class files AND the merged file coexist in one tree.
+	require.FileExists(t, filepath.Join(dir, "ocsf", "v1", "api_activity.proto"))
+	require.FileExists(t, filepath.Join(dir, "ocsf", "v1", "entity_management.proto"))
+	require.FileExists(t, filepath.Join(dir, "ocsf", "v1", "audit_event.proto"))
+	require.FileExists(t, filepath.Join(dir, "ocsf", "v1", "objects.proto"))
+
+	// SR schemas: per-class plus the merged one.
+	require.FileExists(t, filepath.Join(srDir, "api_activity.sr.proto"))
+	require.FileExists(t, filepath.Join(srDir, "entity_management.sr.proto"))
+	require.FileExists(t, filepath.Join(srDir, "audit_event.sr.proto"))
+
+	checkCfg := cfg
+	checkCfg.Check = true
+	require.NoError(t, protogen.Check(checkCfg),
+		"--check must pass immediately after Generate on the same merged baseline")
+}
+
+// TestCheckFailsWithoutMergedFlagOnMergedBaseline verifies that a baseline
+// generated WITH MergedMessage fails --check when the flag is omitted (the
+// merged file is then a stray), so CI cannot silently drop the merged layout.
+func TestCheckFailsWithoutMergedFlagOnMergedBaseline(t *testing.T) {
+	dir := t.TempDir()
+	tagmapPath := filepath.Join(dir, "field-numbers.json")
+
+	cfg := protogen.Config{
+		SchemaPath:    schemaFixture(),
+		Classes:       []string{"api_activity", "entity_management"},
+		Version:       "1.8.0",
+		OutDir:        dir,
+		TagmapPath:    tagmapPath,
+		MergedMessage: "AuditEvent",
+	}
+
+	_, err := protogen.Generate(cfg)
+	require.NoError(t, err)
+
+	checkCfg := cfg
+	checkCfg.Check = true
+	checkCfg.MergedMessage = ""
+	err = protogen.Check(checkCfg)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "audit_event.proto")
 }
 
 // ─── Version cross-check ──────────────────────────────────────────────────────
