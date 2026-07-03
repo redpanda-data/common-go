@@ -163,7 +163,7 @@ func detectImports(s *schema.Schema, classes []schema.Class, objects []schema.Ob
 			if pt.WellKnown == wellKnownValueType {
 				needStructProto = true
 			}
-			if attr.Requirement == "required" {
+			if attr.Requirement == requirementRequired {
 				needValidateProto = true
 			}
 		}
@@ -462,7 +462,7 @@ func resolveFieldSpec(s *schema.Schema, tm *tagmap.TagMap, msgName, attrName str
 		tag:      tag,
 		name:     attrName,
 		repeated: pt.Repeated,
-		required: attr.Requirement == "required",
+		required: attr.Requirement == requirementRequired,
 	}
 
 	switch {
@@ -499,8 +499,17 @@ func resolveFieldSpec(s *schema.Schema, tm *tagmap.TagMap, msgName, attrName str
 // (buf.validate.field).required annotation and the message-level
 // (buf.validate.message).cel constraint blocks. It is set by the SR-schema path,
 // which emits self-contained schemas that must not depend on buf/validate.
+//
+// fieldComments maps an attribute name to a single-line comment emitted
+// directly above its field declaration. Used by the merged-event path to mark
+// demoted class-scoped enums.
+//
+// extraCEL holds pre-rendered (buf.validate.message).cel option blocks emitted
+// after the constraint-derived ones. Suppressed when omitValidate is set.
 type emitOptions struct {
-	omitValidate bool
+	omitValidate  bool
+	fieldComments map[string]string
+	extraCEL      []string
 }
 
 // emitMessage generates one proto message block for the given message name,
@@ -544,17 +553,7 @@ func emitMessage(s *schema.Schema, tm *tagmap.TagMap, msgName string, attrs map[
 	var sb strings.Builder
 	sb.WriteString("message " + msgName + " {\n")
 
-	// Emit constraint CEL options (before nested enums and fields).
-	if constraints != nil && !opts.omitValidate {
-		if len(constraints.AtLeastOne) > 0 {
-			cel := atLeastOneCEL(msgName, constraints.AtLeastOne)
-			sb.WriteString(cel)
-		}
-		if len(constraints.JustOne) > 0 {
-			cel := justOneCEL(msgName, constraints.JustOne)
-			sb.WriteString(cel)
-		}
-	}
+	emitMessageCEL(&sb, msgName, constraints, opts)
 
 	// Emit nested enums.
 	for _, enumName := range enumNames {
@@ -562,8 +561,38 @@ func emitMessage(s *schema.Schema, tm *tagmap.TagMap, msgName string, attrs map[
 		sb.WriteString(emitEnum(pe))
 	}
 
-	// Emit fields.
+	emitFields(&sb, fields, opts)
+
+	sb.WriteString("}\n")
+	return sb.String(), nil
+}
+
+// emitMessageCEL writes the message-level CEL option blocks (constraints
+// first, then any pre-rendered extras). Suppressed entirely by omitValidate.
+func emitMessageCEL(sb *strings.Builder, msgName string, constraints *schema.Constraints, opts emitOptions) {
+	if opts.omitValidate {
+		return
+	}
+	if constraints != nil {
+		if len(constraints.AtLeastOne) > 0 {
+			sb.WriteString(atLeastOneCEL(msgName, constraints.AtLeastOne))
+		}
+		if len(constraints.JustOne) > 0 {
+			sb.WriteString(justOneCEL(msgName, constraints.JustOne))
+		}
+	}
+	for _, cel := range opts.extraCEL {
+		sb.WriteString(cel)
+	}
+}
+
+// emitFields writes the field declaration lines (with optional per-field
+// comments and required annotations) in the caller-provided order.
+func emitFields(sb *strings.Builder, fields []fieldSpec, opts emitOptions) {
 	for _, fs := range fields {
+		if comment, ok := opts.fieldComments[fs.name]; ok {
+			sb.WriteString("  // " + comment + "\n")
+		}
 		line := "  "
 		if fs.repeated {
 			line += "repeated "
@@ -579,9 +608,6 @@ func emitMessage(s *schema.Schema, tm *tagmap.TagMap, msgName string, attrs map[
 		line += ";\n"
 		sb.WriteString(line)
 	}
-
-	sb.WriteString("}\n")
-	return sb.String(), nil
 }
 
 // emitEnum formats a proto3 nested enum declaration.
@@ -595,11 +621,21 @@ func emitEnum(pe ProtoEnum) string {
 	return sb.String()
 }
 
-// atLeastOneCEL generates a buf.validate CEL option asserting at least one
-// of the listed fields is set.
-//
-// Generated expression: has(this.a) || has(this.b) || has(this.c)
-func atLeastOneCEL(msgName string, fields []string) string {
+// celOption formats a single (buf.validate.message).cel option block.
+func celOption(id, message, expr string) string {
+	return fmt.Sprintf(
+		"  option (buf.validate.message).cel = {\n"+
+			"    id: %q,\n"+
+			"    message: %q,\n"+
+			"    expression: %q\n"+
+			"  };\n",
+		id, message, expr,
+	)
+}
+
+// atLeastOneExpr builds the CEL expression asserting at least one of the
+// listed fields is set: has(this.a) || has(this.b) || has(this.c)
+func atLeastOneExpr(fields []string) (expr, fieldList string) {
 	sorted := make([]string, len(fields))
 	copy(sorted, fields)
 	sort.Strings(sorted)
@@ -608,27 +644,12 @@ func atLeastOneCEL(msgName string, fields []string) string {
 	for i, f := range sorted {
 		parts[i] = "has(this." + f + ")"
 	}
-	expr := strings.Join(parts, " || ")
-	fieldList := "[" + strings.Join(sorted, ", ") + "]"
-	return fmt.Sprintf(
-		"  option (buf.validate.message).cel = {\n"+
-			"    id: %q,\n"+
-			"    message: %q,\n"+
-			"    expression: %q\n"+
-			"  };\n",
-		msgName+".at_least_one",
-		"at least one of "+fieldList+" must be set",
-		expr,
-	)
+	return strings.Join(parts, " || "), "[" + strings.Join(sorted, ", ") + "]"
 }
 
-// justOneCEL generates a buf.validate CEL option asserting exactly one of the
-// listed fields is set.
-//
-// Generated expression:
-//
-//	(has(this.a) ? 1 : 0) + (has(this.b) ? 1 : 0) + ... == 1
-func justOneCEL(msgName string, fields []string) string {
+// justOneExpr builds the CEL expression asserting exactly one of the listed
+// fields is set: (has(this.a) ? 1 : 0) + (has(this.b) ? 1 : 0) + ... == 1
+func justOneExpr(fields []string) (expr, fieldList string) {
 	sorted := make([]string, len(fields))
 	copy(sorted, fields)
 	sort.Strings(sorted)
@@ -637,14 +658,25 @@ func justOneCEL(msgName string, fields []string) string {
 	for i, f := range sorted {
 		parts[i] = "(has(this." + f + ") ? 1 : 0)"
 	}
-	expr := strings.Join(parts, " + ") + " == 1"
-	fieldList := "[" + strings.Join(sorted, ", ") + "]"
-	return fmt.Sprintf(
-		"  option (buf.validate.message).cel = {\n"+
-			"    id: %q,\n"+
-			"    message: %q,\n"+
-			"    expression: %q\n"+
-			"  };\n",
+	return strings.Join(parts, " + ") + " == 1", "[" + strings.Join(sorted, ", ") + "]"
+}
+
+// atLeastOneCEL generates a buf.validate CEL option asserting at least one
+// of the listed fields is set.
+func atLeastOneCEL(msgName string, fields []string) string {
+	expr, fieldList := atLeastOneExpr(fields)
+	return celOption(
+		msgName+".at_least_one",
+		"at least one of "+fieldList+" must be set",
+		expr,
+	)
+}
+
+// justOneCEL generates a buf.validate CEL option asserting exactly one of the
+// listed fields is set.
+func justOneCEL(msgName string, fields []string) string {
+	expr, fieldList := justOneExpr(fields)
+	return celOption(
 		msgName+".just_one",
 		"exactly one of "+fieldList+" must be set",
 		expr,
