@@ -24,8 +24,10 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"sort"
+	"unicode/utf8"
 
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
@@ -180,11 +182,9 @@ func marshalMap(buf *bytes.Buffer, fd protoreflect.FieldDescriptor, m protorefle
 			buf.WriteByte(',')
 		}
 		// Map keys are always strings in JSON.
-		keyBytes, err := json.Marshal(k.String())
-		if err != nil {
-			return err
+		if err := marshalString(buf, k.String()); err != nil {
+			return fmt.Errorf("map key: %w", err)
 		}
-		buf.Write(keyBytes)
 		buf.WriteByte(':')
 
 		var valBuf bytes.Buffer
@@ -244,12 +244,7 @@ func marshalSingular(buf *bytes.Buffer, fd protoreflect.FieldDescriptor, val pro
 		return nil
 
 	case protoreflect.StringKind:
-		b, err := json.Marshal(val.String())
-		if err != nil {
-			return err
-		}
-		buf.Write(b)
-		return nil
+		return marshalString(buf, val.String())
 
 	case protoreflect.BytesKind:
 		// Proto JSON convention: bytes -> base64 standard encoding.
@@ -264,6 +259,25 @@ func marshalSingular(buf *bytes.Buffer, fd protoreflect.FieldDescriptor, val pro
 	default:
 		return fmt.Errorf("unsupported proto kind %v for field %q", fd.Kind(), fd.Name())
 	}
+}
+
+// marshalString writes a proto string (field value or map key) as a JSON
+// string literal.
+//
+// proto3 strings must be valid UTF-8 (proto.Marshal enforces the same);
+// encoding/json would otherwise silently replace invalid bytes with U+FFFD,
+// corrupting the value instead of surfacing the bug, so invalid UTF-8 is an
+// explicit error here.
+func marshalString(buf *bytes.Buffer, s string) error {
+	if !utf8.ValidString(s) {
+		return errors.New("string contains invalid UTF-8")
+	}
+	b, err := json.Marshal(s)
+	if err != nil {
+		return err
+	}
+	buf.Write(b)
+	return nil
 }
 
 // marshalWellKnown delegates well-known structural message serialisation to the
