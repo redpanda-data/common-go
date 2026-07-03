@@ -8,7 +8,11 @@
 // by the Apache License, Version 2.0
 
 // Command ocsf-protogen generates proto3 definitions from a compiled OCSF
-// schema JSON export.
+// schema JSON export: per-class messages, the merged single-event message
+// (--merged-message), and self-contained Schema-Registry schemas
+// (--sr-schema-out). The emitted protos carry buf.validate annotations; Go
+// bindings are generated from them with buf + protoc-gen-go (see
+// internal/ocsf/conformance/genpb/buf.gen*.yaml for the reference recipe).
 //
 // Normal mode (no --check):
 //
@@ -17,11 +21,13 @@
 //	  --classes api_activity,entity_management \
 //	  --version 1.8.0 \
 //	  --out     ocsf/cmd/ocsf-protogen/testdata \
-//	  --tagmap  ocsf/cmd/ocsf-protogen/testdata/field-numbers.json
+//	  --tagmap  ocsf/cmd/ocsf-protogen/testdata/field-numbers.json \
+//	  --merged-message AuditEvent
 //
 // --out is a MODULE ROOT DIRECTORY. Files are written under it at their
 // module-relative paths, e.g. <out>/ocsf/v1/api_activity.proto,
-// <out>/ocsf/v1/entity_management.proto, <out>/ocsf/v1/objects.proto.
+// <out>/ocsf/v1/entity_management.proto, <out>/ocsf/v1/audit_event.proto,
+// <out>/ocsf/v1/objects.proto.
 //
 // Check mode (for CI — verifies committed baseline is up-to-date):
 //
