@@ -10,6 +10,7 @@
 /api/ @sago2k8 @weeco
 /kube/ @redpanda-data/k8s
 /authz/ @redpanda-data/team-ai
+/ocsf/ @redpanda-data/team-ai
 /licenseupdater/ @redpanda-data/k8s
 /alias/ @redpanda-data/k8s
 /goldenfile/ @redpanda-data/k8s

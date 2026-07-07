@@ -30,7 +30,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        dir: [api, rpadmin, secrets, net, rpsr, redpanda-otel-exporter, authz, kvstore, license, licenseupdater, kube, telemetry]
+        dir: [api, rpadmin, secrets, net, rpsr, redpanda-otel-exporter, authz, kvstore, license, licenseupdater, kube, telemetry, ocsf]
     steps:
       - uses: actions/checkout@v4
 

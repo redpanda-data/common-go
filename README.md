@@ -21,6 +21,7 @@ All packages contain their own licensing information and README about how they a
 | [authz](./authz) | BSL |
 | [kvstore](./kvstore) | Apache |
 | [net](./net) | Apache |
+| [ocsf](./ocsf) | BSL |
 | [proto](./proto) | BSL |
 | [redpanda-otel-exporter](./redpanda-otel-exporter) | BSL |
 | [rpadmin](./rpadmin) | BSL |

@@ -1,0 +1,15 @@
+version: v2
+modules:
+  - path: .
+deps: []
+lint:
+  use:
+    - STANDARD
+  except:
+    # OCSF uses _UNKNOWN (not _UNSPECIFIED) for synthesized zero values.
+    - ENUM_ZERO_VALUE_SUFFIX
+    # The package doesn't follow standard versioning conventions.
+    - PACKAGE_VERSION_SUFFIX
+breaking:
+  use:
+    - FILE
