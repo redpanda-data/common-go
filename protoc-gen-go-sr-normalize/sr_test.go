@@ -25,9 +25,11 @@ import (
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 	"github.com/twmb/franz-go/pkg/sr"
+	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	commonkvstore "github.com/redpanda-data/common-go/kvstore"
+	otherv1 "github.com/redpanda-data/common-go/protoc-gen-go-sr-normalize/example/gen/go/example/other/v1"
 	examplev1 "github.com/redpanda-data/common-go/protoc-gen-go-sr-normalize/example/gen/go/example/v1"
 )
 
@@ -57,6 +59,13 @@ func TestGeneratedSchemas_SelfContained(t *testing.T) {
 			subject:      examplev1.OrderSRSubject,
 			wantMessages: []string{"Order", "OrderItem", "Product"},
 			wantEnums:    []string{"OrderStatus", "ProductStatus"},
+		},
+		{
+			name:         "Event with cross-package dep",
+			schema:       examplev1.EventSRSchema,
+			subject:      examplev1.EventSRSubject,
+			wantMessages: []string{"Event"},
+			wantEnums:    []string{"ProviderType"},
 		},
 	}
 
@@ -116,6 +125,46 @@ func TestGeneratedSchemas_Independent(t *testing.T) {
 	assert.Contains(t, examplev1.OrderSRSchema, "message Product {")
 	assert.NotContains(t, examplev1.OrderSRSchema, "CreateProduct")
 	assert.NotContains(t, examplev1.OrderSRSchema, "GetProduct")
+}
+
+// TestGeneratedSchemas_CrossPackage verifies that a dependency from a DIFFERENT
+// proto package (example.other.v1.ProviderType, referenced by example.v1.Event)
+// is inlined as a top-level enum and referenced by its bare local name. A
+// partially package-qualified reference like "other.v1.ProviderType" is a
+// dangling type that Schema Registry rejects.
+func TestGeneratedSchemas_CrossPackage(t *testing.T) {
+	schema := examplev1.EventSRSchema
+
+	// The cross-package enum is inlined top-level and referenced by local name.
+	assert.Contains(t, schema, "enum ProviderType {")
+	assert.Contains(t, schema, "ProviderType provider = 2;")
+
+	// No dangling, partially package-qualified reference may survive.
+	assert.NotContains(t, schema, "other.v1.ProviderType")
+	assert.NotContains(t, schema, "example.other")
+}
+
+// TestLocalTypeName covers the reference-naming logic directly. The cross-package
+// case is the regression: the referred type's own package must be stripped, not
+// just the prefix it shares with the referrer.
+func TestLocalTypeName(t *testing.T) {
+	tests := []struct {
+		name string
+		full string
+		pkg  string
+		want string
+	}{
+		{"same package top-level", "example.v1.ProductStatus", "example.v1", "ProductStatus"},
+		{"cross package top-level", "example.other.v1.ProviderType", "example.other.v1", "ProviderType"},
+		{"nested type keeps parent path", "example.v1.Product.Category", "example.v1", "Product.Category"},
+		{"empty package returns full name", "TopLevel", "", "TopLevel"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := localTypeName(protoreflect.FullName(tt.full), protoreflect.FullName(tt.pkg))
+			assert.Equal(t, tt.want, got)
+		})
+	}
 }
 
 func startRedpanda(t *testing.T) *sr.Client {
@@ -223,6 +272,34 @@ func TestSchemaRegistry_OrderRoundTrip(t *testing.T) {
 	require.Len(t, decoded.GetItems(), 1)
 	assert.Equal(t, "prod-1", decoded.GetItems()[0].GetProduct().GetId())
 	assert.Equal(t, int32(3), decoded.GetItems()[0].GetQuantity())
+}
+
+// TestSchemaRegistry_EventRoundTrip tests the Event schema, whose ProviderType
+// enum dependency lives in a different proto package (example.other.v1).
+// Registration fails against a real Schema Registry if the inlined enum is
+// referenced by a dangling, partially package-qualified name.
+func TestSchemaRegistry_EventRoundTrip(t *testing.T) {
+	srClient := startRedpanda(t)
+
+	serde, err := commonkvstore.Proto(
+		func() *examplev1.Event { return &examplev1.Event{} },
+		commonkvstore.WithSchemaRegistry(srClient, examplev1.EventSRSubject, examplev1.EventSRSchema),
+	)
+	require.NoError(t, err)
+
+	original := &examplev1.Event{
+		Id:       "evt-1",
+		Provider: otherv1.ProviderType_PROVIDER_TYPE_ANTHROPIC,
+	}
+
+	data, err := serde.Serialize(original)
+	require.NoError(t, err)
+	assert.Equal(t, byte(0x00), data[0])
+
+	decoded, err := serde.Deserialize(data)
+	require.NoError(t, err)
+	assert.Equal(t, original.GetId(), decoded.GetId())
+	assert.Equal(t, original.GetProvider(), decoded.GetProvider())
 }
 
 // TestSchemaRegistry_BothSchemasCoexist registers both Product and Order schemas

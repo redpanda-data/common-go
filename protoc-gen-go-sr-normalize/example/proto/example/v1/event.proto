@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package example.v1;
+
+import "example/other/v1/provider.proto";
+import "redpanda/api/common/v1/schema_registry.proto";
+
+option go_package = "github.com/redpanda-data/common-go/protoc-gen-go-sr/example/gen/go/example/v1;examplev1";
+
+// Event references ProviderType from a different proto package
+// (example.other.v1). The generated schema must inline ProviderType as a
+// top-level enum and reference it by its local name "ProviderType" -- not
+// "other.v1.ProviderType", which would be a dangling reference that Schema
+// Registry rejects.
+message Event {
+  option (redpanda.api.common.v1.schema_registry) = {
+    subject: "example.events-value"
+  };
+
+  string id = 1;
+  example.other.v1.ProviderType provider = 2;
+}
