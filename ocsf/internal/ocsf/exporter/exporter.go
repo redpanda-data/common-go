@@ -65,15 +65,37 @@ var wellKnownStructural = map[protoreflect.FullName]bool{
 //   - repeated -> JSON array; nested message -> JSON object (recursively).
 //   - Fields are emitted in ascending field-number order (deterministic).
 func ToOCSFJSON(m proto.Message) ([]byte, error) {
+	return ToOCSFJSONDemoted(m, nil)
+}
+
+// DemotedFields names, per message, the fields that --iceberg-compat demoted to
+// a proto3 string holding the value's OCSF JSON (see the generator's R1/R2/R3
+// rules). ToOCSFJSONDemoted/FromOCSFJSONDemoted use it to re-inline those
+// strings as native JSON on export and re-stringify them on import, so an
+// iceberg-compat message round-trips to spec OCSF JSON losslessly. The key is
+// the proto message full name; the set holds proto field names.
+type DemotedFields map[protoreflect.FullName]map[string]bool
+
+func (d DemotedFields) has(msg protoreflect.FullName, field protoreflect.Name) bool {
+	if d == nil {
+		return false
+	}
+	return d[msg][string(field)]
+}
+
+// ToOCSFJSONDemoted is ToOCSFJSON that additionally re-inlines demoted
+// string fields (see DemotedFields) as native JSON. A nil demoted set makes it
+// identical to ToOCSFJSON.
+func ToOCSFJSONDemoted(m proto.Message, demoted DemotedFields) ([]byte, error) {
 	var buf bytes.Buffer
-	if err := marshalMessage(&buf, m.ProtoReflect()); err != nil {
+	if err := marshalMessage(demoted, &buf, m.ProtoReflect()); err != nil {
 		return nil, err
 	}
 	return buf.Bytes(), nil
 }
 
 // marshalMessage writes a single proto message as a JSON object to buf.
-func marshalMessage(buf *bytes.Buffer, msg protoreflect.Message) error {
+func marshalMessage(d DemotedFields, buf *bytes.Buffer, msg protoreflect.Message) error {
 	// Delegate well-known structural types to protojson for natural rendering.
 	if wellKnownStructural[msg.Descriptor().FullName()] {
 		return marshalWellKnown(buf, msg)
@@ -81,6 +103,7 @@ func marshalMessage(buf *bytes.Buffer, msg protoreflect.Message) error {
 
 	// Collect set fields sorted by field number.
 	fields := collectSetFields(msg)
+	msgName := msg.Descriptor().FullName()
 
 	buf.WriteByte('{')
 	first := true
@@ -88,7 +111,11 @@ func marshalMessage(buf *bytes.Buffer, msg protoreflect.Message) error {
 		val := msg.Get(fd)
 
 		var valBuf bytes.Buffer
-		if err := marshalValue(&valBuf, fd, val); err != nil {
+		if d.has(msgName, fd.Name()) {
+			if err := marshalDemoted(&valBuf, fd, val); err != nil {
+				return fmt.Errorf("field %q: %w", fd.Name(), err)
+			}
+		} else if err := marshalValue(d, &valBuf, fd, val); err != nil {
 			return fmt.Errorf("field %q: %w", fd.Name(), err)
 		}
 
@@ -133,28 +160,28 @@ func collectSetFields(msg protoreflect.Message) []protoreflect.FieldDescriptor {
 }
 
 // marshalValue writes a single proto field value as JSON to buf.
-func marshalValue(buf *bytes.Buffer, fd protoreflect.FieldDescriptor, val protoreflect.Value) error {
+func marshalValue(d DemotedFields, buf *bytes.Buffer, fd protoreflect.FieldDescriptor, val protoreflect.Value) error {
 	// Repeated field -> JSON array.
 	if fd.IsList() {
-		return marshalList(buf, fd, val.List())
+		return marshalList(d, buf, fd, val.List())
 	}
 
 	// Map field -> JSON object.
 	if fd.IsMap() {
-		return marshalMap(buf, fd, val.Map())
+		return marshalMap(d, buf, fd, val.Map())
 	}
 
-	return marshalSingular(buf, fd, val)
+	return marshalSingular(d, buf, fd, val)
 }
 
 // marshalList writes a repeated field as a JSON array.
-func marshalList(buf *bytes.Buffer, fd protoreflect.FieldDescriptor, list protoreflect.List) error {
+func marshalList(d DemotedFields, buf *bytes.Buffer, fd protoreflect.FieldDescriptor, list protoreflect.List) error {
 	buf.WriteByte('[')
 	for i := range list.Len() {
 		if i > 0 {
 			buf.WriteByte(',')
 		}
-		if err := marshalSingular(buf, fd, list.Get(i)); err != nil {
+		if err := marshalSingular(d, buf, fd, list.Get(i)); err != nil {
 			return err
 		}
 	}
@@ -163,7 +190,7 @@ func marshalList(buf *bytes.Buffer, fd protoreflect.FieldDescriptor, list protor
 }
 
 // marshalMap writes a map field as a JSON object.
-func marshalMap(buf *bytes.Buffer, fd protoreflect.FieldDescriptor, m protoreflect.Map) error {
+func marshalMap(d DemotedFields, buf *bytes.Buffer, fd protoreflect.FieldDescriptor, m protoreflect.Map) error {
 	valFD := fd.MapValue()
 
 	// Collect keys for deterministic ordering.
@@ -188,7 +215,7 @@ func marshalMap(buf *bytes.Buffer, fd protoreflect.FieldDescriptor, m protorefle
 		buf.WriteByte(':')
 
 		var valBuf bytes.Buffer
-		if err := marshalSingular(&valBuf, valFD, m.Get(k)); err != nil {
+		if err := marshalSingular(d, &valBuf, valFD, m.Get(k)); err != nil {
 			return err
 		}
 		buf.Write(valBuf.Bytes())
@@ -198,10 +225,10 @@ func marshalMap(buf *bytes.Buffer, fd protoreflect.FieldDescriptor, m protorefle
 }
 
 // marshalSingular writes a single (non-repeated, non-map) proto value as JSON.
-func marshalSingular(buf *bytes.Buffer, fd protoreflect.FieldDescriptor, val protoreflect.Value) error {
+func marshalSingular(d DemotedFields, buf *bytes.Buffer, fd protoreflect.FieldDescriptor, val protoreflect.Value) error {
 	switch fd.Kind() {
 	case protoreflect.MessageKind, protoreflect.GroupKind:
-		return marshalMessage(buf, val.Message())
+		return marshalMessage(d, buf, val.Message())
 
 	case protoreflect.EnumKind:
 		// OCSF requires the integer, not the enum name string.
@@ -278,6 +305,43 @@ func marshalString(buf *bytes.Buffer, s string) error {
 	}
 	buf.Write(b)
 	return nil
+}
+
+// marshalDemoted writes an --iceberg-compat demoted field: a proto3 string (or
+// repeated string) whose value is the OCSF JSON of the original structural
+// field. It re-inlines that JSON verbatim so the output is spec OCSF JSON
+// rather than a quoted string. The demoted value must be valid JSON; an empty
+// string is treated as JSON null (the field was set but carried no value).
+func marshalDemoted(buf *bytes.Buffer, fd protoreflect.FieldDescriptor, val protoreflect.Value) error {
+	if fd.Kind() != protoreflect.StringKind {
+		return fmt.Errorf("demoted field %q is %v, expected string", fd.Name(), fd.Kind())
+	}
+	writeOne := func(s string) error {
+		if !json.Valid([]byte(s)) {
+			return fmt.Errorf("demoted field %q does not hold valid JSON", fd.Name())
+		}
+		var compact bytes.Buffer
+		if err := json.Compact(&compact, []byte(s)); err != nil {
+			return err
+		}
+		buf.Write(compact.Bytes())
+		return nil
+	}
+	if fd.IsList() {
+		list := val.List()
+		buf.WriteByte('[')
+		for i := range list.Len() {
+			if i > 0 {
+				buf.WriteByte(',')
+			}
+			if err := writeOne(list.Get(i).String()); err != nil {
+				return err
+			}
+		}
+		buf.WriteByte(']')
+		return nil
+	}
+	return writeOne(val.String())
 }
 
 // marshalWellKnown delegates well-known structural message serialisation to the

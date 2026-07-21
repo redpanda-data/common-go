@@ -65,6 +65,11 @@ const (
 	// wellKnownValueType is the fully-qualified proto well-known type used for
 	// json_t and the generic "object" type.
 	wellKnownValueType = "google.protobuf.Value"
+
+	// stringBaseType is the OCSF string base type. The --iceberg-compat R1 rule
+	// retypes google.protobuf.Value attributes to this so they emit as proto3
+	// string (see demoteValueToString).
+	stringBaseType = "string_t"
 )
 
 // MapType maps an OCSF Attribute to a ProtoType by resolving the attribute's

@@ -49,12 +49,20 @@ const unmappedFieldName = "unmapped"
 //
 // m is reset before decoding.
 func FromOCSFJSON(data []byte, m proto.Message) error {
+	return FromOCSFJSONDemoted(data, m, nil)
+}
+
+// FromOCSFJSONDemoted is FromOCSFJSON that additionally re-stringifies demoted
+// fields (see DemotedFields): the JSON value at a demoted key is stored as the
+// compact JSON text of the target proto3 string, the inverse of
+// ToOCSFJSONDemoted. A nil demoted set makes it identical to FromOCSFJSON.
+func FromOCSFJSONDemoted(data []byte, m proto.Message, demoted DemotedFields) error {
 	proto.Reset(m)
-	return unmarshalMessage(data, m.ProtoReflect())
+	return unmarshalMessage(demoted, data, m.ProtoReflect())
 }
 
 // unmarshalMessage decodes a JSON object into msg.
-func unmarshalMessage(data []byte, msg protoreflect.Message) error {
+func unmarshalMessage(d DemotedFields, data []byte, msg protoreflect.Message) error {
 	// Well-known structural types take their natural JSON form (including
 	// null, which is a valid google.protobuf.Value).
 	if wellKnownStructural[msg.Descriptor().FullName()] {
@@ -87,6 +95,18 @@ func unmarshalMessage(data []byte, msg protoreflect.Message) error {
 			unknown[key] = val
 			continue
 		}
+		// Demoted field: the JSON value is stored as the compact JSON text of
+		// the target proto3 string (or, for a repeated string, one element per
+		// array member), the inverse of marshalDemoted. A JSON null value is a
+		// legitimate payload here (the demoted structural value was null), so
+		// it is stored as the literal "null", not skipped — that is what keeps
+		// the round trip lossless.
+		if d.has(msg.Descriptor().FullName(), fd.Name()) {
+			if err := unmarshalDemoted(msg, fd, val); err != nil {
+				return fmt.Errorf("field %q: %w", key, err)
+			}
+			continue
+		}
 		// JSON null leaves a field unset — except for google.protobuf.Value,
 		// where null IS a value (NullValue) and dropping it would break the
 		// export/import symmetry: ToOCSFJSON emits a set null Value as
@@ -94,7 +114,7 @@ func unmarshalMessage(data []byte, msg protoreflect.Message) error {
 		if isJSONNull(val) && !isValueField(fd) {
 			continue
 		}
-		if err := unmarshalField(msg, fd, val); err != nil {
+		if err := unmarshalField(d, msg, fd, val); err != nil {
 			return fmt.Errorf("field %q: %w", key, err)
 		}
 	}
@@ -155,7 +175,43 @@ func storeUnmapped(msg protoreflect.Message, fields protoreflect.FieldDescriptor
 }
 
 // unmarshalField decodes a single JSON value into fd on msg.
-func unmarshalField(msg protoreflect.Message, fd protoreflect.FieldDescriptor, data json.RawMessage) error {
+// unmarshalDemoted stores a JSON value as the compact-JSON text of a demoted
+// proto3 string field (or repeated string), the inverse of marshalDemoted.
+func unmarshalDemoted(msg protoreflect.Message, fd protoreflect.FieldDescriptor, data json.RawMessage) error {
+	if fd.Kind() != protoreflect.StringKind {
+		return fmt.Errorf("demoted field %q is %v, expected string", fd.Name(), fd.Kind())
+	}
+	compact := func(raw json.RawMessage) (string, error) {
+		var b bytes.Buffer
+		if err := json.Compact(&b, raw); err != nil {
+			return "", err
+		}
+		return b.String(), nil
+	}
+	if fd.IsList() {
+		var items []json.RawMessage
+		if err := json.Unmarshal(data, &items); err != nil {
+			return fmt.Errorf("expected JSON array: %w", err)
+		}
+		list := msg.Mutable(fd).List()
+		for i, item := range items {
+			c, err := compact(item)
+			if err != nil {
+				return fmt.Errorf("index %d: %w", i, err)
+			}
+			list.Append(protoreflect.ValueOfString(c))
+		}
+		return nil
+	}
+	c, err := compact(data)
+	if err != nil {
+		return err
+	}
+	msg.Set(fd, protoreflect.ValueOfString(c))
+	return nil
+}
+
+func unmarshalField(d DemotedFields, msg protoreflect.Message, fd protoreflect.FieldDescriptor, data json.RawMessage) error {
 	switch {
 	case fd.IsList():
 		var items []json.RawMessage
@@ -164,7 +220,7 @@ func unmarshalField(msg protoreflect.Message, fd protoreflect.FieldDescriptor, d
 		}
 		list := msg.Mutable(fd).List()
 		for i, item := range items {
-			v, err := unmarshalSingular(fd, item, list.NewElement)
+			v, err := unmarshalSingular(d, fd, item, list.NewElement)
 			if err != nil {
 				return fmt.Errorf("index %d: %w", i, err)
 			}
@@ -184,7 +240,7 @@ func unmarshalField(msg protoreflect.Message, fd protoreflect.FieldDescriptor, d
 			if err != nil {
 				return fmt.Errorf("key %q: %w", k, err)
 			}
-			v, err := unmarshalSingular(valFD, item, func() protoreflect.Value { return mp.NewValue() })
+			v, err := unmarshalSingular(d, valFD, item, func() protoreflect.Value { return mp.NewValue() })
 			if err != nil {
 				return fmt.Errorf("key %q: %w", k, err)
 			}
@@ -194,7 +250,7 @@ func unmarshalField(msg protoreflect.Message, fd protoreflect.FieldDescriptor, d
 
 	case fd.Kind() == protoreflect.MessageKind || fd.Kind() == protoreflect.GroupKind:
 		val := msg.NewField(fd)
-		if err := unmarshalMessage(data, val.Message()); err != nil {
+		if err := unmarshalMessage(d, data, val.Message()); err != nil {
 			return err
 		}
 		msg.Set(fd, val)
@@ -211,10 +267,10 @@ func unmarshalField(msg protoreflect.Message, fd protoreflect.FieldDescriptor, d
 }
 
 // unmarshalSingular decodes one array element or map value.
-func unmarshalSingular(fd protoreflect.FieldDescriptor, data json.RawMessage, newMessage func() protoreflect.Value) (protoreflect.Value, error) {
+func unmarshalSingular(d DemotedFields, fd protoreflect.FieldDescriptor, data json.RawMessage, newMessage func() protoreflect.Value) (protoreflect.Value, error) {
 	if fd.Kind() == protoreflect.MessageKind || fd.Kind() == protoreflect.GroupKind {
 		val := newMessage()
-		if err := unmarshalMessage(data, val.Message()); err != nil {
+		if err := unmarshalMessage(d, data, val.Message()); err != nil {
 			return protoreflect.Value{}, err
 		}
 		return val, nil

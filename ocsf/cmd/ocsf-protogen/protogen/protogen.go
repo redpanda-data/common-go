@@ -52,6 +52,20 @@ type Config struct {
 	// so protoc-gen-go-sr-normalize generates the SR schema and subject
 	// constants from the emitted proto. Requires MergedMessage.
 	MergedSRSubject string
+	// IcebergCompat, when true, prunes the loaded schema model BEFORE any
+	// emission so per-class protos, the merged message, the SR schemas, and
+	// validation all agree on one shape that Redpanda's proto-to-Iceberg
+	// translator can represent and Oxla (Redpanda SQL) can read: fields
+	// mapping to google.protobuf.Value, recursion back-edges, and fields
+	// whose dotted path from a root exceeds 63 chars are dropped (see
+	// gen.PruneForIceberg). A sidecar file
+	// (ocsf/v<N>/iceberg-compat-prunes.txt) records every pruned field.
+	IcebergCompat bool
+	// SRGoPackage is the Go package name used for the generated <name>.sr.go
+	// files that embed each <name>.sr.proto as Go constants next to it under
+	// SRSchemaOutDir. Empty derives the name from the schema version's major
+	// component ("1.8.0" → "ocsfv1"). Only used when SRSchemaOutDir is set.
+	SRGoPackage string
 }
 
 // Generate loads the schema, emits the proto, writes --out and --tagmap.
@@ -106,7 +120,26 @@ func Generate(cfg Config) (stubbed []string, err error) {
 // Both paths emit an identical objects.proto (same object closure, same tags
 // from the shared tagmap); the duplicate is dropped after an equality check so
 // a divergence surfaces as an error instead of a silent overwrite.
+//
+// When cfg.IcebergCompat is set, the schema model is pruned in place first —
+// the caller-visible *schema.Schema mutates, so a later emitAllSRSchemas call
+// on the same instance emits the same pruned shape — and the prune sidecar
+// file is appended to the returned file list.
 func emitAll(s *schema.Schema, cfg Config, tm *tagmap.TagMap) (files []gen.GeneratedFile, stubbed []string, err error) {
+	var sidecar *gen.GeneratedFile
+	if cfg.IcebergCompat {
+		prunes, pruneErr := gen.PruneForIceberg(s, cfg.Classes)
+		if pruneErr != nil {
+			return nil, nil, fmt.Errorf("iceberg-compat prune: %w", pruneErr)
+		}
+		f, sidecarErr := gen.PruneSidecarFile(cfg.Version, prunes)
+		if sidecarErr != nil {
+			return nil, nil, fmt.Errorf("iceberg-compat sidecar: %w", sidecarErr)
+		}
+		sidecar = &f
+		fmt.Fprintf(os.Stderr, "iceberg-compat: pruned %d fields (see %s)\n", len(prunes), f.Path)
+	}
+
 	files, stubbed, err = gen.Emit(s, cfg.Classes, tm, cfg.Version)
 	if err != nil {
 		return nil, nil, fmt.Errorf("emit proto: %w", err)
@@ -116,7 +149,8 @@ func emitAll(s *schema.Schema, cfg Config, tm *tagmap.TagMap) (files []gen.Gener
 		if strings.TrimSpace(cfg.MergedSRSubject) != "" {
 			return nil, nil, errors.New("--merged-sr-subject requires --merged-message")
 		}
-		return files, stubbed, nil
+		files, err = finishEmit(files, sidecar, cfg)
+		return files, stubbed, err
 	}
 
 	if err := checkMergedNameCollision(cfg.MergedMessage, cfg.Classes); err != nil {
@@ -145,8 +179,36 @@ func emitAll(s *schema.Schema, cfg Config, tm *tagmap.TagMap) (files []gen.Gener
 			return nil, nil, fmt.Errorf("merged emission produced %q with different content than per-class emission", f.Path)
 		}
 	}
+	files, err = finishEmit(files, sidecar, cfg)
+	return files, stubbed, err
+}
+
+// finishEmit appends the iceberg-compat sidecar (when present), sorts the file
+// list, and runs the iceberg-compat post-condition.
+func finishEmit(files []gen.GeneratedFile, sidecar *gen.GeneratedFile, cfg Config) ([]gen.GeneratedFile, error) {
+	if sidecar != nil {
+		files = append(files, *sidecar)
+	}
 	sort.Slice(files, func(i, j int) bool { return files[i].Path < files[j].Path })
-	return files, stubbed, nil
+	if cfg.IcebergCompat {
+		if err := assertNoStructImport(files); err != nil {
+			return nil, err
+		}
+	}
+	return files, nil
+}
+
+// assertNoStructImport is a belt-and-braces post-condition for
+// --iceberg-compat: after R1 pruning no generated file may reference
+// google/protobuf/struct.proto — Oxla cannot load protobuf well-known types,
+// so a surviving import means the pruner missed a google.protobuf.Value field.
+func assertNoStructImport(files []gen.GeneratedFile) error {
+	for _, f := range files {
+		if strings.Contains(f.Content, "google/protobuf/struct.proto") {
+			return fmt.Errorf("iceberg-compat: %q still references google/protobuf/struct.proto after pruning", f.Path)
+		}
+	}
+	return nil
 }
 
 // checkMergedNameCollision rejects a merged message name that collides with a
@@ -165,11 +227,26 @@ func checkMergedNameCollision(mergedMessage string, classes []string) error {
 }
 
 // emitAllSRSchemas runs the per-class EmitSRSchemas plus, when
-// cfg.MergedMessage is set, the merged EmitMergedSRSchema.
+// cfg.MergedMessage is set, the merged EmitMergedSRSchema. Every emitted
+// .sr.proto gets a companion .sr.go embedding it as Go constants
+// (<MessageName>SRSchema, and <MessageName>SRSubject for the merged message
+// when cfg.MergedSRSubject is set), so consumers no longer hand-embed the
+// schema text.
 func emitAllSRSchemas(s *schema.Schema, cfg Config, tm *tagmap.TagMap) ([]gen.GeneratedFile, error) {
 	srFiles, err := gen.EmitSRSchemas(s, cfg.Classes, tm, cfg.Version)
 	if err != nil {
 		return nil, fmt.Errorf("emit sr schemas: %w", err)
+	}
+	// Map each SR schema to the message name whose constants embed it.
+	// Per-class files are named "<class>.sr.proto"; subjects only apply to
+	// the merged message.
+	type srConst struct {
+		msgName string
+		subject string
+	}
+	consts := make(map[string]srConst, len(cfg.Classes)+1)
+	for _, class := range cfg.Classes {
+		consts[class+".sr.proto"] = srConst{msgName: gen.ClassMessageName(class)}
 	}
 	if strings.TrimSpace(cfg.MergedMessage) != "" {
 		mergedSR, err := gen.EmitMergedSRSchema(s, cfg.Classes, tm, cfg.Version, cfg.MergedMessage)
@@ -177,7 +254,35 @@ func emitAllSRSchemas(s *schema.Schema, cfg Config, tm *tagmap.TagMap) ([]gen.Ge
 			return nil, fmt.Errorf("emit merged sr schema: %w", err)
 		}
 		srFiles = append(srFiles, mergedSR)
-		sort.Slice(srFiles, func(i, j int) bool { return srFiles[i].Path < srFiles[j].Path })
+		consts[mergedSR.Path] = srConst{msgName: cfg.MergedMessage, subject: cfg.MergedSRSubject}
+	}
+
+	pkgName := strings.TrimSpace(cfg.SRGoPackage)
+	if pkgName == "" {
+		pkgName, err = gen.SRGoPackageForVersion(cfg.Version)
+		if err != nil {
+			return nil, fmt.Errorf("derive sr-go package: %w", err)
+		}
+	}
+	goFiles := make([]gen.GeneratedFile, 0, len(srFiles))
+	for _, f := range srFiles {
+		c, ok := consts[f.Path]
+		if !ok {
+			return nil, fmt.Errorf("emit sr go: no message name known for SR schema %q", f.Path)
+		}
+		goFile, err := gen.EmitSRGo(pkgName, cfg.Version, c.msgName, c.subject, f)
+		if err != nil {
+			return nil, fmt.Errorf("emit sr go for %q: %w", f.Path, err)
+		}
+		goFiles = append(goFiles, goFile)
+	}
+	srFiles = append(srFiles, goFiles...)
+
+	sort.Slice(srFiles, func(i, j int) bool { return srFiles[i].Path < srFiles[j].Path })
+	if cfg.IcebergCompat {
+		if err := assertNoStructImport(srFiles); err != nil {
+			return nil, err
+		}
 	}
 	return srFiles, nil
 }
@@ -280,8 +385,9 @@ func Check(cfg Config) error {
 // diffSRSchemas compares freshly generated SR schema files against their
 // committed counterparts under srOutDir and returns a descriptive error on any
 // missing, changed, or stray file. Stray detection mirrors diffTree: a
-// committed *.sr.proto the generator no longer produces (e.g. after a class is
-// dropped from --classes) must fail the check rather than rot silently.
+// committed *.sr.proto or *.sr.go the generator no longer produces (e.g. after
+// a class is dropped from --classes) must fail the check rather than rot
+// silently.
 func diffSRSchemas(srOutDir string, files []gen.GeneratedFile) error {
 	want := make(map[string]struct{}, len(files))
 	for _, f := range files {
@@ -316,7 +422,7 @@ func diffSRSchemas(srOutDir string, files []gen.GeneratedFile) error {
 	}
 	var stray []string
 	for _, e := range entries {
-		if e.IsDir() || !strings.HasSuffix(e.Name(), ".sr.proto") {
+		if e.IsDir() || (!strings.HasSuffix(e.Name(), ".sr.proto") && !strings.HasSuffix(e.Name(), ".sr.go")) {
 			continue
 		}
 		if _, ok := want[e.Name()]; !ok {

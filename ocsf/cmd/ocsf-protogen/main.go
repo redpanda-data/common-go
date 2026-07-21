@@ -30,6 +30,16 @@
 // <out>/ocsf/v1/entity_management.proto, <out>/ocsf/v1/audit_event.proto,
 // <out>/ocsf/v1/objects.proto.
 //
+// --iceberg-compat prunes the schema model before emission so the generated
+// protos can be translated to Iceberg by Redpanda and read by Oxla: fields
+// mapping to google.protobuf.Value are dropped, recursion back-edges are cut,
+// and fields whose dotted path from a root exceeds 63 chars are removed. The
+// pruned fields are recorded in <out>/ocsf/v<N>/iceberg-compat-prunes.txt.
+//
+// When --sr-schema-out is set, each <name>.sr.proto gets a companion
+// <name>.sr.go embedding the schema text (and, for the merged message, the
+// subject) as Go constants; --sr-go-package overrides its package name.
+//
 // Check mode (for CI — verifies committed baseline is up-to-date):
 //
 //	ocsf-protogen --check \
@@ -95,6 +105,8 @@ func run(args []string) error {
 	srSchemaOutFlag := fs.String("sr-schema-out", "", "optional directory for self-contained Schema-Registry schemas (<class>.sr.proto); empty disables SR emission")
 	mergedMessageFlag := fs.String("merged-message", "", "optional message name (e.g. AuditEvent) for a single flat message unioning all selected classes, emitted alongside the per-class files; empty disables merged emission")
 	mergedSRSubjectFlag := fs.String("merged-sr-subject", "", "optional Schema Registry subject; annotates the merged message with (redpanda.api.common.v1.schema_registry) for protoc-gen-go-sr-normalize (requires --merged-message)")
+	icebergCompatFlag := fs.Bool("iceberg-compat", false, "prune fields Redpanda Iceberg/Oxla cannot represent (google.protobuf.Value fields, recursion back-edges, dotted field paths over 63 chars) before emission; writes ocsf/v<N>/iceberg-compat-prunes.txt")
+	srGoPackageFlag := fs.String("sr-go-package", "", "Go package name for the generated <name>.sr.go companions under --sr-schema-out (default: derived from the OCSF major version, e.g. ocsfv1)")
 
 	if err := fs.Parse(args); err != nil {
 		return err
@@ -138,6 +150,8 @@ func run(args []string) error {
 		SRSchemaOutDir:  *srSchemaOutFlag,
 		MergedMessage:   *mergedMessageFlag,
 		MergedSRSubject: *mergedSRSubjectFlag,
+		IcebergCompat:   *icebergCompatFlag,
+		SRGoPackage:     *srGoPackageFlag,
 	}
 
 	if cfg.Check {
