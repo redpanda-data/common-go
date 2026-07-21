@@ -52,6 +52,15 @@ type Config struct {
 	// so protoc-gen-go-sr-normalize generates the SR schema and subject
 	// constants from the emitted proto. Requires MergedMessage.
 	MergedSRSubject string
+	// IcebergCompat, when true, prunes the loaded schema model BEFORE any
+	// emission so per-class protos, the merged message, the SR schemas, and
+	// validation all agree on one shape that Redpanda's proto-to-Iceberg
+	// translator can represent and Oxla (Redpanda SQL) can read: fields
+	// mapping to google.protobuf.Value, recursion back-edges, and fields
+	// whose dotted path from a root exceeds 63 chars are dropped (see
+	// gen.PruneForIceberg). A sidecar file
+	// (ocsf/v<N>/iceberg-compat-prunes.txt) records every pruned field.
+	IcebergCompat bool
 }
 
 // Generate loads the schema, emits the proto, writes --out and --tagmap.
@@ -106,7 +115,26 @@ func Generate(cfg Config) (stubbed []string, err error) {
 // Both paths emit an identical objects.proto (same object closure, same tags
 // from the shared tagmap); the duplicate is dropped after an equality check so
 // a divergence surfaces as an error instead of a silent overwrite.
+//
+// When cfg.IcebergCompat is set, the schema model is pruned in place first —
+// the caller-visible *schema.Schema mutates, so a later emitAllSRSchemas call
+// on the same instance emits the same pruned shape — and the prune sidecar
+// file is appended to the returned file list.
 func emitAll(s *schema.Schema, cfg Config, tm *tagmap.TagMap) (files []gen.GeneratedFile, stubbed []string, err error) {
+	var sidecar *gen.GeneratedFile
+	if cfg.IcebergCompat {
+		prunes, pruneErr := gen.PruneForIceberg(s, cfg.Classes)
+		if pruneErr != nil {
+			return nil, nil, fmt.Errorf("iceberg-compat prune: %w", pruneErr)
+		}
+		f, sidecarErr := gen.PruneSidecarFile(cfg.Version, prunes)
+		if sidecarErr != nil {
+			return nil, nil, fmt.Errorf("iceberg-compat sidecar: %w", sidecarErr)
+		}
+		sidecar = &f
+		fmt.Fprintf(os.Stderr, "iceberg-compat: pruned %d fields (see %s)\n", len(prunes), f.Path)
+	}
+
 	files, stubbed, err = gen.Emit(s, cfg.Classes, tm, cfg.Version)
 	if err != nil {
 		return nil, nil, fmt.Errorf("emit proto: %w", err)
@@ -116,7 +144,8 @@ func emitAll(s *schema.Schema, cfg Config, tm *tagmap.TagMap) (files []gen.Gener
 		if strings.TrimSpace(cfg.MergedSRSubject) != "" {
 			return nil, nil, errors.New("--merged-sr-subject requires --merged-message")
 		}
-		return files, stubbed, nil
+		files, err = finishEmit(files, sidecar, cfg)
+		return files, stubbed, err
 	}
 
 	if err := checkMergedNameCollision(cfg.MergedMessage, cfg.Classes); err != nil {
@@ -145,8 +174,36 @@ func emitAll(s *schema.Schema, cfg Config, tm *tagmap.TagMap) (files []gen.Gener
 			return nil, nil, fmt.Errorf("merged emission produced %q with different content than per-class emission", f.Path)
 		}
 	}
+	files, err = finishEmit(files, sidecar, cfg)
+	return files, stubbed, err
+}
+
+// finishEmit appends the iceberg-compat sidecar (when present), sorts the file
+// list, and runs the iceberg-compat post-condition.
+func finishEmit(files []gen.GeneratedFile, sidecar *gen.GeneratedFile, cfg Config) ([]gen.GeneratedFile, error) {
+	if sidecar != nil {
+		files = append(files, *sidecar)
+	}
 	sort.Slice(files, func(i, j int) bool { return files[i].Path < files[j].Path })
-	return files, stubbed, nil
+	if cfg.IcebergCompat {
+		if err := assertNoStructImport(files); err != nil {
+			return nil, err
+		}
+	}
+	return files, nil
+}
+
+// assertNoStructImport is a belt-and-braces post-condition for
+// --iceberg-compat: after R1 pruning no generated file may reference
+// google/protobuf/struct.proto — Oxla cannot load protobuf well-known types,
+// so a surviving import means the pruner missed a google.protobuf.Value field.
+func assertNoStructImport(files []gen.GeneratedFile) error {
+	for _, f := range files {
+		if strings.Contains(f.Content, "google/protobuf/struct.proto") {
+			return fmt.Errorf("iceberg-compat: %q still references google/protobuf/struct.proto after pruning", f.Path)
+		}
+	}
+	return nil
 }
 
 // checkMergedNameCollision rejects a merged message name that collides with a
@@ -177,7 +234,13 @@ func emitAllSRSchemas(s *schema.Schema, cfg Config, tm *tagmap.TagMap) ([]gen.Ge
 			return nil, fmt.Errorf("emit merged sr schema: %w", err)
 		}
 		srFiles = append(srFiles, mergedSR)
-		sort.Slice(srFiles, func(i, j int) bool { return srFiles[i].Path < srFiles[j].Path })
+	}
+
+	sort.Slice(srFiles, func(i, j int) bool { return srFiles[i].Path < srFiles[j].Path })
+	if cfg.IcebergCompat {
+		if err := assertNoStructImport(srFiles); err != nil {
+			return nil, err
+		}
 	}
 	return srFiles, nil
 }

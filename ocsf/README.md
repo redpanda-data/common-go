@@ -36,6 +36,10 @@ Two artifacts are the point of this module; two more keep them safe to evolve.
 4. **The tagmap** (`field-numbers.json`): the append-only field-number map
    that keeps every regeneration wire-compatible with the previous one,
    enforced in CI by `--compat-check`.
+5. With `--iceberg-compat`: **the prune sidecar**
+   (`ocsf/v<N>/iceberg-compat-prunes.txt`), one sorted
+   `<Message>.<field> <rule>` line per field dropped from the emitted protos,
+   so fidelity loss is diffable across OCSF versions.
 
 ### Layouts
 
@@ -94,9 +98,92 @@ go run ./cmd/ocsf-protogen \
   imports to resolve; register as-is, event message at Confluent index 0).
   This is the non-buf path to the same schema text; Go consumers should
   prefer the annotation plus `protoc-gen-go-sr-normalize`.
+- `--iceberg-compat` prunes the schema model before emission so the merged
+  event topic can be Iceberg-enabled and queried from Oxla (see below).
 - `--check` regenerates and fails on output drift or newly-stubbed objects.
 - `--compat-check --old <a> --new <b>` fails if field numbers changed
   incompatibly between two tag maps (used in CI against the base branch).
+
+### `--iceberg-compat`
+
+Redpanda topics with `redpanda.iceberg.mode=value_schema_id_prefix` are
+translated proto → Iceberg by the broker and read from Oxla (Redpanda SQL).
+Verified against a live stack, the unpruned schema fails that pipeline on
+three independent grounds, each fixed by a deterministic prune rule (plus one
+hygiene rule) applied to the loaded model BEFORE emission — so the per-class
+protos, the merged message, the SR schemas, and validation all agree on one
+shape. All pruned
+fields are ones the downstream emitters never populate; pruning uniformly
+(rather than only in the SR schema) keeps the Go bindings, the wire schema,
+and the analytics schema identical, so nothing can be populated that the
+Iceberg/Oxla side cannot represent.
+
+- **R1 — well-known types.** Oxla cannot load protobuf well-known types;
+  `CREATE TABLE` on the source fails with:
+
+  ```
+  Failed to build proto file descriptor: google/protobuf/struct.proto: Import
+  "google/protobuf/struct.proto" has not been loaded.;
+  ocsf.v1.AuditEvent.unmapped: ".google.protobuf.Value" is not defined.
+  ```
+
+  Every field mapping to `google.protobuf.Value` (OCSF `json_t` and the
+  generic `object` bag) is dropped; the generated files then import
+  `google/protobuf/struct.proto` nowhere.
+
+- **R2 — recursion.** Redpanda's proto→Iceberg translator rejects recursive
+  proto types and DLQs every record:
+
+  ```
+  Protobuf schema translation failed: iceberg::conversion_exception
+  (Protocol buffer field not supported - recursive type detected, type
+  hierarchy: ocsf.v1.AuditEvent, ocsf.v1.Actor, ocsf.v1.Idp,
+  ocsf.v1.AuthFactor, ocsf.v1.Device, ocsf.v1.User, ocsf.v1.LdapPerson,
+  current type: message User {...
+  ```
+
+  A single depth-first walk over message-typed fields from each selected
+  root class — roots in sorted class-name order, fields in sorted
+  attribute-name order — drops every field whose target type is already on
+  the current DFS path (self-references included). Removing all back edges
+  of one DFS forest leaves the graph acyclic; a post-condition check fails
+  generation if a cycle somehow survives.
+
+- **R3 — identifier length.** Oxla's Iceberg leg names nested type aliases
+  after the full dotted field path from the root message and enforces
+  PostgreSQL's 63-char identifier limit on `REFRESH`:
+
+  ```
+  type alias 'actor.process.file.data_classification.discovery_details.occurrence_details'
+  exceeds PostgreSQL name limit (75 > 63)
+  ```
+
+  Applied after R1+R2 (shorter graph, fewer paths), and ONLY to
+  message-typed fields — scalars are never pruned. Message types are shared,
+  so a deep never-populated embedding must not cost a shared type its fields
+  at shallow, load-bearing embeddings (`actor.user.email_addr` must survive
+  even though `User` is also embedded under
+  `actor.process...service_dll_file.accessor`); the cut lands on the deep
+  embedding edge instead. An edge is cut when its worst-case embedding
+  cannot fit its target's irreducible suffix (the longest scalar the target
+  forces) within 63 chars; exactly 63 is kept. A cut edge drops its whole
+  subtree, and objects left without any surviving embedding are not emitted
+  at all.
+
+- **R4 — empty messages.** A message-typed field whose target type ends up
+  with no surviving fields (everything inside was pruned by R1–R3) is
+  dropped too, to a fixpoint: an empty nested message carries no
+  information, and cutting the edge removes the empty type from the emit
+  closure.
+
+After pruning, the model is verified — every surviving dotted leaf path from
+every root is at most 63 chars, no reachable message is empty, and R3/R4
+removed only message-typed fields — and generation fails on any violation.
+
+Pruned fields KEEP their tagmap entries (append-only semantics: never
+renumbered, never removed) — they are simply absent from the emitted protos —
+so `--compat-check` passes against a tagmap produced without the flag, and a
+later non-pruned regeneration reuses the original numbers.
 
 Pinned to OCSF 1.8.0. The schema is fetched from
 `https://schema.ocsf.io/{version}/export/v2/schema`; generated events are
