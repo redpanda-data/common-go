@@ -662,12 +662,14 @@ func TestGenerateIcebergCompat(t *testing.T) {
 	sidecar, err := os.ReadFile(filepath.Join(cfg.OutDir, "ocsf", "v1", "iceberg-compat-prunes.txt"))
 	require.NoError(t, err)
 	for _, line := range []string{
-		"Analytic.related_analytics R2-recursion",
-		"LdapPerson.manager R2-recursion",
-		"NetworkProxy.proxy_endpoint R2-recursion",
-		"Process.parent_process R2-recursion",
+		"Analytic.related_analytics R2-recursion-to-string",
+		"LdapPerson.manager R2-recursion-to-string",
+		"NetworkProxy.proxy_endpoint R2-recursion-to-string",
+		"Process.parent_process R2-recursion-to-string",
 		"ApiActivity.unmapped R1-value-to-string",
 		"EntityManagement.unmapped R1-value-to-string",
+		"File.accessor R3-path-to-string",
+		"User.ldap_person R3-path-to-string",
 	} {
 		require.Contains(t, string(sidecar), line+"\n")
 	}
