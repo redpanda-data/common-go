@@ -32,7 +32,10 @@ Two artifacts are the point of this module; two more keep them safe to evolve.
    wire-compatible types.
 3. **Schema Registry schemas** (`<name>.sr.proto`): self-contained copies with
    no imports and no custom options, event message at Confluent index 0.
-   Register as-is.
+   Register as-is. Each one gets a `<name>.sr.go` companion embedding the
+   schema text (and, for the merged message, the subject) as Go constants
+   (`<MessageName>SRSchema`, `<MessageName>SRSubject`), so consumers never
+   hand-embed the proto text.
 4. **The tagmap** (`field-numbers.json`): the append-only field-number map
    that keeps every regeneration wire-compatible with the previous one,
    enforced in CI by `--compat-check`.
@@ -95,9 +98,12 @@ go run ./cmd/ocsf-protogen \
   (`<Name>SRSchema`, `<Name>SRSubject`) with no hand-copied proto. Requires
   `--merged-message`.
 - `--sr-schema-out <dir>` writes self-contained Schema-Registry schemas (no
-  imports to resolve; register as-is, event message at Confluent index 0).
+  imports to resolve; register as-is, event message at Confluent index 0),
+  each with a `<name>.sr.go` companion embedding the schema as Go constants.
   This is the non-buf path to the same schema text; Go consumers should
   prefer the annotation plus `protoc-gen-go-sr-normalize`.
+- `--sr-go-package <name>` sets the Go package of the `.sr.go` companions.
+  Default is derived from the OCSF major version: `1.8.0` → `ocsfv1`.
 - `--iceberg-compat` prunes the schema model before emission so the merged
   event topic can be Iceberg-enabled and queried from Oxla (see below).
 - `--check` regenerates and fails on output drift or newly-stubbed objects.

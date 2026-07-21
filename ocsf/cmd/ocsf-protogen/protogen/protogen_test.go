@@ -740,3 +740,101 @@ func TestIcebergCompat_TagmapCompatWithoutFlag(t *testing.T) {
 	require.NoError(t, protogen.CompatCheck(oldPath, base.TagmapPath),
 		"--compat-check must pass against a tagmap produced without --iceberg-compat")
 }
+
+// ─── SR Go embeds ─────────────────────────────────────────────────────────────
+
+// TestGenerateWritesSRGo verifies that every .sr.proto gets a .sr.go
+// companion embedding it as constants: the derived default package name, the
+// per-class schema constants, and the merged subject constant.
+func TestGenerateWritesSRGo(t *testing.T) {
+	dir := t.TempDir()
+	srDir := t.TempDir()
+
+	cfg := protogen.Config{
+		SchemaPath:      schemaFixture(),
+		Classes:         []string{"api_activity", "entity_management"},
+		Version:         "1.8.0",
+		OutDir:          dir,
+		TagmapPath:      filepath.Join(dir, "field-numbers.json"),
+		SRSchemaOutDir:  srDir,
+		MergedMessage:   "AuditEvent",
+		MergedSRSubject: "redpanda.ocsf.audit-events-value",
+	}
+
+	_, err := protogen.Generate(cfg)
+	require.NoError(t, err)
+
+	classGo, err := os.ReadFile(filepath.Join(srDir, "api_activity.sr.go"))
+	require.NoError(t, err)
+	require.Contains(t, string(classGo), "package ocsfv1\n")
+	require.Contains(t, string(classGo), "const ApiActivitySRSchema = `")
+	require.NotContains(t, string(classGo), "SRSubject")
+
+	mergedGo, err := os.ReadFile(filepath.Join(srDir, "audit_event.sr.go"))
+	require.NoError(t, err)
+	require.Contains(t, string(mergedGo), "const AuditEventSRSchema = `")
+	require.Contains(t, string(mergedGo), `const AuditEventSRSubject = "redpanda.ocsf.audit-events-value"`)
+
+	// The embedded schema text must be the exact .sr.proto content.
+	mergedProto, err := os.ReadFile(filepath.Join(srDir, "audit_event.sr.proto"))
+	require.NoError(t, err)
+	require.Contains(t, string(mergedGo), "`"+string(mergedProto)+"`")
+
+	// --check must pass against the just-generated SR baseline including the
+	// .sr.go companions.
+	checkCfg := cfg
+	checkCfg.Check = true
+	require.NoError(t, protogen.Check(checkCfg))
+}
+
+// TestGenerateSRGoPackageOverride verifies --sr-go-package overrides the
+// derived package name.
+func TestGenerateSRGoPackageOverride(t *testing.T) {
+	dir := t.TempDir()
+	srDir := t.TempDir()
+
+	cfg := protogen.Config{
+		SchemaPath:     schemaFixture(),
+		Classes:        []string{"api_activity"},
+		Version:        "1.8.0",
+		OutDir:         dir,
+		TagmapPath:     filepath.Join(dir, "field-numbers.json"),
+		SRSchemaOutDir: srDir,
+		SRGoPackage:    "auditschema",
+	}
+
+	_, err := protogen.Generate(cfg)
+	require.NoError(t, err)
+
+	classGo, err := os.ReadFile(filepath.Join(srDir, "api_activity.sr.go"))
+	require.NoError(t, err)
+	require.Contains(t, string(classGo), "package auditschema\n")
+}
+
+// TestCheckFailsOnStraySRGo verifies --check detects a committed *.sr.go the
+// generator no longer produces.
+func TestCheckFailsOnStraySRGo(t *testing.T) {
+	dir := t.TempDir()
+	srDir := t.TempDir()
+
+	cfg := protogen.Config{
+		SchemaPath:     schemaFixture(),
+		Classes:        []string{"api_activity"},
+		Version:        "1.8.0",
+		OutDir:         dir,
+		TagmapPath:     filepath.Join(dir, "field-numbers.json"),
+		SRSchemaOutDir: srDir,
+	}
+
+	_, err := protogen.Generate(cfg)
+	require.NoError(t, err)
+
+	require.NoError(t, os.WriteFile(filepath.Join(srDir, "dropped_class.sr.go"),
+		[]byte("package ocsfv1\n"), 0o644))
+
+	checkCfg := cfg
+	checkCfg.Check = true
+	err = protogen.Check(checkCfg)
+	require.Error(t, err, "--check must fail on a stray committed .sr.go")
+	require.Contains(t, err.Error(), "dropped_class.sr.go")
+}

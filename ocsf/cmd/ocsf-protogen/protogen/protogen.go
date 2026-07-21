@@ -61,6 +61,11 @@ type Config struct {
 	// gen.PruneForIceberg). A sidecar file
 	// (ocsf/v<N>/iceberg-compat-prunes.txt) records every pruned field.
 	IcebergCompat bool
+	// SRGoPackage is the Go package name used for the generated <name>.sr.go
+	// files that embed each <name>.sr.proto as Go constants next to it under
+	// SRSchemaOutDir. Empty derives the name from the schema version's major
+	// component ("1.8.0" → "ocsfv1"). Only used when SRSchemaOutDir is set.
+	SRGoPackage string
 }
 
 // Generate loads the schema, emits the proto, writes --out and --tagmap.
@@ -222,11 +227,26 @@ func checkMergedNameCollision(mergedMessage string, classes []string) error {
 }
 
 // emitAllSRSchemas runs the per-class EmitSRSchemas plus, when
-// cfg.MergedMessage is set, the merged EmitMergedSRSchema.
+// cfg.MergedMessage is set, the merged EmitMergedSRSchema. Every emitted
+// .sr.proto gets a companion .sr.go embedding it as Go constants
+// (<MessageName>SRSchema, and <MessageName>SRSubject for the merged message
+// when cfg.MergedSRSubject is set), so consumers no longer hand-embed the
+// schema text.
 func emitAllSRSchemas(s *schema.Schema, cfg Config, tm *tagmap.TagMap) ([]gen.GeneratedFile, error) {
 	srFiles, err := gen.EmitSRSchemas(s, cfg.Classes, tm, cfg.Version)
 	if err != nil {
 		return nil, fmt.Errorf("emit sr schemas: %w", err)
+	}
+	// Map each SR schema to the message name whose constants embed it.
+	// Per-class files are named "<class>.sr.proto"; subjects only apply to
+	// the merged message.
+	type srConst struct {
+		msgName string
+		subject string
+	}
+	consts := make(map[string]srConst, len(cfg.Classes)+1)
+	for _, class := range cfg.Classes {
+		consts[class+".sr.proto"] = srConst{msgName: gen.ClassMessageName(class)}
 	}
 	if strings.TrimSpace(cfg.MergedMessage) != "" {
 		mergedSR, err := gen.EmitMergedSRSchema(s, cfg.Classes, tm, cfg.Version, cfg.MergedMessage)
@@ -234,7 +254,29 @@ func emitAllSRSchemas(s *schema.Schema, cfg Config, tm *tagmap.TagMap) ([]gen.Ge
 			return nil, fmt.Errorf("emit merged sr schema: %w", err)
 		}
 		srFiles = append(srFiles, mergedSR)
+		consts[mergedSR.Path] = srConst{msgName: cfg.MergedMessage, subject: cfg.MergedSRSubject}
 	}
+
+	pkgName := strings.TrimSpace(cfg.SRGoPackage)
+	if pkgName == "" {
+		pkgName, err = gen.SRGoPackageForVersion(cfg.Version)
+		if err != nil {
+			return nil, fmt.Errorf("derive sr-go package: %w", err)
+		}
+	}
+	goFiles := make([]gen.GeneratedFile, 0, len(srFiles))
+	for _, f := range srFiles {
+		c, ok := consts[f.Path]
+		if !ok {
+			return nil, fmt.Errorf("emit sr go: no message name known for SR schema %q", f.Path)
+		}
+		goFile, err := gen.EmitSRGo(pkgName, cfg.Version, c.msgName, c.subject, f)
+		if err != nil {
+			return nil, fmt.Errorf("emit sr go for %q: %w", f.Path, err)
+		}
+		goFiles = append(goFiles, goFile)
+	}
+	srFiles = append(srFiles, goFiles...)
 
 	sort.Slice(srFiles, func(i, j int) bool { return srFiles[i].Path < srFiles[j].Path })
 	if cfg.IcebergCompat {
@@ -343,8 +385,9 @@ func Check(cfg Config) error {
 // diffSRSchemas compares freshly generated SR schema files against their
 // committed counterparts under srOutDir and returns a descriptive error on any
 // missing, changed, or stray file. Stray detection mirrors diffTree: a
-// committed *.sr.proto the generator no longer produces (e.g. after a class is
-// dropped from --classes) must fail the check rather than rot silently.
+// committed *.sr.proto or *.sr.go the generator no longer produces (e.g. after
+// a class is dropped from --classes) must fail the check rather than rot
+// silently.
 func diffSRSchemas(srOutDir string, files []gen.GeneratedFile) error {
 	want := make(map[string]struct{}, len(files))
 	for _, f := range files {
@@ -379,7 +422,7 @@ func diffSRSchemas(srOutDir string, files []gen.GeneratedFile) error {
 	}
 	var stray []string
 	for _, e := range entries {
-		if e.IsDir() || !strings.HasSuffix(e.Name(), ".sr.proto") {
+		if e.IsDir() || (!strings.HasSuffix(e.Name(), ".sr.proto") && !strings.HasSuffix(e.Name(), ".sr.go")) {
 			continue
 		}
 		if _, ok := want[e.Name()]; !ok {
