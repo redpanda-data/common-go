@@ -374,6 +374,9 @@ func pruneRecursion(s *schema.Schema, classes []*schema.Class) []PrunedField {
 				prunes = append(prunes, PrunedField{toPascalCase(obj.Name), attrName, PruneRuleRecursion})
 			case white:
 				visit(target)
+			default:
+				// black: target already fully explored (a cross/forward edge,
+				// not a cycle) — nothing to do.
 			}
 		}
 		state[objName] = black
@@ -648,13 +651,10 @@ func demoteEdge(s *schema.Schema, e edgeRef) {
 }
 
 func prunedFromEdge(s *schema.Schema, e edgeRef) PrunedField {
-	name := e.owner
 	if e.ownerClass {
-		name = s.Classes[e.owner].Name
-	} else {
-		name = s.Objects[e.owner].Name
+		return PrunedField{toPascalCase(s.Classes[e.owner].Name), e.attr, PruneRulePathLength}
 	}
-	return PrunedField{toPascalCase(name), e.attr, PruneRulePathLength}
+	return PrunedField{toPascalCase(s.Objects[e.owner].Name), e.attr, PruneRulePathLength}
 }
 
 // pruneEmptyMessages applies R4 to a fixpoint: every message-typed field
