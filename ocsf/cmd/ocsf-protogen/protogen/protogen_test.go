@@ -666,8 +666,8 @@ func TestGenerateIcebergCompat(t *testing.T) {
 		"LdapPerson.manager R2-recursion",
 		"NetworkProxy.proxy_endpoint R2-recursion",
 		"Process.parent_process R2-recursion",
-		"ApiActivity.unmapped R1-well-known-type",
-		"EntityManagement.unmapped R1-well-known-type",
+		"ApiActivity.unmapped R1-value-to-string",
+		"EntityManagement.unmapped R1-value-to-string",
 	} {
 		require.Contains(t, string(sidecar), line+"\n")
 	}

@@ -55,8 +55,8 @@ func jsonAttr(name string) *schema.Attribute {
 
 // TestPruneForIceberg_WellKnownValue verifies R1: attributes mapping to
 // google.protobuf.Value (json_t, and object_t to the generic "object" bag)
-// are dropped from classes and reachable objects, and the emitted proto no
-// longer references struct.proto.
+// are demoted to proto3 string in classes and reachable objects — the fields
+// survive, and the emitted proto no longer references struct.proto.
 func TestPruneForIceberg_WellKnownValue(t *testing.T) {
 	s := pruneSchema(
 		map[string]*schema.Attribute{
@@ -76,20 +76,26 @@ func TestPruneForIceberg_WellKnownValue(t *testing.T) {
 	prunes, err := gen.PruneForIceberg(s, []string{"root"})
 	require.NoError(t, err)
 	require.Equal(t, []gen.PrunedField{
-		{Message: "Root", Field: "payload", Rule: gen.PruneRuleWellKnown},
-		{Message: "Root", Field: "unmapped", Rule: gen.PruneRuleWellKnown},
-		{Message: "Thing", Field: "data", Rule: gen.PruneRuleWellKnown},
+		{Message: "Root", Field: "payload", Rule: gen.PruneRuleValueToString},
+		{Message: "Root", Field: "unmapped", Rule: gen.PruneRuleValueToString},
+		{Message: "Thing", Field: "data", Rule: gen.PruneRuleValueToString},
 	}, prunes)
 
-	require.NotContains(t, s.Classes["root"].Attributes, "payload")
-	require.NotContains(t, s.Classes["root"].Attributes, "unmapped")
-	require.NotContains(t, s.Objects["thing"].Attributes, "data")
+	// Demoted fields survive as string, not dropped.
+	require.Contains(t, s.Classes["root"].Attributes, "payload")
+	require.Contains(t, s.Classes["root"].Attributes, "unmapped")
+	require.Contains(t, s.Objects["thing"].Attributes, "data")
+	require.Equal(t, "string_t", s.Classes["root"].Attributes["payload"].Type)
+	require.Empty(t, s.Classes["root"].Attributes["unmapped"].ObjectType)
 
 	out, _, err := emitJoined(t, s, []string{"root"}, tagmap.New(), "1.8.0")
 	require.NoError(t, err)
 	require.NotContains(t, out, "google/protobuf/struct.proto")
 	require.NotContains(t, out, "google.protobuf.Value")
 	require.Contains(t, out, "string uid")
+	// The demoted Value fields are now string fields on the wire.
+	require.Contains(t, out, "string payload")
+	require.Contains(t, out, "string data")
 }
 
 // TestPruneForIceberg_CycleLenTwo verifies R2 on a cycle of length two:
@@ -258,32 +264,45 @@ func TestPruneForIceberg_SubtreeDrop(t *testing.T) {
 // constraint lists no longer reference pruned fields, and that a fully
 // scrubbed constraint set becomes nil.
 func TestPruneForIceberg_ConstraintScrub(t *testing.T) {
+	// A dropped field (w, cut by R4 once its target empties) is scrubbed from
+	// constraints, while a demoted Value field (payload → string) is retained:
+	// it still exists, so a constraint naming it stays satisfiable.
 	s := pruneSchema(
 		map[string]*schema.Attribute{
-			"name":     strAttr("name"),
-			"unmapped": objAttr("unmapped", "object"),
-			"payload":  jsonAttr("payload"),
+			"name":    strAttr("name"),
+			"payload": jsonAttr("payload"), // demoted to string, kept
+			"w":       objAttr("w", "wrap"),
 		},
-		map[string]*schema.Object{},
+		map[string]*schema.Object{
+			"wrap": {Name: "wrap", Attributes: map[string]*schema.Attribute{
+				"self": objAttr("self", "wrap"), // R2 cuts it, emptying wrap → R4 drops root.w
+			}},
+		},
 	)
 	s.Classes["root"].Constraints = &schema.Constraints{
-		AtLeastOne: []string{"unmapped", "name"},
-		JustOne:    []string{"payload"},
+		AtLeastOne: []string{"w", "name", "payload"},
+		JustOne:    []string{"w"},
 	}
 
 	_, err := gen.PruneForIceberg(s, []string{"root"})
 	require.NoError(t, err)
-	require.Equal(t, &schema.Constraints{AtLeastOne: []string{"name"}}, s.Classes["root"].Constraints)
+	// w scrubbed from both; payload (demoted) and name retained; the emptied
+	// JustOne collapses away.
+	require.Equal(t, &schema.Constraints{AtLeastOne: []string{"name", "payload"}}, s.Classes["root"].Constraints)
 
 	// Fully scrubbed constraints must become nil, not present-but-empty.
 	s2 := pruneSchema(
 		map[string]*schema.Attribute{
-			"name":    strAttr("name"),
-			"payload": jsonAttr("payload"),
+			"name": strAttr("name"),
+			"w":    objAttr("w", "wrap"),
 		},
-		map[string]*schema.Object{},
+		map[string]*schema.Object{
+			"wrap": {Name: "wrap", Attributes: map[string]*schema.Attribute{
+				"self": objAttr("self", "wrap"),
+			}},
+		},
 	)
-	s2.Classes["root"].Constraints = &schema.Constraints{JustOne: []string{"payload"}}
+	s2.Classes["root"].Constraints = &schema.Constraints{JustOne: []string{"w"}}
 	_, err = gen.PruneForIceberg(s2, []string{"root"})
 	require.NoError(t, err)
 	require.Nil(t, s2.Classes["root"].Constraints)
@@ -320,7 +339,7 @@ func TestPruneForIceberg_EmptyMessageCascade(t *testing.T) {
 				"inner": objAttr("inner", "bag"),
 			}},
 			"bag": {Name: "bag", Attributes: map[string]*schema.Attribute{
-				"data": jsonAttr("data"), // R1 empties bag
+				"self": objAttr("self", "bag"), // R2 cuts the self-cycle, emptying bag
 			}},
 		},
 	)
@@ -328,7 +347,7 @@ func TestPruneForIceberg_EmptyMessageCascade(t *testing.T) {
 	prunes, err := gen.PruneForIceberg(s, []string{"root"})
 	require.NoError(t, err)
 	require.Equal(t, []gen.PrunedField{
-		{Message: "Bag", Field: "data", Rule: gen.PruneRuleWellKnown},
+		{Message: "Bag", Field: "self", Rule: gen.PruneRuleRecursion},
 		{Message: "Root", Field: "w", Rule: gen.PruneRuleEmptyMessage},
 		{Message: "Wrap", Field: "inner", Rule: gen.PruneRuleEmptyMessage},
 	}, prunes)
@@ -352,15 +371,17 @@ func TestPruneForIceberg_UnknownClass(t *testing.T) {
 func TestPruneSidecarFile(t *testing.T) {
 	f, err := gen.PruneSidecarFile("1.8.0", []gen.PrunedField{
 		{Message: "Process", Field: "parent_process", Rule: gen.PruneRuleRecursion},
-		{Message: "ApiActivity", Field: "unmapped", Rule: gen.PruneRuleWellKnown},
+		{Message: "ApiActivity", Field: "unmapped", Rule: gen.PruneRuleValueToString},
 	})
 	require.NoError(t, err)
 	require.Equal(t, "ocsf/v1/iceberg-compat-prunes.txt", f.Path)
 	require.Equal(t,
 		"# Code generated by ocsf-protogen --iceberg-compat. DO NOT EDIT.\n"+
 			"# Source: OCSF schema 1.8.0\n"+
-			"# Fields pruned from the emitted protos: <Message>.<field> <rule>\n"+
-			"ApiActivity.unmapped R1-well-known-type\n"+
+			"# Fields transformed for the emitted protos: <Message>.<field> <rule>\n"+
+			"# R1-value-to-string demotes a google.protobuf.Value field to string;\n"+
+			"# R2/R3/R4 drop the field. See prune.go for the rules.\n"+
+			"ApiActivity.unmapped R1-value-to-string\n"+
 			"Process.parent_process R2-recursion\n",
 		f.Content)
 }
@@ -401,7 +422,9 @@ func TestPruneForIceberg_Fixture(t *testing.T) {
 		byMessage[gen.ClassMessageName(obj.Name)] = obj.Attributes
 	}
 	for _, p := range prunes1 {
-		if p.Rule == gen.PruneRuleWellKnown {
+		// R1 demotes Value fields (json_t / generic object) to string; they are
+		// retyped, not cut, so they are exempt from the message-edge rule below.
+		if p.Rule == gen.PruneRuleValueToString {
 			continue
 		}
 		attr, ok := byMessage[p.Message][p.Field]
