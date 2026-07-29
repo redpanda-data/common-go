@@ -1,9 +1,9 @@
-buf.build/gen/go/redpandadata/core/connectrpc/go v1.19.2-20260608080241-5b0ab84ea082.1 h1:REoEEpW3VLzOMm1fWkVWCbu7pnHO+OyZdsKL7MT6Chc=
-buf.build/gen/go/redpandadata/core/connectrpc/go v1.19.2-20260608080241-5b0ab84ea082.1/go.mod h1:+xnk83uu51cCNf3Hogv22YnoMkiTXeRMYjsuDMVElKk=
-buf.build/gen/go/redpandadata/core/protocolbuffers/go v1.36.11-20260608080241-5b0ab84ea082.1 h1:lLdtkh1oXeNO0XDgsarqJ9iR2/RfypaQxz33/D3Z2d0=
-buf.build/gen/go/redpandadata/core/protocolbuffers/go v1.36.11-20260608080241-5b0ab84ea082.1/go.mod h1:5sjUVquVwNxt3Q/EhE/UW0BBJ5sgPiaVTw8//wxRULI=
-connectrpc.com/connect v1.19.2 h1:McQ83FGdzL+t60peksi0gXC7MQ/iLKgLduAnThbM0mo=
-connectrpc.com/connect v1.19.2/go.mod h1:tN20fjdGlewnSFeZxLKb0xwIZ6ozc3OQs2hTXy4du9w=
+buf.build/gen/go/redpandadata/core/connectrpc/go v1.20.0-20260714112317-973b760dcc8a.1 h1:y/s+d4Rs8VOJmZ9XWGtlIryBS9KjW7tw/91DXq4zmbY=
+buf.build/gen/go/redpandadata/core/connectrpc/go v1.20.0-20260714112317-973b760dcc8a.1/go.mod h1:6Gz1o83Z3bQPmM5s8IM5gISZ/WKcJ5dj00FKvw6sU8E=
+buf.build/gen/go/redpandadata/core/protocolbuffers/go v1.36.11-20260714112317-973b760dcc8a.1 h1:EZf0jhr/+S98atH0Y5MFbNRbLtUTOemtDq39+fQCnd0=
+buf.build/gen/go/redpandadata/core/protocolbuffers/go v1.36.11-20260714112317-973b760dcc8a.1/go.mod h1:5sjUVquVwNxt3Q/EhE/UW0BBJ5sgPiaVTw8//wxRULI=
+connectrpc.com/connect v1.20.0 h1:6TNDAB+WeNd2uolWNlYczB5E0KNNaVMNUEx8JEUsPmQ=
+connectrpc.com/connect v1.20.0/go.mod h1:A2ygJrukXwWy32vkCAAHNVguZrqZ+jeZ9rGRnGR4dN4=
 dario.cat/mergo v1.0.2 h1:85+piFYR1tMbRrLcDwR18y4UKJ3aH1Tbzi24VRW1TK8=
 dario.cat/mergo v1.0.2/go.mod h1:E/hbnu0NxMFBjpMIE34DRGLWqDy0g5FuKDhCb31ngxA=
 github.com/AdaLogics/go-fuzz-headers v0.0.0-20240806141605-e8a1dd7889d6 h1:He8afgbRMd7mFxO99hRNu+6tazq8nFF9lIwo9JFroBk=
