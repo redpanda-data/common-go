@@ -47,6 +47,10 @@ type Config struct {
 	// When SRSchemaOutDir is also set, a merged <snake_case_name>.sr.proto is
 	// written there too. Empty disables merged emission.
 	MergedMessage string
+	// MergedOnly, when true, suppresses per-class proto and Schema Registry
+	// files. The merged message, its shared objects.proto dependency, and any
+	// configured prune sidecar are still emitted. Requires MergedMessage.
+	MergedOnly bool
 	// MergedSRSubject, when non-empty, annotates the merged message with the
 	// (redpanda.api.common.v1.schema_registry) option carrying this subject,
 	// so protoc-gen-go-sr-normalize generates the SR schema and subject
@@ -66,11 +70,19 @@ type Config struct {
 	// SRSchemaOutDir. Empty derives the name from the schema version's major
 	// component ("1.8.0" → "ocsfv1"). Only used when SRSchemaOutDir is set.
 	SRGoPackage string
+	// SRGoOnly, when true, writes only the generated <name>.sr.go schema
+	// embeds under SRSchemaOutDir and suppresses their intermediate
+	// <name>.sr.proto files. Requires SRSchemaOutDir.
+	SRGoOnly bool
 }
 
 // Generate loads the schema, emits the proto, writes --out and --tagmap.
 // Returns the stubbed object names (may be nil) and any error.
 func Generate(cfg Config) (stubbed []string, err error) {
+	if err := validateConfig(cfg); err != nil {
+		return nil, err
+	}
+
 	s, err := schema.LoadFile(cfg.SchemaPath)
 	if err != nil {
 		return nil, fmt.Errorf("load schema: %w", err)
@@ -115,7 +127,8 @@ func Generate(cfg Config) (stubbed []string, err error) {
 }
 
 // emitAll runs the per-class Emit plus, when cfg.MergedMessage is set, the
-// merged single-event EmitMerged, and combines the file lists.
+// merged single-event EmitMerged, and combines the file lists. With
+// cfg.MergedOnly, only EmitMerged runs.
 //
 // Both paths emit an identical objects.proto (same object closure, same tags
 // from the shared tagmap); the duplicate is dropped after an equality check so
@@ -140,9 +153,11 @@ func emitAll(s *schema.Schema, cfg Config, tm *tagmap.TagMap) (files []gen.Gener
 		fmt.Fprintf(os.Stderr, "iceberg-compat: pruned %d fields (see %s)\n", len(prunes), f.Path)
 	}
 
-	files, stubbed, err = gen.Emit(s, cfg.Classes, tm, cfg.Version)
-	if err != nil {
-		return nil, nil, fmt.Errorf("emit proto: %w", err)
+	if !cfg.MergedOnly {
+		files, stubbed, err = gen.Emit(s, cfg.Classes, tm, cfg.Version)
+		if err != nil {
+			return nil, nil, fmt.Errorf("emit proto: %w", err)
+		}
 	}
 
 	if strings.TrimSpace(cfg.MergedMessage) == "" {
@@ -160,6 +175,10 @@ func emitAll(s *schema.Schema, cfg Config, tm *tagmap.TagMap) (files []gen.Gener
 	mergedFiles, mergedStubbed, err := gen.EmitMerged(s, cfg.Classes, tm, cfg.Version, cfg.MergedMessage, cfg.MergedSRSubject)
 	if err != nil {
 		return nil, nil, fmt.Errorf("emit merged proto: %w", err)
+	}
+	if cfg.MergedOnly {
+		files, err = finishEmit(mergedFiles, sidecar, cfg)
+		return files, mergedStubbed, err
 	}
 	// Stub sets are identical by construction (same classes, same closure), so
 	// the per-class stub list already covers the merged run.
@@ -233,9 +252,13 @@ func checkMergedNameCollision(mergedMessage string, classes []string) error {
 // when cfg.MergedSRSubject is set), so consumers no longer hand-embed the
 // schema text.
 func emitAllSRSchemas(s *schema.Schema, cfg Config, tm *tagmap.TagMap) ([]gen.GeneratedFile, error) {
-	srFiles, err := gen.EmitSRSchemas(s, cfg.Classes, tm, cfg.Version)
-	if err != nil {
-		return nil, fmt.Errorf("emit sr schemas: %w", err)
+	var srFiles []gen.GeneratedFile
+	var err error
+	if !cfg.MergedOnly {
+		srFiles, err = gen.EmitSRSchemas(s, cfg.Classes, tm, cfg.Version)
+		if err != nil {
+			return nil, fmt.Errorf("emit sr schemas: %w", err)
+		}
 	}
 	// Map each SR schema to the message name whose constants embed it.
 	// Per-class files are named "<class>.sr.proto"; subjects only apply to
@@ -245,8 +268,10 @@ func emitAllSRSchemas(s *schema.Schema, cfg Config, tm *tagmap.TagMap) ([]gen.Ge
 		subject string
 	}
 	consts := make(map[string]srConst, len(cfg.Classes)+1)
-	for _, class := range cfg.Classes {
-		consts[class+".sr.proto"] = srConst{msgName: gen.ClassMessageName(class)}
+	if !cfg.MergedOnly {
+		for _, class := range cfg.Classes {
+			consts[class+".sr.proto"] = srConst{msgName: gen.ClassMessageName(class)}
+		}
 	}
 	if strings.TrimSpace(cfg.MergedMessage) != "" {
 		mergedSR, err := gen.EmitMergedSRSchema(s, cfg.Classes, tm, cfg.Version, cfg.MergedMessage)
@@ -277,6 +302,9 @@ func emitAllSRSchemas(s *schema.Schema, cfg Config, tm *tagmap.TagMap) ([]gen.Ge
 		goFiles = append(goFiles, goFile)
 	}
 	srFiles = append(srFiles, goFiles...)
+	if cfg.SRGoOnly {
+		srFiles = goFiles
+	}
 
 	sort.Slice(srFiles, func(i, j int) bool { return srFiles[i].Path < srFiles[j].Path })
 	if cfg.IcebergCompat {
@@ -311,6 +339,10 @@ func writeFiles(outDir string, files []gen.GeneratedFile) error {
 //     removed, or its content changed)
 //   - a new stubbed object appears (indicates schema regression)
 func Check(cfg Config) error {
+	if err := validateConfig(cfg); err != nil {
+		return err
+	}
+
 	s, err := schema.LoadFile(cfg.SchemaPath)
 	if err != nil {
 		return fmt.Errorf("load schema: %w", err)
@@ -379,6 +411,16 @@ func Check(cfg Config) error {
 		}
 	}
 
+	return nil
+}
+
+func validateConfig(cfg Config) error {
+	if cfg.MergedOnly && strings.TrimSpace(cfg.MergedMessage) == "" {
+		return errors.New("--merged-only requires --merged-message")
+	}
+	if cfg.SRGoOnly && strings.TrimSpace(cfg.SRSchemaOutDir) == "" {
+		return errors.New("--sr-go-only requires --sr-schema-out")
+	}
 	return nil
 }
 

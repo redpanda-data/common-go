@@ -8,8 +8,8 @@
 // by the Apache License, Version 2.0
 
 // Command ocsf-protogen generates proto3 definitions from a compiled OCSF
-// schema JSON export: per-class messages, the merged single-event message
-// (--merged-message), and self-contained Schema-Registry schemas
+// schema JSON export: per-class messages, an optional merged single-event
+// message (--merged-message), and self-contained Schema-Registry schemas
 // (--sr-schema-out). The emitted protos carry buf.validate annotations; Go
 // bindings are generated from them with buf + protoc-gen-go (see
 // internal/ocsf/conformance/genpb/buf.gen*.yaml for the reference recipe).
@@ -23,12 +23,13 @@
 //	  --out     ocsf/cmd/ocsf-protogen/testdata \
 //	  --tagmap  ocsf/cmd/ocsf-protogen/testdata/field-numbers.json \
 //	  --merged-message AuditEvent \
+//	  --merged-only \
 //	  --merged-sr-subject redpanda.ocsf.audit-events-value
 //
 // --out is a MODULE ROOT DIRECTORY. Files are written under it at their
 // module-relative paths, e.g. <out>/ocsf/v1/api_activity.proto,
 // <out>/ocsf/v1/entity_management.proto, <out>/ocsf/v1/audit_event.proto,
-// <out>/ocsf/v1/objects.proto.
+// <out>/ocsf/v1/objects.proto. --merged-only suppresses the per-class files.
 //
 // --iceberg-compat prunes the schema model before emission so the generated
 // protos can be translated to Iceberg by Redpanda and read by Oxla: fields
@@ -36,9 +37,10 @@
 // and fields whose dotted path from a root exceeds 63 chars are removed. The
 // pruned fields are recorded in <out>/ocsf/v<N>/iceberg-compat-prunes.txt.
 //
-// When --sr-schema-out is set, each <name>.sr.proto gets a companion
+// When --sr-schema-out is set, each emitted <name>.sr.proto gets a companion
 // <name>.sr.go embedding the schema text (and, for the merged message, the
-// subject) as Go constants; --sr-go-package overrides its package name.
+// subject) as Go constants; --sr-go-only suppresses the intermediate
+// .sr.proto files, and --sr-go-package overrides the Go package name.
 //
 // Check mode (for CI — verifies committed baseline is up-to-date):
 //
@@ -104,9 +106,11 @@ func run(args []string) error {
 	newFlag := fs.String("new", "", "path to the PR tagmap JSON (for --compat-check)")
 	srSchemaOutFlag := fs.String("sr-schema-out", "", "optional directory for self-contained Schema-Registry schemas (<class>.sr.proto); empty disables SR emission")
 	mergedMessageFlag := fs.String("merged-message", "", "optional message name (e.g. AuditEvent) for a single flat message unioning all selected classes, emitted alongside the per-class files; empty disables merged emission")
+	mergedOnlyFlag := fs.Bool("merged-only", false, "emit only the merged message and shared objects, suppressing per-class proto and Schema Registry files (requires --merged-message)")
 	mergedSRSubjectFlag := fs.String("merged-sr-subject", "", "optional Schema Registry subject; annotates the merged message with (redpanda.api.common.v1.schema_registry) for protoc-gen-go-sr-normalize (requires --merged-message)")
 	icebergCompatFlag := fs.Bool("iceberg-compat", false, "prune fields Redpanda Iceberg/Oxla cannot represent (google.protobuf.Value fields, recursion back-edges, dotted field paths over 63 chars) before emission; writes ocsf/v<N>/iceberg-compat-prunes.txt")
 	srGoPackageFlag := fs.String("sr-go-package", "", "Go package name for the generated <name>.sr.go companions under --sr-schema-out (default: derived from the OCSF major version, e.g. ocsfv1)")
+	srGoOnlyFlag := fs.Bool("sr-go-only", false, "emit only the .sr.go schema embeds under --sr-schema-out, suppressing the intermediate .sr.proto files")
 
 	if err := fs.Parse(args); err != nil {
 		return err
@@ -149,9 +153,11 @@ func run(args []string) error {
 		Check:           *checkFlag,
 		SRSchemaOutDir:  *srSchemaOutFlag,
 		MergedMessage:   *mergedMessageFlag,
+		MergedOnly:      *mergedOnlyFlag,
 		MergedSRSubject: *mergedSRSubjectFlag,
 		IcebergCompat:   *icebergCompatFlag,
 		SRGoPackage:     *srGoPackageFlag,
+		SRGoOnly:        *srGoOnlyFlag,
 	}
 
 	if cfg.Check {

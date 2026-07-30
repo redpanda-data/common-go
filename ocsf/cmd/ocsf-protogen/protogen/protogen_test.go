@@ -434,6 +434,109 @@ func TestGenerateMergedThenCheck(t *testing.T) {
 		"--check must pass immediately after Generate on the same merged baseline")
 }
 
+// TestGenerateMergedOnlyThenCheck verifies MergedOnly suppresses every
+// per-class proto and SR artifact while retaining the merged message, its
+// shared objects dependency, and native --check support.
+func TestGenerateMergedOnlyThenCheck(t *testing.T) {
+	dir := t.TempDir()
+	srDir := t.TempDir()
+	tagmapPath := filepath.Join(dir, "field-numbers.json")
+
+	cfg := protogen.Config{
+		SchemaPath:      schemaFixture(),
+		Classes:         []string{"api_activity", "entity_management"},
+		Version:         "1.8.0",
+		OutDir:          dir,
+		TagmapPath:      tagmapPath,
+		SRSchemaOutDir:  srDir,
+		MergedMessage:   "AuditEvent",
+		MergedOnly:      true,
+		MergedSRSubject: "redpanda.ocsf.audit-events-value",
+		SRGoOnly:        true,
+	}
+
+	_, err := protogen.Generate(cfg)
+	require.NoError(t, err)
+
+	require.FileExists(t, filepath.Join(dir, "ocsf", "v1", "audit_event.proto"))
+	require.FileExists(t, filepath.Join(dir, "ocsf", "v1", "objects.proto"))
+	require.NoFileExists(t, filepath.Join(dir, "ocsf", "v1", "api_activity.proto"))
+	require.NoFileExists(t, filepath.Join(dir, "ocsf", "v1", "entity_management.proto"))
+
+	require.FileExists(t, filepath.Join(srDir, "audit_event.sr.go"))
+	require.NoFileExists(t, filepath.Join(srDir, "audit_event.sr.proto"))
+	require.NoFileExists(t, filepath.Join(srDir, "api_activity.sr.proto"))
+	require.NoFileExists(t, filepath.Join(srDir, "api_activity.sr.go"))
+	require.NoFileExists(t, filepath.Join(srDir, "entity_management.sr.proto"))
+	require.NoFileExists(t, filepath.Join(srDir, "entity_management.sr.go"))
+
+	checkCfg := cfg
+	checkCfg.Check = true
+	require.NoError(t, protogen.Check(checkCfg),
+		"--check must pass immediately after Generate on the same merged-only baseline")
+}
+
+// TestGenerateMergedOnlyMatchesMergedOutput verifies selecting only the merged
+// layout changes the file set, not the merged wire schema.
+func TestGenerateMergedOnlyMatchesMergedOutput(t *testing.T) {
+	full := protogen.Config{
+		SchemaPath:      schemaFixture(),
+		Classes:         []string{"api_activity", "entity_management"},
+		Version:         "1.8.0",
+		OutDir:          t.TempDir(),
+		SRSchemaOutDir:  t.TempDir(),
+		MergedMessage:   "AuditEvent",
+		MergedSRSubject: "redpanda.ocsf.audit-events-value",
+	}
+	full.TagmapPath = filepath.Join(full.OutDir, "field-numbers.json")
+
+	mergedOnly := full
+	mergedOnly.OutDir = t.TempDir()
+	mergedOnly.TagmapPath = filepath.Join(mergedOnly.OutDir, "field-numbers.json")
+	mergedOnly.SRSchemaOutDir = t.TempDir()
+	mergedOnly.MergedOnly = true
+
+	_, err := protogen.Generate(full)
+	require.NoError(t, err)
+	_, err = protogen.Generate(mergedOnly)
+	require.NoError(t, err)
+
+	for _, path := range []string{
+		"ocsf/v1/audit_event.proto",
+		"ocsf/v1/objects.proto",
+	} {
+		fullContent, err := os.ReadFile(filepath.Join(full.OutDir, filepath.FromSlash(path)))
+		require.NoError(t, err)
+		mergedOnlyContent, err := os.ReadFile(filepath.Join(mergedOnly.OutDir, filepath.FromSlash(path)))
+		require.NoError(t, err)
+		require.Equal(t, fullContent, mergedOnlyContent, "merged output differs for %s", path)
+	}
+	for _, name := range []string{"audit_event.sr.proto", "audit_event.sr.go"} {
+		fullContent, err := os.ReadFile(filepath.Join(full.SRSchemaOutDir, name))
+		require.NoError(t, err)
+		mergedOnlyContent, err := os.ReadFile(filepath.Join(mergedOnly.SRSchemaOutDir, name))
+		require.NoError(t, err)
+		require.Equal(t, fullContent, mergedOnlyContent, "merged SR output differs for %s", name)
+	}
+}
+
+// TestGenerateMergedOnlyRequiresMergedMessage verifies the selection cannot be
+// enabled without naming the merged message to emit.
+func TestGenerateMergedOnlyRequiresMergedMessage(t *testing.T) {
+	dir := t.TempDir()
+	cfg := protogen.Config{
+		SchemaPath: schemaFixture(),
+		Classes:    []string{"api_activity"},
+		Version:    "1.8.0",
+		OutDir:     dir,
+		TagmapPath: filepath.Join(dir, "field-numbers.json"),
+		MergedOnly: true,
+	}
+
+	_, err := protogen.Generate(cfg)
+	require.ErrorContains(t, err, "--merged-only requires --merged-message")
+}
+
 // TestGenerateSRSubjectRequiresMergedMessage verifies the flag dependency:
 // --merged-sr-subject without --merged-message is a configuration error.
 func TestGenerateSRSubjectRequiresMergedMessage(t *testing.T) {
@@ -811,6 +914,61 @@ func TestGenerateSRGoPackageOverride(t *testing.T) {
 	classGo, err := os.ReadFile(filepath.Join(srDir, "api_activity.sr.go"))
 	require.NoError(t, err)
 	require.Contains(t, string(classGo), "package auditschema\n")
+}
+
+// TestGenerateSRGoOnly verifies consumers can commit the Go schema embeds
+// without also retaining their intermediate .sr.proto inputs.
+func TestGenerateSRGoOnly(t *testing.T) {
+	dir := t.TempDir()
+	srDir := t.TempDir()
+
+	cfg := protogen.Config{
+		SchemaPath:      schemaFixture(),
+		Classes:         []string{"api_activity", "entity_management"},
+		Version:         "1.8.0",
+		OutDir:          dir,
+		TagmapPath:      filepath.Join(dir, "field-numbers.json"),
+		SRSchemaOutDir:  srDir,
+		MergedMessage:   "AuditEvent",
+		MergedSRSubject: "redpanda.ocsf.audit-events-value",
+		SRGoOnly:        true,
+	}
+
+	_, err := protogen.Generate(cfg)
+	require.NoError(t, err)
+
+	for _, name := range []string{
+		"api_activity.sr.go",
+		"entity_management.sr.go",
+		"audit_event.sr.go",
+	} {
+		require.FileExists(t, filepath.Join(srDir, name))
+	}
+	for _, name := range []string{
+		"api_activity.sr.proto",
+		"entity_management.sr.proto",
+		"audit_event.sr.proto",
+	} {
+		require.NoFileExists(t, filepath.Join(srDir, name))
+	}
+
+	checkCfg := cfg
+	checkCfg.Check = true
+	require.NoError(t, protogen.Check(checkCfg))
+}
+
+func TestGenerateSRGoOnlyRequiresSchemaOut(t *testing.T) {
+	cfg := protogen.Config{
+		SchemaPath: schemaFixture(),
+		Classes:    []string{"api_activity"},
+		Version:    "1.8.0",
+		OutDir:     t.TempDir(),
+		TagmapPath: filepath.Join(t.TempDir(), "field-numbers.json"),
+		SRGoOnly:   true,
+	}
+
+	_, err := protogen.Generate(cfg)
+	require.ErrorContains(t, err, "--sr-go-only requires --sr-schema-out")
 }
 
 // TestCheckFailsOnStraySRGo verifies --check detects a committed *.sr.go the

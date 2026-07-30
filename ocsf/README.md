@@ -16,11 +16,12 @@ exported as OCSF JSON at the boundary.
 Two artifacts are the point of this module; two more keep them safe to evolve.
 
 1. **Proto source files** under `ocsf/v<N>/`: one message per selected class
-   plus the merged single-event message, all sharing `objects.proto`. Fields
-   carry wire-stable numbers from the tagmap and `buf.validate` annotations
-   (required levels, plus class-aware CEL rules on the merged message), so
-   protovalidate enforces OCSF semantics on every event before it is
-   published. With `--merged-sr-subject`, the merged message also carries the
+   and, when requested, the merged single-event message, all sharing
+   `objects.proto`. `--merged-only` suppresses the per-class files. Fields carry
+   wire-stable numbers from the tagmap and `buf.validate` annotations (required
+   levels, plus class-aware CEL rules on the merged message), so protovalidate
+   enforces OCSF semantics on every event before it is published. With
+   `--merged-sr-subject`, the merged message also carries the
    `(redpanda.api.common.v1.schema_registry)` annotation that drives
    `protoc-gen-go-sr-normalize`.
 2. **Generated Go code**, produced from those protos with `buf generate` and
@@ -35,7 +36,8 @@ Two artifacts are the point of this module; two more keep them safe to evolve.
    Register as-is. Each one gets a `<name>.sr.go` companion embedding the
    schema text (and, for the merged message, the subject) as Go constants
    (`<MessageName>SRSchema`, `<MessageName>SRSubject`), so consumers never
-   hand-embed the proto text.
+   hand-embed the proto text. `--sr-go-only` emits only those Go companions
+   when consumers do not need the intermediate `.sr.proto` files.
 4. **The tagmap** (`field-numbers.json`): the append-only field-number map
    that keeps every regeneration wire-compatible with the previous one,
    enforced in CI by `--compat-check`.
@@ -46,9 +48,9 @@ Two artifacts are the point of this module; two more keep them safe to evolve.
 
 ### Layouts
 
-The generator emits two layouts from one tagmap:
+The generator can emit two layouts from one tagmap:
 
-- **Per-class** (always): one message per class (`ApiActivity`,
+- **Per-class** (default): one message per class (`ApiActivity`,
   `EntityManagement`, ...), one file each, plus a shared `objects.proto`.
 - **Merged single-event** (`--merged-message AuditEvent`): ONE flat message
   holding the union of all selected classes' attributes, for a single
@@ -59,6 +61,9 @@ The generator emits two layouts from one tagmap:
   validation is generated as protovalidate CEL: `type_uid == class_uid * 100 +
   activity_id`, per-class field ownership, and per-class requiredness. A
   merged event exports OCSF JSON identical to the per-class message.
+
+By default, `--merged-message` adds the merged layout alongside the per-class
+layout. `--merged-only` emits only the merged message and `objects.proto`.
 
 ### Packages
 
@@ -84,12 +89,17 @@ go run ./cmd/ocsf-protogen \
   --out     out-dir \
   --tagmap  field-numbers.json \
   --merged-message AuditEvent \
-  --sr-schema-out sr-dir
+  --merged-only \
+  --sr-schema-out sr-dir \
+  --sr-go-only
 ```
 
 - `--merged-message <Name>` additionally emits the merged single-event layout
   (`ocsf/v<N>/<snake_name>.proto`, and `<snake_name>.sr.proto` under
   `--sr-schema-out`).
+- `--merged-only` suppresses the per-class proto and Schema Registry files,
+  leaving the merged message and shared `objects.proto`. Requires
+  `--merged-message`.
 - `--merged-sr-subject <subject>` annotates the merged message with
   `(redpanda.api.common.v1.schema_registry) = { subject: "..." }` (from
   `buf.build/redpandadata/common`). Consumers that run
@@ -104,6 +114,9 @@ go run ./cmd/ocsf-protogen \
   prefer the annotation plus `protoc-gen-go-sr-normalize`.
 - `--sr-go-package <name>` sets the Go package of the `.sr.go` companions.
   Default is derived from the OCSF major version: `1.8.0` → `ocsfv1`.
+- `--sr-go-only` writes only the `.sr.go` schema embeds under
+  `--sr-schema-out`, omitting their intermediate `.sr.proto` files. Requires
+  `--sr-schema-out`.
 - `--iceberg-compat` prunes the schema model before emission so the merged
   event topic can be Iceberg-enabled and queried from Oxla (see below).
 - `--check` regenerates and fails on output drift or newly-stubbed objects.
