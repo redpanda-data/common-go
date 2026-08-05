@@ -45,6 +45,10 @@ Two artifacts are the point of this module; two more keep them safe to evolve.
    (`ocsf/v<N>/iceberg-compat-prunes.txt`), one sorted
    `<Message>.<field> <rule>` line per field dropped from the emitted protos,
    so fidelity loss is diffable across OCSF versions.
+6. With `--mask-file`: **the read-mask report**
+   (`ocsf/v<N>/read-mask-report.txt`), the resolved keep set plus every leaf
+   column the mask kept without being asked to, so the published contract is
+   reviewable as a diff.
 
 ### Layouts
 
@@ -119,9 +123,83 @@ go run ./cmd/ocsf-protogen \
   `--sr-schema-out`.
 - `--iceberg-compat` prunes the schema model before emission so the merged
   event topic can be Iceberg-enabled and queried from Oxla (see below).
+- `--mask-file <path>` narrows the schema to an allowlist of attribute paths
+  before anything else runs (see below).
 - `--check` regenerates and fails on output drift or newly-stubbed objects.
 - `--compat-check --old <a> --new <b>` fails if field numbers changed
   incompatibly between two tag maps (used in CI against the base branch).
+
+### `--mask-file` (read mask)
+
+An OCSF class is enormous: `api_activity` + `entity_management` reach ~100
+message types and thousands of leaf columns, while a typical producer populates
+a few dozen fields. Publishing the whole thing costs every consumer — and an
+Iceberg-enabled topic pays for it per column on `REFRESH`.
+
+`--mask-file` takes an allowlist of root-relative attribute paths and drops
+everything else from the model before any emission, so the per-class protos, the
+merged message, the SR schemas and the validation rules all describe the same
+narrowed contract:
+
+```yaml
+version: 1
+paths:
+  - time
+  - actor.user.email_addr
+  - api.response.code
+  - metadata.*
+```
+
+- A path ending in `.*` keeps a message-typed field's **whole subtree**
+  (transitively). Any other path must end on a scalar; stopping on a
+  message-typed field is an error that names the fix, so a mask cannot silently
+  produce an empty message.
+- The mask is **closed upward**: list leaves, not prefixes. `actor.user.email_addr`
+  retains the `actor` and `actor.user` edges automatically.
+- A path that does not resolve against the schema **fails generation**. That is
+  the point of an allowlist: an OCSF rename stops matching, and CI says so
+  instead of quietly dropping a column consumers query.
+- Constraints (`at_least_one` / `just_one`) naming a dropped attribute are
+  scrubbed, so the emitted CEL never references a field that no longer exists.
+- With `--merged-message`, the class discriminators (`category_uid`,
+  `class_uid`, `type_uid`) may not be masked away: the merged emitter gates its
+  CEL on `class_uid` and readers demux the single topic on the trio.
+
+**Type-scoped semantics.** Paths are written root-relative because that is how
+consumers think about the event, but they are applied per message **type**:
+`actor.user.email_addr` keeps `User.email_addr` wherever `User` is embedded. The
+schema model is a graph of shared object types, so a per-path mask would mean
+specialising a type per embedding path — a message explosion that would also
+break the tagmap's `(message, attribute)` identity. The gap is reported rather
+than hidden: every leaf column the output carries that no path asked for is
+listed in the widening section of `read-mask-report.txt`. In practice the gap is
+small, because sharing falls away as paths are closed — a type embedded at
+fifteen paths in the full schema is usually reachable by one after masking.
+
+**Wire stability.** Masking never renumbers. Excluded attributes are simply
+never assigned, so they keep their `field-numbers.json` entries, the tagmap file
+does not shrink, `--compat-check` stays clean, and **un-masking a field later
+restores its original field number**. Starting narrow is therefore cheap and
+reversible: adding this mask to an existing baseline leaves the committed tagmap
+byte-identical.
+
+> **Do not regenerate `field-numbers.json` from scratch once a mask is in
+> place.** The tagmap is what carries the excluded fields' numbers; bootstrapping
+> a fresh one under a mask assigns the surviving fields compact numbers from 1
+> instead, silently renumbering the whole schema. CI's `--compat-check` against
+> the base branch catches exactly this, which is why that gate matters more once
+> a mask exists.
+
+**Ordering.** The mask runs before `--iceberg-compat`, and that ordering pays:
+the prune rules react to the shape of the model (R3 demotes an edge because a
+dotted path overflows 63 chars, R4 drops edges to emptied types), so removing
+the deep subtrees first means far fewer fields have to collapse into JSON
+strings. On the OCSF 1.8.0 fixture the mask above takes `--iceberg-compat` from
+55 demotions to 3.
+
+The mask itself is consumer policy, not generator knowledge: which fields you
+publish belongs in your repo next to your committed output, the same way
+`--classes` and `--merged-message` do.
 
 ### `--iceberg-compat`
 

@@ -37,6 +37,28 @@
 // and fields whose dotted path from a root exceeds 63 chars are removed. The
 // pruned fields are recorded in <out>/ocsf/v<N>/iceberg-compat-prunes.txt.
 //
+// --mask-file narrows the schema to an allowlist of root-relative attribute
+// paths (a "read mask") before anything else runs, so the whole OCSF class need
+// not be published to use one field of it:
+//
+//	version: 1
+//	paths:
+//	  - time
+//	  - actor.user.email_addr
+//	  - metadata.*
+//
+// A path ending in ".*" keeps a message-typed field's whole subtree; any other
+// path must end on a scalar. Paths are applied per message TYPE, so
+// actor.user.email_addr keeps User.email_addr wherever User is embedded; every
+// leaf column that no path asked for is listed in the widening section of
+// <out>/ocsf/v<N>/read-mask-report.txt. A path that does not resolve against the
+// schema is an error, so a renamed OCSF attribute fails generation rather than
+// silently narrowing the published contract.
+//
+// Masking never renumbers: excluded attributes keep their --tagmap entries, so
+// --compat-check stays clean and un-masking a field later restores its original
+// field number.
+//
 // When --sr-schema-out is set, each emitted <name>.sr.proto gets a companion
 // <name>.sr.go embedding the schema text (and, for the merged message, the
 // subject) as Go constants; --sr-go-only suppresses the intermediate
@@ -111,6 +133,7 @@ func run(args []string) error {
 	icebergCompatFlag := fs.Bool("iceberg-compat", false, "prune fields Redpanda Iceberg/Oxla cannot represent (google.protobuf.Value fields, recursion back-edges, dotted field paths over 63 chars) before emission; writes ocsf/v<N>/iceberg-compat-prunes.txt")
 	srGoPackageFlag := fs.String("sr-go-package", "", "Go package name for the generated <name>.sr.go companions under --sr-schema-out (default: derived from the OCSF major version, e.g. ocsfv1)")
 	srGoOnlyFlag := fs.Bool("sr-go-only", false, "emit only the .sr.go schema embeds under --sr-schema-out, suppressing the intermediate .sr.proto files")
+	maskFileFlag := fs.String("mask-file", "", "optional read-mask YAML listing the root-relative attribute paths to keep (e.g. actor.user.email_addr, metadata.*); everything else is dropped before emission and ocsf/v<N>/read-mask-report.txt records the result")
 
 	if err := fs.Parse(args); err != nil {
 		return err
@@ -158,6 +181,7 @@ func run(args []string) error {
 		IcebergCompat:   *icebergCompatFlag,
 		SRGoPackage:     *srGoPackageFlag,
 		SRGoOnly:        *srGoOnlyFlag,
+		MaskPath:        *maskFileFlag,
 	}
 
 	if cfg.Check {

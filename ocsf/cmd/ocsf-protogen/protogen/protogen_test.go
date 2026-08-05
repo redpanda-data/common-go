@@ -998,3 +998,314 @@ func TestCheckFailsOnStraySRGo(t *testing.T) {
 	require.Error(t, err, "--check must fail on a stray committed .sr.go")
 	require.Contains(t, err.Error(), "dropped_class.sr.go")
 }
+
+// cloudMaskYAML is a read mask close to what a real single-topic audit-log
+// consumer publishes: the fields it actually populates, and nothing else. It
+// doubles as the fixture proving the mask scales down the real OCSF schema, not
+// just a synthetic one.
+const cloudMaskYAML = `version: 1
+paths:
+  - action_id
+  - activity_id
+  - actor.app_name
+  - actor.app_uid
+  - actor.invoked_by
+  - actor.user.email_addr
+  - actor.user.name
+  - api.operation
+  - api.request.data
+  - api.request.flags
+  - api.response.code
+  - api.response.data
+  - api.response.error
+  - api.response.flags
+  - api.service.name
+  - authorizations.decision
+  - authorizations.policy.is_applied
+  - authorizations.policy.name
+  - authorizations.policy.uid
+  - category_uid
+  - class_uid
+  - disposition_id
+  - entity.data
+  - entity.name
+  - entity.type
+  - entity.uid
+  - entity_result.data
+  - entity_result.name
+  - entity_result.type
+  - entity_result.uid
+  - message
+  - metadata.product.feature.name
+  - metadata.product.name
+  - metadata.product.vendor_name
+  - metadata.profiles
+  - metadata.tenant_uid
+  - metadata.uid
+  - metadata.version
+  - policy.is_applied
+  - policy.name
+  - policy.uid
+  - resources.name
+  - resources.type
+  - resources.uid
+  - severity_id
+  - src_endpoint.ip
+  - src_endpoint.svc_name
+  - status_detail
+  - status_id
+  - time
+  - type_uid
+`
+
+// writeMask writes a mask file into dir and returns its path.
+func writeMask(t *testing.T, dir, body string) string {
+	t.Helper()
+	path := filepath.Join(dir, "read-mask.yaml")
+	require.NoError(t, os.WriteFile(path, []byte(body), 0o600))
+	return path
+}
+
+// TestGenerateWithMaskThenCheck is the end-to-end case against the real OCSF
+// schema: a mask of the fields a consumer publishes collapses the emitted model
+// by nearly two orders of magnitude, the report sidecar records it, and --check
+// round-trips on the masked baseline.
+func TestGenerateWithMaskThenCheck(t *testing.T) {
+	dir := t.TempDir()
+	srDir := t.TempDir()
+
+	cfg := protogen.Config{
+		SchemaPath:      schemaFixture(),
+		Classes:         []string{"api_activity", "entity_management"},
+		Version:         "1.8.0",
+		OutDir:          dir,
+		TagmapPath:      filepath.Join(dir, "field-numbers.json"),
+		SRSchemaOutDir:  srDir,
+		MergedMessage:   "AuditEvent",
+		MergedOnly:      true,
+		MergedSRSubject: "redpanda.ocsf.audit-events-value",
+		SRGoOnly:        true,
+		IcebergCompat:   true,
+		MaskPath:        writeMask(t, dir, cloudMaskYAML),
+	}
+
+	_, err := protogen.Generate(cfg)
+	require.NoError(t, err)
+
+	// The keep set is reported against the class messages the mask resolves
+	// through; the merged AuditEvent is the union of those, so it has no keep
+	// entries of its own.
+	report, err := os.ReadFile(filepath.Join(dir, "ocsf", "v1", "read-mask-report.txt"))
+	require.NoError(t, err)
+	require.Contains(t, string(report), "leaf columns:")
+	require.Contains(t, string(report), "ApiActivity.actor")
+	require.Contains(t, string(report), "EntityManagement.entity_result")
+	require.Contains(t, string(report), "User.email_addr")
+	require.Contains(t, string(report), "# (none)", "this mask closes off every shared embedding")
+
+	// The masked schema must be dramatically smaller than the unmasked one, and
+	// must no longer carry the objects the mask closed off.
+	objects, err := os.ReadFile(filepath.Join(dir, "ocsf", "v1", "objects.proto"))
+	require.NoError(t, err)
+	require.Contains(t, string(objects), "message User {")
+	require.NotContains(t, string(objects), "message Osint ",
+		"osint is the single largest subtree and no mask path names it")
+	require.NotContains(t, string(objects), "message Malware ")
+	require.Less(t, strings.Count(string(objects), "\nmessage "), 30,
+		"the retained object closure should be a fraction of the ~100 messages OCSF reaches")
+
+	checkCfg := cfg
+	checkCfg.Check = true
+	require.NoError(t, protogen.Check(checkCfg),
+		"--check must pass immediately after Generate on the same masked baseline")
+}
+
+// TestMaskShrinksIcebergPrunes verifies the ordering payoff on the real schema:
+// masking first removes the deep subtrees that force R3 demotions, so far fewer
+// fields have to be collapsed into JSON strings to satisfy Iceberg/Oxla.
+func TestMaskShrinksIcebergPrunes(t *testing.T) {
+	countPrunes := func(t *testing.T, maskPath string) int {
+		t.Helper()
+		dir := t.TempDir()
+		cfg := protogen.Config{
+			SchemaPath:    schemaFixture(),
+			Classes:       []string{"api_activity", "entity_management"},
+			Version:       "1.8.0",
+			OutDir:        dir,
+			TagmapPath:    filepath.Join(dir, "field-numbers.json"),
+			MergedMessage: "AuditEvent",
+			IcebergCompat: true,
+			MaskPath:      maskPath,
+		}
+		_, err := protogen.Generate(cfg)
+		require.NoError(t, err)
+
+		body, err := os.ReadFile(filepath.Join(dir, "ocsf", "v1", "iceberg-compat-prunes.txt"))
+		require.NoError(t, err)
+		prunes := 0
+		for line := range strings.SplitSeq(string(body), "\n") {
+			if line != "" && !strings.HasPrefix(line, "#") {
+				prunes++
+			}
+		}
+		return prunes
+	}
+
+	unmasked := countPrunes(t, "")
+	masked := countPrunes(t, writeMask(t, t.TempDir(), cloudMaskYAML))
+
+	require.Positive(t, unmasked, "the full schema needs demotions to fit Iceberg")
+	require.Less(t, masked, unmasked/2,
+		"masking first should remove most of the fidelity loss (was %d prunes, now %d)", unmasked, masked)
+}
+
+// TestGenerateWithMaskPreservesFieldNumbers verifies the wire-stability
+// guarantee through the CLI layer: masking an existing baseline neither
+// renumbers the surviving fields nor shrinks the committed tagmap, so
+// --compat-check stays clean and the mask can be widened later for free.
+func TestGenerateWithMaskPreservesFieldNumbers(t *testing.T) {
+	dir := t.TempDir()
+	tagmapPath := filepath.Join(dir, "field-numbers.json")
+
+	base := protogen.Config{
+		SchemaPath:    schemaFixture(),
+		Classes:       []string{"api_activity", "entity_management"},
+		Version:       "1.8.0",
+		OutDir:        dir,
+		TagmapPath:    tagmapPath,
+		MergedMessage: "AuditEvent",
+		IcebergCompat: true,
+	}
+
+	// Generate unmasked first, so the tagmap holds every attribute.
+	_, err := protogen.Generate(base)
+	require.NoError(t, err)
+	unmasked, err := tagmap.Load(tagmapPath)
+	require.NoError(t, err)
+
+	// Now regenerate the same baseline with a mask.
+	masked := base
+	masked.OutDir = t.TempDir()
+	masked.MaskPath = writeMask(t, dir, cloudMaskYAML)
+	_, err = protogen.Generate(masked)
+	require.NoError(t, err)
+
+	after, err := tagmap.Load(tagmapPath)
+	require.NoError(t, err)
+	require.NoError(t, tagmap.CheckCompat(unmasked, after),
+		"masking must not renumber or drop tags — --compat-check runs exactly this")
+
+	for _, attr := range []string{"actor", "time", "osint", "malware"} {
+		want, ok := unmasked.Tag("AuditEvent", attr)
+		require.True(t, ok, "baseline assigned %q", attr)
+		got, ok := after.Tag("AuditEvent", attr)
+		require.True(t, ok, "masked run kept the tagmap entry for %q", attr)
+		require.Equal(t, want, got, "field number for %q must not move", attr)
+	}
+}
+
+// TestGenerateWithMaskRejectsDroppedDiscriminator verifies the merged emission's
+// hard dependency is enforced at generation time: without class_uid the merged
+// CEL would reference a field that no longer exists.
+func TestGenerateWithMaskRejectsDroppedDiscriminator(t *testing.T) {
+	dir := t.TempDir()
+
+	cfg := protogen.Config{
+		SchemaPath:    schemaFixture(),
+		Classes:       []string{"api_activity", "entity_management"},
+		Version:       "1.8.0",
+		OutDir:        dir,
+		TagmapPath:    filepath.Join(dir, "field-numbers.json"),
+		MergedMessage: "AuditEvent",
+		MaskPath:      writeMask(t, dir, "version: 1\npaths:\n  - time\n  - category_uid\n  - type_uid\n"),
+	}
+
+	_, err := protogen.Generate(cfg)
+	require.ErrorContains(t, err, `lost "class_uid"`)
+}
+
+// TestGenerateWithMaskUnresolvedPath verifies an allowlist entry that no longer
+// matches the schema fails generation. This is what stops an OCSF rename from
+// silently dropping a column consumers query.
+func TestGenerateWithMaskUnresolvedPath(t *testing.T) {
+	dir := t.TempDir()
+
+	cfg := protogen.Config{
+		SchemaPath: schemaFixture(),
+		Classes:    []string{"api_activity"},
+		Version:    "1.8.0",
+		OutDir:     dir,
+		TagmapPath: filepath.Join(dir, "field-numbers.json"),
+		MaskPath:   writeMask(t, dir, "version: 1\npaths:\n  - time\n  - actor.user.emial_addr\n"),
+	}
+
+	_, err := protogen.Generate(cfg)
+	require.ErrorContains(t, err, `has no attribute "emial_addr"`)
+}
+
+// TestGenerateWithMissingMaskFile verifies a bad --mask-file path fails loudly
+// rather than falling back to emitting the whole schema.
+func TestGenerateWithMissingMaskFile(t *testing.T) {
+	dir := t.TempDir()
+
+	cfg := protogen.Config{
+		SchemaPath: schemaFixture(),
+		Classes:    []string{"api_activity"},
+		Version:    "1.8.0",
+		OutDir:     dir,
+		TagmapPath: filepath.Join(dir, "field-numbers.json"),
+		MaskPath:   filepath.Join(dir, "does-not-exist.yaml"),
+	}
+
+	_, err := protogen.Generate(cfg)
+	require.ErrorContains(t, err, "read mask file")
+}
+
+// TestMaskFromScratchTagmapRenumbers pins the sharp edge the README warns about:
+// the tagmap is what carries an excluded field's number, so bootstrapping a fresh
+// tagmap under a mask assigns the survivors compact numbers instead of their
+// original ones. It is not a bug — there is nothing to preserve — but it means a
+// tagmap must never be regenerated from scratch once a mask exists, and
+// --compat-check is the gate that catches it.
+func TestMaskFromScratchTagmapRenumbers(t *testing.T) {
+	base := func(dir, maskPath string) protogen.Config {
+		return protogen.Config{
+			SchemaPath:    schemaFixture(),
+			Classes:       []string{"api_activity", "entity_management"},
+			Version:       "1.8.0",
+			OutDir:        dir,
+			TagmapPath:    filepath.Join(dir, "field-numbers.json"),
+			MergedMessage: "AuditEvent",
+			IcebergCompat: true,
+			MaskPath:      maskPath,
+		}
+	}
+
+	fullDir := t.TempDir()
+	_, err := protogen.Generate(base(fullDir, ""))
+	require.NoError(t, err)
+	full, err := tagmap.Load(filepath.Join(fullDir, "field-numbers.json"))
+	require.NoError(t, err)
+
+	scratchDir := t.TempDir()
+	_, err = protogen.Generate(base(scratchDir, writeMask(t, scratchDir, cloudMaskYAML)))
+	require.NoError(t, err)
+	scratch, err := tagmap.Load(filepath.Join(scratchDir, "field-numbers.json"))
+	require.NoError(t, err)
+
+	// The survivors got compacted numbers, so at least one moved.
+	moved := false
+	for _, attr := range []string{"actor", "api", "metadata", "time", "type_uid"} {
+		want, ok := full.Tag("ApiActivity", attr)
+		require.True(t, ok)
+		got, ok := scratch.Tag("ApiActivity", attr)
+		require.True(t, ok)
+		if want != got {
+			moved = true
+		}
+	}
+	require.True(t, moved, "a from-scratch masked tagmap compacts field numbers")
+
+	require.Error(t, tagmap.CheckCompat(full, scratch),
+		"--compat-check must reject a from-scratch masked tagmap against the full baseline")
+}

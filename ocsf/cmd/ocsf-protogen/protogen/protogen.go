@@ -74,6 +74,17 @@ type Config struct {
 	// embeds under SRSchemaOutDir and suppresses their intermediate
 	// <name>.sr.proto files. Requires SRSchemaOutDir.
 	SRGoOnly bool
+	// MaskPath, when non-empty, is the path to a read-mask YAML file listing
+	// the root-relative attribute paths to keep. Everything else is dropped
+	// from the model BEFORE any emission, so the per-class protos, the merged
+	// message, the SR schemas and the validation rules all describe the same
+	// narrowed contract. A sidecar (ocsf/v<N>/read-mask-report.txt) records the
+	// resolved keep set. Empty emits the full schema (today's behaviour).
+	//
+	// The mask is generator policy, not generator knowledge: which fields a
+	// consumer publishes lives in the consumer's repo next to its committed
+	// output, the same way --classes and --merged-message do.
+	MaskPath string
 }
 
 // Generate loads the schema, emits the proto, writes --out and --tagmap.
@@ -134,23 +145,14 @@ func Generate(cfg Config) (stubbed []string, err error) {
 // from the shared tagmap); the duplicate is dropped after an equality check so
 // a divergence surfaces as an error instead of a silent overwrite.
 //
-// When cfg.IcebergCompat is set, the schema model is pruned in place first —
-// the caller-visible *schema.Schema mutates, so a later emitAllSRSchemas call
-// on the same instance emits the same pruned shape — and the prune sidecar
-// file is appended to the returned file list.
+// When cfg.MaskPath or cfg.IcebergCompat is set, narrowModel shrinks the schema
+// model in place first — the caller-visible *schema.Schema mutates, so a later
+// emitAllSRSchemas call on the same instance emits the same shape — and the
+// corresponding sidecar files are appended to the returned file list.
 func emitAll(s *schema.Schema, cfg Config, tm *tagmap.TagMap) (files []gen.GeneratedFile, stubbed []string, err error) {
-	var sidecar *gen.GeneratedFile
-	if cfg.IcebergCompat {
-		prunes, pruneErr := gen.PruneForIceberg(s, cfg.Classes)
-		if pruneErr != nil {
-			return nil, nil, fmt.Errorf("iceberg-compat prune: %w", pruneErr)
-		}
-		f, sidecarErr := gen.PruneSidecarFile(cfg.Version, prunes)
-		if sidecarErr != nil {
-			return nil, nil, fmt.Errorf("iceberg-compat sidecar: %w", sidecarErr)
-		}
-		sidecar = &f
-		fmt.Fprintf(os.Stderr, "iceberg-compat: pruned %d fields (see %s)\n", len(prunes), f.Path)
+	sidecars, err := narrowModel(s, cfg)
+	if err != nil {
+		return nil, nil, err
 	}
 
 	if !cfg.MergedOnly {
@@ -164,7 +166,7 @@ func emitAll(s *schema.Schema, cfg Config, tm *tagmap.TagMap) (files []gen.Gener
 		if strings.TrimSpace(cfg.MergedSRSubject) != "" {
 			return nil, nil, errors.New("--merged-sr-subject requires --merged-message")
 		}
-		files, err = finishEmit(files, sidecar, cfg)
+		files, err = finishEmit(files, sidecars, cfg)
 		return files, stubbed, err
 	}
 
@@ -177,7 +179,7 @@ func emitAll(s *schema.Schema, cfg Config, tm *tagmap.TagMap) (files []gen.Gener
 		return nil, nil, fmt.Errorf("emit merged proto: %w", err)
 	}
 	if cfg.MergedOnly {
-		files, err = finishEmit(mergedFiles, sidecar, cfg)
+		files, err = finishEmit(mergedFiles, sidecars, cfg)
 		return files, mergedStubbed, err
 	}
 	// Stub sets are identical by construction (same classes, same closure), so
@@ -198,16 +200,14 @@ func emitAll(s *schema.Schema, cfg Config, tm *tagmap.TagMap) (files []gen.Gener
 			return nil, nil, fmt.Errorf("merged emission produced %q with different content than per-class emission", f.Path)
 		}
 	}
-	files, err = finishEmit(files, sidecar, cfg)
+	files, err = finishEmit(files, sidecars, cfg)
 	return files, stubbed, err
 }
 
-// finishEmit appends the iceberg-compat sidecar (when present), sorts the file
-// list, and runs the iceberg-compat post-condition.
-func finishEmit(files []gen.GeneratedFile, sidecar *gen.GeneratedFile, cfg Config) ([]gen.GeneratedFile, error) {
-	if sidecar != nil {
-		files = append(files, *sidecar)
-	}
+// finishEmit appends the read-mask and iceberg-compat sidecars (whichever are
+// present), sorts the file list, and runs the iceberg-compat post-condition.
+func finishEmit(files []gen.GeneratedFile, sidecars []gen.GeneratedFile, cfg Config) ([]gen.GeneratedFile, error) {
+	files = append(files, sidecars...)
 	sort.Slice(files, func(i, j int) bool { return files[i].Path < files[j].Path })
 	if cfg.IcebergCompat {
 		if err := assertNoStructImport(files); err != nil {
@@ -215,6 +215,83 @@ func finishEmit(files []gen.GeneratedFile, sidecar *gen.GeneratedFile, cfg Confi
 		}
 	}
 	return files, nil
+}
+
+// narrowModel applies the read mask and then the iceberg-compat prune, mutating
+// s in place, and returns their sidecar files in output order.
+//
+// The order matters: the prune rules react to the shape of the model (R3 demotes
+// an edge because a dotted path overflows 63 chars, R4 drops edges to emptied
+// types), so masking first means the deep subtrees that force those demotions
+// are already gone and the surviving fields stay typed instead of collapsing to
+// JSON strings.
+func narrowModel(s *schema.Schema, cfg Config) ([]gen.GeneratedFile, error) {
+	var sidecars []gen.GeneratedFile
+
+	if strings.TrimSpace(cfg.MaskPath) != "" {
+		f, err := applyMask(s, cfg)
+		if err != nil {
+			return nil, err
+		}
+		sidecars = append(sidecars, f)
+	}
+
+	if cfg.IcebergCompat {
+		prunes, err := gen.PruneForIceberg(s, cfg.Classes)
+		if err != nil {
+			return nil, fmt.Errorf("iceberg-compat prune: %w", err)
+		}
+		f, err := gen.PruneSidecarFile(cfg.Version, prunes)
+		if err != nil {
+			return nil, fmt.Errorf("iceberg-compat sidecar: %w", err)
+		}
+		sidecars = append(sidecars, f)
+		fmt.Fprintf(os.Stderr, "iceberg-compat: pruned %d fields (see %s)\n", len(prunes), f.Path)
+	}
+
+	return sidecars, nil
+}
+
+// applyMask loads cfg.MaskPath, narrows the schema model to the fields it names,
+// and returns the report sidecar.
+//
+// When a merged message is being emitted the class discriminators must survive,
+// or the merged emitter produces CEL referencing fields that no longer exist —
+// checked here rather than left to fail at protovalidate compile time.
+func applyMask(s *schema.Schema, cfg Config) (gen.GeneratedFile, error) {
+	data, err := os.ReadFile(filepath.Clean(cfg.MaskPath))
+	if err != nil {
+		return gen.GeneratedFile{}, fmt.Errorf("read mask file %q: %w", cfg.MaskPath, err)
+	}
+	mask, err := gen.ParseMask(data)
+	if err != nil {
+		return gen.GeneratedFile{}, fmt.Errorf("mask file %q: %w", cfg.MaskPath, err)
+	}
+
+	res, err := gen.MaskFields(s, cfg.Classes, mask)
+	if err != nil {
+		return gen.GeneratedFile{}, fmt.Errorf("apply mask %q: %w", cfg.MaskPath, err)
+	}
+	if strings.TrimSpace(cfg.MergedMessage) != "" {
+		if err := gen.VerifyMergedDiscriminators(s, cfg.Classes); err != nil {
+			return gen.GeneratedFile{}, err
+		}
+	}
+
+	f, err := gen.MaskReportFile(cfg.Version, res)
+	if err != nil {
+		return gen.GeneratedFile{}, fmt.Errorf("mask report: %w", err)
+	}
+	fmt.Fprintf(os.Stderr,
+		"read-mask: kept %d fields; leaf columns %d -> %d, message types %d -> %d (see %s)\n",
+		len(res.Kept), res.Stats.LeafPathsBefore, res.Stats.LeafPathsAfter,
+		res.Stats.MessagesBefore, res.Stats.MessagesAfter, f.Path)
+	if len(res.Widened) > 0 {
+		fmt.Fprintf(os.Stderr,
+			"read-mask: %d leaf columns kept that no mask path asked for (shared types); see the report\n",
+			len(res.Widened))
+	}
+	return f, nil
 }
 
 // assertNoStructImport is a belt-and-braces post-condition for
