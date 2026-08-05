@@ -36,8 +36,7 @@ Two artifacts are the point of this module; two more keep them safe to evolve.
    Register as-is. Each one gets a `<name>.sr.go` companion embedding the
    schema text (and, for the merged message, the subject) as Go constants
    (`<MessageName>SRSchema`, `<MessageName>SRSubject`), so consumers never
-   hand-embed the proto text. `--sr-go-only` emits only those Go companions
-   when consumers do not need the intermediate `.sr.proto` files.
+   hand-embed the proto text.
 4. **The tagmap** (`field-numbers.json`): the append-only field-number map
    that keeps every regeneration wire-compatible with the previous one,
    enforced in CI by `--compat-check`.
@@ -94,8 +93,7 @@ go run ./cmd/ocsf-protogen \
   --tagmap  field-numbers.json \
   --merged-message AuditEvent \
   --merged-only \
-  --sr-schema-out sr-dir \
-  --sr-go-only
+  --sr-schema-out sr-dir
 ```
 
 - `--merged-message <Name>` additionally emits the merged single-event layout
@@ -118,30 +116,27 @@ go run ./cmd/ocsf-protogen \
   prefer the annotation plus `protoc-gen-go-sr-normalize`.
 - `--sr-go-package <name>` sets the Go package of the `.sr.go` companions.
   Default is derived from the OCSF major version: `1.8.0` → `ocsfv1`.
-- `--sr-go-only` writes only the `.sr.go` schema embeds under
-  `--sr-schema-out`, omitting their intermediate `.sr.proto` files. Requires
-  `--sr-schema-out`.
 - `--iceberg-compat` prunes the schema model before emission so the merged
   event topic can be Iceberg-enabled and queried from Oxla (see below).
 - `--mask-file <path>` narrows the schema to an allowlist of attribute paths
   before anything else runs (see below).
 - `--check` regenerates and fails on output drift, stray artifacts, or
   newly-stubbed objects.
+- `--compat-check --old <a> --new <b>` fails if field numbers changed
+  incompatibly between two tag maps (used in CI against the base branch).
 
 Generation **reconciles** its output directories: a generator-managed artifact
 that the current run no longer produces is deleted, so narrowing the output
-(`--merged-only`, `--sr-go-only`, dropping `--mask-file`) is an ordinary
-regenerate-and-commit. Without that, switching an existing baseline to a narrower
-layout left the old files behind and `--check` rejected them as strays with no
-way to regenerate them away.
+(`--merged-only`, dropping `--mask-file`) is an ordinary regenerate-and-commit.
+Without that, switching an existing baseline to a narrower layout left the old
+files behind and `--check` rejected them as strays with no way to regenerate them
+away.
 
 Deletion is confined to the directories the generator writes into and to the
 names it owns — `*.proto` plus `iceberg-compat-prunes.txt` and
 `read-mask-report.txt` under `ocsf/v<N>/`, and `*.sr.proto`/`*.sr.go` under
 `--sr-schema-out`. `buf.yaml`, `buf.lock`, the tagmap and anything hand-added are
 never candidates.
-- `--compat-check --old <a> --new <b>` fails if field numbers changed
-  incompatibly between two tag maps (used in CI against the base branch).
 
 ### `--mask-file` (read mask)
 

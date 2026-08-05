@@ -71,10 +71,6 @@ type Config struct {
 	// SRSchemaOutDir. Empty derives the name from the schema version's major
 	// component ("1.8.0" → "ocsfv1"). Only used when SRSchemaOutDir is set.
 	SRGoPackage string
-	// SRGoOnly, when true, writes only the generated <name>.sr.go schema
-	// embeds under SRSchemaOutDir and suppresses their intermediate
-	// <name>.sr.proto files. Requires SRSchemaOutDir.
-	SRGoOnly bool
 	// MaskPath, when non-empty, is the path to a read-mask YAML file listing
 	// the root-relative attribute paths to keep. Everything else is dropped
 	// from the model BEFORE any emission, so the per-class protos, the merged
@@ -294,15 +290,13 @@ func applyMask(s *schema.Schema, cfg Config) (gen.GeneratedFile, error) {
 	if err != nil {
 		return gen.GeneratedFile{}, fmt.Errorf("mask report: %w", err)
 	}
+	// One line, matching the iceberg-compat prune line: the detail lives in the
+	// committed report, this is just the headline an operator wants after running
+	// generate.
 	fmt.Fprintf(os.Stderr,
-		"read-mask: kept %d fields; leaf columns %d -> %d, message types %d -> %d (see %s)\n",
-		len(res.Kept), res.Stats.LeafPathsBefore, res.Stats.LeafPathsAfter,
+		"read-mask: kept %d fields, %d widened; leaf columns %d -> %d, message types %d -> %d (see %s)\n",
+		len(res.Kept), len(res.Widened), res.Stats.LeafPathsBefore, res.Stats.LeafPathsAfter,
 		res.Stats.MessagesBefore, res.Stats.MessagesAfter, f.Path)
-	if len(res.Widened) > 0 {
-		fmt.Fprintf(os.Stderr,
-			"read-mask: %d leaf columns kept that no mask path asked for (shared types); see the report\n",
-			len(res.Widened))
-	}
 	return f, nil
 }
 
@@ -391,9 +385,6 @@ func emitAllSRSchemas(s *schema.Schema, cfg Config, tm *tagmap.TagMap) ([]gen.Ge
 		goFiles = append(goFiles, goFile)
 	}
 	srFiles = append(srFiles, goFiles...)
-	if cfg.SRGoOnly {
-		srFiles = goFiles
-	}
 
 	sort.Slice(srFiles, func(i, j int) bool { return srFiles[i].Path < srFiles[j].Path })
 	if cfg.IcebergCompat {
@@ -423,8 +414,8 @@ func writeFiles(outDir string, files []gen.GeneratedFile) error {
 // syncFiles writes files under root and then removes generator-managed artifacts
 // in the same directories that this run no longer produces.
 //
-// Without the removal step, narrowing the output (--merged-only, --sr-go-only,
-// --mask-file) leaves the previous layout's files on disk: --check reports them
+// Without the removal step, narrowing the output (--merged-only, --mask-file)
+// leaves the previous layout's files on disk: --check reports them
 // as strays, and its advice to "regenerate without --check" cannot clear them.
 // Reconciling makes broad -> narrow the ordinary regenerate-and-commit flow.
 //
@@ -443,6 +434,7 @@ func syncFiles(root string, files []gen.GeneratedFile, managed func(base string)
 		dirs[path.Dir(f.Path)] = struct{}{}
 	}
 
+	var removed []string
 	for dir := range dirs {
 		abs := filepath.Join(root, filepath.FromSlash(dir))
 		entries, err := os.ReadDir(abs)
@@ -466,8 +458,17 @@ func syncFiles(root string, files []gen.GeneratedFile, managed func(base string)
 			if err := os.Remove(filepath.Join(abs, e.Name())); err != nil {
 				return fmt.Errorf("remove stale generated file %q: %w", rel, err)
 			}
-			fmt.Fprintf(os.Stderr, "removed stale generated file %s\n", rel)
+			removed = append(removed, rel)
 		}
+	}
+
+	// Report deletions in one line — they are the surprising part of a generate
+	// run, so they are named rather than merely counted, but a narrowing
+	// transition can drop a dozen files and should not bury the rest of the output.
+	if len(removed) > 0 {
+		sort.Strings(removed)
+		fmt.Fprintf(os.Stderr, "removed %d stale generated file(s): %s\n",
+			len(removed), strings.Join(removed, ", "))
 	}
 	return nil
 }
@@ -558,9 +559,6 @@ func Check(cfg Config) error {
 func validateConfig(cfg Config) error {
 	if cfg.MergedOnly && strings.TrimSpace(cfg.MergedMessage) == "" {
 		return errors.New("--merged-only requires --merged-message")
-	}
-	if cfg.SRGoOnly && strings.TrimSpace(cfg.SRSchemaOutDir) == "" {
-		return errors.New("--sr-go-only requires --sr-schema-out")
 	}
 	return nil
 }

@@ -452,7 +452,6 @@ func TestGenerateMergedOnlyThenCheck(t *testing.T) {
 		MergedMessage:   "AuditEvent",
 		MergedOnly:      true,
 		MergedSRSubject: "redpanda.ocsf.audit-events-value",
-		SRGoOnly:        true,
 	}
 
 	_, err := protogen.Generate(cfg)
@@ -464,7 +463,7 @@ func TestGenerateMergedOnlyThenCheck(t *testing.T) {
 	require.NoFileExists(t, filepath.Join(dir, "ocsf", "v1", "entity_management.proto"))
 
 	require.FileExists(t, filepath.Join(srDir, "audit_event.sr.go"))
-	require.NoFileExists(t, filepath.Join(srDir, "audit_event.sr.proto"))
+	require.FileExists(t, filepath.Join(srDir, "audit_event.sr.proto"))
 	require.NoFileExists(t, filepath.Join(srDir, "api_activity.sr.proto"))
 	require.NoFileExists(t, filepath.Join(srDir, "api_activity.sr.go"))
 	require.NoFileExists(t, filepath.Join(srDir, "entity_management.sr.proto"))
@@ -916,61 +915,6 @@ func TestGenerateSRGoPackageOverride(t *testing.T) {
 	require.Contains(t, string(classGo), "package auditschema\n")
 }
 
-// TestGenerateSRGoOnly verifies consumers can commit the Go schema embeds
-// without also retaining their intermediate .sr.proto inputs.
-func TestGenerateSRGoOnly(t *testing.T) {
-	dir := t.TempDir()
-	srDir := t.TempDir()
-
-	cfg := protogen.Config{
-		SchemaPath:      schemaFixture(),
-		Classes:         []string{"api_activity", "entity_management"},
-		Version:         "1.8.0",
-		OutDir:          dir,
-		TagmapPath:      filepath.Join(dir, "field-numbers.json"),
-		SRSchemaOutDir:  srDir,
-		MergedMessage:   "AuditEvent",
-		MergedSRSubject: "redpanda.ocsf.audit-events-value",
-		SRGoOnly:        true,
-	}
-
-	_, err := protogen.Generate(cfg)
-	require.NoError(t, err)
-
-	for _, name := range []string{
-		"api_activity.sr.go",
-		"entity_management.sr.go",
-		"audit_event.sr.go",
-	} {
-		require.FileExists(t, filepath.Join(srDir, name))
-	}
-	for _, name := range []string{
-		"api_activity.sr.proto",
-		"entity_management.sr.proto",
-		"audit_event.sr.proto",
-	} {
-		require.NoFileExists(t, filepath.Join(srDir, name))
-	}
-
-	checkCfg := cfg
-	checkCfg.Check = true
-	require.NoError(t, protogen.Check(checkCfg))
-}
-
-func TestGenerateSRGoOnlyRequiresSchemaOut(t *testing.T) {
-	cfg := protogen.Config{
-		SchemaPath: schemaFixture(),
-		Classes:    []string{"api_activity"},
-		Version:    "1.8.0",
-		OutDir:     t.TempDir(),
-		TagmapPath: filepath.Join(t.TempDir(), "field-numbers.json"),
-		SRGoOnly:   true,
-	}
-
-	_, err := protogen.Generate(cfg)
-	require.ErrorContains(t, err, "--sr-go-only requires --sr-schema-out")
-}
-
 // TestCheckFailsOnStraySRGo verifies --check detects a committed *.sr.go the
 // generator no longer produces.
 func TestCheckFailsOnStraySRGo(t *testing.T) {
@@ -1084,7 +1028,6 @@ func TestGenerateWithMaskThenCheck(t *testing.T) {
 		MergedMessage:   "AuditEvent",
 		MergedOnly:      true,
 		MergedSRSubject: "redpanda.ocsf.audit-events-value",
-		SRGoOnly:        true,
 		IcebergCompat:   true,
 		MaskPath:        writeMask(t, dir, cloudMaskYAML),
 	}
@@ -1350,7 +1293,6 @@ func TestGenerateBroadToNarrowRemovesStrays(t *testing.T) {
 
 	narrow := broad
 	narrow.MergedOnly = true
-	narrow.SRGoOnly = true
 	_, err = protogen.Generate(narrow)
 	require.NoError(t, err)
 
@@ -1361,14 +1303,15 @@ func TestGenerateBroadToNarrowRemovesStrays(t *testing.T) {
 	for _, p := range []string{
 		"api_activity.sr.proto", "api_activity.sr.go",
 		"entity_management.sr.proto", "entity_management.sr.go",
-		"audit_event.sr.proto",
 	} {
 		require.NoFileExists(t, filepath.Join(srDir, p))
 	}
-	// ...and the narrow layout's are present.
+	// ...and the narrow layout's are present. --merged-only suppresses the
+	// per-class SR artifacts but keeps the merged pair.
 	require.FileExists(t, filepath.Join(dir, "ocsf", "v1", "audit_event.proto"))
 	require.FileExists(t, filepath.Join(dir, "ocsf", "v1", "objects.proto"))
 	require.FileExists(t, filepath.Join(srDir, "audit_event.sr.go"))
+	require.FileExists(t, filepath.Join(srDir, "audit_event.sr.proto"))
 
 	checkCfg := narrow
 	checkCfg.Check = true
@@ -1470,7 +1413,6 @@ func TestSyncFilesLeavesUnmanagedFilesAlone(t *testing.T) {
 	// Regenerate narrower, which triggers reconciliation in both directories.
 	narrow := cfg
 	narrow.MergedOnly = true
-	narrow.SRGoOnly = true
 	_, err = protogen.Generate(narrow)
 	require.NoError(t, err)
 

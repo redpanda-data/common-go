@@ -61,8 +61,7 @@
 //
 // When --sr-schema-out is set, each emitted <name>.sr.proto gets a companion
 // <name>.sr.go embedding the schema text (and, for the merged message, the
-// subject) as Go constants; --sr-go-only suppresses the intermediate
-// .sr.proto files, and --sr-go-package overrides the Go package name.
+// subject) as Go constants; --sr-go-package overrides the Go package name.
 //
 // Check mode (for CI — verifies committed baseline is up-to-date):
 //
@@ -132,7 +131,6 @@ func run(args []string) error {
 	mergedSRSubjectFlag := fs.String("merged-sr-subject", "", "optional Schema Registry subject; annotates the merged message with (redpanda.api.common.v1.schema_registry) for protoc-gen-go-sr-normalize (requires --merged-message)")
 	icebergCompatFlag := fs.Bool("iceberg-compat", false, "prune fields Redpanda Iceberg/Oxla cannot represent (google.protobuf.Value fields, recursion back-edges, dotted field paths over 63 chars) before emission; writes ocsf/v<N>/iceberg-compat-prunes.txt")
 	srGoPackageFlag := fs.String("sr-go-package", "", "Go package name for the generated <name>.sr.go companions under --sr-schema-out (default: derived from the OCSF major version, e.g. ocsfv1)")
-	srGoOnlyFlag := fs.Bool("sr-go-only", false, "emit only the .sr.go schema embeds under --sr-schema-out, suppressing the intermediate .sr.proto files")
 	maskFileFlag := fs.String("mask-file", "", "optional read-mask YAML listing the root-relative attribute paths to keep (e.g. actor.user.email_addr, metadata.*); everything else is dropped before emission and ocsf/v<N>/read-mask-report.txt records the result")
 
 	if err := fs.Parse(args); err != nil {
@@ -180,7 +178,6 @@ func run(args []string) error {
 		MergedSRSubject: *mergedSRSubjectFlag,
 		IcebergCompat:   *icebergCompatFlag,
 		SRGoPackage:     *srGoPackageFlag,
-		SRGoOnly:        *srGoOnlyFlag,
 		MaskPath:        *maskFileFlag,
 	}
 
