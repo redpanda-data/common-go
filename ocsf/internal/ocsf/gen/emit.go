@@ -198,6 +198,26 @@ type GeneratedFile struct {
 // objectsFileName is the base name of the shared objects file.
 const objectsFileName = "objects.proto"
 
+// IsManagedOutputArtifact reports whether base is the name of a file this
+// generator owns inside a versioned output directory (<out>/ocsf/v<N>/).
+//
+// Generation reconciles those directories — a file matching this predicate that
+// the current run no longer produces is removed, so switching to a narrower
+// layout (--merged-only, --mask-file) does not leave strays behind for --check
+// to reject. Everything else in the output tree (buf.yaml, buf.lock, the
+// tagmap) is never touched.
+func IsManagedOutputArtifact(base string) bool {
+	return strings.HasSuffix(base, ".proto") ||
+		base == PruneSidecarName ||
+		base == MaskReportName
+}
+
+// IsManagedSRArtifact reports the same for the flat --sr-schema-out directory,
+// which holds only the self-contained SR schemas and their Go embeds.
+func IsManagedSRArtifact(base string) bool {
+	return strings.HasSuffix(base, ".sr.proto") || strings.HasSuffix(base, ".sr.go")
+}
+
 // Emit produces a deterministic multi-file proto3 layout from the named classes
 // and their transitive object closure.
 //

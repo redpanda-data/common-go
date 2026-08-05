@@ -125,7 +125,21 @@ go run ./cmd/ocsf-protogen \
   event topic can be Iceberg-enabled and queried from Oxla (see below).
 - `--mask-file <path>` narrows the schema to an allowlist of attribute paths
   before anything else runs (see below).
-- `--check` regenerates and fails on output drift or newly-stubbed objects.
+- `--check` regenerates and fails on output drift, stray artifacts, or
+  newly-stubbed objects.
+
+Generation **reconciles** its output directories: a generator-managed artifact
+that the current run no longer produces is deleted, so narrowing the output
+(`--merged-only`, `--sr-go-only`, dropping `--mask-file`) is an ordinary
+regenerate-and-commit. Without that, switching an existing baseline to a narrower
+layout left the old files behind and `--check` rejected them as strays with no
+way to regenerate them away.
+
+Deletion is confined to the directories the generator writes into and to the
+names it owns — `*.proto` plus `iceberg-compat-prunes.txt` and
+`read-mask-report.txt` under `ocsf/v<N>/`, and `*.sr.proto`/`*.sr.go` under
+`--sr-schema-out`. `buf.yaml`, `buf.lock`, the tagmap and anything hand-added are
+never candidates.
 - `--compat-check --old <a> --new <b>` fails if field numbers changed
   incompatibly between two tag maps (used in CI against the base branch).
 

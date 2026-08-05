@@ -1324,3 +1324,160 @@ func TestMaskFromScratchTagmapMatchesUnmasked(t *testing.T) {
 	require.NoError(t, tagmap.CheckCompat(full, scratch))
 	require.NoError(t, tagmap.CheckCompat(scratch, full))
 }
+
+// TestGenerateBroadToNarrowRemovesStrays is the adoption path this reconciliation
+// exists for: an existing full baseline switched to the narrower layout. Before
+// syncFiles the per-class artifacts stayed on disk and --check then rejected them
+// as strays, with its own advice ("regenerate without --check") unable to clear
+// them.
+func TestGenerateBroadToNarrowRemovesStrays(t *testing.T) {
+	dir := t.TempDir()
+	srDir := t.TempDir()
+
+	broad := protogen.Config{
+		SchemaPath:     schemaFixture(),
+		Classes:        []string{"api_activity", "entity_management"},
+		Version:        "1.8.0",
+		OutDir:         dir,
+		TagmapPath:     filepath.Join(dir, "field-numbers.json"),
+		SRSchemaOutDir: srDir,
+		MergedMessage:  "AuditEvent",
+	}
+	_, err := protogen.Generate(broad)
+	require.NoError(t, err)
+	require.FileExists(t, filepath.Join(dir, "ocsf", "v1", "api_activity.proto"))
+	require.FileExists(t, filepath.Join(srDir, "api_activity.sr.proto"))
+
+	narrow := broad
+	narrow.MergedOnly = true
+	narrow.SRGoOnly = true
+	_, err = protogen.Generate(narrow)
+	require.NoError(t, err)
+
+	// The previous layout's artifacts are gone...
+	for _, p := range []string{"api_activity.proto", "entity_management.proto"} {
+		require.NoFileExists(t, filepath.Join(dir, "ocsf", "v1", p))
+	}
+	for _, p := range []string{
+		"api_activity.sr.proto", "api_activity.sr.go",
+		"entity_management.sr.proto", "entity_management.sr.go",
+		"audit_event.sr.proto",
+	} {
+		require.NoFileExists(t, filepath.Join(srDir, p))
+	}
+	// ...and the narrow layout's are present.
+	require.FileExists(t, filepath.Join(dir, "ocsf", "v1", "audit_event.proto"))
+	require.FileExists(t, filepath.Join(dir, "ocsf", "v1", "objects.proto"))
+	require.FileExists(t, filepath.Join(srDir, "audit_event.sr.go"))
+
+	checkCfg := narrow
+	checkCfg.Check = true
+	require.NoError(t, protogen.Check(checkCfg),
+		"--check must pass right after the broad -> narrow regeneration")
+}
+
+// TestGenerateDroppingMaskClearsReport verifies the sidecars reconcile too:
+// removing --mask-file must not leave a stale read-mask-report.txt describing a
+// mask that is no longer applied.
+func TestGenerateDroppingMaskClearsReport(t *testing.T) {
+	dir := t.TempDir()
+	report := filepath.Join(dir, "ocsf", "v1", "read-mask-report.txt")
+
+	masked := protogen.Config{
+		SchemaPath:    schemaFixture(),
+		Classes:       []string{"api_activity", "entity_management"},
+		Version:       "1.8.0",
+		OutDir:        dir,
+		TagmapPath:    filepath.Join(dir, "field-numbers.json"),
+		MergedMessage: "AuditEvent",
+		MaskPath:      writeMask(t, dir, cloudMaskYAML),
+	}
+	_, err := protogen.Generate(masked)
+	require.NoError(t, err)
+	require.FileExists(t, report)
+
+	unmasked := masked
+	unmasked.MaskPath = ""
+	_, err = protogen.Generate(unmasked)
+	require.NoError(t, err)
+	require.NoFileExists(t, report, "the stale mask report must be removed")
+
+	checkCfg := unmasked
+	checkCfg.Check = true
+	require.NoError(t, protogen.Check(checkCfg))
+}
+
+// TestCheckDetectsStaleSidecar verifies check mode enumerates managed sidecars,
+// not just .proto files — otherwise a stale report committed by hand (or left by
+// an older generator) passes silently.
+func TestCheckDetectsStaleSidecar(t *testing.T) {
+	dir := t.TempDir()
+	cfg := protogen.Config{
+		SchemaPath:    schemaFixture(),
+		Classes:       []string{"api_activity"},
+		Version:       "1.8.0",
+		OutDir:        dir,
+		TagmapPath:    filepath.Join(dir, "field-numbers.json"),
+		MergedMessage: "AuditEvent",
+	}
+	_, err := protogen.Generate(cfg)
+	require.NoError(t, err)
+
+	require.NoError(t, os.WriteFile(
+		filepath.Join(dir, "ocsf", "v1", "read-mask-report.txt"), []byte("stale\n"), 0o600))
+
+	cfg.Check = true
+	err = protogen.Check(cfg)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "read-mask-report.txt")
+}
+
+// TestSyncFilesLeavesUnmanagedFilesAlone is the safety net on a destructive
+// operation: reconciliation may only delete files whose names the generator
+// claims, in the directories it writes to. Committed module files and anything
+// hand-added must survive.
+func TestSyncFilesLeavesUnmanagedFilesAlone(t *testing.T) {
+	dir := t.TempDir()
+	srDir := t.TempDir()
+	tagmapPath := filepath.Join(dir, "field-numbers.json")
+
+	cfg := protogen.Config{
+		SchemaPath:     schemaFixture(),
+		Classes:        []string{"api_activity", "entity_management"},
+		Version:        "1.8.0",
+		OutDir:         dir,
+		TagmapPath:     tagmapPath,
+		SRSchemaOutDir: srDir,
+		MergedMessage:  "AuditEvent",
+	}
+	_, err := protogen.Generate(cfg)
+	require.NoError(t, err)
+
+	// Files the generator must never touch: module config at the out root, a
+	// hand-added note inside the versioned dir, and a non-generated Go file in the
+	// flat SR dir.
+	bystanders := map[string]string{
+		filepath.Join(dir, "buf.yaml"):               "version: v2\n",
+		filepath.Join(dir, "buf.lock"):               "# lock\n",
+		filepath.Join(dir, "ocsf", "v1", "NOTES.md"): "hand written\n",
+		filepath.Join(srDir, "doc.go"):               "package schema\n",
+		filepath.Join(srDir, "helper_extra.go.txt"):  "not generated\n",
+	}
+	for p, content := range bystanders {
+		require.NoError(t, os.WriteFile(p, []byte(content), 0o600))
+	}
+
+	// Regenerate narrower, which triggers reconciliation in both directories.
+	narrow := cfg
+	narrow.MergedOnly = true
+	narrow.SRGoOnly = true
+	_, err = protogen.Generate(narrow)
+	require.NoError(t, err)
+
+	for p, content := range bystanders {
+		got, err := os.ReadFile(p)
+		require.NoErrorf(t, err, "reconciliation deleted %q", p)
+		require.Equal(t, content, string(got), "reconciliation modified %q", p)
+	}
+	require.FileExists(t, tagmapPath, "the tagmap must never be reconciled away")
+}

@@ -73,6 +73,21 @@ func ParseMask(data []byte) (*Mask, error) {
 		return nil, fmt.Errorf("ocsf mask: parse: %w", err)
 	}
 
+	// Decode consumes ONE document. Without this, a second "---" document is
+	// silently ignored, which would let a typo'd key (or a whole second policy)
+	// slip past KnownFields and the path validation below — the opposite of the
+	// fail-closed behaviour a mask is supposed to have.
+	var trailing yaml.Node
+	switch err := dec.Decode(&trailing); {
+	case errors.Is(err, io.EOF):
+		// Exactly one document, as required.
+	case err == nil:
+		return nil, errors.New("ocsf mask: file has more than one YAML document; " +
+			"the mask must be a single document (no \"---\" separators)")
+	default:
+		return nil, fmt.Errorf("ocsf mask: parse trailing document: %w", err)
+	}
+
 	if raw.Version != maskFormatVersion {
 		return nil, fmt.Errorf("ocsf mask: unsupported version %d (want %d)", raw.Version, maskFormatVersion)
 	}
@@ -265,8 +280,8 @@ func VerifyMergedDiscriminators(s *schema.Schema, classNames []string) error {
 	return nil
 }
 
-// maskReportName is the base name of the sidecar recording the resolved mask.
-const maskReportName = "read-mask-report.txt"
+// MaskReportName is the base name of the sidecar recording the resolved mask.
+const MaskReportName = "read-mask-report.txt"
 
 // MaskReportFile renders the deterministic sidecar describing what the mask
 // kept. It lands next to the emitted protos (ocsf/v<N>/read-mask-report.txt).
@@ -310,7 +325,7 @@ func MaskReportFile(version string, res *MaskResult) (GeneratedFile, error) {
 		sb.WriteString(p + "\n")
 	}
 
-	return GeneratedFile{Path: "ocsf/" + pkgSuffix + "/" + maskReportName, Content: sb.String()}, nil
+	return GeneratedFile{Path: "ocsf/" + pkgSuffix + "/" + MaskReportName, Content: sb.String()}, nil
 }
 
 // ---------------------------------------------------------------------------
@@ -437,6 +452,19 @@ func (k *keepSet) descend(
 	s *schema.Schema, owner msgKey, attr *schema.Attribute,
 	path, consumed string, rest []string, wholeSubtree bool,
 ) error {
+	// messageEdge deliberately treats a reference to an object the snapshot does
+	// not define as a non-edge, because it emits as an empty stub message. That
+	// would make a mask path ending there look like a scalar terminal and let the
+	// mask produce `message Phantom {}` — so reject it explicitly instead, naming
+	// the missing type.
+	if missing, ok := absentObjectTarget(s, attr); ok {
+		return fmt.Errorf(
+			"ocsf mask: path %q reaches %q, whose object type %s is absent from the schema "+
+				"snapshot and would emit as an empty message; re-run with a full schema export "+
+				"or drop the path",
+			path, consumed, toPascalCase(missing))
+	}
+
 	target, isEdge := messageEdge(s, attr)
 
 	if len(rest) == 0 {
@@ -474,6 +502,23 @@ func (k *keepSet) descend(
 	nextOwner := msgKey{name: target}
 	k.keep(nextOwner, next)
 	return k.descend(s, nextOwner, nextAttr, path, consumed+"."+next, rest[1:], wholeSubtree)
+}
+
+// absentObjectTarget returns the referenced object name when attr is an object_t
+// reference to a named, non-generic object that the schema snapshot does not
+// define. Those emit as empty stub messages, so messageEdge classifies them as
+// non-edges; mask resolution has to tell them apart from real scalars.
+//
+// The generic "object" bag is excluded: it legitimately maps to a scalar (R1
+// demotes it to a JSON string), so a path may end on it.
+func absentObjectTarget(s *schema.Schema, attr *schema.Attribute) (string, bool) {
+	if attr.Type != objectTypeName || attr.ObjectType == "" || attr.ObjectType == genericObject {
+		return "", false
+	}
+	if _, defined := s.Objects[attr.ObjectType]; defined {
+		return "", false
+	}
+	return attr.ObjectType, true
 }
 
 // keep records that owner retains attr.

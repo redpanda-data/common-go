@@ -581,3 +581,62 @@ func sortedAttrNames(attrs map[string]*schema.Attribute, want ...string) []strin
 	}
 	return out
 }
+
+// TestParseMask_RejectsMultipleDocuments verifies the parser consumes the whole
+// file. yaml.Decoder.Decode reads ONE document, so without an explicit EOF check
+// a second "---" document is silently ignored — which would let a typo'd key slip
+// past KnownFields and defeat the mask's fail-closed contract.
+func TestParseMask_RejectsMultipleDocuments(t *testing.T) {
+	_, err := gen.ParseMask([]byte("version: 1\npaths:\n  - time\n---\npaths_typo:\n  - nonsense\n"))
+	require.ErrorContains(t, err, "more than one YAML document")
+}
+
+// TestMaskFields_ErrAbsentObjectTarget covers the partial-export case: an
+// object_t attribute whose target the snapshot does not define emits as an empty
+// stub message, and messageEdge classifies it as a non-edge. Mask resolution must
+// not mistake that for a scalar terminal, or the mask silently produces
+// `message Phantom {}`.
+func TestMaskFields_ErrAbsentObjectTarget(t *testing.T) {
+	newSchema := func() *schema.Schema {
+		return maskSchema(
+			map[string]*schema.Class{
+				"root": {Name: "root", UID: 1001, Attributes: map[string]*schema.Attribute{
+					"time":    strAttr("time"),
+					"phantom": objAttr("phantom", "phantom"), // target absent
+				}},
+			},
+			map[string]*schema.Object{},
+		)
+	}
+
+	_, err := gen.MaskFields(newSchema(), []string{"root"}, mustMask(t, "time", "phantom"))
+	require.ErrorContains(t, err, "absent from the schema")
+	require.ErrorContains(t, err, "Phantom")
+
+	// The wildcard form is equally invalid — there is no subtree to keep.
+	_, err = gen.MaskFields(newSchema(), []string{"root"}, mustMask(t, "time", "phantom.*"))
+	require.ErrorContains(t, err, "absent from the schema")
+
+	// And descending through one names the missing type rather than reporting a
+	// missing attribute on it.
+	_, err = gen.MaskFields(newSchema(), []string{"root"}, mustMask(t, "time", "phantom.uid"))
+	require.ErrorContains(t, err, "absent from the schema")
+}
+
+// TestMaskFields_GenericObjectStillTerminates guards the other side of that
+// check: the generic "object" bag legitimately maps to a scalar (R1 demotes it to
+// a JSON string), so a path may end on it.
+func TestMaskFields_GenericObjectStillTerminates(t *testing.T) {
+	s := maskSchema(
+		map[string]*schema.Class{
+			"root": {Name: "root", UID: 1001, Attributes: map[string]*schema.Attribute{
+				"time":     strAttr("time"),
+				"unmapped": objAttr("unmapped", "object"), // generic bag
+			}},
+		},
+		map[string]*schema.Object{},
+	)
+	_, err := gen.MaskFields(s, []string{"root"}, mustMask(t, "time", "unmapped"))
+	require.NoError(t, err)
+	require.Contains(t, s.Classes["root"].Attributes, "unmapped")
+}

@@ -15,6 +15,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -113,7 +114,10 @@ func Generate(cfg Config) (stubbed []string, err error) {
 		return nil, err
 	}
 
-	if err := writeFiles(cfg.OutDir, files); err != nil {
+	// syncFiles, not writeFiles: a run that produces fewer artifacts than the last
+	// one must clear the difference, or switching to a narrower layout leaves
+	// strays that --check then rejects with no way to regenerate them away.
+	if err := syncFiles(cfg.OutDir, files, gen.IsManagedOutputArtifact); err != nil {
 		return nil, err
 	}
 
@@ -125,7 +129,7 @@ func Generate(cfg Config) (stubbed []string, err error) {
 		if err != nil {
 			return nil, err
 		}
-		if err := writeFiles(cfg.SRSchemaOutDir, srFiles); err != nil {
+		if err := syncFiles(cfg.SRSchemaOutDir, srFiles, gen.IsManagedSRArtifact); err != nil {
 			return nil, err
 		}
 	}
@@ -416,6 +420,58 @@ func writeFiles(outDir string, files []gen.GeneratedFile) error {
 	return nil
 }
 
+// syncFiles writes files under root and then removes generator-managed artifacts
+// in the same directories that this run no longer produces.
+//
+// Without the removal step, narrowing the output (--merged-only, --sr-go-only,
+// --mask-file) leaves the previous layout's files on disk: --check reports them
+// as strays, and its advice to "regenerate without --check" cannot clear them.
+// Reconciling makes broad -> narrow the ordinary regenerate-and-commit flow.
+//
+// Deletion is confined to the directories the generator writes into AND to names
+// the managed predicate claims, so unrelated committed files in the tree
+// (buf.yaml, buf.lock, the tagmap) are never candidates.
+func syncFiles(root string, files []gen.GeneratedFile, managed func(base string) bool) error {
+	if err := writeFiles(root, files); err != nil {
+		return err
+	}
+
+	want := make(map[string]struct{}, len(files))
+	dirs := make(map[string]struct{})
+	for _, f := range files {
+		want[f.Path] = struct{}{}
+		dirs[path.Dir(f.Path)] = struct{}{}
+	}
+
+	for dir := range dirs {
+		abs := filepath.Join(root, filepath.FromSlash(dir))
+		entries, err := os.ReadDir(abs)
+		if os.IsNotExist(err) {
+			continue
+		}
+		if err != nil {
+			return fmt.Errorf("read output dir %q: %w", abs, err)
+		}
+		for _, e := range entries {
+			if e.IsDir() || !managed(e.Name()) {
+				continue
+			}
+			rel := e.Name()
+			if dir != "." {
+				rel = dir + "/" + e.Name()
+			}
+			if _, produced := want[rel]; produced {
+				continue
+			}
+			if err := os.Remove(filepath.Join(abs, e.Name())); err != nil {
+				return fmt.Errorf("remove stale generated file %q: %w", rel, err)
+			}
+			fmt.Fprintf(os.Stderr, "removed stale generated file %s\n", rel)
+		}
+	}
+	return nil
+}
+
 // Check regenerates the proto tree in memory and detects drift vs. the committed
 // baseline tree rooted at OutDir (and the committed --tagmap). It returns a
 // non-nil error with a descriptive message when:
@@ -589,8 +645,10 @@ func readCommittedTree(outDir string, files []gen.GeneratedFile) (map[string]str
 		}
 	}
 
-	// Also enumerate committed .proto files under each versioned dir the
-	// generator writes into, so we catch files that should have been removed.
+	// Also enumerate every committed generator-managed artifact under each
+	// versioned dir the generator writes into, so we catch files that should have
+	// been removed. This covers the sidecars as well as the protos: dropping
+	// --mask-file or --iceberg-compat must not leave a stale report behind.
 	dirs := make(map[string]struct{})
 	for _, f := range files {
 		dirs[filepath.Dir(f.Path)] = struct{}{}
@@ -605,7 +663,7 @@ func readCommittedTree(outDir string, files []gen.GeneratedFile) (map[string]str
 			return nil, fmt.Errorf("read committed dir %q: %w", root, err)
 		}
 		for _, e := range entries {
-			if e.IsDir() || filepath.Ext(e.Name()) != ".proto" {
+			if e.IsDir() || !gen.IsManagedOutputArtifact(e.Name()) {
 				continue
 			}
 			rel := d + "/" + e.Name()
