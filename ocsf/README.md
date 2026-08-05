@@ -176,19 +176,26 @@ listed in the widening section of `read-mask-report.txt`. In practice the gap is
 small, because sharing falls away as paths are closed — a type embedded at
 fifteen paths in the full schema is usually reachable by one after masking.
 
-**Wire stability.** Masking never renumbers. Excluded attributes are simply
-never assigned, so they keep their `field-numbers.json` entries, the tagmap file
-does not shrink, `--compat-check` stays clean, and **un-masking a field later
-restores its original field number**. Starting narrow is therefore cheap and
-reversible: adding this mask to an existing baseline leaves the committed tagmap
-byte-identical.
+**Wire stability.** Masking never renumbers. Tags are reserved over the
+*unmasked* model before the mask is applied (`gen.ReserveTags`), so field numbers
+are a function of the OCSF schema and the class selection alone — never of what
+the mask chose to emit. Consequences:
 
-> **Do not regenerate `field-numbers.json` from scratch once a mask is in
-> place.** The tagmap is what carries the excluded fields' numbers; bootstrapping
-> a fresh one under a mask assigns the surviving fields compact numbers from 1
-> instead, silently renumbering the whole schema. CI's `--compat-check` against
-> the base branch catches exactly this, which is why that gate matters more once
-> a mask exists.
+- Adding a mask to an existing baseline leaves the committed tagmap
+  byte-identical.
+- A tagmap bootstrapped with a mask active is identical to one bootstrapped
+  without it, so regenerating it is not destructive.
+- **Un-masking a field later restores its original field number**, because the
+  excluded attributes keep their recorded entries.
+
+Starting narrow is therefore cheap and reversible.
+
+> `field-numbers.json` must still be committed. Reserving is deterministic only
+> for a *fixed* OCSF version: a new release that inserts an alphabetically-early
+> attribute would shift every later number, and the committed tagmap is the only
+> thing that prevents that (the new attribute takes the lowest free number
+> instead). It is also the only record of `reserved` numbers retired fields must
+> never give up. CI's `--compat-check` against the base branch is the gate.
 
 **Ordering.** The mask runs before `--iceberg-compat`, and that ordering pays:
 the prune rules react to the shape of the model (R3 demotes an edge because a

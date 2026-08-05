@@ -149,7 +149,15 @@ func Generate(cfg Config) (stubbed []string, err error) {
 // model in place first — the caller-visible *schema.Schema mutates, so a later
 // emitAllSRSchemas call on the same instance emits the same shape — and the
 // corresponding sidecar files are appended to the returned file list.
+//
+// Tags are reserved over the UNMASKED, UNPRUNED model before that, so field
+// numbers never depend on what the mask or prune chose to emit (see
+// gen.ReserveTags).
 func emitAll(s *schema.Schema, cfg Config, tm *tagmap.TagMap) (files []gen.GeneratedFile, stubbed []string, err error) {
+	if err := gen.ReserveTags(s, cfg.Classes, cfg.MergedMessage, tm); err != nil {
+		return nil, nil, err
+	}
+
 	sidecars, err := narrowModel(s, cfg)
 	if err != nil {
 		return nil, nil, err

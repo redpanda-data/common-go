@@ -1261,13 +1261,20 @@ func TestGenerateWithMissingMaskFile(t *testing.T) {
 	require.ErrorContains(t, err, "read mask file")
 }
 
-// TestMaskFromScratchTagmapRenumbers pins the sharp edge the README warns about:
-// the tagmap is what carries an excluded field's number, so bootstrapping a fresh
-// tagmap under a mask assigns the survivors compact numbers instead of their
-// original ones. It is not a bug — there is nothing to preserve — but it means a
-// tagmap must never be regenerated from scratch once a mask exists, and
-// --compat-check is the gate that catches it.
-func TestMaskFromScratchTagmapRenumbers(t *testing.T) {
+// TestMaskFromScratchTagmapMatchesUnmasked is the guarantee gen.ReserveTags
+// exists to provide: field numbers are a function of the OCSF schema and the
+// class selection alone, never of what the mask chose to emit. A tagmap
+// bootstrapped with a mask active must therefore be identical to one
+// bootstrapped without it.
+//
+// Before ReserveTags this was false and silently so: every one of the 20
+// surviving AuditEvent fields moved (actor 7 -> 3, time 61 -> 19), which would
+// decode every previously written record to an empty event.
+//
+// It also pins the coupling ReserveTags introduces — it must walk the same
+// messages and the same within-message order as the emitters, so this test fails
+// if the two ever drift apart.
+func TestMaskFromScratchTagmapMatchesUnmasked(t *testing.T) {
 	base := func(dir, maskPath string) protogen.Config {
 		return protogen.Config{
 			SchemaPath:    schemaFixture(),
@@ -1293,19 +1300,27 @@ func TestMaskFromScratchTagmapRenumbers(t *testing.T) {
 	scratch, err := tagmap.Load(filepath.Join(scratchDir, "field-numbers.json"))
 	require.NoError(t, err)
 
-	// The survivors got compacted numbers, so at least one moved.
-	moved := false
-	for _, attr := range []string{"actor", "api", "metadata", "time", "type_uid"} {
-		want, ok := full.Tag("ApiActivity", attr)
-		require.True(t, ok)
-		got, ok := scratch.Tag("ApiActivity", attr)
-		require.True(t, ok)
-		if want != got {
-			moved = true
-		}
-	}
-	require.True(t, moved, "a from-scratch masked tagmap compacts field numbers")
+	// The strongest form of the guarantee: the two bootstrapped tagmaps are the
+	// same file. Not just the surviving fields — the excluded ones too, since
+	// those are what let the mask be widened later without renumbering.
+	fullJSON, err := os.ReadFile(filepath.Join(fullDir, "field-numbers.json"))
+	require.NoError(t, err)
+	scratchJSON, err := os.ReadFile(filepath.Join(scratchDir, "field-numbers.json"))
+	require.NoError(t, err)
+	require.Equal(t, string(fullJSON), string(scratchJSON),
+		"a tagmap bootstrapped with a mask must be identical to one bootstrapped without it")
 
-	require.Error(t, tagmap.CheckCompat(full, scratch),
-		"--compat-check must reject a from-scratch masked tagmap against the full baseline")
+	// Spot-check the numbers that used to move, so a failure names them.
+	for _, attr := range []string{"actor", "api", "metadata", "time", "type_uid"} {
+		want, ok := full.Tag("AuditEvent", attr)
+		require.True(t, ok)
+		got, ok := scratch.Tag("AuditEvent", attr)
+		require.True(t, ok)
+		require.Equalf(t, want, got, "AuditEvent.%s renumbered under the mask", attr)
+	}
+
+	// Interchangeable in both directions — a from-scratch masked bootstrap is no
+	// longer destructive.
+	require.NoError(t, tagmap.CheckCompat(full, scratch))
+	require.NoError(t, tagmap.CheckCompat(scratch, full))
 }
