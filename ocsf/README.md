@@ -16,11 +16,12 @@ exported as OCSF JSON at the boundary.
 Two artifacts are the point of this module; two more keep them safe to evolve.
 
 1. **Proto source files** under `ocsf/v<N>/`: one message per selected class
-   plus the merged single-event message, all sharing `objects.proto`. Fields
-   carry wire-stable numbers from the tagmap and `buf.validate` annotations
-   (required levels, plus class-aware CEL rules on the merged message), so
-   protovalidate enforces OCSF semantics on every event before it is
-   published. With `--merged-sr-subject`, the merged message also carries the
+   and, when requested, the merged single-event message, all sharing
+   `objects.proto`. `--merged-only` suppresses the per-class files. Fields carry
+   wire-stable numbers from the tagmap and `buf.validate` annotations (required
+   levels, plus class-aware CEL rules on the merged message), so protovalidate
+   enforces OCSF semantics on every event before it is published. With
+   `--merged-sr-subject`, the merged message also carries the
    `(redpanda.api.common.v1.schema_registry)` annotation that drives
    `protoc-gen-go-sr-normalize`.
 2. **Generated Go code**, produced from those protos with `buf generate` and
@@ -43,12 +44,16 @@ Two artifacts are the point of this module; two more keep them safe to evolve.
    (`ocsf/v<N>/iceberg-compat-prunes.txt`), one sorted
    `<Message>.<field> <rule>` line per field dropped from the emitted protos,
    so fidelity loss is diffable across OCSF versions.
+6. With `--mask-file`: **the read-mask report**
+   (`ocsf/v<N>/read-mask-report.txt`), the resolved keep set plus every leaf
+   column the mask kept without being asked to, so the published contract is
+   reviewable as a diff.
 
 ### Layouts
 
-The generator emits two layouts from one tagmap:
+The generator can emit two layouts from one tagmap:
 
-- **Per-class** (always): one message per class (`ApiActivity`,
+- **Per-class** (default): one message per class (`ApiActivity`,
   `EntityManagement`, ...), one file each, plus a shared `objects.proto`.
 - **Merged single-event** (`--merged-message AuditEvent`): ONE flat message
   holding the union of all selected classes' attributes, for a single
@@ -59,6 +64,9 @@ The generator emits two layouts from one tagmap:
   validation is generated as protovalidate CEL: `type_uid == class_uid * 100 +
   activity_id`, per-class field ownership, and per-class requiredness. A
   merged event exports OCSF JSON identical to the per-class message.
+
+By default, `--merged-message` adds the merged layout alongside the per-class
+layout. `--merged-only` emits only the merged message and `objects.proto`.
 
 ### Packages
 
@@ -84,12 +92,16 @@ go run ./cmd/ocsf-protogen \
   --out     out-dir \
   --tagmap  field-numbers.json \
   --merged-message AuditEvent \
+  --merged-only \
   --sr-schema-out sr-dir
 ```
 
 - `--merged-message <Name>` additionally emits the merged single-event layout
   (`ocsf/v<N>/<snake_name>.proto`, and `<snake_name>.sr.proto` under
   `--sr-schema-out`).
+- `--merged-only` suppresses the per-class proto and Schema Registry files,
+  leaving the merged message and shared `objects.proto`. Requires
+  `--merged-message`.
 - `--merged-sr-subject <subject>` annotates the merged message with
   `(redpanda.api.common.v1.schema_registry) = { subject: "..." }` (from
   `buf.build/redpandadata/common`). Consumers that run
@@ -106,9 +118,104 @@ go run ./cmd/ocsf-protogen \
   Default is derived from the OCSF major version: `1.8.0` → `ocsfv1`.
 - `--iceberg-compat` prunes the schema model before emission so the merged
   event topic can be Iceberg-enabled and queried from Oxla (see below).
-- `--check` regenerates and fails on output drift or newly-stubbed objects.
+- `--mask-file <path>` narrows the schema to an allowlist of attribute paths
+  before anything else runs (see below).
+- `--check` regenerates and fails on output drift, stray artifacts, or
+  newly-stubbed objects.
 - `--compat-check --old <a> --new <b>` fails if field numbers changed
   incompatibly between two tag maps (used in CI against the base branch).
+
+Generation **reconciles** its output directories: a generator-managed artifact
+that the current run no longer produces is deleted, so narrowing the output
+(`--merged-only`, dropping `--mask-file`) is an ordinary regenerate-and-commit.
+Without that, switching an existing baseline to a narrower layout left the old
+files behind and `--check` rejected them as strays with no way to regenerate them
+away.
+
+Deletion is confined to the directories the generator writes into and to the
+names it owns — `*.proto` plus `iceberg-compat-prunes.txt` and
+`read-mask-report.txt` under `ocsf/v<N>/`, and `*.sr.proto`/`*.sr.go` under
+`--sr-schema-out`. `buf.yaml`, `buf.lock`, the tagmap and anything hand-added are
+never candidates.
+
+### `--mask-file` (read mask)
+
+An OCSF class is enormous: `api_activity` + `entity_management` reach ~100
+message types and thousands of leaf columns, while a typical producer populates
+a few dozen fields. Publishing the whole thing costs every consumer — and an
+Iceberg-enabled topic pays for it per column on `REFRESH`.
+
+`--mask-file` takes an allowlist of root-relative attribute paths and drops
+everything else from the model before any emission, so the per-class protos, the
+merged message, the SR schemas and the validation rules all describe the same
+narrowed contract:
+
+```yaml
+version: 1
+paths:
+  - time
+  - actor.user.email_addr
+  - api.response.code
+  - metadata.*
+```
+
+- A path ending in `.*` keeps a message-typed field's **whole subtree**
+  (transitively). Any other path must end on a scalar; stopping on a
+  message-typed field is an error that names the fix, so a mask cannot silently
+  produce an empty message.
+- The mask is **closed upward**: list leaves, not prefixes. `actor.user.email_addr`
+  retains the `actor` and `actor.user` edges automatically.
+- A path that does not resolve against the schema **fails generation**. That is
+  the point of an allowlist: an OCSF rename stops matching, and CI says so
+  instead of quietly dropping a column consumers query.
+- Constraints (`at_least_one` / `just_one`) naming a dropped attribute are
+  scrubbed, so the emitted CEL never references a field that no longer exists.
+- With `--merged-message`, the class discriminators (`category_uid`,
+  `class_uid`, `type_uid`) may not be masked away: the merged emitter gates its
+  CEL on `class_uid` and readers demux the single topic on the trio.
+
+**Type-scoped semantics.** Paths are written root-relative because that is how
+consumers think about the event, but they are applied per message **type**:
+`actor.user.email_addr` keeps `User.email_addr` wherever `User` is embedded. The
+schema model is a graph of shared object types, so a per-path mask would mean
+specialising a type per embedding path — a message explosion that would also
+break the tagmap's `(message, attribute)` identity. The gap is reported rather
+than hidden: every leaf column the output carries that no path asked for is
+listed in the widening section of `read-mask-report.txt`. In practice the gap is
+small, because sharing falls away as paths are closed — a type embedded at
+fifteen paths in the full schema is usually reachable by one after masking.
+
+**Wire stability.** Masking never renumbers. Tags are reserved over the
+*unmasked* model before the mask is applied (`gen.ReserveTags`), so field numbers
+are a function of the OCSF schema and the class selection alone — never of what
+the mask chose to emit. Consequences:
+
+- Adding a mask to an existing baseline leaves the committed tagmap
+  byte-identical.
+- A tagmap bootstrapped with a mask active is identical to one bootstrapped
+  without it, so regenerating it is not destructive.
+- **Un-masking a field later restores its original field number**, because the
+  excluded attributes keep their recorded entries.
+
+Starting narrow is therefore cheap and reversible.
+
+> `field-numbers.json` must still be committed. Reserving is deterministic only
+> for a *fixed* OCSF version: a new release that inserts an alphabetically-early
+> attribute would shift every later number, and the committed tagmap is the only
+> thing that prevents that (the new attribute takes the lowest free number
+> instead). It is also the only record of `reserved` numbers retired fields must
+> never give up. CI's `--compat-check` against the base branch is the gate.
+
+**Ordering.** The mask runs before `--iceberg-compat`, and that ordering pays:
+the prune rules react to the shape of the model (R3 demotes an edge because a
+dotted path overflows 63 chars, R4 drops edges to emptied types), so removing
+the deep subtrees first means far fewer fields have to collapse into JSON
+strings. On the OCSF 1.8.0 fixture the mask above takes `--iceberg-compat` from
+55 demotions to 3.
+
+The mask itself is consumer policy, not generator knowledge: which fields you
+publish belongs in your repo next to your committed output, the same way
+`--classes` and `--merged-message` do.
 
 ### `--iceberg-compat`
 

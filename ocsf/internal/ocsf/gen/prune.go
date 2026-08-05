@@ -178,8 +178,8 @@ func PruneForIceberg(s *schema.Schema, classNames []string) ([]PrunedField, erro
 	return prunes, nil
 }
 
-// pruneSidecarName is the base name of the sidecar file listing pruned fields.
-const pruneSidecarName = "iceberg-compat-prunes.txt"
+// PruneSidecarName is the base name of the sidecar file listing pruned fields.
+const PruneSidecarName = "iceberg-compat-prunes.txt"
 
 // PruneSidecarFile renders the deterministic sidecar recording what
 // --iceberg-compat pruned: one "<Message>.<field> <rule>" line per pruned
@@ -207,7 +207,7 @@ func PruneSidecarFile(version string, prunes []PrunedField) (GeneratedFile, erro
 	for _, line := range lines {
 		sb.WriteString(line + "\n")
 	}
-	return GeneratedFile{Path: "ocsf/" + pkgSuffix + "/" + pruneSidecarName, Content: sb.String()}, nil
+	return GeneratedFile{Path: "ocsf/" + pkgSuffix + "/" + PruneSidecarName, Content: sb.String()}, nil
 }
 
 // isValueAttr reports whether attr maps to google.protobuf.Value (R1).
