@@ -311,35 +311,49 @@ func renderEnum(b *strings.Builder, enum *protogen.Enum, indent string) {
 	b.WriteString(fmt.Sprintf("%s}\n\n", indent))
 }
 
-// fieldTypeName returns the proto type name for a field.
+// fieldTypeName returns the proto type name for a field, as referenced from
+// within the generated schema.
 func fieldTypeName(field *protogen.Field) string {
 	if field.Enum != nil {
-		return relativeName(field.Enum.Desc.FullName(), field.Desc.Parent().(protoreflect.MessageDescriptor).FullName())
+		return schemaTypeName(field.Enum.Desc)
 	}
 	if field.Message != nil {
-		return relativeName(field.Message.Desc.FullName(), field.Desc.Parent().(protoreflect.MessageDescriptor).FullName())
+		return schemaTypeName(field.Message.Desc)
 	}
 	return field.Desc.Kind().String()
 }
 
-// relativeName returns a type name relative to the parent scope.
-// If both are in the same package, returns just the local name.
-func relativeName(target, parent protoreflect.FullName) string {
-	// Strip shared package prefix.
-	targetParts := strings.Split(string(target), ".")
-	parentParts := strings.Split(string(parent), ".")
-
-	// Find common prefix length (package parts).
-	common := 0
-	for i := 0; i < len(targetParts)-1 && i < len(parentParts)-1; i++ {
-		if targetParts[i] == parentParts[i] {
-			common = i + 1
-		} else {
-			break
-		}
+// schemaTypeName returns the name a type is referenced by in the generated
+// schema.
+//
+// Well-known types (google/protobuf/*) are kept as imports rather than inlined,
+// so they keep their full name (e.g. google.protobuf.Timestamp). Every other
+// type is inlined into the target's single package, so it is referenced by its
+// local name -- see localTypeName.
+func schemaTypeName(desc protoreflect.Descriptor) string {
+	if isWellKnown(desc.FullName()) {
+		return string(desc.FullName())
 	}
+	return localTypeName(desc.FullName(), desc.ParentFile().Package())
+}
 
-	return strings.Join(targetParts[common:], ".")
+// localTypeName returns a type's path within its own file: its fully qualified
+// name with its own package prefix stripped. A top-level type yields its bare
+// name (e.g. "ProductStatus"); a nested type yields "Parent.Nested".
+//
+// The generator inlines every transitive dependency into the target's single
+// package while preserving message nesting, so this within-file path is exactly
+// how the type is rendered in the output schema -- regardless of which package
+// the referring field lives in. Stripping the type's OWN package (rather than
+// only the prefix it shares with the referrer) is what makes cross-package
+// dependencies resolve: a type from another package is inlined top-level under
+// its bare name, and this produces that bare name instead of a dangling,
+// partially-qualified reference.
+func localTypeName(full, pkg protoreflect.FullName) string {
+	if pkg == "" {
+		return string(full)
+	}
+	return strings.TrimPrefix(string(full), string(pkg)+".")
 }
 
 func getSROptions(msg *protogen.Message) (subject string, ok bool) {

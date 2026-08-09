@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package example.other.v1;
+
+option go_package = "github.com/redpanda-data/common-go/protoc-gen-go-sr/example/gen/go/example/other/v1;otherv1";
+
+// ProviderType deliberately lives in a DIFFERENT proto package
+// (example.other.v1) than the messages that reference it. It exercises
+// cross-package dependency inlining: the generator must inline this enum as a
+// top-level type in the target's package and reference it by its bare local
+// name, not a partially package-qualified name.
+enum ProviderType {
+  PROVIDER_TYPE_UNSPECIFIED = 0;
+  PROVIDER_TYPE_OPENAI = 1;
+  PROVIDER_TYPE_ANTHROPIC = 2;
+}
