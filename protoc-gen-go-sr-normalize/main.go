@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// protoc-gen-go-sr-normalize-normalize generates self-contained, normalized Schema
+// protoc-gen-go-sr-normalize generates self-contained, normalized Schema
 // Registry proto schemas and emits them as Go string constants.
 //
 // Messages annotated with (redpanda.api.common.v1.schema_registry) get a
