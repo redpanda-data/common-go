@@ -44,6 +44,10 @@ jobs:
           version: ${{ env.GOLANGCI_LINT_VERSION }}
           working-directory: ${{ matrix.dir }}
           args: --timeout=10m --config=../.golangci.yaml
+          # A restored analysis cache makes nolintlint report false "unused
+          # directive" errors for directives that suppress real issues.
+          skip-cache: true
+          skip-save-cache: true
 
   fmt:
     name: Format Check
