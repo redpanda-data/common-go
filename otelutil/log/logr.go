@@ -267,7 +267,7 @@ func convertValue(v any) log.Value { //nolint:gocyclo,cyclop // complexity is fi
 			})
 		}
 		return log.MapValue(kvs...)
-	case reflect.Ptr, reflect.Interface:
+	case reflect.Pointer, reflect.Interface:
 		if val.IsNil() {
 			return log.Value{}
 		}

@@ -441,9 +441,6 @@ func (b *Base) FilterCollection(ma *MethodAuthz, principal authz.PrincipalID, re
 	var kept []protoreflect.Value
 	for i := range list.Len() {
 		item := list.Get(i)
-		if item.Message() == nil {
-			continue
-		}
 		itemRefl := item.Message()
 		idFd := itemRefl.Descriptor().Fields().ByName(protoreflect.Name(idField))
 		if idFd == nil {

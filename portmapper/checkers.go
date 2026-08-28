@@ -249,7 +249,7 @@ func HTTPGet(path string, timeout time.Duration) Checker {
 		}
 
 		url := fmt.Sprintf("http://%s%s", net.JoinHostPort(probeHost(pod, port), strconv.Itoa(int(port.Port))), path)
-		request, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+		request, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
 		if err != nil {
 			checkLog(ctx, "HTTPGet", pod, port).V(1).Info("excluding pod: building probe request failed", "url", url, "error", err)
 			return false
@@ -289,6 +289,8 @@ func (a allChecker) Decide(ctx context.Context, svc *corev1.Service, pod *corev1
 			return Exclude
 		case Abstain:
 			decision = Abstain
+		case Include:
+			// Keep the running decision.
 		}
 	}
 	return decision

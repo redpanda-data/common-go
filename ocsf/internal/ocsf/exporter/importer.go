@@ -131,7 +131,7 @@ func unmarshalMessage(d DemotedFields, data []byte, msg protoreflect.Message) er
 func storeUnmapped(msg protoreflect.Message, fields protoreflect.FieldDescriptors, unknown map[string]json.RawMessage) error {
 	fd := fields.ByName(unmappedFieldName)
 	if fd == nil || fd.Kind() != protoreflect.MessageKind ||
-		fd.Message().FullName() != "google.protobuf.Value" || fd.IsList() || fd.IsMap() {
+		fd.Message().FullName() != wellKnownValueName || fd.IsList() || fd.IsMap() {
 		keys := make([]string, 0, len(unknown))
 		for k := range unknown {
 			keys = append(keys, k)
@@ -474,5 +474,5 @@ func isJSONNull(data json.RawMessage) bool {
 // isValueField reports whether fd is a singular google.protobuf.Value field.
 func isValueField(fd protoreflect.FieldDescriptor) bool {
 	return fd.Kind() == protoreflect.MessageKind && !fd.IsList() && !fd.IsMap() &&
-		fd.Message().FullName() == "google.protobuf.Value"
+		fd.Message().FullName() == wellKnownValueName
 }

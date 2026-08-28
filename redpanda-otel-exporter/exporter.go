@@ -483,7 +483,7 @@ func (e *Exporter) exportPlain(
 					Schema: protoSchema,
 					Type:   sr.TypeProtobuf,
 					References: []sr.SchemaReference{
-						{Name: "redpanda/otel/v1/common.proto", Version: s.Version, Subject: s.Subject},
+						{Name: commonProtoName, Version: s.Version, Subject: s.Subject},
 					},
 				}
 				_, _ = e.registerSchema(ctx, e.signalSubject(signals[0].payload), schema)
@@ -532,7 +532,7 @@ func (e *Exporter) exportSerdes(
 			Schema: protoSchema,
 			Type:   sr.TypeProtobuf,
 			References: []sr.SchemaReference{
-				{Name: "redpanda/otel/v1/common.proto", Version: s.Version, Subject: s.Subject},
+				{Name: commonProtoName, Version: s.Version, Subject: s.Subject},
 			},
 		}
 	}

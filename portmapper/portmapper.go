@@ -305,10 +305,14 @@ func New(cfg Config) (*Mapper, error) {
 // the EndpointSlices the controller itself publishes.
 func (m *Mapper) SetupWithManager(mgr ctrl.Manager) error {
 	name := m.controllerName()
+	//nolint:staticcheck // migrating to GetEventRecorder means adopting the
+	// events.k8s.io API, which changes the recorder interface and the emitted
+	// Event objects; deferred until consumers are ready for that.
+	recorder := mgr.GetEventRecorderFor(name)
 	r := &reconciler{
 		client:   mgr.GetClient(),
 		scheme:   mgr.GetScheme(),
-		recorder: mgr.GetEventRecorderFor(name),
+		recorder: recorder,
 		cfg:      m.cfg,
 	}
 

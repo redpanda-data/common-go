@@ -850,12 +850,12 @@ func TestReconcileCleansUpNativeArtifacts(t *testing.T) {
 			AddressType: discoveryv1.AddressTypeIPv4,
 		}
 	}
-	legacyEndpoints := func() *corev1.Endpoints { //nolint:staticcheck // the deprecated legacy object is the test subject
+	legacyEndpoints := func() *corev1.Endpoints {
 		return &corev1.Endpoints{ObjectMeta: metav1.ObjectMeta{Name: "my-service", Namespace: testNamespace}}
 	}
 	getEndpoints := func(t *testing.T, c client.Client) error {
 		t.Helper()
-		var endpoints corev1.Endpoints //nolint:staticcheck // see above
+		var endpoints corev1.Endpoints
 		return c.Get(t.Context(), types.NamespacedName{Namespace: testNamespace, Name: "my-service"}, &endpoints)
 	}
 
@@ -955,7 +955,7 @@ func TestReconcileCleansUpNativeArtifacts(t *testing.T) {
 			WithObjects(append(testObjects(), nativeSlice(), legacyEndpoints())...).
 			WithInterceptorFuncs(interceptor.Funcs{
 				Delete: func(ctx context.Context, cl client.WithWatch, obj client.Object, opts ...client.DeleteOption) error {
-					if _, ok := obj.(*corev1.Endpoints); ok && failures > 0 { //nolint:staticcheck // legacy object under test
+					if _, ok := obj.(*corev1.Endpoints); ok && failures > 0 {
 						failures--
 						return apierrors.NewInternalError(context.DeadlineExceeded)
 					}

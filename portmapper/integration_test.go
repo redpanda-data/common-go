@@ -16,7 +16,7 @@ package portmapper_test
 
 import (
 	"context"
-	"sort"
+	"slices"
 	"testing"
 	"time"
 
@@ -298,23 +298,7 @@ func testSelectorMigration(t *testing.T, ctx context.Context, c client.Client) {
 
 	// Phase 1: the native controller publishes every Ready pod, pod-x
 	// included.
-	require.EventuallyWithT(t, func(collect *assert.CollectT) {
-		native, err := listNative()
-		if !assert.NoError(collect, err) {
-			return
-		}
-		published := map[string]bool{}
-		for _, slice := range native {
-			for _, endpoint := range slice.Endpoints {
-				for _, address := range endpoint.Addresses {
-					published[address] = true
-				}
-			}
-		}
-		assert.True(collect, published[ips["pod-a"]], "native slices should carry pod-a")
-		assert.True(collect, published[ips["pod-b"]], "native slices should carry pod-b")
-		assert.True(collect, published[ips["pod-x"]], "native slices should carry the pod that fails port-mapper's check")
-	}, 90*time.Second, 500*time.Millisecond, "native controller never published the selected pods")
+	waitForNativeAddresses(t, listNative, ips)
 
 	// Phase 2: opt into port-mapper with the selector still in place. Both
 	// controllers publish side by side; ours applies per-port membership.
@@ -345,7 +329,7 @@ func testSelectorMigration(t *testing.T, ctx context.Context, c client.Client) {
 
 	// The legacy Endpoints object disappears without any manual step...
 	require.EventuallyWithT(t, func(collect *assert.CollectT) {
-		var endpoints corev1.Endpoints //nolint:staticcheck // the deprecated legacy object is the test subject
+		var endpoints corev1.Endpoints
 		err := c.Get(ctx, types.NamespacedName{Namespace: namespace, Name: "my-service"}, &endpoints)
 		assert.True(collect, apierrors.IsNotFound(err), "legacy Endpoints object should be cleaned up, got err=%v", err)
 	}, time.Minute, 500*time.Millisecond, "legacy Endpoints object never cleaned up")
@@ -367,6 +351,38 @@ func testSelectorMigration(t *testing.T, ctx context.Context, c client.Client) {
 
 	// Phase 4: only port-mapper's slices remain, and pod-x is no longer an
 	// https endpoint anywhere on the Service.
+	waitForTakeover(t, ctx, c, namespace, ips)
+}
+
+// waitForNativeAddresses waits until the native controller's slices carry
+// every pod, including pod-x, the one that fails port-mapper's check.
+func waitForNativeAddresses(t *testing.T, listNative func() ([]discoveryv1.EndpointSlice, error), ips map[string]string) {
+	t.Helper()
+
+	require.EventuallyWithT(t, func(collect *assert.CollectT) {
+		native, err := listNative()
+		if !assert.NoError(collect, err) {
+			return
+		}
+		published := map[string]bool{}
+		for _, slice := range native {
+			for _, endpoint := range slice.Endpoints {
+				for _, address := range endpoint.Addresses {
+					published[address] = true
+				}
+			}
+		}
+		assert.True(collect, published[ips["pod-a"]], "native slices should carry pod-a")
+		assert.True(collect, published[ips["pod-b"]], "native slices should carry pod-b")
+		assert.True(collect, published[ips["pod-x"]], "native slices should carry the pod that fails port-mapper's check")
+	}, 90*time.Second, 500*time.Millisecond, "native controller never published the selected pods")
+}
+
+// waitForTakeover waits until only port-mapper's slices remain for
+// my-service and pod-x has dropped out of https everywhere.
+func waitForTakeover(t *testing.T, ctx context.Context, c client.Client, namespace string, ips map[string]string) {
+	t.Helper()
+
 	require.EventuallyWithT(t, func(collect *assert.CollectT) {
 		var list discoveryv1.EndpointSliceList
 		if !assert.NoError(collect, c.List(ctx, &list, client.InNamespace(namespace),
@@ -387,7 +403,7 @@ func testSelectorMigration(t *testing.T, ctx context.Context, c client.Client) {
 				}
 			}
 		}
-		sort.Strings(httpsAddresses)
+		slices.Sort(httpsAddresses)
 
 		assert.Equal(collect, map[string]bool{itManagedBy: true}, managers, "only port-mapper slices should remain")
 		assert.Equal(collect, sortedIPs(ips, "pod-a", "pod-b"), httpsAddresses)
@@ -451,7 +467,7 @@ func sortedIPs(ips map[string]string, names ...string) []string {
 	for _, name := range names {
 		out = append(out, ips[name])
 	}
-	sort.Strings(out)
+	slices.Sort(out)
 	return out
 }
 
@@ -470,11 +486,12 @@ func expectAddresses(t *testing.T, ctx context.Context, c client.Client, namespa
 		for _, endpoint := range slice.Endpoints {
 			got = append(got, endpoint.Addresses...)
 		}
-		sort.Strings(got)
+		slices.Sort(got)
 		assert.Equal(collect, want, got)
 	}, 90*time.Second, 500*time.Millisecond, "slice %s never converged", sliceName)
 }
 
+//nolint:unparam // namespace stays a parameter to mirror expectAddresses
 func expectNoSlice(t *testing.T, ctx context.Context, c client.Client, namespace, sliceName string) {
 	t.Helper()
 

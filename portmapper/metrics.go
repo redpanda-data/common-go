@@ -25,23 +25,29 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
 )
 
+// Label names shared by the per-Service metrics.
+const (
+	labelNamespace = "namespace"
+	labelService   = "service"
+)
+
 // Registered into controller-runtime's registry, so they show up on the
 // manager's metrics endpoint next to the standard reconcile metrics.
 var (
 	endpointsPublished = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "portmapper_endpoints_published",
 		Help: "Endpoints currently published, per Service port and address family.",
-	}, []string{"namespace", "service", "port", "address_type"})
+	}, []string{labelNamespace, labelService, "port", "address_type"})
 
 	slicesManaged = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "portmapper_endpointslices_managed",
 		Help: "EndpointSlices this controller publishes, per Service.",
-	}, []string{"namespace", "service"})
+	}, []string{labelNamespace, labelService})
 
 	membershipChecks = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Name: "portmapper_membership_checks_total",
 		Help: "Membership check outcomes, per Service.",
-	}, []string{"namespace", "service", "decision"})
+	}, []string{labelNamespace, labelService, "decision"})
 
 	checkDuration = prometheus.NewHistogram(prometheus.HistogramOpts{
 		Name:    "portmapper_membership_check_duration_seconds",
@@ -57,7 +63,7 @@ var (
 	nameCollisions = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Name: "portmapper_name_collisions_total",
 		Help: "EndpointSlice name collisions with slices owned by someone else.",
-	}, []string{"namespace", "service"})
+	}, []string{labelNamespace, labelService})
 )
 
 func init() {
@@ -86,7 +92,7 @@ func decisionLabel(d Decision) string {
 // recordPublished refreshes the per-Service gauges from the slices that were
 // just synced.
 func recordPublished(svc *corev1.Service, desired map[string]*discoveryv1.EndpointSlice) {
-	endpointsPublished.DeletePartialMatch(prometheus.Labels{"namespace": svc.Namespace, "service": svc.Name})
+	endpointsPublished.DeletePartialMatch(prometheus.Labels{labelNamespace: svc.Namespace, labelService: svc.Name})
 
 	type portKey struct {
 		port   string
@@ -113,7 +119,7 @@ func recordPublished(svc *corev1.Service, desired map[string]*discoveryv1.Endpoi
 // forgetServiceMetrics drops a Service's metric series once it is deleted or
 // no longer managed.
 func forgetServiceMetrics(key client.ObjectKey) {
-	labels := prometheus.Labels{"namespace": key.Namespace, "service": key.Name}
+	labels := prometheus.Labels{labelNamespace: key.Namespace, labelService: key.Name}
 	endpointsPublished.DeletePartialMatch(labels)
 	slicesManaged.DeletePartialMatch(labels)
 	membershipChecks.DeletePartialMatch(labels)

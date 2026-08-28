@@ -176,27 +176,13 @@ func (r *reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		// type changed.
 		logger.Info("WARNING: managed service is of type ExternalName, which cannot have endpoints; ignoring",
 			"service", req.NamespacedName)
-		if r.recorder != nil {
-			r.recorder.Event(&svc, corev1.EventTypeWarning, "ExternalNameUnsupported",
-				"ExternalName Services cannot have EndpointSlices; this Service is ignored by port-mapper.")
-		}
+		r.event(&svc, corev1.EventTypeWarning, "ExternalNameUnsupported",
+			"ExternalName Services cannot have EndpointSlices; this Service is ignored by port-mapper.")
 		r.forgetService(req.NamespacedName)
 		return ctrl.Result{}, r.syncSlices(ctx, &svc, owned, nil)
 	}
 
-	if r.warnOnce(req.NamespacedName, warnedSelector, svc.Spec.Selector != nil) {
-		logger.Info("WARNING: managed service defines a selector; the native EndpointSlice controller will publish competing slices for it",
-			"service", req.NamespacedName)
-	}
-
-	if r.warnOnce(req.NamespacedName, warnedTopology, topologyHintsRequested(&svc)) {
-		logger.Info("WARNING: managed service requests topology-mode Auto, which this controller does not support; publishing endpoints without topology hints",
-			"service", req.NamespacedName)
-		if r.recorder != nil {
-			r.recorder.Event(&svc, corev1.EventTypeWarning, "TopologyAwareHintsDisabled",
-				"This Service's EndpointSlices are managed by a port-mapper controller, which does not implement topology-mode Auto; endpoints are published without topology hints. Use spec.trafficDistribution instead.")
-		}
-	}
+	r.warnMisconfigurations(ctx, &svc, req.NamespacedName)
 
 	pods, err := r.alignedPods(ctx, svc.Namespace, group)
 	if err != nil {
@@ -228,6 +214,31 @@ func (r *reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	// Requeue so membership decisions whose outcome can change without an
 	// API event (e.g. TCP health checks) are re-evaluated.
 	return ctrl.Result{RequeueAfter: r.cfg.ResyncPeriod}, nil
+}
+
+// event records an Event for obj when a recorder is configured.
+func (r *reconciler) event(obj client.Object, eventtype, reason, message string) {
+	if r.recorder != nil {
+		r.recorder.Event(obj, eventtype, reason, message)
+	}
+}
+
+// warnMisconfigurations surfaces, once per occurrence, Service shapes the
+// controller tolerates but cannot serve faithfully.
+func (r *reconciler) warnMisconfigurations(ctx context.Context, svc *corev1.Service, key client.ObjectKey) {
+	logger := log.FromContext(ctx)
+
+	if r.warnOnce(key, warnedSelector, svc.Spec.Selector != nil) {
+		logger.Info("WARNING: managed service defines a selector; the native EndpointSlice controller will publish competing slices for it",
+			"service", key)
+	}
+
+	if r.warnOnce(key, warnedTopology, topologyHintsRequested(svc)) {
+		logger.Info("WARNING: managed service requests topology-mode Auto, which this controller does not support; publishing endpoints without topology hints",
+			"service", key)
+		r.event(svc, corev1.EventTypeWarning, "TopologyAwareHintsDisabled",
+			"This Service's EndpointSlices are managed by a port-mapper controller, which does not implement topology-mode Auto; endpoints are published without topology hints. Use spec.trafficDistribution instead.")
+	}
 }
 
 // serviceSlices lists every EndpointSlice labeled for svc, regardless of
@@ -324,8 +335,8 @@ func (r *reconciler) cleanupNativeEndpoints(ctx context.Context, svc *corev1.Ser
 		}
 	}
 
-	if cleaned && r.recorder != nil {
-		r.recorder.Event(svc, corev1.EventTypeNormal, "NativeEndpointsCleanedUp",
+	if cleaned {
+		r.event(svc, corev1.EventTypeNormal, "NativeEndpointsCleanedUp",
 			"Removed the stale EndpointSlices and/or legacy Endpoints object left behind by the Service's removed selector.")
 	}
 
@@ -493,41 +504,13 @@ func (r *reconciler) portGroups(ctx context.Context, svc *corev1.Service, sp cor
 
 	// Gather candidates serially (cheap), then evaluate membership
 	// concurrently: probes can block up to their timeout apiece.
-	type candidate struct {
-		pod  *corev1.Pod
-		port Port
-	}
-	var candidates []candidate
-	var fallback int32 // lowest target resolved by any candidate pod
-	for i := range pods {
-		pod := &pods[i]
-		if !routable(pod) {
-			continue
-		}
-		address, ok := podAddress(pod, family)
-		if !ok {
-			continue
-		}
-		targetPort, ok := resolveTargetPort(pod, sp, protocol)
-		if !ok {
-			continue
-		}
-		if fallback == 0 || targetPort < fallback {
-			fallback = targetPort
-		}
-		candidates = append(candidates, candidate{
-			pod:  pod,
-			port: Port{Name: sp.Name, Port: targetPort, Protocol: protocol, AppProtocol: sp.AppProtocol, Address: address},
-		})
-	}
+	candidates, fallback := portCandidates(pods, sp, family, protocol)
 
 	decisions := make([]Decision, len(candidates))
 	var wg sync.WaitGroup
 	for i := range candidates {
-		wg.Add(1)
 		sem <- struct{}{}
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			defer func() { <-sem }()
 
 			start := time.Now()
@@ -535,13 +518,15 @@ func (r *reconciler) portGroups(ctx context.Context, svc *corev1.Service, sp cor
 			checkDuration.Observe(time.Since(start).Seconds())
 			membershipChecks.WithLabelValues(svc.Namespace, svc.Name, decisionLabel(decision)).Inc()
 			decisions[i] = decision
-		}()
+		})
 	}
 	wg.Wait()
 
 	grouped := map[int32][]discoveryv1.Endpoint{}
 	for i, c := range candidates {
 		switch decisions[i] {
+		case Include:
+			// Published below.
 		case Exclude:
 			continue
 		case Abstain:
@@ -589,6 +574,43 @@ func (r *reconciler) portGroups(ctx context.Context, svc *corev1.Service, sp cor
 	})
 
 	return groups
+}
+
+// portCandidate pairs a routable pod with the concrete port its membership
+// is checked against.
+type portCandidate struct {
+	pod  *corev1.Pod
+	port Port
+}
+
+// portCandidates gathers the routable pods that resolve sp for family, along
+// with the lowest target port any of them resolved -- the fallback target
+// for an empty placeholder slice when the targetPort is named.
+func portCandidates(pods []corev1.Pod, sp corev1.ServicePort, family discoveryv1.AddressType, protocol corev1.Protocol) ([]portCandidate, int32) {
+	var candidates []portCandidate
+	var fallback int32
+	for i := range pods {
+		pod := &pods[i]
+		if !routable(pod) {
+			continue
+		}
+		address, ok := podAddress(pod, family)
+		if !ok {
+			continue
+		}
+		targetPort, ok := resolveTargetPort(pod, sp, protocol)
+		if !ok {
+			continue
+		}
+		if fallback == 0 || targetPort < fallback {
+			fallback = targetPort
+		}
+		candidates = append(candidates, portCandidate{
+			pod:  pod,
+			port: Port{Name: sp.Name, Port: targetPort, Protocol: protocol, AppProtocol: sp.AppProtocol, Address: address},
+		})
+	}
+	return candidates, fallback
 }
 
 // renderSlice renders the EndpointSlice for one endpoint group chunk.
@@ -665,33 +687,9 @@ func (r *reconciler) syncSlices(ctx context.Context, svc *corev1.Service, existi
 			continue
 		}
 
-		// A slice by this name that our label-filtered listing didn't return
-		// is either another controller's or ours with tampered labels. Only
-		// adopt it (repairing the labels via the apply below) when its owner
-		// reference points at this Service AND no other manager claims it --
-		// the owner reference alone isn't enough, because the native
-		// controller and other Mappers reference the same Service. Anything
-		// else is a name collision to report, not something to overwrite.
-		var found discoveryv1.EndpointSlice
-		err := r.client.Get(ctx, client.ObjectKey{Namespace: svc.Namespace, Name: name}, &found)
-		switch {
-		case err != nil && !apierrors.IsNotFound(err):
-			errs = append(errs, errors.WithStack(err))
+		if err := r.claimSlice(ctx, svc, name); err != nil {
+			errs = append(errs, err)
 			continue
-		case err == nil:
-			owner := metav1.GetControllerOf(&found)
-			manager := found.Labels[discoveryv1.LabelManagedBy]
-			if owner == nil || owner.UID != svc.UID || (manager != "" && manager != r.cfg.ManagedBy) {
-				collision := errors.Newf(
-					"EndpointSlice %q already belongs to service %q (managed by %q); rename the service or its ports to disambiguate",
-					name, found.Labels[discoveryv1.LabelServiceName], manager)
-				if r.recorder != nil {
-					r.recorder.Event(svc, corev1.EventTypeWarning, "EndpointSliceNameCollision", collision.Error())
-				}
-				nameCollisions.WithLabelValues(svc.Namespace, svc.Name).Inc()
-				errs = append(errs, collision)
-				continue
-			}
 		}
 
 		logger.Info("applying EndpointSlice", "endpointslice", client.ObjectKeyFromObject(want), "endpoints", len(want.Endpoints))
@@ -703,10 +701,46 @@ func (r *reconciler) syncSlices(ctx context.Context, svc *corev1.Service, existi
 	return utilerrors.NewAggregate(errs)
 }
 
+// claimSlice decides whether a desired slice name that our label-filtered
+// listing didn't return can be applied. Such a slice is either another
+// controller's or ours with tampered labels. Only adopt it (repairing the
+// labels via the subsequent apply) when its owner reference points at this
+// Service AND no other manager claims it -- the owner reference alone isn't
+// enough, because the native controller and other Mappers reference the same
+// Service. Anything else is a name collision to report, not something to
+// overwrite.
+func (r *reconciler) claimSlice(ctx context.Context, svc *corev1.Service, name string) error {
+	var found discoveryv1.EndpointSlice
+	err := r.client.Get(ctx, client.ObjectKey{Namespace: svc.Namespace, Name: name}, &found)
+	if apierrors.IsNotFound(err) {
+		return nil
+	}
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	owner := metav1.GetControllerOf(&found)
+	manager := found.Labels[discoveryv1.LabelManagedBy]
+	if owner == nil || owner.UID != svc.UID || (manager != "" && manager != r.cfg.ManagedBy) {
+		collision := errors.Newf(
+			"EndpointSlice %q already belongs to service %q (managed by %q); rename the service or its ports to disambiguate",
+			name, found.Labels[discoveryv1.LabelServiceName], manager)
+		r.event(svc, corev1.EventTypeWarning, "EndpointSliceNameCollision", collision.Error())
+		nameCollisions.WithLabelValues(svc.Namespace, svc.Name).Inc()
+		return collision
+	}
+
+	return nil
+}
+
 // applySlice server-side applies a fully rendered slice, claiming any fields
 // other managers may have written.
 func (r *reconciler) applySlice(ctx context.Context, slice *discoveryv1.EndpointSlice) error {
-	return errors.WithStack(r.client.Patch(ctx, slice, client.Apply,
+	// The replacement client.Client.Apply takes a runtime.ApplyConfiguration,
+	// which would mean rendering slices as apply configurations instead of
+	// typed objects; deferred as a larger refactor.
+	patch := client.Apply //nolint:staticcheck // see above
+	return errors.WithStack(r.client.Patch(ctx, slice, patch,
 		client.FieldOwner(r.cfg.ManagedBy), client.ForceOwnership))
 }
 
@@ -765,6 +799,8 @@ func serviceFamilies(svc *corev1.Service) []discoveryv1.AddressType {
 			families = append(families, discoveryv1.AddressTypeIPv4)
 		case corev1.IPv6Protocol:
 			families = append(families, discoveryv1.AddressTypeIPv6)
+		case corev1.IPFamilyUnknown:
+			// No address type to publish for an unknown family.
 		}
 	}
 	if len(families) == 0 {
