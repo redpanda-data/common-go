@@ -63,7 +63,7 @@ func TestObserver(t *testing.T) {
 	httpServer := http.Server{
 		Handler: handler,
 	}
-	lis, err := net.Listen("tcp", "127.0.0.1:0")
+	lis, err := new(net.ListenConfig).Listen(t.Context(), "tcp", "127.0.0.1:0")
 	require.NoError(t, err)
 	go func() {
 		// Serve always returns a non-nil error; ErrServerClosed after Close.
