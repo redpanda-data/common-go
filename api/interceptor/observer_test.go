@@ -24,7 +24,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
-	"google.golang.org/grpc/test/bufconn"
 
 	"github.com/redpanda-data/common-go/api/interceptor"
 )
@@ -49,6 +48,9 @@ func TestObserver(t *testing.T) {
 	mux.Handle(elizav1connect.NewElizaServiceHandler(
 		elizaServerHandler{},
 		connect.WithInterceptors(observerMiddleware),
+		// Disable gzip: the byte-count assertions below must see the raw
+		// message bytes, and compressed sizes vary across Go releases.
+		connect.WithCompression("gzip", nil, nil),
 	))
 
 	// Below boilerplate can be simplified by using the connect-go
@@ -61,18 +63,20 @@ func TestObserver(t *testing.T) {
 	httpServer := http.Server{
 		Handler: handler,
 	}
-	lis := bufconn.Listen(1024 * 1024)
+	lis, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
 	go func() {
-		err := httpServer.Serve(lis)
-		require.NoError(t, err)
+		// Serve always returns a non-nil error; ErrServerClosed after Close.
+		_ = httpServer.Serve(lis)
 	}()
-	time.Sleep(time.Second)
+	t.Cleanup(func() { _ = httpServer.Close() })
 
 	// Create client
+	dialer := &net.Dialer{}
 	httpCl := &http.Client{
 		Transport: &http2.Transport{
-			DialTLSContext: func(ctx context.Context, _ string, _ string, _ *tls.Config) (net.Conn, error) {
-				return lis.DialContext(ctx)
+			DialTLSContext: func(ctx context.Context, network, addr string, _ *tls.Config) (net.Conn, error) {
+				return dialer.DialContext(ctx, network, addr)
 			},
 			AllowHTTP: true,
 		},
@@ -91,7 +95,7 @@ func TestObserver(t *testing.T) {
 		assert.Equal(t, "ok", unaryMetadata.StatusCode())
 		assert.Equal(t, "/connectrpc.eliza.v1.ElizaService/Say", unaryMetadata.Procedure())
 		assert.Equal(t, nil, unaryMetadata.Err())
-		assert.Equal(t, int64(36), unaryMetadata.BytesSent())
+		assert.Equal(t, int64(12), unaryMetadata.BytesSent())
 		assert.Equal(t, int64(12), unaryMetadata.BytesReceived())
 	})
 
