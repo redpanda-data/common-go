@@ -18,4 +18,6 @@
 /rp-controller-utils/ @redpanda-data/k8s
 /otelutil/ @redpanda-data/k8s
 /kube/example/ @redpanda-data/k8s
+/portmapper/ @redpanda-data/k8s
+/portmapper/example/ @redpanda-data/k8s
 /protoc-gen-go-sr-normalize/ @birdayz
