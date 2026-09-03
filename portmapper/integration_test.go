@@ -16,7 +16,10 @@ package portmapper_test
 
 import (
 	"context"
+	"net/http"
 	"slices"
+	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -31,6 +34,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -46,6 +50,8 @@ const (
 	k3sImage = "rancher/k3s:v1.31.5-k3s1"
 
 	itGroupKey      = "port-mapper.example.com/group"
+	itGroupKeyOff   = "port-mapper.example.com/group-off"
+	itManagedByOff  = "port-mapper-integration-off"
 	itPortsKey      = "port-mapper.example.com/ports"
 	itManagedBy     = "port-mapper-integration"
 	nativeManagedBy = "endpointslice-controller.k8s.io"
@@ -94,8 +100,23 @@ func TestIntegration(t *testing.T) {
 		assert.NoError(collect, c.Patch(ctx, node, patch))
 	}, time.Minute, time.Second, "node never became labelable")
 
+	// Count the manager's Endpoints writes in the lifecycle namespace so the
+	// write-quiet assertion can prove the mirror is not re-applied when
+	// nothing changed: no-op server-side applies don't bump resourceVersion,
+	// so the resourceVersion check alone can't catch a wasted-apply loop.
+	var lifecycleEndpointsPatches atomic.Int64
+	mgrCfg := rest.CopyConfig(restcfg)
+	mgrCfg.Wrap(func(rt http.RoundTripper) http.RoundTripper {
+		return roundTripperFunc(func(req *http.Request) (*http.Response, error) {
+			if req.Method == http.MethodPatch && strings.Contains(req.URL.Path, "/namespaces/pm-lifecycle/endpoints/") {
+				lifecycleEndpointsPatches.Add(1)
+			}
+			return rt.RoundTrip(req)
+		})
+	})
+
 	logger := testr.NewWithOptions(t, testr.Options{Verbosity: 2})
-	mgr, err := ctrl.NewManager(restcfg, ctrl.Options{
+	mgr, err := ctrl.NewManager(mgrCfg, ctrl.Options{
 		Scheme:     scheme,
 		Metrics:    metricsserver.Options{BindAddress: "0"},
 		Logger:     logger,
@@ -113,10 +134,27 @@ func TestIntegration(t *testing.T) {
 			portmapper.PodReady(),
 			portmapper.PortNames(portmapper.AnnotationKey(itPortsKey)),
 		),
-		ResyncPeriod: 2 * time.Second,
+		ResyncPeriod:           2 * time.Second,
+		PublishLegacyEndpoints: true,
 	})
 	require.NoError(t, err)
 	require.NoError(t, mapper.SetupWithManager(mgr))
+
+	// A second Mapper without PublishLegacyEndpoints preserves coverage of
+	// the option-off migration contract: the abandoned Endpoints object is
+	// deleted outright and the mirroring controller's slices are garbage
+	// collected through their owner reference by the real API server.
+	mapperOff, err := portmapper.New(portmapper.Config{
+		ManagedBy:  itManagedByOff,
+		ServiceKey: portmapper.AnnotationKey(itGroupKeyOff),
+		Membership: portmapper.All(
+			portmapper.PodReady(),
+			portmapper.PortNames(portmapper.AnnotationKey(itPortsKey)),
+		),
+		ResyncPeriod: 2 * time.Second,
+	})
+	require.NoError(t, err)
+	require.NoError(t, mapperOff.SetupWithManager(mgr))
 
 	managerCtx, stopManager := context.WithCancel(context.Background())
 	stopped := make(chan struct{})
@@ -133,19 +171,91 @@ func TestIntegration(t *testing.T) {
 
 	t.Run("lifecycle", func(t *testing.T) {
 		t.Parallel()
-		testLifecycle(t, ctx, c)
+		testLifecycle(t, ctx, c, &lifecycleEndpointsPatches)
 	})
 	t.Run("selector migration", func(t *testing.T) {
 		t.Parallel()
 		testSelectorMigration(t, ctx, c)
 	})
+	t.Run("selector migration without legacy endpoints", func(t *testing.T) {
+		t.Parallel()
+		testSelectorMigrationLegacyOff(t, ctx, c)
+	})
+}
+
+// testSelectorMigrationLegacyOff exercises the option-off migration
+// contract against a real API server: dropping the selector deletes the
+// abandoned legacy Endpoints object outright, whose owner-referenced mirror
+// slices the garbage collector then reaps.
+func testSelectorMigrationLegacyOff(t *testing.T, ctx context.Context, c client.Client) {
+	const namespace = "pm-migration-off"
+	require.NoError(t, c.Create(ctx, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: namespace}}))
+
+	selector := map[string]string{"app": "migrate-off"}
+	for _, name := range []string{"pod-a", "pod-b"} {
+		annotations := map[string]string{itGroupKeyOff: "migrate-off-group", itPortsKey: "http"}
+		require.NoError(t, c.Create(ctx, integrationPod(namespace, name, selector, annotations)))
+	}
+
+	svc := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{Name: "my-service", Namespace: namespace},
+		Spec: corev1.ServiceSpec{
+			Selector: selector,
+			Ports:    []corev1.ServicePort{{Name: "http", Port: 8080, Protocol: corev1.ProtocolTCP}},
+		},
+	}
+	require.NoError(t, c.Create(ctx, svc))
+	ips := waitForPodIPs(t, ctx, c, namespace, "pod-a", "pod-b")
+
+	// The native controller publishes first (selector present), creating the
+	// legacy Endpoints object.
+	require.EventuallyWithT(t, func(collect *assert.CollectT) {
+		var endpoints corev1.Endpoints
+		assert.NoError(collect, c.Get(ctx, types.NamespacedName{Namespace: namespace, Name: "my-service"}, &endpoints))
+	}, 90*time.Second, 500*time.Millisecond, "native controller never created the Endpoints object")
+
+	// Opt in, then drop the selector: port-mapper (option off) must delete
+	// the abandoned Endpoints object outright...
+	require.NoError(t, c.Get(ctx, client.ObjectKeyFromObject(svc), svc))
+	patch := client.MergeFrom(svc.DeepCopy())
+	svc.Annotations = map[string]string{itGroupKeyOff: "migrate-off-group"}
+	svc.Spec.Selector = nil
+	require.NoError(t, c.Patch(ctx, svc, patch))
+
+	expectAddresses(t, ctx, c, namespace, "my-service-http", ips, "pod-a", "pod-b")
+	require.EventuallyWithT(t, func(collect *assert.CollectT) {
+		var endpoints corev1.Endpoints
+		err := c.Get(ctx, types.NamespacedName{Namespace: namespace, Name: "my-service"}, &endpoints)
+		assert.True(collect, apierrors.IsNotFound(err), "the abandoned Endpoints object should be deleted, got err=%v", err)
+	}, time.Minute, 500*time.Millisecond, "abandoned Endpoints object never deleted")
+
+	// ...after which only this controller's slices survive: the native
+	// controller's stale slices are deleted directly and the mirroring
+	// controller's are garbage collected with the Endpoints object.
+	require.EventuallyWithT(t, func(collect *assert.CollectT) {
+		var list discoveryv1.EndpointSliceList
+		if !assert.NoError(collect, c.List(ctx, &list, client.InNamespace(namespace),
+			client.MatchingLabels{discoveryv1.LabelServiceName: "my-service"})) {
+			return
+		}
+		managers := map[string]bool{}
+		for _, slice := range list.Items {
+			managers[slice.Labels[discoveryv1.LabelManagedBy]] = true
+		}
+		assert.Equal(collect, map[string]bool{itManagedByOff: true}, managers, "only port-mapper slices should remain")
+	}, 2*time.Minute, 500*time.Millisecond, "migration never converged on port-mapper-only slices")
 }
 
 // testLifecycle walks a Service that was born selectorless through the whole
 // port-mapper lifecycle: per-port publishing with topology, membership
 // changes, repair of tampered slices, pod drain, marker removal, and finally
 // real owner-reference garbage collection.
-func testLifecycle(t *testing.T, ctx context.Context, c client.Client) {
+// roundTripperFunc adapts a function to http.RoundTripper.
+type roundTripperFunc func(*http.Request) (*http.Response, error)
+
+func (f roundTripperFunc) RoundTrip(req *http.Request) (*http.Response, error) { return f(req) }
+
+func testLifecycle(t *testing.T, ctx context.Context, c client.Client, endpointsPatches *atomic.Int64) {
 	const namespace = "pm-lifecycle"
 	require.NoError(t, c.Create(ctx, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: namespace}}))
 
@@ -179,6 +289,45 @@ func testLifecycle(t *testing.T, ctx context.Context, c client.Client) {
 
 	expectAddresses(t, ctx, c, namespace, "my-service-http", ips, "pod-a", "pod-b", "pod-c")
 	expectAddresses(t, ctx, c, namespace, "my-service-https", ips, "pod-b", "pod-c", "pod-d")
+
+	// The legacy Endpoints mirror is published alongside the slices and
+	// carries every address.
+	require.EventuallyWithT(t, func(collect *assert.CollectT) {
+		var endpoints corev1.Endpoints
+		if !assert.NoError(collect, c.Get(ctx, types.NamespacedName{Namespace: namespace, Name: "my-service"}, &endpoints)) {
+			return
+		}
+		assert.Equal(collect, itManagedBy, endpoints.Labels[discoveryv1.LabelManagedBy])
+		assert.Equal(collect, "true", endpoints.Labels[discoveryv1.LabelSkipMirror])
+		var addresses []string
+		for _, subset := range endpoints.Subsets {
+			for _, address := range subset.Addresses {
+				addresses = append(addresses, address.IP)
+			}
+		}
+		slices.Sort(addresses)
+		assert.Equal(collect, sortedIPs(ips, "pod-a", "pod-b", "pod-c", "pod-d"), addresses)
+	}, time.Minute, 500*time.Millisecond, "legacy Endpoints never converged")
+
+	// Once converged, the mirror must be write-quiet: a drift-detection
+	// mismatch against the API server's stored form would re-apply every
+	// resync. Both signals are checked -- resourceVersion for oscillating
+	// content, the PATCH counter for no-op apply loops resourceVersion
+	// can't see.
+	// Let the manager's cache ingest the final apply first: a resync firing
+	// against a not-yet-updated cache legitimately re-applies once, which
+	// would otherwise race the snapshot below.
+	time.Sleep(2 * time.Second)
+	var settled corev1.Endpoints
+	require.NoError(t, c.Get(ctx, types.NamespacedName{Namespace: namespace, Name: "my-service"}, &settled))
+	patchesBefore := endpointsPatches.Load()
+	time.Sleep(4 * 2 * time.Second) // several ResyncPeriods
+	var resettled corev1.Endpoints
+	require.NoError(t, c.Get(ctx, types.NamespacedName{Namespace: namespace, Name: "my-service"}, &resettled))
+	require.Equal(t, settled.ResourceVersion, resettled.ResourceVersion,
+		"legacy Endpoints re-applied with no input change; drift detection disagrees with the stored form")
+	require.Equal(t, patchesBefore, endpointsPatches.Load(),
+		"legacy Endpoints PATCHed with no input change; drift detection disagrees with the stored form")
 
 	// Published slices carry the full endpoint shape: labels, an owner
 	// reference to the Service, real zones from the node, and same-zone
@@ -232,6 +381,13 @@ func testLifecycle(t *testing.T, ctx context.Context, c client.Client) {
 	require.NoError(t, c.Patch(ctx, svc, patch))
 	expectNoSlice(t, ctx, c, namespace, "my-service-http")
 	expectNoSlice(t, ctx, c, namespace, "my-service-https")
+
+	// The legacy Endpoints mirror is torn down with the slices.
+	require.EventuallyWithT(t, func(collect *assert.CollectT) {
+		var endpoints corev1.Endpoints
+		err := c.Get(ctx, types.NamespacedName{Namespace: namespace, Name: "my-service"}, &endpoints)
+		assert.True(collect, apierrors.IsNotFound(err), "legacy Endpoints should be deleted on unmanage, got err=%v", err)
+	}, time.Minute, 500*time.Millisecond, "legacy Endpoints never deleted after the marker was removed")
 
 	// Re-marking brings the slices back; deleting the Service lets the real
 	// garbage collector reap them through their owner references.
@@ -327,12 +483,17 @@ func testSelectorMigration(t *testing.T, ctx context.Context, c client.Client) {
 	svc.Spec.Selector = nil
 	require.NoError(t, c.Patch(ctx, svc, patch))
 
-	// The legacy Endpoints object disappears without any manual step...
+	// The native controller's abandoned Endpoints object is adopted in place
+	// (PublishLegacyEndpoints), never deleted, so legacy consumers keep
+	// resolving throughout the migration.
 	require.EventuallyWithT(t, func(collect *assert.CollectT) {
 		var endpoints corev1.Endpoints
-		err := c.Get(ctx, types.NamespacedName{Namespace: namespace, Name: "my-service"}, &endpoints)
-		assert.True(collect, apierrors.IsNotFound(err), "legacy Endpoints object should be cleaned up, got err=%v", err)
-	}, time.Minute, 500*time.Millisecond, "legacy Endpoints object never cleaned up")
+		if !assert.NoError(collect, c.Get(ctx, types.NamespacedName{Namespace: namespace, Name: "my-service"}, &endpoints)) {
+			return
+		}
+		assert.Equal(collect, itManagedBy, endpoints.Labels[discoveryv1.LabelManagedBy], "the abandoned Endpoints object should be adopted")
+		assert.Equal(collect, "true", endpoints.Labels[discoveryv1.LabelSkipMirror])
+	}, time.Minute, 500*time.Millisecond, "legacy Endpoints object never adopted")
 
 	// ...and the takeover is surfaced as an Event on the Service.
 	require.EventuallyWithT(t, func(collect *assert.CollectT) {

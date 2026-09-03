@@ -224,6 +224,52 @@ kubectl delete endpointslice \
     -l kubernetes.io/service-name=my-service,endpointslice.kubernetes.io/managed-by=endpointslice-controller.k8s.io
 ```
 
+## Legacy Endpoints objects
+
+Consumers that still read the deprecated `core/v1` Endpoints API can opt in
+via `Config.PublishLegacyEndpoints`: the controller additionally publishes an
+`Endpoints` object (named after the Service, as that API requires) mirroring
+its slices — addresses packed into subsets by the exact set of ports they
+serve, terminating pods omitted, only the primary address family, and the
+Service's labels stamped on (all matching the native endpoints controller; a
+label removed from the Service lingers on the mirror until the next content
+change), truncated at 1000 addresses (ready addresses first) with the
+`endpoints.kubernetes.io/over-capacity: truncated` annotation. The object
+also carries the `ManagedBy` label plus `endpointslice.kubernetes.io/
+skip-mirror: "true"` so the EndpointSliceMirroring controller ignores it, is
+repaired on tampering and deletion like the slices, and is removed (or
+garbage collected) with them.
+
+Services that still define a selector are skipped — the native endpoints
+controller owns their `Endpoints` object, and one published before a selector
+(re)appeared is handed back (deleted, for the native controller to rebuild).
+During a selector migration the abandoned object is instead adopted in place
+(surfaced as a `LegacyEndpointsAdopted` Event) once this controller publishes
+ready addresses for the primary family, so consumers never observe it
+missing; because adoption keeps the object alive, the migration cleanup then
+deletes the EndpointSliceMirroring controller's stale mirror slices directly
+rather than waiting on owner-reference GC. Until adoption lands, the
+abandoned object's stale addresses stay live — a
+`LegacyEndpointsAdoptionDeferred` Event names the state, and if it persists
+(say, a dual-stack Service whose primary `ipFamilies` entry never gets pod
+addresses) the fix is correcting the family/pod configuration. An adopted
+object also keeps the labels the native controller copied from the Service.
+An `Endpoints` object that belongs to someone else — another manager's
+label, or a foreign controller owner — is never overwritten or deleted: the
+collision is reported as an `EndpointsCollision` Event, and with
+`Config.DisableNativeCleanup` set even an unowned object is left alone.
+
+Requires additional RBAC: `create` and `patch` on `endpoints` (see below),
+and caches Endpoints cluster-wide — note that scoping that cache by label
+via `cache.Options` would break the adoption/ownership checks, which must
+see foreign objects.
+
+Disabling the option later cleans up after itself: published objects are
+removed alongside the slices when a Service stops being served, and a
+one-time startup sweep deletes every leftover mirror (selected by the
+`ManagedBy` label — covering even Services nothing reconciles anymore), so
+no manual deletion is needed in either direction.
+
 ## Demo
 
 ```sh
@@ -263,8 +309,12 @@ go test -run TestIntegration -v
   informer)
 - `get;list;watch;create;update;patch;delete` on `endpointslices`
   (`discovery.k8s.io`)
-- `delete` on `endpoints` (migration cleanup; unneeded with
-  `Config.DisableNativeCleanup`)
+- `get;list;watch;delete;` on `endpoints` (migration cleanup, teardown, and
+  the startup sweep of mirrors a previous `PublishLegacyEndpoints`
+  configuration published — the first Endpoints read lazily starts an
+  informer, and without list/watch it never syncs and reconciles hang)
+- `create;patch` on `endpoints` additionally with
+  `Config.PublishLegacyEndpoints`
 - `create;patch` on `events`
 
 The manager's cache watches these cluster-wide by default; scope it with
@@ -281,7 +331,7 @@ manager's metrics endpoint alongside the standard reconcile metrics:
 | `portmapper_endpointslices_managed` (gauge) | slices this controller publishes, per Service |
 | `portmapper_membership_checks_total` (counter) | check outcomes per Service, labeled `decision=include\|exclude\|abstain` — a spike in `abstain` means checks can't reach pods |
 | `portmapper_membership_check_duration_seconds` (histogram) | how long individual checks take |
-| `portmapper_native_cleanup_deletions_total` (counter) | native leftovers removed during selector migrations, labeled `resource=endpoints\|endpointslice` |
+| `portmapper_native_cleanup_deletions_total` (counter) | native leftovers removed during selector migrations, labeled `resource=endpoints\|endpointslice` — with `PublishLegacyEndpoints` the Endpoints object is adopted rather than deleted, so the `endpoints` series stays flat and the `LegacyEndpointsAdopted` Event is the migration signal instead |
 | `portmapper_name_collisions_total` (counter) | slice name collisions with slices owned by someone else |
 
 The gauges reflect the last *successfully synced* state — a Service stuck in

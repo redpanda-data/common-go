@@ -44,6 +44,10 @@
 // "service.kubernetes.io/topology-mode: Auto" annotation is
 // explicitly unsupported: such Services are published without topology hints
 // and receive a warning Event.
+//
+// For consumers that still read the deprecated core/v1 Endpoints API,
+// [Config.PublishLegacyEndpoints] additionally maintains a legacy Endpoints
+// object mirroring the published slices.
 package portmapper
 
 import (
@@ -64,6 +68,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
 
@@ -245,6 +250,32 @@ type Config struct {
 	// so a long-migrated Service costs nothing. Set this when something else
 	// legitimately manages those objects.
 	DisableNativeCleanup bool
+
+	// PublishLegacyEndpoints additionally publishes a legacy core/v1
+	// Endpoints object (named after the Service, as the API requires)
+	// mirroring the published EndpointSlices, for consumers that still read
+	// the deprecated Endpoints API. Like the native endpoints controller,
+	// the object carries the Service's labels (plus the headless marker),
+	// publishes only the Service's primary address family, and omits
+	// terminating pods; it additionally carries this controller's managed-by
+	// label and the "endpointslice.kubernetes.io/skip-mirror" label, so the
+	// native EndpointSliceMirroring controller ignores it. Services that
+	// still define a selector are skipped -- the native endpoints controller
+	// owns their Endpoints object until the selector is removed. An
+	// Endpoints object that belongs to someone else -- another manager's
+	// label, or a foreign controller owner -- is never overwritten; the
+	// collision is reported as an Event. With DisableNativeCleanup also set,
+	// even an unowned object is never adopted. Requires additional RBAC:
+	// create and patch on "endpoints", which the generated markers
+	// deliberately exclude (get, list, watch, and delete are needed even
+	// without this option, for migration cleanup and for sweeping up mirrors
+	// a previous configuration published).
+	//
+	// Disabling the option later cleans up after itself: published objects
+	// are removed alongside the slices when a Service stops being served,
+	// and a one-time startup sweep deletes every leftover mirror carrying
+	// the ManagedBy label, so no manual deletion is ever needed.
+	PublishLegacyEndpoints bool
 }
 
 // Mapper manages the EndpointSlices of every Service aligned to it via
@@ -302,7 +333,10 @@ func New(cfg Config) (*Mapper, error) {
 
 // SetupWithManager registers the Mapper's controller with mgr, watching
 // Services carrying [Config.ServiceKey], Pods carrying [Config.PodKey], and
-// the EndpointSlices the controller itself publishes.
+// the EndpointSlices the controller itself publishes -- plus, with
+// [Config.PublishLegacyEndpoints], the legacy Endpoints objects it manages
+// (without it, a one-shot startup sweep for leftover mirrors is registered
+// instead).
 func (m *Mapper) SetupWithManager(mgr ctrl.Manager) error {
 	name := m.controllerName()
 	//nolint:staticcheck // migrating to GetEventRecorder means adopting the
@@ -333,7 +367,7 @@ func (m *Mapper) SetupWithManager(mgr ctrl.Manager) error {
 		}
 	}
 
-	return ctrl.NewControllerManagedBy(mgr).
+	bldr := ctrl.NewControllerManagedBy(mgr).
 		Named(name).
 		WithOptions(controller.Options{MaxConcurrentReconciles: m.cfg.MaxConcurrentReconciles}).
 		For(&corev1.Service{}, builder.WithPredicates(keyPredicate(m.cfg.ServiceKey))).
@@ -342,8 +376,32 @@ func (m *Mapper) SetupWithManager(mgr ctrl.Manager) error {
 			builder.WithPredicates(keyPredicate(m.cfg.PodKey))).
 		Watches(&discoveryv1.EndpointSlice{},
 			handler.EnqueueRequestsFromMapFunc(mapSliceToService),
-			builder.WithPredicates(managedByPredicate(m.cfg.ManagedBy))).
-		Complete(r)
+			builder.WithPredicates(managedByPredicate(m.cfg.ManagedBy)))
+
+	if m.cfg.PublishLegacyEndpoints {
+		// Watch the published Endpoints objects so tampering and deletion
+		// get repaired, mirroring the slice watch above. The Endpoints API
+		// guarantees the object shares the Service's name, so the identity
+		// handler enqueues the right Service.
+		bldr = bldr.Watches(&legacyEndpoints{},
+			&handler.EnqueueRequestForObject{},
+			builder.WithPredicates(managedByPredicate(m.cfg.ManagedBy)))
+	} else {
+		// A previous configuration may have published legacy Endpoints
+		// mirrors; sweep them once at startup -- the option only changes
+		// across a restart, so that's exactly when leftovers can appear.
+		// The sweep runs on the leader after the cache syncs, and covers
+		// Services nothing would ever reconcile again (unmanaged, or
+		// deleted mid-teardown).
+		c := mgr.GetClient()
+		if err := mgr.Add(manager.RunnableFunc(func(ctx context.Context) error {
+			return sweepLegacyEndpoints(ctx, c, m.cfg.ManagedBy)
+		})); err != nil {
+			return errors.WithStack(err)
+		}
+	}
+
+	return bldr.Complete(r)
 }
 
 // controllerName derives a unique, sanitized controller name from ManagedBy.

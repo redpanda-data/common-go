@@ -46,7 +46,7 @@ import (
 // request.
 //
 // +kubebuilder:rbac:groups="",resources=services;pods;nodes,verbs=get;list;watch
-// +kubebuilder:rbac:groups="",resources=endpoints,verbs=delete
+// +kubebuilder:rbac:groups="",resources=endpoints,verbs=create;patch;get;list;watch;delete
 // +kubebuilder:rbac:groups="",resources=events,verbs=create;patch
 // +kubebuilder:rbac:groups=discovery.k8s.io,resources=endpointslices,verbs=get;list;watch;create;update;patch;delete
 type reconciler struct {
@@ -71,6 +71,9 @@ const (
 	warnedSelector uint8 = 1 << iota
 	warnedTopology
 	warnedDeferredCleanup
+	warnedForeignEndpoints
+	warnedDeferredAdoption
+	warnedEndpointsCollision
 )
 
 // warnOnce reports whether the warning tracked by flag should fire for key.
@@ -126,7 +129,10 @@ func (r *reconciler) forgetService(key client.ObjectKey) {
 //  4. Sync the cluster to match: server-side apply new and changed slices,
 //     delete leftovers, repair tampered ones, and report name collisions
 //     with other controllers' slices rather than overwriting them.
-//  5. Once our slices are live, finish any selector migration by removing
+//  5. Converge the legacy Endpoints mirror ([Config.PublishLegacyEndpoints]):
+//     publish or adopt it when the option is on, delete an owned leftover
+//     when it is off.
+//  6. Once our slices are live, finish any selector migration by removing
 //     what the native controllers left behind.
 //
 // The pass always requeues after ResyncPeriod so checks whose answers change
@@ -167,7 +173,7 @@ func (r *reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		// The Service's marker was removed; garbage collect anything we
 		// still own for it.
 		r.forgetService(req.NamespacedName)
-		return ctrl.Result{}, r.syncSlices(ctx, &svc, owned, nil)
+		return ctrl.Result{}, r.teardown(ctx, &svc, owned)
 	}
 
 	if svc.Spec.Type == corev1.ServiceTypeExternalName {
@@ -179,7 +185,7 @@ func (r *reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		r.event(&svc, corev1.EventTypeWarning, "ExternalNameUnsupported",
 			"ExternalName Services cannot have EndpointSlices; this Service is ignored by port-mapper.")
 		r.forgetService(req.NamespacedName)
-		return ctrl.Result{}, r.syncSlices(ctx, &svc, owned, nil)
+		return ctrl.Result{}, r.teardown(ctx, &svc, owned)
 	}
 
 	r.warnMisconfigurations(ctx, &svc, req.NamespacedName)
@@ -202,18 +208,38 @@ func (r *reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 	recordPublished(&svc, desired)
 
+	// Converge the legacy Endpoints mirror before the native cleanup below:
+	// applying it adopts any Endpoints object the native controller
+	// abandoned, and the cleanup relies on knowing whether that adoption
+	// actually happened. A mirror error must not stall the slice-side
+	// migration, so the cleanup still runs (with the adoption reported as
+	// not-happened) and the error is surfaced afterwards.
+	legacyPublished, legacyErr := r.syncLegacyEndpoints(ctx, &svc, desired)
+
 	// Only once our slices are live: finish any selector migration by
 	// removing what the native controllers abandoned. The other order could
 	// delete the only working endpoints and then fail before publishing.
 	if svc.Spec.Selector == nil && !r.cfg.DisableNativeCleanup {
-		if err := r.cleanupNativeEndpoints(ctx, &svc, all, anyEndpoints(desired)); err != nil {
-			return ctrl.Result{}, err
+		if err := r.cleanupNativeEndpoints(ctx, &svc, all, anyEndpoints(desired), legacyPublished); err != nil {
+			return ctrl.Result{}, utilerrors.NewAggregate([]error{legacyErr, err})
 		}
+	}
+	if legacyErr != nil {
+		return ctrl.Result{}, legacyErr
 	}
 
 	// Requeue so membership decisions whose outcome can change without an
 	// API event (e.g. TCP health checks) are re-evaluated.
 	return ctrl.Result{RequeueAfter: r.cfg.ResyncPeriod}, nil
+}
+
+// teardown removes everything published for a Service that is no longer
+// served: every owned slice, and the legacy Endpoints mirror if one exists.
+func (r *reconciler) teardown(ctx context.Context, svc *corev1.Service, owned []discoveryv1.EndpointSlice) error {
+	return utilerrors.NewAggregate([]error{
+		r.syncSlices(ctx, svc, owned, nil),
+		r.deleteLegacyEndpoints(ctx, svc),
+	})
 }
 
 // event records an Event for obj when a recorder is configured.
@@ -281,7 +307,14 @@ func anyEndpoints(slices map[string]*discoveryv1.EndpointSlice) bool {
 // Nothing runs until this controller is publishing at least one endpoint:
 // otherwise (say, a probe checker that can't reach the pod network) deleting
 // the native slices would leave the Service with no endpoints at all.
-func (r *reconciler) cleanupNativeEndpoints(ctx context.Context, svc *corev1.Service, slices []discoveryv1.EndpointSlice, publishing bool) error {
+//
+// With [Config.PublishLegacyEndpoints] the Endpoints object is adopted by
+// syncLegacyEndpoints instead of deleted here, so the mirrored slices' GC
+// never fires; they are deleted directly in that mode -- but only once
+// legacyPublished reports the adoption actually happened, because until the
+// adopted object carries the skip-mirror label the mirroring controller
+// would simply recreate them.
+func (r *reconciler) cleanupNativeEndpoints(ctx context.Context, svc *corev1.Service, slices []discoveryv1.EndpointSlice, publishing, legacyPublished bool) error {
 	logger := log.FromContext(ctx)
 
 	var stale []*discoveryv1.EndpointSlice
@@ -293,6 +326,14 @@ func (r *reconciler) cleanupNativeEndpoints(ctx context.Context, svc *corev1.Ser
 			stale = append(stale, &slices[i])
 		case mirrorManagedBy:
 			leftovers = true
+			// Normally mirrored slices are garbage collected with the
+			// Endpoints object that owns them; when that object was adopted
+			// rather than deleted, they must go directly (the skip-mirror
+			// label the completed adoption set keeps the mirroring
+			// controller from recreating them).
+			if legacyPublished {
+				stale = append(stale, &slices[i])
+			}
 		}
 	}
 
@@ -305,19 +346,11 @@ func (r *reconciler) cleanupNativeEndpoints(ctx context.Context, svc *corev1.Ser
 		return nil
 	}
 
-	cleaned := false
-	//nolint:staticcheck // the deprecated legacy object is exactly what's being cleaned up
-	endpoints := &corev1.Endpoints{ObjectMeta: metav1.ObjectMeta{Namespace: svc.Namespace, Name: svc.Name}}
-	switch err := r.client.Delete(ctx, endpoints); {
-	case err == nil:
-		logger.Info("deleted legacy Endpoints object left behind by the removed selector",
-			"endpoints", client.ObjectKeyFromObject(endpoints))
-		nativeCleanups.WithLabelValues("endpoints").Inc()
-		cleaned = true
-	case !apierrors.IsNotFound(err):
-		// Keep the stale slices: they're what triggers this cleanup again on
-		// the next reconcile.
-		return errors.WithStack(err)
+	// Keep the stale slices on error: they're what triggers this cleanup
+	// again on the next reconcile.
+	cleaned, err := r.cleanupAbandonedEndpoints(ctx, svc)
+	if err != nil {
+		return err
 	}
 
 	var errs []error
@@ -341,6 +374,36 @@ func (r *reconciler) cleanupNativeEndpoints(ctx context.Context, svc *corev1.Ser
 	}
 
 	return utilerrors.NewAggregate(errs)
+}
+
+// cleanupAbandonedEndpoints deletes the legacy Endpoints object the native
+// controller abandoned, reporting whether it deleted anything.
+//
+// With [Config.PublishLegacyEndpoints] there is never anything to delete
+// here: syncLegacyEndpoints ran earlier in this reconcile and either took
+// the object over (it is now this controller's mirror) or deliberately left
+// it alone (adoption deferred or blocked); deleting it in the latter case
+// would black out the legacy consumers the option exists to serve.
+// Re-deriving which case applies from a cache read here would race the
+// adoption applied moments earlier -- the caller receives the outcome as
+// legacyPublished instead.
+func (r *reconciler) cleanupAbandonedEndpoints(ctx context.Context, svc *corev1.Service) (bool, error) {
+	if r.cfg.PublishLegacyEndpoints {
+		return false, nil
+	}
+
+	endpoints := &legacyEndpoints{ObjectMeta: metav1.ObjectMeta{Namespace: svc.Namespace, Name: svc.Name}}
+	switch err := r.client.Delete(ctx, endpoints); {
+	case apierrors.IsNotFound(err):
+		return false, nil
+	case err != nil:
+		return false, errors.WithStack(err)
+	}
+
+	log.FromContext(ctx).Info("deleted legacy Endpoints object left behind by the removed selector",
+		"endpoints", client.ObjectKeyFromObject(endpoints))
+	nativeCleanups.WithLabelValues("endpoints").Inc()
+	return true, nil
 }
 
 // alignedPods lists the pods in namespace whose PodKey value matches group.
@@ -677,7 +740,7 @@ func (r *reconciler) syncSlices(ctx context.Context, svc *corev1.Service, existi
 		}
 
 		logger.Info("applying EndpointSlice", "endpointslice", client.ObjectKeyFromObject(want), "endpoints", len(want.Endpoints))
-		if err := r.applySlice(ctx, want); err != nil {
+		if err := r.apply(ctx, want); err != nil {
 			errs = append(errs, err)
 		}
 	}
@@ -693,7 +756,7 @@ func (r *reconciler) syncSlices(ctx context.Context, svc *corev1.Service, existi
 		}
 
 		logger.Info("applying EndpointSlice", "endpointslice", client.ObjectKeyFromObject(want), "endpoints", len(want.Endpoints))
-		if err := r.applySlice(ctx, want); err != nil {
+		if err := r.apply(ctx, want); err != nil {
 			errs = append(errs, err)
 		}
 	}
@@ -733,14 +796,14 @@ func (r *reconciler) claimSlice(ctx context.Context, svc *corev1.Service, name s
 	return nil
 }
 
-// applySlice server-side applies a fully rendered slice, claiming any fields
+// apply server-side applies a fully rendered object, claiming any fields
 // other managers may have written.
-func (r *reconciler) applySlice(ctx context.Context, slice *discoveryv1.EndpointSlice) error {
+func (r *reconciler) apply(ctx context.Context, obj client.Object) error {
 	// The replacement client.Client.Apply takes a runtime.ApplyConfiguration,
-	// which would mean rendering slices as apply configurations instead of
-	// typed objects; deferred as a larger refactor.
+	// which would mean rendering apply configurations instead of typed
+	// objects; deferred as a larger refactor.
 	patch := client.Apply //nolint:staticcheck // see above
-	return errors.WithStack(r.client.Patch(ctx, slice, patch,
+	return errors.WithStack(r.client.Patch(ctx, obj, patch,
 		client.FieldOwner(r.cfg.ManagedBy), client.ForceOwnership))
 }
 
@@ -1023,18 +1086,29 @@ func sliceName(svcName string, sp corev1.ServicePort, family discoveryv1.Address
 }
 
 func sliceChanged(current, desired *discoveryv1.EndpointSlice) bool {
-	for key, value := range desired.Labels {
-		if current.Labels[key] != value {
-			return true
-		}
-	}
-	if owner := metav1.GetControllerOf(current); owner == nil || owner.UID != desired.OwnerReferences[0].UID {
+	if managedMetadataDrifted(current, desired) {
 		return true
 	}
 	if !apiequality.Semantic.DeepEqual(current.Ports, desired.Ports) {
 		return true
 	}
 	return !endpointsEqual(current.Endpoints, desired.Endpoints)
+}
+
+// managedMetadataDrifted reports whether the labels this controller renders
+// or its controller owner reference were tampered with on the published
+// object. desired is always rendered through SetControllerReference; a
+// missing controller reference on either side reads as drift rather than
+// panicking or assuming reference order.
+func managedMetadataDrifted(current, desired client.Object) bool {
+	for key, value := range desired.GetLabels() {
+		if current.GetLabels()[key] != value {
+			return true
+		}
+	}
+	want := metav1.GetControllerOf(desired)
+	owner := metav1.GetControllerOf(current)
+	return want == nil || owner == nil || owner.UID != want.UID
 }
 
 // endpointsEqual compares endpoints element-wise, treating nil and empty
