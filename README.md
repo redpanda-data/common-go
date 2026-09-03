@@ -31,4 +31,6 @@ All packages contain their own licensing information and README about how they a
 | [licenseupdater](./licenseupdater) | Apache |
 | [kube](./kube) | Apache |
 | [kube/example](./kube/example) | Apache |
+| [portmapper](./portmapper) | Apache |
+| [portmapper/example](./portmapper/example) | Apache |
 | [telemetry](./telemetry) | Apache |

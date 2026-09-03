@@ -85,6 +85,14 @@ matches:
     license: Apache
   - extension: .go
     type: go
+    directory: portmapper
+    license: Apache
+  - extension: .go
+    type: go
+    directory: portmapper/example
+    license: Apache
+  - extension: .go
+    type: go
     directory: telemetry
     license: Apache
 files:
@@ -124,6 +132,9 @@ files:
   - name: kube/LICENSE
     license: Apache
     full: true
+  - name: portmapper/LICENSE
+    license: Apache
+    full: true
   - name: alias/LICENSE
     license: Apache
     full: true
@@ -143,6 +154,9 @@ files:
     license: Apache
     full: true
   - name: kube/example/LICENSE
+    license: Apache
+    full: true
+  - name: portmapper/example/LICENSE
     license: Apache
     full: true
   - name: telemetry/LICENSE

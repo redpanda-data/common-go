@@ -91,6 +91,11 @@ linters:
           disabled: true
         - name: cyclomatic
           disabled: true
+        # Requiring a default clause on every switch defeats the exhaustive
+        # linter, which relies on fully enumerated cases (with
+        # default-signifies-exhaustive) to catch missed enum values.
+        - name: enforce-switch-style
+          disabled: true
         - name: file-header
           disabled: true
         - name: flag-parameter
@@ -111,9 +116,20 @@ linters:
           disabled: true
         - name: package-comments
           disabled: true
+        # The published net module intentionally shares its name with the
+        # standard library package; renaming it would break its API.
+        - name: package-naming
+          disabled: true
         - name: redefines-builtin-id
           disabled: true
         - name: unhandled-error
+          disabled: true
+        # Style-only modernization with dozens of pre-existing sort.Slice
+        # sites; migrate deliberately rather than under lint pressure.
+        - name: use-slices-sort
+          disabled: true
+        # Plain http is often intentional here.
+        - name: unsecure-url-scheme
           disabled: true
         - name: var-naming
           disabled: true
@@ -126,6 +142,18 @@ linters:
           - gosec
           - staticcheck
         path: (.+)_test.go
+      # In tests a failed assertion panicking IS the failure mode; the
+      # two-value form is just noise there.
+      - linters:
+          - revive
+        path: (.+)_test.go
+        text: unchecked-type-assertion
+      # Test helpers follow the testing convention of *testing.T first,
+      # ahead of any context.
+      - linters:
+          - revive
+        path: (.+)_test.go
+        text: context-as-argument
     paths:
       - third_party$
       - builtin$

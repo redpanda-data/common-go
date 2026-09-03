@@ -34,11 +34,14 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
+// wellKnownValueName is the full name of the google.protobuf.Value message.
+const wellKnownValueName = "google.protobuf.Value"
+
 // wellKnownStructural is the set of google.protobuf well-known wrapper and
 // structural message full names that we delegate to protojson for natural
 // JSON rendering instead of recursing into their internal fields.
 var wellKnownStructural = map[protoreflect.FullName]bool{
-	"google.protobuf.Value":     true,
+	wellKnownValueName:          true,
 	"google.protobuf.Struct":    true,
 	"google.protobuf.ListValue": true,
 	// Wrappers: delegate to protojson too.

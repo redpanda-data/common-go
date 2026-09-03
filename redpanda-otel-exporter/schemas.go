@@ -44,6 +44,9 @@ var otlpLogJSONSchema string
 
 // Default subject names for Schema Registry
 const (
+	// commonProtoName is the reference name schemas use to import common.proto
+	commonProtoName = "redpanda/otel/v1/common.proto"
+
 	// DefaultCommonSubject is the default subject for common.proto schema
 	DefaultCommonSubject = "redpanda-otel-common"
 	// DefaultCommonSubjectJSON is the default subject for common schema in JSON format
@@ -78,7 +81,7 @@ func RegisterCommonProtoSchema(ctx context.Context, client *sr.Client, subject s
 	}
 
 	return sr.SchemaReference{
-		Name:    "redpanda/otel/v1/common.proto",
+		Name:    commonProtoName,
 		Subject: subject,
 		Version: ss.Version,
 	}, nil
