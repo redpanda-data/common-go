@@ -73,6 +73,10 @@ type SelfTestNodeResult struct {
 // SelfTestNodeReport describes the result returned from one member of the cluster.
 // A query for results will return an array of these structs, one from each member.
 type SelfTestNodeReport struct {
+	// ClusterUUID is the UUID of the cluster the reporting broker belongs to.
+	// It is identical across every report in a response. Older brokers that
+	// predate this field omit it, in which case it is empty.
+	ClusterUUID string `json:"cluster_uuid,omitempty"`
 	// NodeID is the node ID.
 	NodeID int `json:"node_id"`
 	// One of { "idle", "running", "unreachable" }
