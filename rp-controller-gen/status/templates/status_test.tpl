@@ -1,6 +1,6 @@
-package {{ $.Package }}
-
 // Code generated from {{ $.File }}. DO NOT EDIT.
+
+package {{ $.Package }}
 
 import (
 	"testing"
