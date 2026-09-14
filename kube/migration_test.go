@@ -120,14 +120,14 @@ func (m *myKindV2) ToV1() *myKindV1 {
 func (*myKindV2) Hub() {}
 
 func (m *myKindV1) ConvertTo(dstRaw conversion.Hub) error {
-	dst := dstRaw.(*myKindV2) //nolint:revive // test file, we know what this is
+	dst := dstRaw.(*myKindV2)
 	dst.ObjectMeta = m.ToV2().ObjectMeta
 	dst.Value = m.ToV2().Value
 	return nil
 }
 
 func (m *myKindV1) ConvertFrom(srcRaw conversion.Hub) error {
-	src := srcRaw.(*myKindV2) //nolint:revive // test file, we know what this is
+	src := srcRaw.(*myKindV2)
 	m.ObjectMeta = src.ToV1().ObjectMeta
 	m.Value = src.ToV1().Value
 	return nil

@@ -23,6 +23,10 @@ import (
 
 var _ connect.Interceptor = &Observer{}
 
+// protocolHTTP is the protocol recorded for plain HTTP requests, i.e. those
+// not carrying a connect/gRPC peer protocol.
+const protocolHTTP = "http"
+
 // Observer wraps all requests/responses and emits events that inform about
 // request duration, size and status code.
 type Observer struct {
@@ -52,7 +56,7 @@ func (in *Observer) WrapHandler(next http.Handler) http.Handler {
 		rm := &RequestMetadata{
 			startAt:     time.Now(),
 			peerAddress: r.RemoteAddr,
-			protocol:    "http",
+			protocol:    protocolHTTP,
 			procedure:   procedure,
 			requestURI:  r.RequestURI,
 			method:      r.Method,
@@ -107,7 +111,7 @@ func (*Observer) WrapUnary(next connect.UnaryFunc) connect.UnaryFunc {
 
 		protocol := req.Peer().Protocol
 		if protocol == "" {
-			protocol = "http"
+			protocol = protocolHTTP
 		}
 		rm.protocol = protocol
 
@@ -237,7 +241,7 @@ func (r *RequestMetadata) HTTPStatusCode() int {
 // StatusCode returns the response status code in a string presentation.
 // If there was no error the status code "ok" will be returned.
 func (r *RequestMetadata) StatusCode() string {
-	if r.procedure == "none" && r.protocol == "http" {
+	if r.procedure == "none" && r.protocol == protocolHTTP {
 		connectCode := grpcgateway.HTTPStatusCodeToConnectCode(r.httpStatusCode)
 		if connectCode == 0 {
 			return "ok"
