@@ -1,6 +1,6 @@
 package {{ $.Package }}
 
-// GENERATED from {{ $.File }}, DO NOT EDIT DIRECTLY
+// Code generated from {{ $.File }}. DO NOT EDIT.
 
 import (
 	"strings"
