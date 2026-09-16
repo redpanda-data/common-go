@@ -472,3 +472,88 @@ func (a *AdminAPI) DownloadDebugBundleFile(ctx context.Context, filename string)
 	url := a.urls[0] + fmt.Sprintf("%s/file/%s", bundleEndpoint, filename)
 	return a.sendAndReceive(ctx, http.MethodGet, url, nil, false)
 }
+
+// LocalStorageUsage reports local disk usage on the target node.
+type LocalStorageUsage struct {
+	Data                     int64 `json:"data"`
+	Index                    int64 `json:"index"`
+	Compaction               int64 `json:"compaction"`
+	ReclaimableByRetention   int64 `json:"reclaimable_by_retention"`
+	TargetMinCapacity        int64 `json:"target_min_capacity"`
+	TargetMinCapacityWanted  int64 `json:"target_min_capacity_wanted"`
+	CloudStorageCacheBytes   int64 `json:"cloud_storage_cache_bytes"`
+	CloudStorageCacheObjects int64 `json:"cloud_storage_cache_objects"`
+}
+
+// LocalStorageUsage returns the local storage usage of the target node.
+func (a *AdminAPI) LocalStorageUsage(ctx context.Context) (LocalStorageUsage, error) {
+	var response LocalStorageUsage
+	return response, a.sendAny(ctx, http.MethodGet, "/v1/debug/local_storage_usage", nil, &response)
+}
+
+// AllocationSite is a single sampled allocation site in a memory profile.
+type AllocationSite struct {
+	Size      int64  `json:"size"`
+	Count     int64  `json:"count"`
+	Backtrace string `json:"backtrace"`
+}
+
+// MemoryProfile is the sampled memory profile for a single shard.
+type MemoryProfile struct {
+	Shard           int64            `json:"shard"`
+	AllocationSites []AllocationSite `json:"allocation_sites"`
+}
+
+// SampledMemoryProfile returns the sampled memory profile of the target node,
+// with one entry per shard. It is empty when heap sampling is not active.
+func (a *AdminAPI) SampledMemoryProfile(ctx context.Context) ([]MemoryProfile, error) {
+	var response []MemoryProfile
+	return response, a.sendAny(ctx, http.MethodGet, "/v1/debug/sampled_memory_profile", nil, &response)
+}
+
+// PeerStatus is the target node's view of its connectivity to a peer node.
+type PeerStatus struct {
+	SinceLastStatus int64 `json:"since_last_status"`
+}
+
+// PeerStatus returns the target node's connectivity status to the given peer node.
+func (a *AdminAPI) PeerStatus(ctx context.Context, peerID int) (PeerStatus, error) {
+	var response PeerStatus
+	return response, a.sendAny(ctx, http.MethodGet, fmt.Sprintf("/v1/debug/peer_status/%d", peerID), nil, &response)
+}
+
+// IdempotentProducerRequestState describes an in-flight or finished idempotent
+// producer request.
+type IdempotentProducerRequestState struct {
+	FirstSequence int   `json:"first_sequence"`
+	LastSequence  int   `json:"last_sequence"`
+	Term          int64 `json:"term"`
+}
+
+// PartitionProducerState is the state of a single producer session on a partition.
+type PartitionProducerState struct {
+	ID                              int64                            `json:"id"`
+	Epoch                           int                              `json:"epoch"`
+	InflightIdempotentRequests      []IdempotentProducerRequestState `json:"inflight_idempotent_requests,omitempty"`
+	FinishedIdempotentRequests      []IdempotentProducerRequestState `json:"finished_idempotent_requests,omitempty"`
+	LastUpdateTimestamp             *int64                           `json:"last_update_timestamp,omitempty"`
+	TransactionBeginOffset          *int64                           `json:"transaction_begin_offset,omitempty"`
+	TransactionLastOffset           *int64                           `json:"transaction_last_offset,omitempty"`
+	TransactionSequence             *int                             `json:"transaction_sequence,omitempty"`
+	TransactionTimeoutMs            *int64                           `json:"transaction_timeout_ms,omitempty"`
+	TransactionCoordinatorPartition *int                             `json:"transaction_coordinator_partition,omitempty"`
+	TransactionGroupID              string                           `json:"transaction_group_id,omitempty"`
+}
+
+// PartitionProducers is the set of producer sessions on a partition.
+type PartitionProducers struct {
+	NTP                string                   `json:"ntp"`
+	TotalProducerCount int64                    `json:"total_producer_count"`
+	Producers          []PartitionProducerState `json:"producers"`
+}
+
+// Producers returns the producer state for a single partition.
+func (a *AdminAPI) Producers(ctx context.Context, namespace, topic string, partitionID int) (PartitionProducers, error) {
+	var response PartitionProducers
+	return response, a.sendAny(ctx, http.MethodGet, fmt.Sprintf("/v1/debug/producers/%v/%v/%v", namespace, topic, partitionID), nil, &response)
+}
