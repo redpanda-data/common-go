@@ -124,3 +124,11 @@ func (a *AdminAPI) CloudStorageAnomalies(ctx context.Context, namespace, topic s
 	path := fmt.Sprintf("/v1/cloud_storage/anomalies/%v/%v/%v", namespace, topic, partition)
 	return response, a.sendAny(ctx, http.MethodGet, path, nil, &response)
 }
+
+// TopicRecovery returns the topic-level recovery (download) status. This is the
+// compact form (the latest status entry), mapping to
+// GET /v1/cloud_storage/topic_recovery. It reuses TopicRecoveryStatus.
+func (a *AdminAPI) TopicRecovery(ctx context.Context) (TopicRecoveryStatus, error) {
+	var response TopicRecoveryStatus
+	return response, a.sendAny(ctx, http.MethodGet, "/v1/cloud_storage/topic_recovery", nil, &response)
+}
