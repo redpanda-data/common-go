@@ -154,3 +154,114 @@ func (a *AdminAPI) RoleMembers(ctx context.Context, roleName string) (RoleMember
 	var res RoleMemberResponse
 	return res, a.sendAny(ctx, http.MethodGet, fmt.Sprintf("%v/%v/members", baseRoleEndpoint, roleName), nil, &res)
 }
+
+// SecurityReport describes the security posture of a node's interfaces plus any
+// detected alerts.
+type SecurityReport struct {
+	Interfaces SecurityReportInterfaces `json:"interfaces"`
+	Alerts     []SecurityReportAlert    `json:"alerts"`
+}
+
+// SecurityReportInterfaces holds the per-interface security posture. Fields are
+// only present when the corresponding interface is configured.
+type SecurityReportInterfaces struct {
+	Kafka                []KafkaInterfaceSecurityReport          `json:"kafka"`
+	RPC                  RPCInterfaceSecurityReport              `json:"rpc"`
+	Admin                []AdminInterfaceSecurityReport          `json:"admin"`
+	Pandaproxy           []PandaproxyInterfaceSecurityReport     `json:"pandaproxy,omitempty"`
+	SchemaRegistry       []SchemaRegistryInterfaceSecurityReport `json:"schema_registry,omitempty"`
+	SchemaRegistryClient *ClientSecurityReport                   `json:"schema_registry_client,omitempty"`
+	AuditLogClient       *ClientSecurityReport                   `json:"audit_log_client,omitempty"`
+}
+
+// KafkaInterfaceSecurityReport is the security posture of a Kafka listener.
+type KafkaInterfaceSecurityReport struct {
+	Name                    string   `json:"name"`
+	Host                    string   `json:"host"`
+	Port                    int      `json:"port"`
+	AdvertisedHost          string   `json:"advertised_host"`
+	AdvertisedPort          int      `json:"advertised_port"`
+	TLSEnabled              bool     `json:"tls_enabled"`
+	MutualTLSEnabled        bool     `json:"mutual_tls_enabled"`
+	AuthorizationEnabled    bool     `json:"authorization_enabled"`
+	AuthenticationMethod    string   `json:"authentication_method"` // One of: SASL, mTLS, None.
+	SupportedSASLMechanisms []string `json:"supported_sasl_mechanisms,omitempty"`
+}
+
+// RPCInterfaceSecurityReport is the security posture of the RPC listener.
+type RPCInterfaceSecurityReport struct {
+	Host             string `json:"host"`
+	Port             int    `json:"port"`
+	AdvertisedHost   string `json:"advertised_host"`
+	AdvertisedPort   int    `json:"advertised_port"`
+	TLSEnabled       bool   `json:"tls_enabled"`
+	MutualTLSEnabled bool   `json:"mutual_tls_enabled"`
+}
+
+// AdminInterfaceSecurityReport is the security posture of an admin listener.
+type AdminInterfaceSecurityReport struct {
+	Name                  string   `json:"name"`
+	Host                  string   `json:"host"`
+	Port                  int      `json:"port"`
+	TLSEnabled            bool     `json:"tls_enabled"`
+	MutualTLSEnabled      bool     `json:"mutual_tls_enabled"`
+	AuthorizationEnabled  bool     `json:"authorization_enabled"`
+	AuthenticationMethods []string `json:"authentication_methods"` // Values: BASIC, OIDC.
+}
+
+// SchemaRegistryInterfaceSecurityReport is the security posture of a schema
+// registry listener.
+type SchemaRegistryInterfaceSecurityReport struct {
+	Name                  string   `json:"name"`
+	Host                  string   `json:"host"`
+	Port                  int      `json:"port"`
+	TLSEnabled            bool     `json:"tls_enabled"`
+	MutualTLSEnabled      bool     `json:"mutual_tls_enabled"`
+	AuthorizationEnabled  bool     `json:"authorization_enabled"`
+	AuthenticationMethods []string `json:"authentication_methods"` // Values: BASIC, OIDC.
+}
+
+// PandaproxyInterfaceSecurityReport is the security posture of a pandaproxy
+// listener.
+type PandaproxyInterfaceSecurityReport struct {
+	Name                           string   `json:"name"`
+	Host                           string   `json:"host"`
+	Port                           int      `json:"port"`
+	AdvertisedHost                 string   `json:"advertised_host"`
+	AdvertisedPort                 int      `json:"advertised_port"`
+	TLSEnabled                     bool     `json:"tls_enabled"`
+	MutualTLSEnabled               bool     `json:"mutual_tls_enabled"`
+	AuthorizationEnabled           bool     `json:"authorization_enabled"`
+	AuthenticationMethods          []string `json:"authentication_methods"`           // Values: BASIC, OIDC.
+	ConfiguredAuthenticationMethod string   `json:"configured_authentication_method"` // One of: None, SCRAM_Configured, SCRAM_Proxied.
+}
+
+// HostPort is a host and port pair.
+type HostPort struct {
+	Host string `json:"host"`
+	Port int    `json:"port"`
+}
+
+// ClientSecurityReport is the security posture of an internal client (schema
+// registry client or audit log client).
+type ClientSecurityReport struct {
+	KafkaListenerName              string     `json:"kafka_listener_name"`
+	Brokers                        []HostPort `json:"brokers"`
+	TLSEnabled                     bool       `json:"tls_enabled"`
+	MutualTLSEnabled               bool       `json:"mutual_tls_enabled"`
+	ConfiguredAuthenticationMethod string     `json:"configured_authentication_method"` // One of: None, SCRAM_Configured, SCRAM_Ephemeral.
+}
+
+// SecurityReportAlert is a single security posture alert.
+type SecurityReportAlert struct {
+	AffectedInterface string `json:"affected_interface,omitempty"` // Absent for cluster-wide alerts.
+	ListenerName      string `json:"listener_name,omitempty"`
+	Issue             string `json:"issue"`
+	Description       string `json:"description"`
+}
+
+// SecurityReport returns the security posture report of the target node.
+func (a *AdminAPI) SecurityReport(ctx context.Context) (SecurityReport, error) {
+	var response SecurityReport
+	return response, a.sendAny(ctx, http.MethodGet, "/v1/security/report", nil, &response)
+}
