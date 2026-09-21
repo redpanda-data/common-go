@@ -17,9 +17,9 @@ package goldenfile
 import (
 	"bytes"
 	"flag"
+	"maps"
 	"os"
 	"slices"
-	"strings"
 	"sync"
 	"testing"
 
@@ -114,6 +114,8 @@ func assertGolden(t *testing.T, assertionType GoldenAssertion, path string, expe
 // that `actual`, a serialized YAML document, is equal to the one at `path`. If
 // `-update` has been passed to `go test`, `actual` will be written to `path`.
 func AssertGolden(t *testing.T, assertionType GoldenAssertion, path string, actual []byte) {
+	t.Helper()
+
 	expected, err := os.ReadFile(path) //nolint:gosec // security of file is up to caller
 	if !os.IsNotExist(err) {
 		require.NoError(t, err)
@@ -125,9 +127,12 @@ func AssertGolden(t *testing.T, assertionType GoldenAssertion, path string, actu
 }
 
 // TxTarGolden is a wrapper around a txtar archive used as a golden file.
+//
+// It is safe for concurrent use by multiple goroutines, e.g. parallel subtests.
 type TxTarGolden struct {
 	mu      sync.Mutex
-	archive *txtar.Archive
+	comment []byte
+	files   map[string][]byte
 }
 
 // NewTxTar initializes a golden file txtar archive.
@@ -139,7 +144,14 @@ func NewTxTar(t *testing.T, path string) *TxTarGolden {
 		require.NoError(t, err)
 	}
 
-	g := &TxTarGolden{archive: archive}
+	g := &TxTarGolden{
+		comment: archive.Comment,
+		files:   make(map[string][]byte, len(archive.Files)),
+	}
+
+	for _, file := range archive.Files {
+		g.files[file.Name] = file.Data
+	}
 
 	if Update() {
 		t.Cleanup(func() {
@@ -154,37 +166,42 @@ func (g *TxTarGolden) update(path string) error {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 
-	slices.SortFunc(g.archive.Files, func(a, b txtar.File) int {
-		return strings.Compare(a.Name, b.Name)
-	})
+	// NB: The archive is materialized here, rather than maintained incrementally, so
+	// that no interior pointer into Files is ever handed out to callers.
+	archive := txtar.Archive{Comment: g.comment}
+	for _, name := range slices.Sorted(maps.Keys(g.files)) {
+		archive.Files = append(archive.Files, txtar.File{Name: name, Data: g.files[name]})
+	}
 
-	return os.WriteFile(path, txtar.Format(g.archive), 0o644) //nolint:gosec // file permissions are fine for test
+	return os.WriteFile(path, txtar.Format(&archive), 0o644) //nolint:gosec // file permissions are fine for test
 }
 
-func (g *TxTarGolden) getFile(path string) *txtar.File {
+func (g *TxTarGolden) get(path string) []byte {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 
-	for i, file := range g.archive.Files {
-		if file.Name == path {
-			return &g.archive.Files[i]
-		}
+	// NB: Absent entries must return an empty, non-nil slice. assert.Equal
+	// distinguishes a nil []byte from an empty one, so a Bytes assertion of
+	// []byte{} against a missing entry would otherwise fail.
+	if data, ok := g.files[path]; ok {
+		return data
 	}
-	g.archive.Files = append(g.archive.Files, txtar.File{
-		Name: path,
-		Data: []byte{},
-	})
-	return &g.archive.Files[len(g.archive.Files)-1]
+	return []byte{}
+}
+
+func (g *TxTarGolden) set(path string, data []byte) {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+
+	g.files[path] = bytes.Clone(data)
 }
 
 // AssertGolden does an assertion on a golden file.
 func (g *TxTarGolden) AssertGolden(t *testing.T, assertionType GoldenAssertion, path string, actual []byte) {
 	t.Helper()
 
-	file := g.getFile(path)
-
-	assertGolden(t, assertionType, path, file.Data, actual, func(_ string, b []byte) error {
-		file.Data = b
+	assertGolden(t, assertionType, path, g.get(path), actual, func(p string, b []byte) error {
+		g.set(p, b)
 		return nil
 	})
 }
