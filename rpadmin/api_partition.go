@@ -235,3 +235,30 @@ func (a *AdminAPI) TransferLeadership(ctx context.Context, ns, topic string, par
 func (a *AdminAPI) TriggerBalancer(ctx context.Context) error {
 	return a.sendToLeader(ctx, http.MethodPost, "/v1/partitions/rebalance", nil, nil)
 }
+
+// ProducerIdentity identifies a transactional producer.
+type ProducerIdentity struct {
+	ID    int64 `json:"id"`
+	Epoch int64 `json:"epoch"`
+}
+
+// PartitionTransaction describes a single transaction on a partition.
+type PartitionTransaction struct {
+	ProducerID  ProducerIdentity `json:"producer_id"`
+	Status      string           `json:"status"`
+	LSOBound    int64            `json:"lso_bound"`
+	StalenessMs int64            `json:"staleness_ms"` // -1 for expired transactions.
+	TimeoutMs   int64            `json:"timeout_ms"`   // -1 for expired transactions.
+}
+
+// PartitionTransactions holds the active and expired transactions of a partition.
+type PartitionTransactions struct {
+	ActiveTransactions  []PartitionTransaction `json:"active_transactions,omitempty"`
+	ExpiredTransactions []PartitionTransaction `json:"expired_transactions,omitempty"`
+}
+
+// PartitionTransactions returns the transactions for a single partition.
+func (a *AdminAPI) PartitionTransactions(ctx context.Context, namespace, topic string, partitionID int) (PartitionTransactions, error) {
+	var response PartitionTransactions
+	return response, a.sendAny(ctx, http.MethodGet, fmt.Sprintf("/v1/partitions/%v/%v/%v/transactions", namespace, topic, partitionID), nil, &response)
+}
