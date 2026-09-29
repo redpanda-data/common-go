@@ -95,6 +95,10 @@ matches:
     type: go
     directory: telemetry
     license: Apache
+  - extension: .go
+    type: go
+    directory: gzipcache
+    license: Apache
 files:
   - name: api/LICENSE
     license: BSL
@@ -160,5 +164,8 @@ files:
     license: Apache
     full: true
   - name: telemetry/LICENSE
+    license: Apache
+    full: true
+  - name: gzipcache/LICENSE
     license: Apache
     full: true
