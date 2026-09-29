@@ -34,3 +34,4 @@ All packages contain their own licensing information and README about how they a
 | [portmapper](./portmapper) | Apache |
 | [portmapper/example](./portmapper/example) | Apache |
 | [telemetry](./telemetry) | Apache |
+| [gzipcache](./gzipcache) | Apache |

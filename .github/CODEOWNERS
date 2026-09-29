@@ -21,3 +21,4 @@
 /portmapper/ @redpanda-data/k8s
 /portmapper/example/ @redpanda-data/k8s
 /protoc-gen-go-sr-normalize/ @birdayz
+/gzipcache/ @redpanda-data/team-ai
