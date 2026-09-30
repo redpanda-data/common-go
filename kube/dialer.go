@@ -31,10 +31,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/httpstream"
-	httpstreamspdy "k8s.io/apimachinery/pkg/util/httpstream/spdy"
 	"k8s.io/client-go/rest"
-	"k8s.io/client-go/transport/spdy"
+	"k8s.io/streaming/pkg/httpstream"
+	httpstreamspdy "k8s.io/streaming/pkg/httpstream/spdy"
 )
 
 const (
@@ -228,13 +227,26 @@ func (p *PodDialer) connectionForPod(pod types.NamespacedName) (httpstream.Conne
 		Name(pod.Name).
 		SubResource("portforward")
 
-	dialer := spdy.NewDialer(upgrader, &http.Client{Transport: transport}, http.MethodPost, req.URL())
-	conn, protocol, err := dialer.Dial(portForwardProtocolV1Name)
+	// Negotiate directly rather than through client-go's spdy dialers: they
+	// wrap streams in adapters that hide the deadline methods conn relies on.
+	upgradeReq, err := http.NewRequest(http.MethodPost, req.URL().String(), nil)
+	if err != nil {
+		return nil, err
+	}
+	upgradeReq.Header.Add(httpstream.HeaderProtocolVersion, portForwardProtocolV1Name)
+
+	resp, err := (&http.Client{Transport: transport}).Do(upgradeReq)
+	if err != nil {
+		return nil, fmt.Errorf("error sending request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	conn, err := upgrader.NewConnection(resp)
 	if err != nil {
 		return nil, err
 	}
 
-	if protocol != portForwardProtocolV1Name {
+	if protocol := resp.Header.Get(httpstream.HeaderProtocolVersion); protocol != portForwardProtocolV1Name {
 		err := fmt.Errorf("unable to negotiate protocol: client supports %q, server returned %q", portForwardProtocolV1Name, protocol)
 		if conn != nil {
 			err = errors.Join(err, conn.Close())
@@ -370,7 +382,8 @@ type addr struct {
 func (a addr) Network() string { return a.Net }
 func (a addr) String() string  { return a.Addr }
 
-// roundTripperFor is a re-implementation of [spdy.RoundTripperFor] that
+// roundTripperFor is a re-implementation of
+// [k8s.io/client-go/transport/spdy.RoundTripperFor] that
 // supports nested PodDialers (vClusters).
 // The SpdyRoundTripper implementation makes specifying Proxier (HTTP proxy
 // support) and specifying UpgradeTransport (Transport level proxy support)
@@ -378,7 +391,7 @@ func (a addr) String() string  { return a.Addr }
 // to support only HTTP Proxies.
 // This implementation drops the HTTP proxy support in favor of supporting
 // Transport layer proxying.
-func roundTripperFor(config *rest.Config) (http.RoundTripper, spdy.Upgrader, error) {
+func roundTripperFor(config *rest.Config) (http.RoundTripper, httpstream.UpgradeRoundTripper, error) {
 	// TransportFor will appropriately aggregate TLSClientConfig and preserve
 	// any dialer adjustments for us to pass on to the spdy roundtripper.
 	rt, err := rest.TransportFor(config)
