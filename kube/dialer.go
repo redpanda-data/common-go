@@ -77,9 +77,9 @@ func (p *PodDialer) WithClusterDomain(domain string) *PodDialer {
 }
 
 // DialContext dials the given pod's service-based DNS address and returns a
-// net.Conn that can be used to reach the pod directly. It uses the passed in
-// context to close the underlying connection when
-func (p *PodDialer) DialContext(_ context.Context, network string, address string) (net.Conn, error) {
+// net.Conn that can be used to reach the pod directly. ctx bounds only the
+// port-forward upgrade; it does not close the returned connection.
+func (p *PodDialer) DialContext(ctx context.Context, network string, address string) (net.Conn, error) {
 	switch network {
 	case "tcp", "tcp4", "tcp6":
 	default:
@@ -91,7 +91,7 @@ func (p *PodDialer) DialContext(_ context.Context, network string, address strin
 		return nil, err
 	}
 
-	conn, err := p.connectionForPod(pod)
+	conn, err := p.connectionForPod(ctx, pod)
 	if err != nil {
 		return nil, err
 	}
@@ -206,7 +206,7 @@ func (p *PodDialer) parseDNS(fqdn string) (types.NamespacedName, int, error) {
 	return pod, port, nil
 }
 
-func (p *PodDialer) connectionForPod(pod types.NamespacedName) (httpstream.Connection, error) {
+func (p *PodDialer) connectionForPod(ctx context.Context, pod types.NamespacedName) (httpstream.Connection, error) {
 	transport, upgrader, err := roundTripperFor(p.config)
 	if err != nil {
 		return nil, err
@@ -229,7 +229,7 @@ func (p *PodDialer) connectionForPod(pod types.NamespacedName) (httpstream.Conne
 
 	// Negotiate directly rather than through client-go's spdy dialers: they
 	// wrap streams in adapters that hide the deadline methods conn relies on.
-	upgradeReq, err := http.NewRequest(http.MethodPost, req.URL().String(), nil)
+	upgradeReq, err := http.NewRequestWithContext(ctx, http.MethodPost, req.URL().String(), http.NoBody)
 	if err != nil {
 		return nil, err
 	}
