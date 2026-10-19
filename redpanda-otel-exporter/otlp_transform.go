@@ -16,7 +16,6 @@ import (
 	pb "buf.build/gen/go/redpandadata/otel/protocolbuffers/go/redpanda/otel/v1"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
-	"go.opentelemetry.io/otel/log"
 	"go.opentelemetry.io/otel/sdk/instrumentation"
 	sdklog "go.opentelemetry.io/otel/sdk/log"
 	"go.opentelemetry.io/otel/sdk/metric/metricdata"
@@ -67,44 +66,56 @@ func attributeToProto(attr attribute.KeyValue) *pb.KeyValue {
 // attributeValueToProto converts an attribute.Value to OTLP protobuf format
 func attributeValueToProto(v attribute.Value) *pb.AnyValue {
 	switch v.Type() {
+	case attribute.EMPTY:
+		return &pb.AnyValue{}
 	case attribute.BOOL:
-		return &pb.AnyValue{Value: &pb.AnyValue_BoolValue{BoolValue: v.AsBool()}}
+		return boolValueToProto(v.AsBool())
 	case attribute.INT64:
-		return &pb.AnyValue{Value: &pb.AnyValue_IntValue{IntValue: v.AsInt64()}}
+		return int64ValueToProto(v.AsInt64())
 	case attribute.FLOAT64:
-		return &pb.AnyValue{Value: &pb.AnyValue_DoubleValue{DoubleValue: v.AsFloat64()}}
+		return float64ValueToProto(v.AsFloat64())
 	case attribute.BOOLSLICE:
-		slice := v.AsBoolSlice()
-		values := make([]*pb.AnyValue, len(slice))
-		for i, item := range slice {
-			values[i] = &pb.AnyValue{Value: &pb.AnyValue_BoolValue{BoolValue: item}}
-		}
-		return &pb.AnyValue{Value: &pb.AnyValue_ArrayValue{ArrayValue: &pb.ArrayValue{Values: values}}}
+		return arrayValueToProto(v.AsBoolSlice(), boolValueToProto)
 	case attribute.INT64SLICE:
-		slice := v.AsInt64Slice()
-		values := make([]*pb.AnyValue, len(slice))
-		for i, item := range slice {
-			values[i] = &pb.AnyValue{Value: &pb.AnyValue_IntValue{IntValue: item}}
-		}
-		return &pb.AnyValue{Value: &pb.AnyValue_ArrayValue{ArrayValue: &pb.ArrayValue{Values: values}}}
+		return arrayValueToProto(v.AsInt64Slice(), int64ValueToProto)
 	case attribute.FLOAT64SLICE:
-		slice := v.AsFloat64Slice()
-		values := make([]*pb.AnyValue, len(slice))
-		for i, item := range slice {
-			values[i] = &pb.AnyValue{Value: &pb.AnyValue_DoubleValue{DoubleValue: item}}
-		}
-		return &pb.AnyValue{Value: &pb.AnyValue_ArrayValue{ArrayValue: &pb.ArrayValue{Values: values}}}
+		return arrayValueToProto(v.AsFloat64Slice(), float64ValueToProto)
 	case attribute.STRINGSLICE:
-		slice := v.AsStringSlice()
-		values := make([]*pb.AnyValue, len(slice))
-		for i, item := range slice {
-			values[i] = &pb.AnyValue{Value: &pb.AnyValue_StringValue{StringValue: item}}
-		}
-		return &pb.AnyValue{Value: &pb.AnyValue_ArrayValue{ArrayValue: &pb.ArrayValue{Values: values}}}
+		return arrayValueToProto(v.AsStringSlice(), stringValueToProto)
+	case attribute.BYTESLICE:
+		return &pb.AnyValue{Value: &pb.AnyValue_BytesValue{BytesValue: v.AsByteSlice()}}
+	case attribute.SLICE:
+		return arrayValueToProto(v.AsSlice(), attributeValueToProto)
+	case attribute.MAP:
+		return &pb.AnyValue{Value: &pb.AnyValue_KvlistValue{KvlistValue: &pb.KeyValueList{Values: attributesToProto(v.AsMap())}}}
 	default:
 		// Handles attribute.STRING and any other unknown types by converting to string
-		return &pb.AnyValue{Value: &pb.AnyValue_StringValue{StringValue: v.AsString()}}
+		return stringValueToProto(v.AsString())
 	}
+}
+
+func boolValueToProto(b bool) *pb.AnyValue {
+	return &pb.AnyValue{Value: &pb.AnyValue_BoolValue{BoolValue: b}}
+}
+
+func int64ValueToProto(i int64) *pb.AnyValue {
+	return &pb.AnyValue{Value: &pb.AnyValue_IntValue{IntValue: i}}
+}
+
+func float64ValueToProto(f float64) *pb.AnyValue {
+	return &pb.AnyValue{Value: &pb.AnyValue_DoubleValue{DoubleValue: f}}
+}
+
+func stringValueToProto(s string) *pb.AnyValue {
+	return &pb.AnyValue{Value: &pb.AnyValue_StringValue{StringValue: s}}
+}
+
+func arrayValueToProto[T any](items []T, convert func(T) *pb.AnyValue) *pb.AnyValue {
+	values := make([]*pb.AnyValue, len(items))
+	for i, item := range items {
+		values[i] = convert(item)
+	}
+	return &pb.AnyValue{Value: &pb.AnyValue_ArrayValue{ArrayValue: &pb.ArrayValue{Values: values}}}
 }
 
 func resourceToProto(r *resource.Resource) *pb.Resource {
@@ -258,8 +269,8 @@ func logRecordToProto(record sdklog.Record) *pb.LogRecord {
 
 	// Add attributes
 	attrs := make([]*pb.KeyValue, 0)
-	record.WalkAttributes(func(kv log.KeyValue) bool {
-		attrs = append(attrs, logAttributeToProto(kv))
+	record.WalkAttributes(func(kv attribute.KeyValue) bool {
+		attrs = append(attrs, attributeToProto(kv))
 		return true
 	})
 	pbLog.Attributes = attrs
@@ -277,47 +288,6 @@ func logBodyToProto(body any) *pb.AnyValue {
 		Value: &pb.AnyValue_StringValue{
 			StringValue: fmt.Sprint(body),
 		},
-	}
-}
-
-// logAttributeToProto converts a log.KeyValue to OTLP protobuf format
-func logAttributeToProto(kv log.KeyValue) *pb.KeyValue {
-	return &pb.KeyValue{
-		Key:   kv.Key,
-		Value: logValueToProto(kv.Value),
-	}
-}
-
-// logValueToProto converts a log.Value to OTLP protobuf format
-func logValueToProto(v log.Value) *pb.AnyValue {
-	switch v.Kind() {
-	case log.KindEmpty:
-		return &pb.AnyValue{}
-	case log.KindBool:
-		return &pb.AnyValue{Value: &pb.AnyValue_BoolValue{BoolValue: v.AsBool()}}
-	case log.KindFloat64:
-		return &pb.AnyValue{Value: &pb.AnyValue_DoubleValue{DoubleValue: v.AsFloat64()}}
-	case log.KindInt64:
-		return &pb.AnyValue{Value: &pb.AnyValue_IntValue{IntValue: v.AsInt64()}}
-	case log.KindBytes:
-		return &pb.AnyValue{Value: &pb.AnyValue_BytesValue{BytesValue: v.AsBytes()}}
-	case log.KindSlice:
-		slice := v.AsSlice()
-		values := make([]*pb.AnyValue, len(slice))
-		for i, item := range slice {
-			values[i] = logValueToProto(item)
-		}
-		return &pb.AnyValue{Value: &pb.AnyValue_ArrayValue{ArrayValue: &pb.ArrayValue{Values: values}}}
-	case log.KindMap:
-		kvs := v.AsMap()
-		pairs := make([]*pb.KeyValue, len(kvs))
-		for i, kv := range kvs {
-			pairs[i] = logAttributeToProto(kv)
-		}
-		return &pb.AnyValue{Value: &pb.AnyValue_KvlistValue{KvlistValue: &pb.KeyValueList{Values: pairs}}}
-	default:
-		// Handles log.KindString and any other unknown types by converting to string
-		return &pb.AnyValue{Value: &pb.AnyValue_StringValue{StringValue: v.AsString()}}
 	}
 }
 

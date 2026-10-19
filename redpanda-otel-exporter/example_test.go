@@ -183,12 +183,12 @@ func Example() {
 	logger := loggerProvider.Logger("example-logger")
 	logRecord := otellog.Record{}
 	logRecord.SetTimestamp(time.Now())
-	logRecord.SetBody(otellog.StringValue("This is an example log message"))
+	logRecord.SetBody(attribute.StringValue("This is an example log message"))
 	logRecord.SetSeverity(otellog.SeverityInfo)
 	logRecord.SetSeverityText("INFO")
 	logRecord.AddAttributes(
-		otellog.String("log.key", "log.value"),
-		otellog.Int("log.count", 100),
+		attribute.String("log.key", "log.value"),
+		attribute.Int("log.count", 100),
 	)
 	logger.Emit(ctx, logRecord)
 

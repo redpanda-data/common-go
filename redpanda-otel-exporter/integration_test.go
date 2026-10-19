@@ -444,10 +444,10 @@ func TestLogExporter(t *testing.T) {
 	logger := loggerProvider.Logger("test-logger")
 	logRecord := otellog.Record{}
 	logRecord.SetTimestamp(time.Now())
-	logRecord.SetBody(otellog.StringValue("test log message"))
+	logRecord.SetBody(attribute.StringValue("test log message"))
 	logRecord.SetSeverity(otellog.SeverityInfo)
 	logRecord.AddAttributes(
-		otellog.String("test.attribute", "test.value"),
+		attribute.String("test.attribute", "test.value"),
 	)
 	logger.Emit(ctx, logRecord)
 
@@ -499,10 +499,10 @@ func TestLogExporter_Protobuf(t *testing.T) {
 	logger := loggerProvider.Logger("test-logger-pb")
 	logRecord := otellog.Record{}
 	logRecord.SetTimestamp(time.Now())
-	logRecord.SetBody(otellog.StringValue("test protobuf log message"))
+	logRecord.SetBody(attribute.StringValue("test protobuf log message"))
 	logRecord.SetSeverity(otellog.SeverityWarn)
 	logRecord.AddAttributes(
-		otellog.String("format", "protobuf"),
+		attribute.String("format", "protobuf"),
 	)
 	logger.Emit(ctx, logRecord)
 
