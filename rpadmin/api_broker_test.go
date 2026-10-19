@@ -38,7 +38,10 @@ func startTestBroker(t *testing.T) (*AdminAPI, *kadm.Client) {
 	}
 
 	ctx := t.Context()
-	container, err := redpanda.Run(ctx, testRedpandaImage)
+	// protected_mode rejects unauthenticated Admin API connections that
+	// do not come from loopback, which includes the host-mapped port the
+	// tests connect through.
+	container, err := redpanda.Run(ctx, testRedpandaImage, redpanda.WithBootstrapConfig("protected_mode", false))
 	require.NoError(t, err, "start redpanda container")
 	t.Cleanup(func() {
 		if err := container.Terminate(context.Background()); err != nil {

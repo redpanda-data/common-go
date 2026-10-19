@@ -34,9 +34,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # golangci-lint can only type-check against a Go toolchain no newer
+      # than the one it was built with; v2.13.2 cannot read Go 1.27 export
+      # data. Move this together with GOLANGCI_LINT_VERSION.
       - uses: actions/setup-go@v5
         with:
-          go-version: 'stable'
+          go-version: '1.26.x'
 
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v8
