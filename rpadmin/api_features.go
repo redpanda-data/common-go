@@ -81,6 +81,16 @@ type EnterpriseFeaturesResponse struct {
 	Violation bool `json:"violation"`
 	// Features is a list of enterprise features (name and whether in use).
 	Features []EnterpriseFeature `json:"features"`
+	// ClusterCores is the number of CPU cores Redpanda runs on across the
+	// cluster: each broker's core count summed over every member broker. The
+	// Community Edition core limit applies to this number. Nil when the
+	// broker predates the field (Redpanda 26.3).
+	ClusterCores *int `json:"cluster_cores,omitempty"`
+	// CoreLimit is the number of cores a cluster may run on without an
+	// Enterprise license. When ClusterCores exceeds it, the enterprise feature
+	// "cluster_cores_over_limit" is in use. Nil when the broker predates the
+	// field (Redpanda 26.3).
+	CoreLimit *int `json:"core_limit,omitempty"`
 }
 
 // EnterpriseFeature is a Redpanda enterprise feature with its name, and whether it is in use.
