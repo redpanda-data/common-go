@@ -3,8 +3,8 @@ module github.com/redpanda-data/common-go/rpadmin
 go 1.25.10
 
 require (
-	buf.build/gen/go/redpandadata/core/connectrpc/go v1.20.0-20260714112317-973b760dcc8a.1
-	connectrpc.com/connect v1.20.0
+	buf.build/gen/go/redpandadata/core/connectrpc/go v1.21.0-20261027183222-7c410e23a924.1
+	connectrpc.com/connect v1.21.0
 	github.com/foxcpp/go-mockdns v1.2.0
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/redpanda-data/common-go/net v0.1.0
@@ -17,7 +17,7 @@ require (
 )
 
 require (
-	buf.build/gen/go/redpandadata/core/protocolbuffers/go v1.36.11-20260714112317-973b760dcc8a.1 // indirect
+	buf.build/gen/go/redpandadata/core/protocolbuffers/go v1.36.12-20261027183222-7c410e23a924.2 // indirect
 	dario.cat/mergo v1.0.2 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20250102033503-faa5f7b0171c // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
@@ -77,6 +77,6 @@ require (
 	golang.org/x/sys v0.44.0 // indirect
 	golang.org/x/tools v0.45.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260511170946-3700d4141b60 // indirect
-	google.golang.org/protobuf v1.36.11 // indirect
+	google.golang.org/protobuf v1.36.12 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

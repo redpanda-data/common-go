@@ -26,6 +26,11 @@ func (a *AdminAPI) ShadowLinkService(opts ...connect.ClientOption) adminv2connec
 	return adminv2connect.NewShadowLinkServiceClient(a, "/", withDefaultClientOpts(opts)...)
 }
 
+// ShadowBoxService returns a client for the ShadowBoxService of the Admin API V2.
+func (a *AdminAPI) ShadowBoxService(opts ...connect.ClientOption) adminv2connect.ShadowBoxServiceClient {
+	return adminv2connect.NewShadowBoxServiceClient(a, "/", withDefaultClientOpts(opts)...)
+}
+
 // ClusterService returns a client for the ClusterService of the Admin API V2.
 func (a *AdminAPI) ClusterService(opts ...connect.ClientOption) adminv2connect.ClusterServiceClient {
 	return adminv2connect.NewClusterServiceClient(a, "/", withDefaultClientOpts(opts)...)

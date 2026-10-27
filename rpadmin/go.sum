@@ -1,9 +1,9 @@
-buf.build/gen/go/redpandadata/core/connectrpc/go v1.20.0-20260714112317-973b760dcc8a.1 h1:y/s+d4Rs8VOJmZ9XWGtlIryBS9KjW7tw/91DXq4zmbY=
-buf.build/gen/go/redpandadata/core/connectrpc/go v1.20.0-20260714112317-973b760dcc8a.1/go.mod h1:6Gz1o83Z3bQPmM5s8IM5gISZ/WKcJ5dj00FKvw6sU8E=
-buf.build/gen/go/redpandadata/core/protocolbuffers/go v1.36.11-20260714112317-973b760dcc8a.1 h1:EZf0jhr/+S98atH0Y5MFbNRbLtUTOemtDq39+fQCnd0=
-buf.build/gen/go/redpandadata/core/protocolbuffers/go v1.36.11-20260714112317-973b760dcc8a.1/go.mod h1:5sjUVquVwNxt3Q/EhE/UW0BBJ5sgPiaVTw8//wxRULI=
-connectrpc.com/connect v1.20.0 h1:6TNDAB+WeNd2uolWNlYczB5E0KNNaVMNUEx8JEUsPmQ=
-connectrpc.com/connect v1.20.0/go.mod h1:A2ygJrukXwWy32vkCAAHNVguZrqZ+jeZ9rGRnGR4dN4=
+buf.build/gen/go/redpandadata/core/connectrpc/go v1.21.0-20261027183222-7c410e23a924.1 h1:CclB8r7Q85B6FV6LQ+C5S7FNDt/QAO75v4WiwDrFcxw=
+buf.build/gen/go/redpandadata/core/connectrpc/go v1.21.0-20261027183222-7c410e23a924.1/go.mod h1:BUT0LS4vAXUrOFr84bqyrMWPoAIfIslVygMWdsHYTx0=
+buf.build/gen/go/redpandadata/core/protocolbuffers/go v1.36.12-20261027183222-7c410e23a924.2 h1:DF5UZI1hpoR4M9UagLrtb/3OULUzzt/WnP0Uemj0cSY=
+buf.build/gen/go/redpandadata/core/protocolbuffers/go v1.36.12-20261027183222-7c410e23a924.2/go.mod h1:d9lUXnbf1/9H3xSUutCtB11clg6KoilGsb0lAuypzbs=
+connectrpc.com/connect v1.21.0 h1:LhqSJt7jHf5NJBo9Jq/t/9FjcYAideif0mg+qe2jCUs=
+connectrpc.com/connect v1.21.0/go.mod h1:A2ygJrukXwWy32vkCAAHNVguZrqZ+jeZ9rGRnGR4dN4=
 dario.cat/mergo v1.0.2 h1:85+piFYR1tMbRrLcDwR18y4UKJ3aH1Tbzi24VRW1TK8=
 dario.cat/mergo v1.0.2/go.mod h1:E/hbnu0NxMFBjpMIE34DRGLWqDy0g5FuKDhCb31ngxA=
 github.com/AdaLogics/go-fuzz-headers v0.0.0-20240806141605-e8a1dd7889d6 h1:He8afgbRMd7mFxO99hRNu+6tazq8nFF9lIwo9JFroBk=
@@ -229,8 +229,8 @@ golang.org/x/xerrors v0.0.0-20190717185122-a985d3407aa7/go.mod h1:I/5z698sn9Ka8T
 golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543/go.mod h1:I/5z698sn9Ka8TeJc9MKroUUfqBBauWjQqLJ2OPfmY0=
 google.golang.org/genproto/googleapis/api v0.0.0-20260511170946-3700d4141b60 h1:3WsB1FAbiRIf2tOxscWKs3pQBD9he1NsrnbhMuWfekc=
 google.golang.org/genproto/googleapis/api v0.0.0-20260511170946-3700d4141b60/go.mod h1:7yoXV7RIh5gblj/xVYoogxAWvA9wUeVbpsK/M694l00=
-google.golang.org/protobuf v1.36.11 h1:fV6ZwhNocDyBLK0dj+fg8ektcVegBBuEolpbTQyBNVE=
-google.golang.org/protobuf v1.36.11/go.mod h1:HTf+CrKn2C3g5S8VImy6tdcUvCska2kB7j23XfzDpco=
+google.golang.org/protobuf v1.36.12 h1:pJOKDDOyeXErUroCihFAd5LQuwXBSpVnKGrj5o/fwxc=
+google.golang.org/protobuf v1.36.12/go.mod h1:HTf+CrKn2C3g5S8VImy6tdcUvCska2kB7j23XfzDpco=
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
 gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c h1:Hei/4ADfdWqJk1ZMxUNpqntNwaWcugrBjAiHlqqRiVk=
 gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c/go.mod h1:JHkPIbrfpd72SG/EVd6muEfDQjcINNoR0C8j2r3qZ4Q=
