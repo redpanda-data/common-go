@@ -20,17 +20,50 @@ on:
 
 env:
   GOLANGCI_LINT_VERSION: v2.13.2
+  LINT_DIRS: '["api", "rpadmin", "secrets", "net", "rpsr", "redpanda-otel-exporter", "authz", "kvstore", "license", "licenseupdater", "kube", "telemetry", "ocsf", "portmapper", "protoc-gen-go-sr-normalize"]'
 
 permissions:
   contents: read
 
 jobs:
+  changes:
+    name: Detect changed modules
+    runs-on: ubuntu-latest
+    outputs:
+      dirs: ${{ steps.dirs.outputs.dirs }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Pull requests lint only the modules they touch. Pushes to main and
+      # changes to the shared lint setup lint every module.
+      - id: dirs
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if [ "$EVENT" != "pull_request" ]; then
+            echo "dirs=$LINT_DIRS" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          changed=$(git diff --name-only "$BASE...$HEAD")
+          if echo "$changed" | grep -qxE '\.golangci\.yaml|\.github/workflows/golangci-lint\.yaml'; then
+            echo "dirs=$LINT_DIRS" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          dirs=$(echo "$changed" | cut -d/ -f1 | sort -u | jq -Rsc --argjson all "$LINT_DIRS" 'split("\n") | map(select(. as $d | $all | index($d)))')
+          echo "dirs=$dirs" >> "$GITHUB_OUTPUT"
+
   golangci:
     name: lint (${{ matrix.dir }})
+    needs: changes
+    if: needs.changes.outputs.dirs != '[]'
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        dir: [api, rpadmin, secrets, net, rpsr, redpanda-otel-exporter, authz, kvstore, license, licenseupdater, kube, telemetry, ocsf, portmapper, protoc-gen-go-sr-normalize]
+        dir: ${{ fromJSON(needs.changes.outputs.dirs) }}
     steps:
       - uses: actions/checkout@v4
 
