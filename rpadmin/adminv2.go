@@ -51,6 +51,11 @@ func (a *AdminAPI) IcebergService(opts ...connect.ClientOption) adminv2connect.I
 	return adminv2connect.NewIcebergServiceClient(a, "/", withDefaultClientOpts(opts)...)
 }
 
+// TopicService returns a client for the TopicService of the Admin API V2.
+func (a *AdminAPI) TopicService(opts ...connect.ClientOption) adminv2connect.TopicServiceClient {
+	return adminv2connect.NewTopicServiceClient(a, "/", withDefaultClientOpts(opts)...)
+}
+
 // newContentTypeInterceptor is a Connect interceptor that sets the Content-Type
 // and Accept headers to "application/proto" for all requests. This ensures that
 // we override the default "application/json" used by some of our shared
